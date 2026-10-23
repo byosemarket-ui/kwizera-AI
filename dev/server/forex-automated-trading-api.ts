@@ -337,6 +337,76 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 57.1 — master automation START/STOP (monitoring only; never broker execution).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/automation/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        automation: service.getAutomationControlStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/automation/start")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.startAutomation({
+        expectedStateVersion:
+          typeof body.expectedStateVersion === "number" ? body.expectedStateVersion : undefined,
+        instrument: body.instrument,
+        timeframe: body.timeframe,
+        operatorHint: "admin",
+      });
+      sendJson(res, result.ok ? 200 : result.code === "STALE_STATE_VERSION" ? 409 : 422, {
+        ok: result.ok,
+        code: result.code,
+        message: result.message,
+        automation: result.automation,
+        status: result.status,
+        monitor: result.monitor,
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+        entryGenerationEnabled: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/automation/stop")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.stopAutomation({
+        expectedStateVersion:
+          typeof body.expectedStateVersion === "number" ? body.expectedStateVersion : undefined,
+        operatorHint: "admin",
+      });
+      sendJson(res, 200, {
+        ok: true,
+        code: result.code,
+        message: result.message,
+        automation: result.automation,
+        status: result.status,
+        monitor: result.monitor,
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+        entryGenerationEnabled: false,
+      });
+      return true;
+    }
+
     if (isAtPath(url.pathname, "/api/forex/automated-trading/monitor/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });

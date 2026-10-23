@@ -67,6 +67,12 @@ import {
   type BrokerRoObservation,
 } from "./broker-intent/index.js";
 import {
+  getAtAutomationControlStore,
+  evaluateAutomationStartReadiness,
+  toAutomationPublicStatus,
+  type AutomationControlPublicStatus,
+} from "./automation-control/index.js";
+import {
   assembleVerificationResult,
   uiEnvFromFc,
 } from "./verification-engine.js";
@@ -107,6 +113,376 @@ export class AutomatedTradingService {
 
   getMonitorStatus(): AtMonitorPublicStatus {
     return this.monitor.getPublicStatus();
+  }
+
+  /** Phase 57.1 — authoritative automation START/STOP status. */
+  getAutomationControlStatus(): AutomationControlPublicStatus {
+    return toAutomationPublicStatus(getAtAutomationControlStore().get());
+  }
+
+  /**
+   * Phase 57.1 — START AUTO (monitoring/analysis only).
+   * Never enables broker execution, masterEnable, or placesOrders.
+   */
+  async startAutomation(input?: {
+    expectedStateVersion?: number;
+    instrument?: unknown;
+    timeframe?: unknown;
+    operatorHint?: string;
+  }): Promise<{
+    ok: boolean;
+    code: string;
+    message: string;
+    automation: AutomationControlPublicStatus;
+    status: AutomatedTradingPublicStatus;
+    monitor: AtMonitorPublicStatus;
+    placesOrders: false;
+    acceptsForExecution: false;
+    brokerExecution: "DISABLED";
+  }> {
+    const autoStore = getAtAutomationControlStore();
+    const before = autoStore.get();
+    const expected =
+      typeof input?.expectedStateVersion === "number"
+        ? input.expectedStateVersion
+        : before.stateVersion;
+
+    // Idempotent: already MONITORING with requested ON.
+    if (
+      before.requestedMode === "ON"
+      && before.lifecycle === "MONITORING"
+      && before.stateVersion === expected
+    ) {
+      return {
+        ok: true,
+        code: "ALREADY_MONITORING",
+        message: "Automation already MONITORING (broker execution still DISABLED).",
+        automation: toAutomationPublicStatus(before),
+        status: await this.buildStatus(),
+        monitor: this.monitor.getPublicStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      };
+    }
+
+    const starting = await autoStore.compareAndSet(expected, (prev) => ({
+      ...prev,
+      requestedMode: "ON",
+      lifecycle: "STARTING",
+      reasonCode: "NONE",
+      reasonMessage: "Starting automation readiness checks…",
+      lastOperatorHint: String(input?.operatorHint ?? "admin").slice(0, 64),
+      monitoringDesired: true,
+      entryGenerationEnabled: false,
+      placesOrders: false,
+      acceptsForExecution: false,
+      brokerExecution: "DISABLED",
+    }));
+    if (!starting) {
+      return {
+        ok: false,
+        code: "STALE_STATE_VERSION",
+        message: "Stale automation state version — refresh and retry.",
+        automation: toAutomationPublicStatus(autoStore.get()),
+        status: await this.buildStatus(),
+        monitor: this.monitor.getPublicStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      };
+    }
+
+    const pub = await this.buildStatus();
+    const env = pub.selectedEnvironment;
+    const controls = pub.controls;
+    const instrument = String(
+      input?.instrument
+        ?? this.store.getState().environments[env].selectedInstrument
+        ?? "",
+    ).trim();
+    const readiness = evaluateAutomationStartReadiness({
+      masterEnable: controls.masterEnable === true,
+      emergencyEntryLock: controls.emergencyEntryLock === true,
+      placesOrders: false,
+      acceptsForExecution: false,
+      forexConnectTradingEnabled: false,
+      automaticEntryEnabled: false,
+      automaticReentryEnabled: false,
+      instrumentConfigured: Boolean(instrument),
+      quoteFresh: pub.quoteFreshness?.fresh ?? null,
+      monitorCanStart: true,
+    });
+
+    if (!readiness.ok) {
+      const blocked = await autoStore.forceSet((prev) => ({
+        ...prev,
+        requestedMode: "ON",
+        lifecycle: "BLOCKED",
+        reasonCode: readiness.reasonCode,
+        reasonMessage: readiness.reasonMessage,
+        monitoringDesired: false,
+        entryGenerationEnabled: false,
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      }));
+      await this.store.appendAudit({
+        action: "automation_start_blocked",
+        environment: env,
+        ok: false,
+        code: readiness.reasonCode,
+        detail: String(readiness.reasonMessage ?? readiness.reasonCode).slice(0, 160),
+      });
+      return {
+        ok: false,
+        code: readiness.reasonCode,
+        message: readiness.reasonMessage ?? "Automation start blocked.",
+        automation: toAutomationPublicStatus(blocked),
+        status: await this.buildStatus(),
+        monitor: this.monitor.getPublicStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      };
+    }
+
+    const mon = await this.startMonitoring({
+      environment: env,
+      instrument,
+      timeframe: input?.timeframe,
+      expectedEnvironmentEpoch: pub.environmentEpoch,
+    });
+
+    if (!mon.ok) {
+      const blocked = await autoStore.forceSet((prev) => ({
+        ...prev,
+        requestedMode: "ON",
+        lifecycle: "BLOCKED",
+        reasonCode: "MONITOR_START_FAILED",
+        reasonMessage: mon.message,
+        monitoringDesired: false,
+        entryGenerationEnabled: false,
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      }));
+      await this.store.appendAudit({
+        action: "automation_start_blocked",
+        environment: env,
+        ok: false,
+        code: "MONITOR_START_FAILED",
+        detail: mon.message.slice(0, 160),
+      });
+      return {
+        ok: false,
+        code: "MONITOR_START_FAILED",
+        message: mon.message,
+        automation: toAutomationPublicStatus(blocked),
+        status: mon.status,
+        monitor: mon.monitor,
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      };
+    }
+
+    const active = await autoStore.forceSet((prev) => ({
+      ...prev,
+      requestedMode: "ON",
+      lifecycle: "MONITORING",
+      reasonCode: "NONE",
+      reasonMessage:
+        "Market monitoring ACTIVE. Broker execution DISABLED. Entry generation DISABLED.",
+      monitoringDesired: true,
+      lastMonitoringAtUtc: new Date().toISOString(),
+      entryGenerationEnabled: false,
+      placesOrders: false,
+      acceptsForExecution: false,
+      brokerExecution: "DISABLED",
+    }));
+    await this.store.appendAudit({
+      action: "automation_started",
+      environment: env,
+      ok: true,
+      code: "MONITORING",
+      detail: `${instrument} monitoring; brokerExecution=DISABLED`.slice(0, 160),
+    });
+
+    return {
+      ok: true,
+      code: "MONITORING",
+      message:
+        "Automation MONITORING — market analysis may run. Broker execution remains DISABLED.",
+      automation: toAutomationPublicStatus(active),
+      status: mon.status,
+      monitor: mon.monitor,
+      placesOrders: false,
+      acceptsForExecution: false,
+      brokerExecution: "DISABLED",
+    };
+  }
+
+  /**
+   * Phase 57.1 — STOP AUTO. Idempotent. Blocks new entry-producing work (already disabled)
+   * and stops monitoring worker. Never cancels broker orders (none authorized).
+   */
+  async stopAutomation(input?: {
+    expectedStateVersion?: number;
+    operatorHint?: string;
+  }): Promise<{
+    ok: true;
+    code: string;
+    message: string;
+    automation: AutomationControlPublicStatus;
+    status: AutomatedTradingPublicStatus;
+    monitor: AtMonitorPublicStatus;
+    placesOrders: false;
+    acceptsForExecution: false;
+    brokerExecution: "DISABLED";
+  }> {
+    const autoStore = getAtAutomationControlStore();
+    const before = autoStore.get();
+    const expected =
+      typeof input?.expectedStateVersion === "number"
+        ? input.expectedStateVersion
+        : before.stateVersion;
+
+    if (before.requestedMode === "OFF" && before.lifecycle === "OFF") {
+      return {
+        ok: true,
+        code: "ALREADY_OFF",
+        message: "Automation already OFF.",
+        automation: toAutomationPublicStatus(before),
+        status: await this.buildStatus(),
+        monitor: this.monitor.getPublicStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      };
+    }
+
+    const stopping = await autoStore.compareAndSet(expected, (prev) => ({
+      ...prev,
+      requestedMode: "OFF",
+      lifecycle: "STOPPING",
+      reasonCode: "OPERATOR_STOP",
+      reasonMessage: "Stopping automation…",
+      lastOperatorHint: String(input?.operatorHint ?? "admin").slice(0, 64),
+      monitoringDesired: false,
+      entryGenerationEnabled: false,
+      placesOrders: false,
+      acceptsForExecution: false,
+      brokerExecution: "DISABLED",
+    }));
+
+    if (!stopping) {
+      // Stale version — still force stop for safety (fail closed toward OFF).
+      await autoStore.forceSet((prev) => ({
+        ...prev,
+        requestedMode: "OFF",
+        lifecycle: "STOPPING",
+        reasonCode: "OPERATOR_STOP",
+        reasonMessage: "Stop forced after stale version — fail closed.",
+        monitoringDesired: false,
+        entryGenerationEnabled: false,
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      }));
+    }
+
+    const mon = await this.stopMonitoring();
+    const off = await autoStore.forceSet((prev) => ({
+      ...prev,
+      requestedMode: "OFF",
+      lifecycle: "OFF",
+      reasonCode: "OPERATOR_STOP",
+      reasonMessage: "Automation OFF. Broker execution DISABLED. No broker orders cancelled (none authorized).",
+      monitoringDesired: false,
+      entryGenerationEnabled: false,
+      placesOrders: false,
+      acceptsForExecution: false,
+      brokerExecution: "DISABLED",
+    }));
+
+    await this.store.appendAudit({
+      action: "automation_stopped",
+      environment: this.store.getState().selectedEnvironment,
+      ok: true,
+      code: "OFF",
+      detail: "STOP AUTO — monitoring stopped; entry generation remains disabled.",
+    });
+
+    return {
+      ok: true,
+      code: "OFF",
+      message: "Automation OFF. Broker execution remains DISABLED.",
+      automation: toAutomationPublicStatus(off),
+      status: mon.status,
+      monitor: mon.monitor,
+      placesOrders: false,
+      acceptsForExecution: false,
+      brokerExecution: "DISABLED",
+    };
+  }
+
+  /**
+   * Phase 57.1 — After process restart: never silently resume entry generation.
+   * If requestedMode was ON, move to BLOCKED/STARTING path requiring explicit re-check;
+   * do not invent MONITORING without re-validating.
+   */
+  async recoverAutomationControlOnBoot(): Promise<void> {
+    const autoStore = getAtAutomationControlStore();
+    const cur = autoStore.get();
+    // Always clear entry generation.
+    if (
+      cur.lifecycle === "MONITORING"
+      || cur.lifecycle === "STARTING"
+      || (cur.requestedMode === "ON" && cur.monitoringDesired)
+    ) {
+      await autoStore.forceSet((prev) => ({
+        ...prev,
+        lifecycle: "BLOCKED",
+        reasonCode: "AMBIGUOUS_RECOVERY",
+        reasonMessage:
+          "Process restart — re-run START AUTO to resume monitoring. Broker execution remains DISABLED.",
+        monitoringDesired: false,
+        entryGenerationEnabled: false,
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      }));
+    } else if (cur.lifecycle === "STOPPING") {
+      await autoStore.forceSet((prev) => ({
+        ...prev,
+        requestedMode: "OFF",
+        lifecycle: "OFF",
+        reasonCode: "OPERATOR_STOP",
+        reasonMessage: "Recovered STOPPING → OFF after restart.",
+        monitoringDesired: false,
+        entryGenerationEnabled: false,
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      }));
+    } else {
+      // Ensure invariants on disk.
+      if (
+        cur.entryGenerationEnabled !== false
+        || cur.placesOrders !== false
+        || cur.acceptsForExecution !== false
+        || cur.brokerExecution !== "DISABLED"
+      ) {
+        await autoStore.forceSet((prev) => ({
+          ...prev,
+          entryGenerationEnabled: false,
+          placesOrders: false,
+          acceptsForExecution: false,
+          brokerExecution: "DISABLED",
+        }));
+      }
+    }
   }
 
   async startMonitoring(input: {
@@ -2395,6 +2771,10 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
     // Phase 56.4.7 — fail-closed sim lifecycle recovery (never broker; never fabricate fills).
     void serviceSingleton.recoverSimLifecycleFromPersistence().catch(() => {
       // Recovery errors must not block service construction; positions remain on disk.
+    });
+    // Phase 57.1 — automation control fail-closed recovery (never resume entry generation).
+    void serviceSingleton.recoverAutomationControlOnBoot().catch(() => {
+      /* keep defaults */
     });
   }
   return serviceSingleton;

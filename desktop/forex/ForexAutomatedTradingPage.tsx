@@ -311,6 +311,25 @@ export function ForexAutomatedTradingPage(props: {
     note?: string;
   } | null>(null);
   const [simLifeBusy, setSimLifeBusy] = useState(false);
+  /** Phase 57.1 — server-authoritative automation START/STOP. */
+  const [automation, setAutomation] = useState<{
+    stateVersion?: number;
+    requestedMode?: "ON" | "OFF";
+    lifecycle?: string;
+    reasonCode?: string;
+    reasonMessage?: string | null;
+    lastChangedAtUtc?: string;
+    automationRequested?: boolean;
+    marketMonitoring?: string;
+    brokerExecution?: "DISABLED";
+    executionReadiness?: "BLOCKED";
+    entryGenerationEnabled?: false;
+    placesOrders?: false;
+    acceptsForExecution?: false;
+    note?: string;
+  } | null>(null);
+  const [autoBusy, setAutoBusy] = useState(false);
+
   /** Phase 57.0 — broker-intent architecture status (never execution). */
   const [brokerIntent, setBrokerIntent] = useState<{
     phase?: string;
@@ -342,7 +361,7 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
@@ -353,6 +372,7 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/simulation-risk/history?limit=8", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/simulation-lifecycle/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/broker-intent/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/automation/status", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -376,6 +396,10 @@ export function ForexAutomatedTradingPage(props: {
       const biJson = await biRes.json() as {
         ok?: boolean;
         brokerIntent?: typeof brokerIntent;
+      };
+      const autoJson = await autoRes.json() as {
+        ok?: boolean;
+        automation?: typeof automation;
       };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
@@ -404,6 +428,7 @@ export function ForexAutomatedTradingPage(props: {
       }
       if (lifeRes.ok && lifeJson.ok && lifeJson.lifecycle) setSimLifecycle(lifeJson.lifecycle);
       if (biRes.ok && biJson.ok && biJson.brokerIntent) setBrokerIntent(biJson.brokerIntent);
+      if (autoRes.ok && autoJson.ok && autoJson.automation) setAutomation(autoJson.automation);
     } catch (err) {
       if (n !== seq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load Automated Trading status");
@@ -814,6 +839,79 @@ export function ForexAutomatedTradingPage(props: {
     }
   };
 
+  /** Phase 57.1 — START AUTO (server-authoritative; never broker execution). */
+  const startAutomationUi = async () => {
+    if (autoBusy) return;
+    const ok = window.confirm(
+      "START AUTO will request server-side market monitoring and analysis.\n\nBroker order execution remains DISABLED.\nMaster Trading stays OFF. Emergency Entry Lock stays ON.\n\nContinue?",
+    );
+    if (!ok) return;
+    setAutoBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/automation/start", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          expectedStateVersion: automation?.stateVersion,
+          timeframe: monitorTf,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        message?: string;
+        code?: string;
+        automation?: typeof automation;
+        status?: PublicStatus;
+        monitor?: typeof monitor;
+        error?: { message?: string; code?: string };
+      };
+      if (data.automation) setAutomation(data.automation);
+      if (data.status) setStatus(data.status);
+      if (data.monitor) setMonitor(data.monitor);
+      if (!res.ok || !data.ok) {
+        setError(data.message || data.error?.message || data.code || `START AUTO failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "START AUTO failed");
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
+  const stopAutomationUi = async () => {
+    if (autoBusy) return;
+    setAutoBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/automation/stop", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({ expectedStateVersion: automation?.stateVersion }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        message?: string;
+        automation?: typeof automation;
+        status?: PublicStatus;
+        monitor?: typeof monitor;
+        error?: { message?: string };
+      };
+      if (data.automation) setAutomation(data.automation);
+      if (data.status) setStatus(data.status);
+      if (data.monitor) setMonitor(data.monitor);
+      if (!res.ok || !data.ok) {
+        setError(data.message || data.error?.message || `STOP AUTO failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "STOP AUTO failed");
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
   /** Phase 56.4.6 — Admin controlled sim inject (never broker). */
   const controlledSimInjectUi = async (
     positionId: string,
@@ -994,6 +1092,92 @@ export function ForexAutomatedTradingPage(props: {
       <p className="fx-auto-trading-banner" role="status" data-fx-execution-banner="true">
         {status?.banner ?? BANNER}
       </p>
+
+      <section
+        className="fx-auto-trading-panel"
+        data-fx-at-automation-control="true"
+        aria-label="Automated trading master START STOP control"
+      >
+        <h2 className="fx-auto-trading-panel-title">Automation control</h2>
+        <div className="fx-auto-trading-token-row" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
+          <button
+            type="button"
+            className="fx-capture-button"
+            data-fx-at-automation-start="true"
+            disabled={busy || autoBusy || !token}
+            onClick={() => void startAutomationUi()}
+            aria-label="Start auto market monitoring"
+          >
+            {autoBusy ? "Working…" : "START AUTO"}
+          </button>
+          <button
+            type="button"
+            className="fx-btn fx-btn--ghost"
+            data-fx-at-automation-stop="true"
+            disabled={busy || autoBusy || !token}
+            onClick={() => void stopAutomationUi()}
+            aria-label="Stop auto market monitoring"
+          >
+            STOP AUTO
+          </button>
+          <ForexStatusBadge
+            tone={
+              automation?.lifecycle === "MONITORING"
+                ? "ok"
+                : automation?.lifecycle === "BLOCKED" || automation?.lifecycle === "ERROR"
+                  ? "danger"
+                  : "future"
+            }
+          >
+            {automation?.lifecycle ?? "OFF"}
+          </ForexStatusBadge>
+        </div>
+        <ul className="fx-auto-trading-hint" style={{ margin: "0.5rem 0 0", paddingLeft: "1.1rem" }}>
+          <li>
+            Requested: <strong>{automation?.requestedMode ?? "OFF"}</strong>
+            {" · "}
+            Server: <strong>{automation?.lifecycle ?? "OFF"}</strong>
+            {" · "}
+            v{automation?.stateVersion ?? "—"}
+          </li>
+          <li>
+            Market monitoring: <strong>{automation?.marketMonitoring ?? "INACTIVE"}</strong>
+            {" · "}
+            Broker execution: <strong>{automation?.brokerExecution ?? "DISABLED"}</strong>
+            {" · "}
+            Execution readiness: <strong>{automation?.executionReadiness ?? "BLOCKED"}</strong>
+          </li>
+          <li>
+            Entry generation: OFF · placesOrders={String(automation?.placesOrders ?? false)} ·
+            acceptsForExecution={String(automation?.acceptsForExecution ?? false)}
+          </li>
+          {automation?.reasonMessage ? (
+            <li data-fx-at-automation-reason="true">{automation.reasonMessage}</li>
+          ) : null}
+          <li>
+            Quote freshness:{" "}
+            {status?.quoteFreshness?.fresh === true
+              ? "FRESH"
+              : status?.quoteFreshness?.fresh === false
+                ? `STALE (${status.quoteFreshness.reasonCode})`
+                : "UNKNOWN"}
+            {status?.quoteFreshness?.evaluatedAtUtc
+              ? ` · evaluated ${status.quoteFreshness.evaluatedAtUtc}`
+              : ""}
+          </li>
+          <li>
+            Monitor worker: {monitor?.health?.workerState ?? "—"}
+            {monitor?.health?.workerActive ? " (active)" : ""}
+            {monitor?.health?.lastQuoteChangeAtUtc
+              ? ` · last quote change ${monitor.health.lastQuoteChangeAtUtc}`
+              : ""}
+          </li>
+          <li>
+            Emergency lock: {status?.controls.emergencyEntryLock ? "ON" : "OFF"} · Master enable:{" "}
+            {status?.controls.masterEnable ? "ON" : "OFF"} (must stay OFF for broker safety)
+          </li>
+        </ul>
+      </section>
 
       <section
         className="fx-auto-trading-panel"
