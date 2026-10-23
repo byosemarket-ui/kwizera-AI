@@ -18,8 +18,8 @@
 | Baseline (Phase 57.6 documentation) | `955dd9ed` |
 | Repo HEAD at certification start | `955dd9ed` |
 | Deployed at live checks | `955dd9ed` (`verifiedLive=true`) |
-| Phase 57.7 feature (schema-echo normalize + tests) | _(fill on commit)_ |
-| Phase 57.7 documentation | _(fill on commit)_ |
+| Phase 57.7 feature (schema-echo normalize + tests) | `f0b3d5c5` |
+| Phase 57.7 documentation | `f0b3d5c5` |
 
 ---
 
