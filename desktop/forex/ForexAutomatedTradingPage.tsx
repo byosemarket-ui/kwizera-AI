@@ -385,13 +385,19 @@ export function ForexAutomatedTradingPage(props: {
   const [demoLifecycle, setDemoLifecycle] = useState<{
     mayAttemptDemoMutation?: boolean;
     blockers?: string[];
+    ownerActionChecklist?: string[];
     environment?: string | null;
     connected?: boolean;
     activeGrantCount?: number;
     mutationEnvEnabled?: boolean;
+    sidecarMutationEnvEnabled?: boolean;
+    nodeMutationEnvEnabled?: boolean;
     liveLocked?: boolean;
     protectiveSurfaceDocumented?: boolean;
+    authErrorCode?: string | null;
   } | null>(null);
+  const [demoGrantBusy, setDemoGrantBusy] = useState(false);
+  const [demoQuoteProbe, setDemoQuoteProbe] = useState<string | null>(null);
   const seq = useRef(0);
 
   const shellInstrument = fcInstrumentFromMarket(props.selectedMarket ?? null);
@@ -446,12 +452,16 @@ export function ForexAutomatedTradingPage(props: {
         ok?: boolean;
         mayAttemptDemoMutation?: boolean;
         blockers?: string[];
+        ownerActionChecklist?: string[];
         environment?: string | null;
         connected?: boolean;
         activeGrantCount?: number;
         mutationEnvEnabled?: boolean;
+        sidecarMutationEnvEnabled?: boolean;
+        nodeMutationEnvEnabled?: boolean;
         liveLocked?: boolean;
         protectiveSurfaceDocumented?: boolean;
+        error?: { code?: string; message?: string };
       };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
@@ -485,12 +495,29 @@ export function ForexAutomatedTradingPage(props: {
         setDemoLifecycle({
           mayAttemptDemoMutation: Boolean(demoJson.mayAttemptDemoMutation),
           blockers: Array.isArray(demoJson.blockers) ? demoJson.blockers.map(String) : [],
+          ownerActionChecklist: Array.isArray(demoJson.ownerActionChecklist)
+            ? demoJson.ownerActionChecklist.map(String)
+            : [],
           environment: demoJson.environment ?? null,
           connected: Boolean(demoJson.connected),
           activeGrantCount: Number(demoJson.activeGrantCount ?? 0),
           mutationEnvEnabled: Boolean(demoJson.mutationEnvEnabled),
+          sidecarMutationEnvEnabled: Boolean(demoJson.sidecarMutationEnvEnabled),
+          nodeMutationEnvEnabled: Boolean(demoJson.nodeMutationEnvEnabled),
           liveLocked: demoJson.liveLocked !== false,
           protectiveSurfaceDocumented: demoJson.protectiveSurfaceDocumented !== false,
+          authErrorCode: null,
+        });
+      } else if (demoRes.status === 403) {
+        setDemoLifecycle({
+          mayAttemptDemoMutation: false,
+          blockers: ["ADMIN_AUTHORIZATION_REQUIRED"],
+          ownerActionChecklist: [
+            "Paste Admin API token in Admin authorization below (x-kwizera-admin-token).",
+            "Token must match KWIZERA_ADMIN_API_TOKEN on the server — never commit or log it.",
+          ],
+          authErrorCode: demoJson?.error?.code ?? "ADMIN_FORBIDDEN",
+          liveLocked: true,
         });
       }
     } catch (err) {
@@ -1319,15 +1346,16 @@ export function ForexAutomatedTradingPage(props: {
         data-fx-at-demo-lifecycle="true"
         aria-label="DEMO execution certification readiness"
       >
-        <h2 className="fx-auto-trading-panel-title">DEMO lifecycle readiness (Phase 58.3)</h2>
+        <h2 className="fx-auto-trading-panel-title">DEMO lifecycle readiness (Phase 58.5)</h2>
         <p className="fx-auto-trading-hint">
-          Grant-scoped DEMO path: open/protect/cancel-pending/partial-close. LIVE locked. Global placesOrders remains false.
-          Mutations require server grant + sidecar flag — UI shows readiness only, not broker success.
+          Grant-scoped DEMO path: open/protect/cancel/partial-close. LIVE locked. placesOrders remains false.
+          Readiness is not broker success. Mutation stays fail-closed until owner config + grant.
         </p>
         <ul className="fx-auto-trading-hint" style={{ margin: "0.35rem 0 0", paddingLeft: "1.1rem" }}>
           <li>
             May attempt DEMO mutation:{" "}
             {demoLifecycle?.mayAttemptDemoMutation ? "YES (all gates)" : "NO"}
+            {demoLifecycle?.authErrorCode ? ` · auth=${demoLifecycle.authErrorCode}` : ""}
           </li>
           <li>
             Session: {demoLifecycle?.connected ? "CONNECTED" : "not connected"} · env=
@@ -1335,15 +1363,17 @@ export function ForexAutomatedTradingPage(props: {
             {String(demoLifecycle?.liveLocked ?? true)}
           </li>
           <li>
-            Sidecar mutation env: {demoLifecycle?.mutationEnvEnabled ? "ENABLED" : "DISABLED (default)"} ·
-            active grants: {demoLifecycle?.activeGrantCount ?? 0}
+            Mutation flags: node=
+            {demoLifecycle?.nodeMutationEnvEnabled ? "ON" : "OFF"} · sidecar=
+            {demoLifecycle?.sidecarMutationEnvEnabled ? "ON" : "OFF"} · combined=
+            {demoLifecycle?.mutationEnvEnabled ? "ON" : "OFF"} · grants=
+            {demoLifecycle?.activeGrantCount ?? 0}
           </li>
           <li>
             Protective surface:{" "}
             {demoLifecycle?.protectiveSurfaceDocumented === false
               ? "UNVERIFIED"
-              : "RATE_STOP/RATE_LIMIT + STOP/LIMIT+TRADE_ID"}
-            {" · "}Cancel/partial: documented in adapter
+              : "RATE_STOP/RATE_LIMIT + STOP/LIMIT+TRADE_ID · cancel/partial documented"}
           </li>
           <li>
             Blockers:{" "}
@@ -1351,7 +1381,88 @@ export function ForexAutomatedTradingPage(props: {
               ? demoLifecycle.blockers.join(", ")
               : "(none reported)"}
           </li>
+          {(demoLifecycle?.ownerActionChecklist && demoLifecycle.ownerActionChecklist.length > 0) ? (
+            <li>
+              Owner actions: {demoLifecycle.ownerActionChecklist.join(" | ")}
+            </li>
+          ) : null}
         </ul>
+        <div className="fx-auto-trading-hint" style={{ marginTop: "0.5rem", display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+          <button
+            type="button"
+            className="fx-auto-trading-btn"
+            disabled={!token || demoGrantBusy}
+            onClick={() => {
+              void (async () => {
+                if (!token) return;
+                setDemoGrantBusy(true);
+                try {
+                  const instrument = shellInstrument || "EUR/USD";
+                  const res = await fetch("/api/forex/automated-trading/demo-lifecycle/grant", {
+                    method: "POST",
+                    headers: adminHeaders(token),
+                    body: JSON.stringify({
+                      ttlMs: 15 * 60_000,
+                      maxLots: 1,
+                      instrumentAllowlist: [instrument],
+                    }),
+                  });
+                  const json = await res.json() as { ok?: boolean; error?: { message?: string }; grant?: { grantId?: string } };
+                  setDemoQuoteProbe(
+                    res.ok && json.ok
+                      ? `Grant created ${json.grant?.grantId ?? ""} (does not enable mutation).`
+                      : `Grant failed: ${json.error?.message || res.status}`,
+                  );
+                  await load();
+                } catch (err) {
+                  setDemoQuoteProbe(err instanceof Error ? err.message : "Grant failed");
+                } finally {
+                  setDemoGrantBusy(false);
+                }
+              })();
+            }}
+          >
+            Create short DEMO grant
+          </button>
+          <button
+            type="button"
+            className="fx-auto-trading-btn"
+            disabled={!token || demoGrantBusy}
+            onClick={() => {
+              void (async () => {
+                if (!token) return;
+                setDemoGrantBusy(true);
+                try {
+                  const instrument = shellInstrument || "EUR/USD";
+                  const res = await fetch("/api/forex/automated-trading/demo-lifecycle/quote-probe", {
+                    method: "POST",
+                    headers: adminHeaders(token),
+                    body: JSON.stringify({ instrument }),
+                  });
+                  const json = await res.json() as {
+                    ok?: boolean;
+                    quote?: { bid?: number; ask?: number; quotePresent?: boolean };
+                    error?: { message?: string };
+                  };
+                  setDemoQuoteProbe(
+                    res.ok && json.ok
+                      ? `Quote ${instrument}: bid=${json.quote?.bid ?? "?"} ask=${json.quote?.ask ?? "?"} present=${String(json.quote?.quotePresent)}`
+                      : `Quote probe failed: ${json.error?.message || res.status}`,
+                  );
+                } catch (err) {
+                  setDemoQuoteProbe(err instanceof Error ? err.message : "Quote probe failed");
+                } finally {
+                  setDemoGrantBusy(false);
+                }
+              })();
+            }}
+          >
+            Probe offer quote
+          </button>
+        </div>
+        {demoQuoteProbe ? (
+          <p className="fx-auto-trading-hint" style={{ marginTop: "0.35rem" }}>{demoQuoteProbe}</p>
+        ) : null}
       </section>
 
       <details className="fx-auto-trading-auth" data-fx-at-admin-auth="true">

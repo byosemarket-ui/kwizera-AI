@@ -35,7 +35,13 @@ export function requireForexAdmin(
   if (!decision.allowed) {
     sendJson(res, 403, {
       ok: false,
-      error: { code: "ADMIN_FORBIDDEN", message: decision.reason },
+      error: {
+        code: decision.code || "ADMIN_FORBIDDEN",
+        message: decision.reason,
+      },
+      placesOrders: false,
+      acceptsForExecution: false,
+      liveUnauthorized: true,
     });
     return false;
   }

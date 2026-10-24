@@ -9,7 +9,10 @@ import { dirname, join } from "node:path";
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
 import { evaluateProtectiveGeometry } from "../broker-intent/protective-geometry.js";
 import { getDemoExecutionGrantStore } from "./grant-store.js";
-import { getForexConnectDemoMutationAdapter } from "./forexconnect-mutation-adapter.js";
+import {
+  getForexConnectDemoMutationAdapter,
+  nodeDemoMutationEnvEnabled,
+} from "./forexconnect-mutation-adapter.js";
 import { evaluateDemoLifecyclePreflight } from "./preflight.js";
 import type {
   DemoCancelPendingRequest,
@@ -122,7 +125,7 @@ export class DemoLifecycleOrchestrator {
     const latest = this.records[0] ?? null;
     return {
       ok: true,
-      phase: "58.3",
+      phase: "58.5",
       placesOrdersGlobal: false,
       acceptsForExecutionGlobal: false,
       masterTradingGlobal: false,
@@ -163,8 +166,11 @@ export class DemoLifecycleOrchestrator {
     const env = String((status as { environment?: string }).environment || "").toLowerCase();
     const connected = String((status as { status?: string }).status || "") === "CONNECTED";
     const demoOk = env === "demo";
-    const mutationEnv = Boolean((caps as { mutationEnvEnabled?: boolean }).mutationEnvEnabled);
-    const secretOk = Boolean((caps as { mutationSecretConfigured?: boolean }).mutationSecretConfigured);
+    const sidecarMutationEnv = Boolean((caps as { mutationEnvEnabled?: boolean }).mutationEnvEnabled);
+    const nodeMutationEnv = nodeDemoMutationEnvEnabled();
+    const mutationEnv = sidecarMutationEnv && nodeMutationEnv;
+    const secretOk = Boolean((caps as { mutationSecretConfigured?: boolean }).mutationSecretConfigured)
+      && Boolean(String(process.env.KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET || "").trim());
     const sdkOk = Boolean((caps as { hasCreateOrderRequest?: boolean }).hasCreateOrderRequest)
       && Boolean((caps as { trueMarketOpen?: unknown }).trueMarketOpen != null
         || (caps as { ordersConstants?: string[] }).ordersConstants?.includes?.("TRUE_MARKET_OPEN"));
@@ -182,19 +188,45 @@ export class DemoLifecycleOrchestrator {
     const blockers: string[] = [];
     if (!connected) blockers.push("SESSION_NOT_CONNECTED");
     if (!demoOk) blockers.push("ENVIRONMENT_NOT_DEMO");
-    if (!mutationEnv) blockers.push("SIDECAR_MUTATION_ENV_DISABLED");
+    if (!sidecarMutationEnv) blockers.push("SIDECAR_MUTATION_ENV_DISABLED");
+    if (!nodeMutationEnv) blockers.push("NODE_MUTATION_ENV_DISABLED");
     if (!secretOk) blockers.push("MUTATION_SECRET_NOT_CONFIGURED");
     if (!sdkOk) blockers.push("SDK_MUTATION_SURFACE_UNVERIFIED");
     if (!protectiveSurface) blockers.push("SDK_PROTECTIVE_SURFACE_UNVERIFIED");
     if (getDemoExecutionGrantStore().listActive().length === 0) blockers.push("NO_ACTIVE_DEMO_GRANT");
 
+    const ownerActionChecklist: string[] = [];
+    if (!sidecarMutationEnv || !nodeMutationEnv) {
+      ownerActionChecklist.push(
+        "Set KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION=1 on both Node app and ForexConnect sidecar, then restart those processes only if authorized.",
+      );
+    }
+    if (!secretOk) {
+      ownerActionChecklist.push(
+        "Set identical KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET on Node + sidecar (never in browser).",
+      );
+    }
+    if (getDemoExecutionGrantStore().listActive().length === 0) {
+      ownerActionChecklist.push(
+        "Authenticate with Admin API token, then POST /demo-lifecycle/grant (short ttl, maxLots=1, instrument allowlist).",
+      );
+    }
+    ownerActionChecklist.push(
+      "Confirm offer-quote for the test instrument via POST /demo-lifecycle/quote-probe before open.",
+    );
+    ownerActionChecklist.push(
+      "After one controlled lifecycle: revoke grant and set ALLOW_DEMO_MUTATION back to off.",
+    );
+
     return {
       ok: blockers.length === 0,
-      phase: "58.3",
+      phase: "58.5",
       connected,
       environment: env || null,
       demoSession: demoOk,
       mutationEnvEnabled: mutationEnv,
+      sidecarMutationEnvEnabled: sidecarMutationEnv,
+      nodeMutationEnvEnabled: nodeMutationEnv,
       mutationSecretConfigured: secretOk,
       protectiveSurfaceDocumented: protectiveSurface,
       cancelSurfaceDocumented: cancelSurface,
@@ -202,9 +234,41 @@ export class DemoLifecycleOrchestrator {
       sdkCapabilities: caps,
       activeGrantCount: getDemoExecutionGrantStore().listActive().length,
       blockers,
+      ownerActionChecklist,
       mayAttemptDemoMutation: blockers.length === 0,
       placesOrdersGlobal: false,
       liveLocked: true,
+      note:
+        "Unauthenticated 403 on this route is correct. Mutation remains fail-closed until Node+sidecar flags, secret, and grant are all valid.",
+    };
+  }
+
+  /**
+   * Phase 58.5 — best-effort subscribe + Offers snapshot for DEMO preflight evidence.
+   * Does not mutate broker orders.
+   */
+  async probeQuote(instrument: string): Promise<Record<string, unknown>> {
+    const bridge = getForexConnectBridge();
+    const symbol = String(instrument || "").trim();
+    let subscribe: Record<string, unknown> | null = null;
+    try {
+      subscribe = await bridge.subscribeQuotes(symbol) as unknown as Record<string, unknown>;
+    } catch (error) {
+      subscribe = {
+        ok: false,
+        error: error instanceof Error ? error.message : "subscribe failed",
+      };
+    }
+    const quote = await getForexConnectDemoMutationAdapter().getOfferQuote(symbol);
+    return {
+      ok: Boolean(quote.ok) && Boolean(quote.quotePresent),
+      phase: "58.5",
+      instrument: symbol,
+      subscribe,
+      quote,
+      mutatesBroker: false,
+      placesOrdersGlobal: false,
+      note: "Offer table snapshot is the DEMO open preflight source; stream subscribe is best-effort.",
     };
   }
 
@@ -299,6 +363,12 @@ export class DemoLifecycleOrchestrator {
     }
 
     const adapter = getForexConnectDemoMutationAdapter();
+    // Best-effort Offers subscription so snapshot is more likely current.
+    try {
+      await getForexConnectBridge().subscribeQuotes(req.instrument);
+    } catch {
+      /* offer-quote snapshot remains authoritative for preflight */
+    }
     const quoteRaw = await adapter.getOfferQuote(req.instrument);
     const quotePresent = Boolean(quoteRaw.quotePresent ?? quoteRaw.ok);
     const quoteBid = quoteRaw.bid == null ? null : Number(quoteRaw.bid);

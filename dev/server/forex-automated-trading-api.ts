@@ -1121,7 +1121,7 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
-    // Phase 58.3 — DEMO lifecycle (grant-scoped). Allowlisted ahead of order|submit regex.
+    // Phase 58.5 — DEMO lifecycle (grant-scoped). Allowlisted ahead of order|submit regex.
     // Does NOT set placesOrders/acceptsForExecution globally. LIVE remains unauthorized.
     if (url.pathname.startsWith("/api/forex/automated-trading/demo-lifecycle")) {
       const {
@@ -1156,6 +1156,31 @@ export async function handleForexAutomatedTradingApi(
         return true;
       }
 
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/quote-probe")) {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+          return true;
+        }
+        const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+        const instrument = String(body.instrument ?? "").trim();
+        if (!instrument) {
+          sendJson(res, 400, {
+            ok: false,
+            error: { code: "INSTRUMENT_REQUIRED", message: "instrument is required." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        const probe = await orch.probeQuote(instrument);
+        sendJson(res, probe.ok ? 200 : 422, {
+          ...probe,
+          placesOrders: false,
+          acceptsForExecution: false,
+          liveUnauthorized: true,
+        });
+        return true;
+      }
+
       if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/grant")) {
         if (req.method !== "POST") {
           sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
@@ -1175,7 +1200,7 @@ export async function handleForexAutomatedTradingApi(
           grant,
           placesOrders: false,
           acceptsForExecution: false,
-          note: "Time-bounded DEMO grant created. Does not enable global trading or LIVE.",
+          note: "Time-bounded DEMO grant created. Does not enable global trading or LIVE. Does not enable mutation flag.",
         });
         return true;
       }

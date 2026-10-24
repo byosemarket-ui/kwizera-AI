@@ -24,6 +24,8 @@ export interface AdminAccessContext {
 export interface AdminAccessDecision {
   allowed: boolean;
   reason: string;
+  /** Optional machine-readable code (never a secret). */
+  code?: string;
   /** When false, callers must not return secrets even if allowed */
   mayRevealSecrets: boolean;
 }
@@ -96,6 +98,15 @@ export function assertAdminAccess(ctx: AdminAccessContext): AdminAccessDecision 
       return {
         allowed: false,
         reason: "Admin API token is not configured on the server",
+        code: "ADMIN_TOKEN_NOT_CONFIGURED",
+        mayRevealSecrets: false,
+      };
+    }
+    if (!ctx.adminToken || !String(ctx.adminToken).trim()) {
+      return {
+        allowed: false,
+        reason: "Admin API token missing from request (send x-kwizera-admin-token or Authorization Bearer)",
+        code: "ADMIN_TOKEN_MISSING",
         mayRevealSecrets: false,
       };
     }
@@ -103,10 +114,16 @@ export function assertAdminAccess(ctx: AdminAccessContext): AdminAccessDecision 
       return {
         allowed: true,
         reason: "Admin API token accepted",
+        code: "ADMIN_TOKEN_OK",
         mayRevealSecrets: false,
       };
     }
-    return { allowed: false, reason: "Admin API token required", mayRevealSecrets: false };
+    return {
+      allowed: false,
+      reason: "Admin API token invalid",
+      code: "ADMIN_TOKEN_INVALID",
+      mayRevealSecrets: false,
+    };
   }
 
   if (mode === "require-admin-role") {

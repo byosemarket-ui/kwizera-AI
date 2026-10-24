@@ -56,6 +56,36 @@ function secret(): string {
   return String(process.env.KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET || "").trim();
 }
 
+/** Node-side fail-closed mirror of sidecar ALLOW flag (defense in depth; sidecar remains authoritative). */
+export function nodeDemoMutationEnvEnabled(): boolean {
+  return ["1", "true", "yes", "on"].includes(
+    String(process.env.KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION || "").trim().toLowerCase(),
+  );
+}
+
+function requireNodeMutationGate(): DemoMutationOpenResult | null {
+  if (!nodeDemoMutationEnvEnabled()) {
+    return {
+      ok: false,
+      code: "NODE_DEMO_MUTATION_DISABLED",
+      error:
+        "Node KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION is not enabled. Sidecar flag alone is insufficient for this adapter.",
+      mutatesBroker: false,
+      raw: { ok: false, code: "NODE_DEMO_MUTATION_DISABLED", mutatesBroker: false },
+    };
+  }
+  if (!secret()) {
+    return {
+      ok: false,
+      code: "NODE_MUTATION_SECRET_MISSING",
+      error: "KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET is not configured on the Node process.",
+      mutatesBroker: false,
+      raw: { ok: false, code: "NODE_MUTATION_SECRET_MISSING", mutatesBroker: false },
+    };
+  }
+  return null;
+}
+
 function extractError(raw: Record<string, unknown>): string | null {
   if (raw.error && typeof raw.error === "object") {
     return String((raw.error as { message?: string }).message || "") || null;
@@ -86,6 +116,8 @@ export class ForexConnectDemoMutationAdapter {
     takeProfit?: number | null;
     attachProtectiveAfterFill?: boolean;
   }): Promise<DemoMutationOpenResult> {
+    const gated = requireNodeMutationGate();
+    if (gated) return gated;
     const bridge = getForexConnectBridge();
     const raw = await bridge.demoMutationOpenMarket({
       instrument: input.instrument,
@@ -117,6 +149,16 @@ export class ForexConnectDemoMutationAdapter {
     takeProfit?: number | null;
     accountId?: string | null;
   }): Promise<DemoMutationProtectResult> {
+    const gated = requireNodeMutationGate();
+    if (gated) {
+      return {
+        ok: false,
+        code: gated.code,
+        error: gated.error,
+        mutatesBroker: false,
+        raw: gated.raw,
+      };
+    }
     const bridge = getForexConnectBridge();
     const raw = await bridge.demoMutationAttachProtective({
       tradeId: input.tradeId,
@@ -159,6 +201,16 @@ export class ForexConnectDemoMutationAdapter {
     accountId?: string | null;
     amount?: number | null;
   }): Promise<DemoMutationCloseResult> {
+    const gated = requireNodeMutationGate();
+    if (gated) {
+      return {
+        ok: false,
+        code: gated.code,
+        error: gated.error,
+        mutatesBroker: false,
+        raw: gated.raw,
+      };
+    }
     const bridge = getForexConnectBridge();
     const raw = await bridge.demoMutationCloseTrade({
       tradeId: input.tradeId,
@@ -186,6 +238,16 @@ export class ForexConnectDemoMutationAdapter {
     brokerOrderId: string;
     accountId?: string | null;
   }): Promise<DemoMutationCancelResult> {
+    const gated = requireNodeMutationGate();
+    if (gated) {
+      return {
+        ok: false,
+        code: gated.code,
+        error: gated.error,
+        mutatesBroker: false,
+        raw: gated.raw,
+      };
+    }
     const bridge = getForexConnectBridge();
     const raw = await bridge.demoMutationCancelPending({
       brokerOrderId: input.brokerOrderId,
