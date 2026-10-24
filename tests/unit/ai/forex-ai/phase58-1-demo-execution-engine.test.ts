@@ -84,10 +84,11 @@ describe("Phase 58.1 wiring and safety", () => {
     expect(store).not.toMatch(/placesOrders\s*=\s*true/);
   });
 
-  it("orchestrator refuses requireProtective until broker attach is verified", () => {
+  it("orchestrator requires protective price levels when requireProtective (Phase 58.2)", () => {
     const orch = read("ai/forex-ai/automated-trading/demo-execution/orchestrator.ts");
-    expect(orch).toContain("PROTECTION_REQUIRED_BUT_UNVERIFIED");
+    expect(orch).toContain("PROTECTION_LEVELS_REQUIRED");
     expect(orch).toContain("requireProtective");
+    expect(orch).not.toContain("PROTECTION_REQUIRED_BUT_UNVERIFIED");
   });
 
   it("DisabledBrokerMutationAdapter remains for normal AT path", () => {

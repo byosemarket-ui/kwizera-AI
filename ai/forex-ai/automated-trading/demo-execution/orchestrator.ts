@@ -1,19 +1,23 @@
 /**
- * Phase 58.1 — DEMO lifecycle orchestrator.
- * Integrates grant checks + ForexConnect DEMO mutation adapter.
+ * Phase 58.3 — DEMO lifecycle orchestrator.
+ * Grant checks + quote/preflight + ForexConnect DEMO mutation (open/protect/cancel/close).
  * Does not enable global Master Trading, placesOrders, or automatic entry.
  */
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
+import { evaluateProtectiveGeometry } from "../broker-intent/protective-geometry.js";
 import { getDemoExecutionGrantStore } from "./grant-store.js";
 import { getForexConnectDemoMutationAdapter } from "./forexconnect-mutation-adapter.js";
+import { evaluateDemoLifecyclePreflight } from "./preflight.js";
 import type {
+  DemoCancelPendingRequest,
   DemoCloseTradeRequest,
   DemoLifecycleRecord,
   DemoLifecycleState,
   DemoOpenMarketRequest,
+  DemoProtectionStatus,
 } from "./types.js";
 
 function storePath(): string {
@@ -22,6 +26,52 @@ function storePath(): string {
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function emptyRecord(partial: Partial<DemoLifecycleRecord> & {
+  lifecycleId: string;
+  idempotencyKey: string;
+}): DemoLifecycleRecord {
+  return {
+    lifecycleId: partial.lifecycleId,
+    state: partial.state ?? "IDLE",
+    grantId: partial.grantId ?? null,
+    intentId: partial.intentId ?? null,
+    idempotencyKey: partial.idempotencyKey,
+    instrument: partial.instrument ?? null,
+    direction: partial.direction ?? null,
+    lots: partial.lots ?? null,
+    stopLoss: partial.stopLoss ?? null,
+    takeProfit: partial.takeProfit ?? null,
+    brokerOrderId: partial.brokerOrderId ?? null,
+    tradeId: partial.tradeId ?? null,
+    closeOrderId: partial.closeOrderId ?? null,
+    fillConfirmed: partial.fillConfirmed ?? false,
+    closeConfirmed: partial.closeConfirmed ?? false,
+    cancelConfirmed: partial.cancelConfirmed ?? false,
+    brokerProtected: partial.brokerProtected ?? false,
+    remainingAmount: partial.remainingAmount ?? null,
+    protectionStatus: partial.protectionStatus ?? "NOT_REQUESTED",
+    lastError: partial.lastError ?? null,
+    lastCode: partial.lastCode ?? null,
+    mutatesBroker: partial.mutatesBroker ?? false,
+    placesOrdersGlobal: false,
+    acceptsForExecutionGlobal: false,
+    createdAtUtc: partial.createdAtUtc ?? nowIso(),
+    updatedAtUtc: partial.updatedAtUtc ?? nowIso(),
+    evidence: partial.evidence ?? {},
+  };
+}
+
+function protectionStatusFromBroker(
+  brokerProtected: boolean,
+  requested: boolean,
+  partial?: boolean,
+): DemoProtectionStatus {
+  if (!requested) return "NOT_REQUESTED";
+  if (brokerProtected) return "BROKER_CONFIRMED";
+  if (partial) return "BROKER_PARTIAL";
+  return "BROKER_UNVERIFIED";
 }
 
 export class DemoLifecycleOrchestrator {
@@ -38,7 +88,13 @@ export class DemoLifecycleOrchestrator {
         return;
       }
       const raw = JSON.parse(readFileSync(storePath(), "utf8")) as { records?: DemoLifecycleRecord[] };
-      this.records = Array.isArray(raw.records) ? raw.records : [];
+      this.records = Array.isArray(raw.records)
+        ? raw.records.map((r) => emptyRecord({
+          ...r,
+          lifecycleId: r.lifecycleId,
+          idempotencyKey: r.idempotencyKey,
+        }))
+        : [];
     } catch {
       this.records = [];
     }
@@ -48,7 +104,7 @@ export class DemoLifecycleOrchestrator {
     mkdirSync(dirname(storePath()), { recursive: true });
     writeFileSync(
       storePath(),
-      JSON.stringify({ schemaVersion: "demo-lifecycle-v1", records: this.records.slice(0, 100) }, null, 2),
+      JSON.stringify({ schemaVersion: "demo-lifecycle-v3", records: this.records.slice(0, 100) }, null, 2),
       "utf8",
     );
   }
@@ -66,7 +122,7 @@ export class DemoLifecycleOrchestrator {
     const latest = this.records[0] ?? null;
     return {
       ok: true,
-      phase: "58.1",
+      phase: "58.3",
       placesOrdersGlobal: false,
       acceptsForExecutionGlobal: false,
       masterTradingGlobal: false,
@@ -83,7 +139,7 @@ export class DemoLifecycleOrchestrator {
       })),
       latestLifecycle: latest,
       note:
-        "DEMO lifecycle mutations require active grant + sidecar KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION=1 + secret. LIVE remains locked.",
+        "DEMO lifecycle: grant + quote preflight + sidecar mutation flag/secret. Supports open/protect/cancel-pending/partial-close. LIVE locked.",
     };
   }
 
@@ -112,6 +168,16 @@ export class DemoLifecycleOrchestrator {
     const sdkOk = Boolean((caps as { hasCreateOrderRequest?: boolean }).hasCreateOrderRequest)
       && Boolean((caps as { trueMarketOpen?: unknown }).trueMarketOpen != null
         || (caps as { ordersConstants?: string[] }).ordersConstants?.includes?.("TRUE_MARKET_OPEN"));
+    const protectiveSurface = Boolean(
+      (caps as { supportsAttachedRateStopLimit?: boolean }).supportsAttachedRateStopLimit
+      || (caps as { supportsPostFillStopLimitTradeId?: boolean }).supportsPostFillStopLimitTradeId
+      || (caps as { stopOrder?: unknown }).stopOrder != null
+      || (caps as { ordersConstants?: string[] }).ordersConstants?.includes?.("STOP"),
+    );
+    const cancelSurface = Boolean(
+      (caps as { supportsDeleteOrder?: boolean }).supportsDeleteOrder
+      || (caps as { ordersConstants?: string[] }).ordersConstants?.includes?.("STOP"),
+    );
 
     const blockers: string[] = [];
     if (!connected) blockers.push("SESSION_NOT_CONNECTED");
@@ -119,15 +185,20 @@ export class DemoLifecycleOrchestrator {
     if (!mutationEnv) blockers.push("SIDECAR_MUTATION_ENV_DISABLED");
     if (!secretOk) blockers.push("MUTATION_SECRET_NOT_CONFIGURED");
     if (!sdkOk) blockers.push("SDK_MUTATION_SURFACE_UNVERIFIED");
+    if (!protectiveSurface) blockers.push("SDK_PROTECTIVE_SURFACE_UNVERIFIED");
     if (getDemoExecutionGrantStore().listActive().length === 0) blockers.push("NO_ACTIVE_DEMO_GRANT");
 
     return {
       ok: blockers.length === 0,
+      phase: "58.3",
       connected,
       environment: env || null,
       demoSession: demoOk,
       mutationEnvEnabled: mutationEnv,
       mutationSecretConfigured: secretOk,
+      protectiveSurfaceDocumented: protectiveSurface,
+      cancelSurfaceDocumented: cancelSurface,
+      partialCloseDocumented: Boolean((caps as { supportsPartialClose?: boolean }).supportsPartialClose),
       sdkCapabilities: caps,
       activeGrantCount: getDemoExecutionGrantStore().listActive().length,
       blockers,
@@ -145,7 +216,13 @@ export class DemoLifecycleOrchestrator {
   }> {
     const existing = this.records.find((r) => r.idempotencyKey === req.idempotencyKey);
     if (existing) {
-      return { ok: existing.state === "POSITION_OPEN" || existing.state === "FILLED", code: "IDEMPOTENT_REPLAY", error: null, record: existing };
+      const successStates: DemoLifecycleState[] = ["POSITION_OPEN", "FILLED", "PROTECTED"];
+      return {
+        ok: successStates.includes(existing.state) || existing.fillConfirmed,
+        code: "IDEMPOTENT_REPLAY",
+        error: null,
+        record: existing,
+      };
     }
 
     const grantCheck = getDemoExecutionGrantStore().requireActive(
@@ -153,7 +230,7 @@ export class DemoLifecycleOrchestrator {
       req.instrument,
       req.lots,
     );
-    const base: DemoLifecycleRecord = {
+    const base = emptyRecord({
       lifecycleId: randomUUID(),
       state: "IDLE",
       grantId: req.grantId,
@@ -162,21 +239,10 @@ export class DemoLifecycleOrchestrator {
       instrument: req.instrument,
       direction: req.direction,
       lots: req.lots,
-      brokerOrderId: null,
-      tradeId: null,
-      closeOrderId: null,
-      fillConfirmed: false,
-      closeConfirmed: false,
-      protectionStatus: req.requireProtective ? "UNSUPPORTED" : "NOT_REQUESTED",
-      lastError: null,
-      lastCode: null,
-      mutatesBroker: false,
-      placesOrdersGlobal: false,
-      acceptsForExecutionGlobal: false,
-      createdAtUtc: nowIso(),
-      updatedAtUtc: nowIso(),
-      evidence: {},
-    };
+      stopLoss: req.stopLoss ?? null,
+      takeProfit: req.takeProfit ?? null,
+      protectionStatus: req.requireProtective ? "REQUESTED" : "NOT_REQUESTED",
+    });
 
     if (!grantCheck.ok) {
       base.state = "AUTHORIZATION_REJECTED";
@@ -187,14 +253,39 @@ export class DemoLifecycleOrchestrator {
     }
 
     if (req.requireProtective) {
-      // Phase 58.1: broker-attached SL/TP post-fill not yet verified in this adapter.
-      // Fail closed when policy requires protection.
-      base.state = "PROTECTION_UNSUPPORTED";
-      base.lastCode = "PROTECTION_REQUIRED_BUT_UNVERIFIED";
-      base.lastError =
-        "requireProtective=true but broker-attached SL/TP attach is not yet verified for this adapter. Refusing DEMO open.";
-      this.upsert(base);
-      return { ok: false, code: base.lastCode, error: base.lastError, record: base };
+      const sl = req.stopLoss;
+      const tp = req.takeProfit;
+      if (sl == null || !Number.isFinite(sl) || tp == null || !Number.isFinite(tp)) {
+        base.state = "VALIDATION_FAILED";
+        base.protectionStatus = "FAILED";
+        base.lastCode = "PROTECTION_LEVELS_REQUIRED";
+        base.lastError =
+          "requireProtective=true requires finite stopLoss and takeProfit absolute prices.";
+        this.upsert(base);
+        return { ok: false, code: base.lastCode, error: base.lastError, record: base };
+      }
+      const entryHint = req.entryHint != null && Number.isFinite(req.entryHint)
+        ? Number(req.entryHint)
+        : null;
+      if (entryHint != null) {
+        const geometry = evaluateProtectiveGeometry({
+          direction: req.direction,
+          entryPrice: entryHint,
+          stopLoss: sl,
+          takeProfit: tp,
+          requireProtective: true,
+          requireThreeR: false,
+        });
+        if (!geometry.ok) {
+          base.state = "VALIDATION_FAILED";
+          base.protectionStatus = "FAILED";
+          base.lastCode = geometry.rejections[0]?.code ?? "PROTECTION_GEOMETRY_INVALID";
+          base.lastError = geometry.rejections.map((r) => r.message).join("; ");
+          base.evidence = { geometry };
+          this.upsert(base);
+          return { ok: false, code: base.lastCode, error: base.lastError, record: base };
+        }
+      }
     }
 
     const ready = await this.readiness();
@@ -207,21 +298,58 @@ export class DemoLifecycleOrchestrator {
       return { ok: false, code: base.lastCode, error: base.lastError, record: base };
     }
 
+    const adapter = getForexConnectDemoMutationAdapter();
+    const quoteRaw = await adapter.getOfferQuote(req.instrument);
+    const quotePresent = Boolean(quoteRaw.quotePresent ?? quoteRaw.ok);
+    const quoteBid = quoteRaw.bid == null ? null : Number(quoteRaw.bid);
+    const quoteAsk = quoteRaw.ask == null ? null : Number(quoteRaw.ask);
+
+    const preflight = evaluateDemoLifecyclePreflight({
+      instrument: req.instrument,
+      direction: req.direction,
+      lots: req.lots,
+      maxLots: grantCheck.grant.maxLots,
+      environment: String(ready.environment ?? ""),
+      sessionConnected: Boolean(ready.connected),
+      quotePresent: quotePresent && Number.isFinite(quoteBid) && Number.isFinite(quoteAsk),
+      quoteBid: Number.isFinite(quoteBid as number) ? (quoteBid as number) : null,
+      quoteAsk: Number.isFinite(quoteAsk as number) ? (quoteAsk as number) : null,
+      requireProtective: req.requireProtective,
+      stopLoss: req.stopLoss ?? null,
+      takeProfit: req.takeProfit ?? null,
+      entryHint: req.entryHint ?? null,
+      grantActive: true,
+    });
+    base.evidence = { ...base.evidence, quote: quoteRaw, preflight };
+
+    if (!preflight.maySubmitDemoMutation) {
+      base.state = "VALIDATION_FAILED";
+      base.lastCode = preflight.code;
+      base.lastError = `DEMO preflight blocked: ${preflight.blockers.join(",")}`;
+      if (req.requireProtective) base.protectionStatus = "FAILED";
+      this.upsert(base);
+      return { ok: false, code: base.lastCode, error: base.lastError, record: base };
+    }
+
     base.state = "SUBMITTING";
+    if (req.requireProtective) base.protectionStatus = "PENDING";
     this.upsert(base);
 
-    const result = await getForexConnectDemoMutationAdapter().openTrueMarket({
+    const result = await adapter.openTrueMarket({
       instrument: req.instrument,
       direction: req.direction,
       lots: req.lots,
       accountId: req.accountId,
+      stopLoss: req.stopLoss ?? null,
+      takeProfit: req.takeProfit ?? null,
+      attachProtectiveAfterFill: req.requireProtective || req.attachProtectiveAfterFill === true,
     });
 
     base.mutatesBroker = result.mutatesBroker;
     base.brokerOrderId = result.brokerOrderId ?? null;
     base.lastCode = result.code;
     base.lastError = result.error ?? null;
-    base.evidence = { open: result.raw };
+    base.evidence = { ...base.evidence, open: result.raw };
     base.updatedAtUtc = nowIso();
 
     if (!result.ok) {
@@ -229,6 +357,7 @@ export class DemoLifecycleOrchestrator {
         ? "SUBMISSION_UNKNOWN"
         : "BROKER_REJECTED";
       if (result.brokerOrderId) base.state = "RECONCILIATION_REQUIRED";
+      if (req.requireProtective) base.protectionStatus = "FAILED";
       this.upsert(base);
       return { ok: false, code: result.code, error: result.error ?? result.code, record: base };
     }
@@ -238,10 +367,90 @@ export class DemoLifecycleOrchestrator {
       base.tradeId = String(trade.tradeId);
       base.fillConfirmed = true;
       base.state = "POSITION_OPEN";
+      if (trade.amount != null) base.remainingAmount = Number(trade.amount);
     } else {
       base.fillConfirmed = false;
       base.state = "ACCEPTED_PENDING";
     }
+
+    let brokerProtected = Boolean(result.brokerProtected);
+    const protection = result.protection as Record<string, unknown> | null | undefined;
+    const hasPartial = Boolean(
+      protection && (protection.stop != null || protection.limit != null),
+    );
+
+    if (req.requireProtective && base.tradeId && !brokerProtected) {
+      base.state = "PROTECTION_PENDING";
+      const attach = await adapter.attachProtective({
+        tradeId: base.tradeId,
+        stopLoss: req.stopLoss ?? null,
+        takeProfit: req.takeProfit ?? null,
+        accountId: req.accountId,
+      });
+      base.evidence = { ...base.evidence, attach: attach.raw };
+      base.mutatesBroker = base.mutatesBroker || attach.mutatesBroker;
+      brokerProtected = Boolean(attach.brokerProtected);
+      if (!brokerProtected) {
+        const recon = await adapter.reconcileProtection(base.tradeId);
+        base.evidence = { ...base.evidence, reconcile: recon.raw };
+        brokerProtected = Boolean(recon.brokerProtected);
+      }
+    }
+
+    base.brokerProtected = brokerProtected;
+    base.protectionStatus = protectionStatusFromBroker(
+      brokerProtected,
+      Boolean(req.requireProtective),
+      hasPartial,
+    );
+
+    if (req.requireProtective && base.fillConfirmed && !brokerProtected) {
+      const shouldClose = req.closeIfUnprotected !== false;
+      base.state = "PROTECTION_FAILED";
+      base.protectionStatus = "FAILED";
+      base.lastCode = "PROTECTION_NOT_CONFIRMED";
+      base.lastError =
+        "Fill observed but broker stop+limit not both confirmed. "
+        + (shouldClose ? "Closing unprotected DEMO test trade." : "Leaving position open per closeIfUnprotected=false.");
+
+      if (shouldClose && base.tradeId) {
+        base.state = "CLOSE_PENDING";
+        const closeResult = await adapter.closeTrade({
+          tradeId: base.tradeId,
+          instrument: req.instrument,
+          accountId: req.accountId,
+        });
+        base.evidence = { ...base.evidence, unprotectedClose: closeResult.raw };
+        base.closeOrderId = closeResult.brokerOrderId ?? null;
+        base.closeConfirmed = Boolean(closeResult.closeConfirmed);
+        base.remainingAmount = closeResult.remainingAmount ?? (closeResult.stillOpen ? null : 0);
+        base.mutatesBroker = true;
+        if (closeResult.closeConfirmed && !closeResult.stillOpen) {
+          base.state = "CLOSED";
+          base.protectionStatus = "CLOSED_UNPROTECTED";
+          base.lastCode = "CLOSED_AFTER_PROTECTION_FAILURE";
+        } else {
+          base.state = "RECONCILIATION_REQUIRED";
+          base.lastCode = "UNPROTECTED_CLOSE_UNCONFIRMED";
+        }
+      }
+
+      this.upsert(base);
+      return {
+        ok: false,
+        code: base.lastCode ?? "PROTECTION_NOT_CONFIRMED",
+        error: base.lastError,
+        record: base,
+      };
+    }
+
+    if (brokerProtected) {
+      base.state = "PROTECTED";
+      base.protectionStatus = "BROKER_CONFIRMED";
+    } else if (base.fillConfirmed) {
+      base.state = "POSITION_OPEN";
+    }
+
     this.upsert(base);
     return { ok: true, code: result.code, error: null, record: base };
   }
@@ -253,35 +462,21 @@ export class DemoLifecycleOrchestrator {
     record: DemoLifecycleRecord;
   }> {
     const existing = this.records.find((r) => r.idempotencyKey === req.idempotencyKey);
-    if (existing && existing.closeConfirmed) {
+    if (existing && existing.closeConfirmed && existing.state === "CLOSED") {
       return { ok: true, code: "IDEMPOTENT_REPLAY", error: null, record: existing };
     }
 
     const grantCheck = getDemoExecutionGrantStore().requireActive(req.grantId);
-    const rec = existing ?? {
+    const rec = existing ?? emptyRecord({
       lifecycleId: randomUUID(),
-      state: "CLOSE_PENDING" as DemoLifecycleState,
+      state: "CLOSE_PENDING",
       grantId: req.grantId,
       intentId: randomUUID(),
       idempotencyKey: req.idempotencyKey,
       instrument: req.instrument ?? null,
-      direction: null,
-      lots: null,
-      brokerOrderId: null,
       tradeId: req.tradeId,
-      closeOrderId: null,
-      fillConfirmed: false,
-      closeConfirmed: false,
-      protectionStatus: "NOT_REQUESTED" as const,
-      lastError: null,
-      lastCode: null,
-      mutatesBroker: false,
-      placesOrdersGlobal: false as const,
-      acceptsForExecutionGlobal: false as const,
-      createdAtUtc: nowIso(),
-      updatedAtUtc: nowIso(),
-      evidence: {},
-    };
+      protectionStatus: "NOT_REQUESTED",
+    });
 
     if (!grantCheck.ok) {
       rec.state = "AUTHORIZATION_REJECTED";
@@ -308,12 +503,14 @@ export class DemoLifecycleOrchestrator {
       tradeId: req.tradeId,
       instrument: req.instrument,
       accountId: req.accountId,
+      amount: req.amount ?? null,
     });
 
     rec.mutatesBroker = result.mutatesBroker;
     rec.closeOrderId = result.brokerOrderId ?? null;
     rec.lastCode = result.code;
     rec.lastError = result.error ?? null;
+    rec.remainingAmount = result.remainingAmount ?? null;
     rec.evidence = { ...rec.evidence, close: result.raw };
     rec.updatedAtUtc = nowIso();
 
@@ -324,7 +521,81 @@ export class DemoLifecycleOrchestrator {
     }
 
     rec.closeConfirmed = Boolean(result.closeConfirmed);
-    rec.state = result.closeConfirmed ? "CLOSED" : "RECONCILIATION_REQUIRED";
+    if (result.closeConfirmed && result.stillOpen && result.partial) {
+      rec.state = "PARTIALLY_CLOSED";
+    } else if (result.closeConfirmed && !result.stillOpen) {
+      rec.state = "CLOSED";
+      rec.remainingAmount = 0;
+    } else {
+      rec.state = "RECONCILIATION_REQUIRED";
+    }
+    this.upsert(rec);
+    return { ok: true, code: result.code, error: null, record: rec };
+  }
+
+  async cancelPending(req: DemoCancelPendingRequest): Promise<{
+    ok: boolean;
+    code: string;
+    error: string | null;
+    record: DemoLifecycleRecord;
+  }> {
+    const existing = this.records.find((r) => r.idempotencyKey === req.idempotencyKey);
+    if (existing && existing.cancelConfirmed) {
+      return { ok: true, code: "IDEMPOTENT_REPLAY", error: null, record: existing };
+    }
+
+    const grantCheck = getDemoExecutionGrantStore().requireActive(req.grantId);
+    const rec = existing ?? emptyRecord({
+      lifecycleId: randomUUID(),
+      state: "CANCEL_PENDING",
+      grantId: req.grantId,
+      intentId: randomUUID(),
+      idempotencyKey: req.idempotencyKey,
+      brokerOrderId: req.brokerOrderId,
+      protectionStatus: "NOT_REQUESTED",
+    });
+
+    if (!grantCheck.ok) {
+      rec.state = "AUTHORIZATION_REJECTED";
+      rec.lastCode = grantCheck.code;
+      rec.lastError = grantCheck.error;
+      this.upsert(rec);
+      return { ok: false, code: grantCheck.code, error: grantCheck.error, record: rec };
+    }
+
+    const ready = await this.readiness();
+    if (!ready.mayAttemptDemoMutation) {
+      rec.state = "MUTATION_DISABLED";
+      rec.lastCode = "READINESS_BLOCKED";
+      rec.lastError = `DEMO mutation readiness failed: ${(ready.blockers as string[]).join(",")}`;
+      rec.evidence = { ...rec.evidence, readiness: ready };
+      this.upsert(rec);
+      return { ok: false, code: rec.lastCode, error: rec.lastError, record: rec };
+    }
+
+    rec.state = "CANCEL_PENDING";
+    rec.brokerOrderId = req.brokerOrderId;
+    this.upsert(rec);
+
+    const result = await getForexConnectDemoMutationAdapter().cancelPending({
+      brokerOrderId: req.brokerOrderId,
+      accountId: req.accountId,
+    });
+
+    rec.mutatesBroker = result.mutatesBroker;
+    rec.lastCode = result.code;
+    rec.lastError = result.error ?? null;
+    rec.cancelConfirmed = Boolean(result.cancelConfirmed);
+    rec.evidence = { ...rec.evidence, cancel: result.raw };
+    rec.updatedAtUtc = nowIso();
+
+    if (!result.ok) {
+      rec.state = "RECONCILIATION_REQUIRED";
+      this.upsert(rec);
+      return { ok: false, code: result.code, error: result.error ?? result.code, record: rec };
+    }
+
+    rec.state = result.cancelConfirmed ? "CANCELLED" : "RECONCILIATION_REQUIRED";
     this.upsert(rec);
     return { ok: true, code: result.code, error: null, record: rec };
   }

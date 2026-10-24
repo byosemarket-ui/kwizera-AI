@@ -2264,6 +2264,36 @@ class Handler(BaseHTTPRequestHandler):
                     "error": {"code": "SDK_PROBE_FAILED", "message": _sanitize(str(exc))},
                 })
             return
+        if path == "/offer-quote":
+            # Phase 58.3 — read-only Offers bid/ask for DEMO preflight. No mutation.
+            qs = parse_qs(urlparse(self.path).query)
+            instrument = str((qs.get("instrument") or [""])[0] or "").strip()
+            status = _safe_status()
+            if str(status.get("status") or "") != "CONNECTED":
+                self._send(503, {
+                    "ok": False,
+                    "error": {"code": "SESSION_NOT_CONNECTED", "message": "ForexConnect not CONNECTED."},
+                })
+                return
+            with _state_lock:
+                fx = _fx
+            if fx is None:
+                self._send(503, {
+                    "ok": False,
+                    "error": {"code": "SESSION_NOT_CONNECTED", "message": "No ForexConnect session."},
+                })
+                return
+            try:
+                from mutation_demo import read_offer_quote
+                payload = read_offer_quote(fx, instrument=instrument)
+                payload["sessionEnvironment"] = status.get("environment")
+                self._send(200 if payload.get("ok") else 400, payload)
+            except Exception as exc:
+                self._send(500, {
+                    "ok": False,
+                    "error": {"code": "OFFER_QUOTE_FAILED", "message": _sanitize(str(exc))},
+                })
+            return
         self._send(404, {"ok": False, "error": {"code": "NOT_FOUND", "message": "Unknown route."}})
 
     def do_POST(self) -> None:  # noqa: N802
@@ -2316,13 +2346,22 @@ class Handler(BaseHTTPRequestHandler):
             payload = unsubscribe_symbol(symbol)
             self._send(200, payload)
             return
-        if path in ("/demo-mutation/open-market", "/demo-mutation/close-trade"):
-            # Phase 58.1 — DEMO-only, opt-in, secret-gated. LIVE always rejected.
+        if path in (
+            "/demo-mutation/open-market",
+            "/demo-mutation/close-trade",
+            "/demo-mutation/attach-protective",
+            "/demo-mutation/reconcile-protection",
+            "/demo-mutation/cancel-pending",
+        ):
+            # Phase 58.3 — DEMO-only, opt-in, secret-gated. LIVE always rejected.
             try:
                 from mutation_demo import (
                     gate_demo_mutation,
                     open_true_market,
                     close_true_market,
+                    attach_protective_orders,
+                    reconcile_trade_protection,
+                    cancel_pending_order,
                 )
             except Exception as exc:
                 self._send(500, {
@@ -2348,11 +2387,30 @@ class Handler(BaseHTTPRequestHandler):
                     "error": {"code": "SESSION_NOT_CONNECTED", "message": "No ForexConnect session."},
                 })
                 return
+
+            def _mutation_http_code(payload: dict) -> int:
+                if payload.get("ok"):
+                    return 200
+                code_s = str(payload.get("code") or "")
+                if code_s.startswith(("LIVE_", "DEMO_MUTATION", "ENVIRONMENT")):
+                    return 403
+                return 400
+
             if path == "/demo-mutation/open-market":
                 try:
                     lots = int(body.get("lots") or 1)
                 except (TypeError, ValueError):
                     lots = 1
+                rate_stop = body.get("rateStop", body.get("stopLoss"))
+                rate_limit = body.get("rateLimit", body.get("takeProfit"))
+                try:
+                    rate_stop_f = float(rate_stop) if rate_stop not in (None, "") else None
+                except (TypeError, ValueError):
+                    rate_stop_f = None
+                try:
+                    rate_limit_f = float(rate_limit) if rate_limit not in (None, "") else None
+                except (TypeError, ValueError):
+                    rate_limit_f = None
                 payload = open_true_market(
                     fx,
                     instrument=str(body.get("instrument") or "").strip(),
@@ -2360,25 +2418,69 @@ class Handler(BaseHTTPRequestHandler):
                     lots=lots,
                     account_id=str(body.get("accountId") or "").strip() or None,
                     wait_seconds=float(body.get("waitSeconds") or 30),
+                    rate_stop=rate_stop_f,
+                    rate_limit=rate_limit_f,
+                    attach_protective_after_fill=bool(body.get("attachProtectiveAfterFill")),
                 )
-                code = 200 if payload.get("ok") else (
-                    403 if str(payload.get("code") or "").startswith(("LIVE_", "DEMO_MUTATION", "ENVIRONMENT"))
-                    else 400
-                )
-                self._send(code, payload)
+                self._send(_mutation_http_code(payload), payload)
                 return
+            if path == "/demo-mutation/attach-protective":
+                raw_stop = body.get("stopRate", body.get("stopLoss"))
+                raw_limit = body.get("limitRate", body.get("takeProfit"))
+                try:
+                    stop_rate = float(raw_stop) if raw_stop not in (None, "") else None
+                except (TypeError, ValueError):
+                    stop_rate = None
+                try:
+                    limit_rate = float(raw_limit) if raw_limit not in (None, "") else None
+                except (TypeError, ValueError):
+                    limit_rate = None
+                payload = attach_protective_orders(
+                    fx,
+                    trade_id=str(body.get("tradeId") or "").strip(),
+                    stop_rate=stop_rate,
+                    limit_rate=limit_rate,
+                    account_id=str(body.get("accountId") or "").strip() or None,
+                    wait_seconds=float(body.get("waitSeconds") or 15),
+                )
+                self._send(_mutation_http_code(payload), payload)
+                return
+            if path == "/demo-mutation/reconcile-protection":
+                # Read-only reconciliation still requires DEMO mutation gate so only
+                # authorized operators can query protection state through this path.
+                payload = reconcile_trade_protection(
+                    fx,
+                    trade_id=str(body.get("tradeId") or "").strip(),
+                )
+                self._send(200 if payload.get("ok") else 400, payload)
+                return
+            if path == "/demo-mutation/cancel-pending":
+                payload = cancel_pending_order(
+                    fx,
+                    broker_order_id=str(
+                        body.get("brokerOrderId") or body.get("orderId") or ""
+                    ).strip(),
+                    account_id=str(body.get("accountId") or "").strip() or None,
+                    wait_seconds=float(body.get("waitSeconds") or 30),
+                )
+                self._send(_mutation_http_code(payload), payload)
+                return
+            raw_amount = body.get("amount")
+            close_amount = None
+            if raw_amount not in (None, ""):
+                try:
+                    close_amount = int(raw_amount)
+                except (TypeError, ValueError):
+                    close_amount = None
             payload = close_true_market(
                 fx,
                 trade_id=str(body.get("tradeId") or "").strip(),
                 instrument=str(body.get("instrument") or "").strip() or None,
                 account_id=str(body.get("accountId") or "").strip() or None,
                 wait_seconds=float(body.get("waitSeconds") or 30),
+                amount=close_amount,
             )
-            code = 200 if payload.get("ok") else (
-                403 if str(payload.get("code") or "").startswith(("LIVE_", "DEMO_MUTATION", "ENVIRONMENT"))
-                else 400
-            )
-            self._send(code, payload)
+            self._send(_mutation_http_code(payload), payload)
             return
         self._send(404, {"ok": False, "error": {"code": "NOT_FOUND", "message": "Unknown route."}})
 

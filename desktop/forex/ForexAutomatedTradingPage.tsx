@@ -390,6 +390,7 @@ export function ForexAutomatedTradingPage(props: {
     activeGrantCount?: number;
     mutationEnvEnabled?: boolean;
     liveLocked?: boolean;
+    protectiveSurfaceDocumented?: boolean;
   } | null>(null);
   const seq = useRef(0);
 
@@ -450,6 +451,7 @@ export function ForexAutomatedTradingPage(props: {
         activeGrantCount?: number;
         mutationEnvEnabled?: boolean;
         liveLocked?: boolean;
+        protectiveSurfaceDocumented?: boolean;
       };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
@@ -488,6 +490,7 @@ export function ForexAutomatedTradingPage(props: {
           activeGrantCount: Number(demoJson.activeGrantCount ?? 0),
           mutationEnvEnabled: Boolean(demoJson.mutationEnvEnabled),
           liveLocked: demoJson.liveLocked !== false,
+          protectiveSurfaceDocumented: demoJson.protectiveSurfaceDocumented !== false,
         });
       }
     } catch (err) {
@@ -1316,9 +1319,10 @@ export function ForexAutomatedTradingPage(props: {
         data-fx-at-demo-lifecycle="true"
         aria-label="DEMO execution certification readiness"
       >
-        <h2 className="fx-auto-trading-panel-title">DEMO lifecycle readiness (Phase 58.1)</h2>
+        <h2 className="fx-auto-trading-panel-title">DEMO lifecycle readiness (Phase 58.3)</h2>
         <p className="fx-auto-trading-hint">
-          Controlled DEMO mutation path only. LIVE locked. Global placesOrders remains false.
+          Grant-scoped DEMO path: open/protect/cancel-pending/partial-close. LIVE locked. Global placesOrders remains false.
+          Mutations require server grant + sidecar flag — UI shows readiness only, not broker success.
         </p>
         <ul className="fx-auto-trading-hint" style={{ margin: "0.35rem 0 0", paddingLeft: "1.1rem" }}>
           <li>
@@ -1333,6 +1337,13 @@ export function ForexAutomatedTradingPage(props: {
           <li>
             Sidecar mutation env: {demoLifecycle?.mutationEnvEnabled ? "ENABLED" : "DISABLED (default)"} ·
             active grants: {demoLifecycle?.activeGrantCount ?? 0}
+          </li>
+          <li>
+            Protective surface:{" "}
+            {demoLifecycle?.protectiveSurfaceDocumented === false
+              ? "UNVERIFIED"
+              : "RATE_STOP/RATE_LIMIT + STOP/LIMIT+TRADE_ID"}
+            {" · "}Cancel/partial: documented in adapter
           </li>
           <li>
             Blockers:{" "}

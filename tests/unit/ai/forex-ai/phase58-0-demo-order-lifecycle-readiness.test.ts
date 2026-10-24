@@ -92,7 +92,10 @@ describe("Phase 58.0 DEMO lifecycle readiness — architectural blockers", () =>
 
     const client = read("ai/market-data/forexconnect/client.ts");
     expect(client).toContain('sidecarFetch(cfg, "/orders", { method: "GET" }');
-    expect(client).not.toMatch(/createOrder|submitOrder|closeTrade|RequestTrading/);
+    // Generic broker mutation helpers remain absent; Phase 58.x DEMO-gated
+    // demoMutation* methods are intentionally present and secret-gated.
+    expect(client).not.toMatch(/\bcreateOrder\b|\bsubmitOrder\b|\bRequestTrading\b/);
+    expect(client).toContain("demoMutationOpenMarket");
 
     const stub = read("ai/forex-ai/automated-trading/broker-intent/mutation-stub.ts");
     expect(stub).toContain("DisabledBrokerMutationAdapter");

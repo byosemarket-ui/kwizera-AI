@@ -1,5 +1,5 @@
 /**
- * Phase 58.1 — time-bounded DEMO execution grants (server-enforced).
+ * Phase 58.3 — time-bounded DEMO execution grants (server-enforced).
  * Does not flip global placesOrders / acceptsForExecution.
  */
 import { randomUUID } from "node:crypto";
@@ -76,7 +76,7 @@ export class DemoExecutionGrantStore {
       instrumentAllowlist: (input.instrumentAllowlist ?? []).map((s) => s.trim()).filter(Boolean),
       maxLots: Math.max(1, Math.min(10, Math.floor(input.maxLots ?? 1))),
       createdBy: "admin",
-      purpose: "PHASE_58_1_DEMO_LIFECYCLE",
+      purpose: "PHASE_58_3_DEMO_LIFECYCLE",
       environment: "DEMO",
     };
     this.grants.unshift(grant);

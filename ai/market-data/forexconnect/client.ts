@@ -863,7 +863,8 @@ export class ForexConnectBridge {
   }
 
   /**
-   * Phase 58.1 — DEMO-only market open via gated sidecar route.
+   * Phase 58.2 — DEMO-only market open via gated sidecar route.
+   * Optional rateStop/rateLimit map to ForexConnect RATE_STOP/RATE_LIMIT.
    * Requires sidecar ALLOW_DEMO_MUTATION + secret. LIVE sessions rejected by sidecar.
    */
   async demoMutationOpenMarket(input: {
@@ -871,6 +872,9 @@ export class ForexConnectBridge {
     buySell: string;
     lots: number;
     accountId?: string | null;
+    rateStop?: number | null;
+    rateLimit?: number | null;
+    attachProtectiveAfterFill?: boolean;
     secret: string;
   }): Promise<Record<string, unknown>> {
     const cfg = this.getConfig();
@@ -887,6 +891,9 @@ export class ForexConnectBridge {
           buySell: input.buySell,
           lots: input.lots,
           accountId: input.accountId ?? undefined,
+          rateStop: input.rateStop ?? undefined,
+          rateLimit: input.rateLimit ?? undefined,
+          attachProtectiveAfterFill: input.attachProtectiveAfterFill === true,
         }),
       },
       this.fetchImpl,
@@ -895,12 +902,67 @@ export class ForexConnectBridge {
   }
 
   /**
-   * Phase 58.1 — DEMO-only true-market close for an exact tradeId.
+   * Phase 58.2 — DEMO-only post-fill STOP/LIMIT attach for an exact tradeId.
+   */
+  async demoMutationAttachProtective(input: {
+    tradeId: string;
+    stopRate?: number | null;
+    limitRate?: number | null;
+    accountId?: string | null;
+    secret: string;
+  }): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    const remote = await sidecarFetch(
+      cfg,
+      "/demo-mutation/attach-protective",
+      {
+        method: "POST",
+        headers: {
+          "X-Kwizera-Demo-Mutation-Secret": input.secret,
+        },
+        body: JSON.stringify({
+          tradeId: input.tradeId,
+          stopRate: input.stopRate ?? undefined,
+          limitRate: input.limitRate ?? undefined,
+          accountId: input.accountId ?? undefined,
+        }),
+      },
+      this.fetchImpl,
+    );
+    return { ...remote.body, httpStatus: remote.status };
+  }
+
+  /**
+   * Phase 58.2 — reconcile broker-reported stop/limit for a trade (gated).
+   */
+  async demoMutationReconcileProtection(input: {
+    tradeId: string;
+    secret: string;
+  }): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    const remote = await sidecarFetch(
+      cfg,
+      "/demo-mutation/reconcile-protection",
+      {
+        method: "POST",
+        headers: {
+          "X-Kwizera-Demo-Mutation-Secret": input.secret,
+        },
+        body: JSON.stringify({ tradeId: input.tradeId }),
+      },
+      this.fetchImpl,
+    );
+    return { ...remote.body, httpStatus: remote.status };
+  }
+
+  /**
+   * Phase 58.2 — DEMO-only true-market close for an exact tradeId.
    */
   async demoMutationCloseTrade(input: {
     tradeId: string;
     instrument?: string | null;
     accountId?: string | null;
+    amount?: number | null;
     secret: string;
   }): Promise<Record<string, unknown>> {
     const cfg = this.getConfig();
@@ -916,11 +978,67 @@ export class ForexConnectBridge {
           tradeId: input.tradeId,
           instrument: input.instrument ?? undefined,
           accountId: input.accountId ?? undefined,
+          amount: input.amount ?? undefined,
         }),
       },
       this.fetchImpl,
     );
     return { ...remote.body, httpStatus: remote.status };
+  }
+
+  /**
+   * Phase 58.3 — DEMO cancel pending waiting order (DELETE_ORDER).
+   */
+  async demoMutationCancelPending(input: {
+    brokerOrderId: string;
+    accountId?: string | null;
+    secret: string;
+  }): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    const remote = await sidecarFetch(
+      cfg,
+      "/demo-mutation/cancel-pending",
+      {
+        method: "POST",
+        headers: {
+          "X-Kwizera-Demo-Mutation-Secret": input.secret,
+        },
+        body: JSON.stringify({
+          brokerOrderId: input.brokerOrderId,
+          accountId: input.accountId ?? undefined,
+        }),
+      },
+      this.fetchImpl,
+    );
+    return { ...remote.body, httpStatus: remote.status };
+  }
+
+  /**
+   * Phase 58.3 — read-only Offers quote for DEMO preflight (no mutation).
+   */
+  async getOfferQuote(instrument: string): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    const q = encodeURIComponent(String(instrument || "").trim());
+    try {
+      const remote = await sidecarFetch(
+        cfg,
+        `/offer-quote?instrument=${q}`,
+        { method: "GET" },
+        this.fetchImpl,
+      );
+      return { ...remote.body, httpStatus: remote.status };
+    } catch (error) {
+      return {
+        ok: false,
+        code: "SERVICE_UNAVAILABLE",
+        error: {
+          code: "FOREXCONNECT_SERVICE_UNAVAILABLE",
+          message: sanitize(
+            error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
+          ),
+        },
+      };
+    }
   }
 }
 

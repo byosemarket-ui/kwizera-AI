@@ -38,8 +38,12 @@ export async function handleForexAutomatedTradingApi(
 ): Promise<boolean> {
   if (!url.pathname.startsWith("/api/forex/automated-trading")) return false;
 
-  // Reject any order-like paths explicitly.
-  if (/order|position\/close|submit|execute/i.test(url.pathname)) {
+  // Phase 58.3 — grant-scoped DEMO lifecycle paths are allowlisted before the broad guard.
+  // They still require forex-admin auth + server-side grant/readiness/DEMO checks.
+  const isDemoLifecyclePath = url.pathname.startsWith("/api/forex/automated-trading/demo-lifecycle");
+
+  // Reject any order-like paths explicitly (except allowlisted DEMO lifecycle).
+  if (!isDemoLifecyclePath && /order|position\/close|submit|execute/i.test(url.pathname)) {
     sendJson(res, 403, {
       ok: false,
       error: {
@@ -1117,7 +1121,7 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
-    // Phase 58.1 — DEMO lifecycle (grant-scoped). Paths avoid order|submit|execute tokens.
+    // Phase 58.3 — DEMO lifecycle (grant-scoped). Allowlisted ahead of order|submit regex.
     // Does NOT set placesOrders/acceptsForExecution globally. LIVE remains unauthorized.
     if (url.pathname.startsWith("/api/forex/automated-trading/demo-lifecycle")) {
       const {
@@ -1212,6 +1216,15 @@ export async function handleForexAutomatedTradingApi(
           });
           return true;
         }
+        const stopLoss = body.stopLoss == null || body.stopLoss === ""
+          ? null
+          : Number(body.stopLoss);
+        const takeProfit = body.takeProfit == null || body.takeProfit === ""
+          ? null
+          : Number(body.takeProfit);
+        const entryHint = body.entryHint == null || body.entryHint === ""
+          ? null
+          : Number(body.entryHint);
         const result = await orch.openMarket({
           grantId: String(body.grantId ?? "").trim(),
           instrument: String(body.instrument ?? "").trim(),
@@ -1219,6 +1232,11 @@ export async function handleForexAutomatedTradingApi(
           lots: Math.max(1, Math.floor(Number(body.lots ?? 1))),
           accountId: body.accountId == null ? null : String(body.accountId),
           requireProtective: body.requireProtective === true,
+          stopLoss: Number.isFinite(stopLoss as number) ? (stopLoss as number) : null,
+          takeProfit: Number.isFinite(takeProfit as number) ? (takeProfit as number) : null,
+          entryHint: Number.isFinite(entryHint as number) ? (entryHint as number) : null,
+          attachProtectiveAfterFill: body.attachProtectiveAfterFill !== false,
+          closeIfUnprotected: body.closeIfUnprotected !== false,
           idempotencyKey: String(body.idempotencyKey ?? "").trim() || `demo_open_${Date.now()}`,
         });
         sendJson(res, result.ok ? 200 : 422, {
@@ -1236,13 +1254,125 @@ export async function handleForexAutomatedTradingApi(
           return true;
         }
         const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+        const amountRaw = body.amount;
+        const amount = amountRaw == null || amountRaw === ""
+          ? null
+          : Math.floor(Number(amountRaw));
         const result = await orch.closeTrade({
           grantId: String(body.grantId ?? "").trim(),
           tradeId: String(body.tradeId ?? "").trim(),
           instrument: body.instrument == null ? null : String(body.instrument),
           accountId: body.accountId == null ? null : String(body.accountId),
+          amount: Number.isFinite(amount as number) && (amount as number) > 0 ? (amount as number) : null,
           idempotencyKey: String(body.idempotencyKey ?? "").trim() || `demo_close_${Date.now()}`,
         });
+        sendJson(res, result.ok ? 200 : 422, {
+          ...result,
+          placesOrders: false,
+          acceptsForExecution: false,
+          liveUnauthorized: true,
+        });
+        return true;
+      }
+
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/cancel-pending")) {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+          return true;
+        }
+        const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+        const result = await orch.cancelPending({
+          grantId: String(body.grantId ?? "").trim(),
+          brokerOrderId: String(body.brokerOrderId ?? body.orderId ?? "").trim(),
+          accountId: body.accountId == null ? null : String(body.accountId),
+          idempotencyKey: String(body.idempotencyKey ?? "").trim() || `demo_cancel_${Date.now()}`,
+        });
+        sendJson(res, result.ok ? 200 : 422, {
+          ...result,
+          placesOrders: false,
+          acceptsForExecution: false,
+          liveUnauthorized: true,
+        });
+        return true;
+      }
+
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/attach-protective")) {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+          return true;
+        }
+        const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+        const grantId = String(body.grantId ?? "").trim();
+        const tradeId = String(body.tradeId ?? "").trim();
+        const { getDemoExecutionGrantStore } = await import(
+          "../../ai/forex-ai/automated-trading/demo-execution/grant-store.js"
+        );
+        const { getForexConnectDemoMutationAdapter } = await import(
+          "../../ai/forex-ai/automated-trading/demo-execution/forexconnect-mutation-adapter.js"
+        );
+        const grantCheck = getDemoExecutionGrantStore().requireActive(grantId);
+        if (!grantCheck.ok) {
+          sendJson(res, 422, {
+            ok: false,
+            code: grantCheck.code,
+            error: grantCheck.error,
+            placesOrders: false,
+            acceptsForExecution: false,
+          });
+          return true;
+        }
+        const readiness = await orch.readiness();
+        if (!readiness.mayAttemptDemoMutation) {
+          sendJson(res, 422, {
+            ok: false,
+            code: "READINESS_BLOCKED",
+            error: `DEMO mutation readiness failed: ${(readiness.blockers as string[]).join(",")}`,
+            placesOrders: false,
+          });
+          return true;
+        }
+        const stopLoss = body.stopLoss == null || body.stopLoss === "" ? null : Number(body.stopLoss);
+        const takeProfit = body.takeProfit == null || body.takeProfit === "" ? null : Number(body.takeProfit);
+        const result = await getForexConnectDemoMutationAdapter().attachProtective({
+          tradeId,
+          stopLoss: Number.isFinite(stopLoss as number) ? (stopLoss as number) : null,
+          takeProfit: Number.isFinite(takeProfit as number) ? (takeProfit as number) : null,
+          accountId: body.accountId == null ? null : String(body.accountId),
+        });
+        sendJson(res, result.ok ? 200 : 422, {
+          ...result,
+          placesOrders: false,
+          acceptsForExecution: false,
+          liveUnauthorized: true,
+        });
+        return true;
+      }
+
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/reconcile-protection")) {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+          return true;
+        }
+        const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+        const grantId = String(body.grantId ?? "").trim();
+        const tradeId = String(body.tradeId ?? "").trim();
+        const { getDemoExecutionGrantStore } = await import(
+          "../../ai/forex-ai/automated-trading/demo-execution/grant-store.js"
+        );
+        const { getForexConnectDemoMutationAdapter } = await import(
+          "../../ai/forex-ai/automated-trading/demo-execution/forexconnect-mutation-adapter.js"
+        );
+        const grantCheck = getDemoExecutionGrantStore().requireActive(grantId);
+        if (!grantCheck.ok) {
+          sendJson(res, 422, {
+            ok: false,
+            code: grantCheck.code,
+            error: grantCheck.error,
+            placesOrders: false,
+          });
+          return true;
+        }
+        const result = await getForexConnectDemoMutationAdapter().reconcileProtection(tradeId);
         sendJson(res, result.ok ? 200 : 422, {
           ...result,
           placesOrders: false,
