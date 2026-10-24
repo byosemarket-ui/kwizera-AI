@@ -184,12 +184,14 @@ When the owner completes §9 **and** authorizes deploy of the Phase 58.5 commit,
 
 ---
 
-## 12. Commit / remote / deploy record (filled at finalization)
+## 12. Commit / remote / deploy record (finalization)
 
 | Item | Value |
 |------|-------|
-| Feature commit SHA | *(filled after `git push`)* |
-| Remote `origin/main` SHA | *(verify via `git ls-remote`)* |
-| Changed files | admin-auth-boundary, forex-admin-auth, demo-execution adapter/orchestrator, AT API + UI, phase58-5 tests, PHASE_58_4 + PHASE_58_5 docs |
-| Deployed VPS SHA after this step | Still `790b650a` unless owner later authorizes deploy |
-| Broker order submitted? | **No** |
+| Feature commit SHA | `c50c0468ec1b674348a086fa55835d0f93149a5a` (`c50c0468`) |
+| Remote `origin/main` SHA | `c50c0468ec1b674348a086fa55835d0f93149a5a` (`ls-remote` match; ahead/behind 0/0) |
+| Push result | Success: `790b650a..c50c0468` → `origin/main` |
+| Changed files (9) | `admin-auth-boundary.ts`, `forexconnect-mutation-adapter.ts`, `orchestrator.ts`, `ForexAutomatedTradingPage.tsx`, `forex-admin-auth.ts`, `forex-automated-trading-api.ts`, `PHASE_58_4_…md`, `PHASE_58_5_…md`, `phase58-5-blocker-resolution.test.ts` |
+| Deployed VPS SHA | **`790b650a`** (verified live) — Phase 58.5 **not deployed** (no deploy authorization) |
+| Mutation / grant / broker order | **Not enabled / not created / not submitted** |
+| Exact owner next actions | (1) Authorize deploy of `c50c0468` + sidecar/app restart if env reload needed (2) Admin token (3) ALLOW flag + secret on Node+sidecar (4) short grant + quote-probe (5) one DEMO lifecycle then revoke + disable mutation |
