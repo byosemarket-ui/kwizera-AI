@@ -412,7 +412,12 @@ export class ForexConnectLiveCandleService {
       await this.persistIntendedSafe();
     }
 
-    const targets = [...this.intendedSubscriptions.values()];
+    // Phase 59.0.3 — if durable intended is empty, seed from existing AT instrument config only.
+    let targets = [...this.intendedSubscriptions.values()];
+    if (targets.length === 0) {
+      await this.seedFromAutomatedTradingConfig();
+      targets = [...this.intendedSubscriptions.values()];
+    }
     if (targets.length === 0) {
       this.providerLifecycle = "CONNECTED";
       return {
@@ -665,6 +670,130 @@ export class ForexConnectLiveCandleService {
     return this.toSeries(session);
   }
 
+  /**
+   * Phase 59.0.3 — seed Offers intended list from Automated Trading selectedInstrument / monitor.
+   * Validates allowlist + ForexConnect catalog before ensure/subscribeQuotes.
+   * Never invents symbols. Does not enable trading.
+   */
+  async seedFromAutomatedTradingConfig(): Promise<{
+    seeded: string[];
+    skipped: string[];
+    note: string;
+    placesOrders: false;
+    acceptsForExecution: false;
+  }> {
+    const { collectConfiguredAtQuoteInstruments } = await import("./seed-at-quote-instruments.js");
+    const { resolveForexConnectLiveTimeframe } = await import("./timeframes.js");
+    const { validateAtQuoteInstrumentForSubscribe } = await import(
+      "../../forex-ai/automated-trading/validate-at-quote-instrument.js"
+    );
+    const collected = collectConfiguredAtQuoteInstruments();
+    const seeded: string[] = [];
+    const skipped: string[] = [];
+    if (collected.instruments.length === 0) {
+      return {
+        seeded,
+        skipped,
+        note: collected.note,
+        placesOrders: false,
+        acceptsForExecution: false,
+      };
+    }
+
+    let catalogOk = false;
+    let instruments: Awaited<ReturnType<typeof this.bridge.listInstruments>>["instruments"] = [];
+    try {
+      const listed = await this.bridge.listInstruments();
+      catalogOk = Boolean(listed?.ok && Array.isArray(listed.instruments));
+      instruments = catalogOk ? listed.instruments : [];
+    } catch {
+      catalogOk = false;
+      instruments = [];
+    }
+
+    for (const row of collected.instruments) {
+      const validation = validateAtQuoteInstrumentForSubscribe({
+        symbol: row.symbol,
+        catalogOk,
+        instruments,
+      });
+      if (!validation.ok) {
+        skipped.push(`${row.symbol}:${validation.code}`);
+        continue;
+      }
+      const tf = resolveForexConnectLiveTimeframe(row.timeframe) ?? "1m";
+      try {
+        await this.ensure(validation.providerSymbol, tf);
+        seeded.push(validation.providerSymbol);
+      } catch (error) {
+        skipped.push(
+          `${validation.providerSymbol}:${error instanceof Error ? error.message.slice(0, 80) : "ensure_failed"}`,
+        );
+      }
+    }
+    return {
+      seeded,
+      skipped,
+      note: collected.note,
+      placesOrders: false,
+      acceptsForExecution: false,
+    };
+  }
+
+  /**
+   * Phase 59.0.3 — AT/DEMO path: validate permit+catalog then ensure (durable intended).
+   * General market-data ensure() remains available without AT allowlist.
+   */
+  async ensureValidatedAtInstrument(
+    symbol: string,
+    timeframe: string = "1m",
+  ): Promise<{
+    ok: boolean;
+    code: string;
+    series: SafeForexConnectLiveSeries | null;
+    message: string;
+    placesOrders: false;
+    acceptsForExecution: false;
+  }> {
+    const { validateAtQuoteInstrumentForSubscribe } = await import(
+      "../../forex-ai/automated-trading/validate-at-quote-instrument.js"
+    );
+    let catalogOk = false;
+    let instruments: Awaited<ReturnType<typeof this.bridge.listInstruments>>["instruments"] = [];
+    try {
+      const listed = await this.bridge.listInstruments();
+      catalogOk = Boolean(listed?.ok && Array.isArray(listed.instruments));
+      instruments = catalogOk ? listed.instruments : [];
+    } catch {
+      catalogOk = false;
+      instruments = [];
+    }
+    const validation = validateAtQuoteInstrumentForSubscribe({
+      symbol,
+      catalogOk,
+      instruments,
+    });
+    if (!validation.ok) {
+      return {
+        ok: false,
+        code: validation.code,
+        series: null,
+        message: validation.message,
+        placesOrders: false,
+        acceptsForExecution: false,
+      };
+    }
+    const series = await this.ensure(validation.providerSymbol, timeframe);
+    return {
+      ok: true,
+      code: "OK",
+      series,
+      message: "Validated AT instrument subscribed via live.ensure.",
+      placesOrders: false,
+      acceptsForExecution: false,
+    };
+  }
+
   private async releaseSession(session: Session, options?: { keepIntended?: boolean }): Promise<void> {
     this.sessions.delete(session.key);
     if (!options?.keepIntended) {
@@ -674,7 +803,9 @@ export class ForexConnectLiveCandleService {
       (s) => normalizeCanonicalSymbol(s.providerSymbol) === session.canonicalSymbol
         || s.providerSymbol === session.providerSymbol,
     );
-    if (!stillNeeded) {
+    // Phase 59.0.3 — when keepIntended, leave sidecar Offers subscription so reconnect/restore
+    // is not forced solely by empty local sessions (idle release must not wipe durable intent).
+    if (!stillNeeded && !options?.keepIntended) {
       try {
         await this.bridge.unsubscribeQuotes(session.providerSymbol);
       } catch {
@@ -686,6 +817,8 @@ export class ForexConnectLiveCandleService {
       this.stopIdleSweeper();
       if (this.intendedSubscriptions.size === 0) {
         this.providerLifecycle = "DISCONNECTED";
+      } else if (this.providerLifecycle !== "DISCONNECTED") {
+        this.providerLifecycle = "CONNECTED";
       }
     }
   }
@@ -699,7 +832,8 @@ export class ForexConnectLiveCandleService {
     }
     for (const session of idle) {
       this.idleSweepCount += 1;
-      void this.releaseSession(session);
+      // Keep durable intended so AT/FC restore can re-ensure after quiet periods.
+      void this.releaseSession(session, { keepIntended: true });
     }
   }
 

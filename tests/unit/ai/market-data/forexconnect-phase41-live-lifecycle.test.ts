@@ -107,7 +107,9 @@ describe("Phase 41 ForexConnect live lifecycle", () => {
     await Promise.resolve();
     expect(svc.getSessionCount()).toBe(0);
     expect(svc.getIdleSweepCount()).toBeGreaterThanOrEqual(1);
-    expect(bridge.unsubscribeQuotes).toHaveBeenCalled();
+    // Phase 59.0.3: idle sweep releases local sessions but keeps intended + sidecar Offers subscription.
+    expect(svc.listIntendedSubscriptions().length).toBe(1);
+    expect(bridge.unsubscribeQuotes).not.toHaveBeenCalled();
   });
 
   it("MarketDataService live path uses ensure and prefers existing FXCM series", () => {

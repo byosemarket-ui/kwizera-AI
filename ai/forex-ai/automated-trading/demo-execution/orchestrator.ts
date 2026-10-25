@@ -218,9 +218,107 @@ export class DemoLifecycleOrchestrator {
       "After one controlled lifecycle: revoke grant and set ALLOW_DEMO_MUTATION back to off.",
     );
 
+    // Phase 59.0.3 — quote subscription readiness (CONNECTED ≠ quote-ready).
+    // Pass real offer bid/ask/timestamp when available; gate mayAttemptDemoMutation on quote readiness.
+    let quoteSubscriptionReadiness: Record<string, unknown> | null = null;
+    try {
+      const { getForexConnectLiveCandleService } = await import(
+        "../../../market-data/forexconnect/live-service.js"
+      );
+      const { collectConfiguredAtQuoteInstruments } = await import(
+        "../../../market-data/forexconnect/seed-at-quote-instruments.js"
+      );
+      const { evaluateQuoteSubscriptionReadiness, parseQuoteTimestampMs } = await import(
+        "../quote-subscription-readiness.js"
+      );
+      const { MARKET_QUOTE_STALE_MS } = await import("../quote-freshness.js");
+      const live = getForexConnectLiveCandleService();
+      const life = live.getLifecycleDiagnostics();
+      const stream = await bridge.getStreamStatus();
+      const configured = collectConfiguredAtQuoteInstruments();
+      const requested = configured.instruments[0]?.symbol ?? null;
+
+      let bid: number | null = null;
+      let ask: number | null = null;
+      let quoteInstrument: string | null = null;
+      let lastQuoteAt: string | number | null =
+        stream.lastQuoteAt
+        ?? (status as { lastQuoteAt?: string | null }).lastQuoteAt
+        ?? null;
+      let lastQuoteAgeMs: number | null =
+        typeof stream.lastQuoteAgeMs === "number" ? stream.lastQuoteAgeMs : null;
+      let instrumentPermissionError: string | null = null;
+
+      if (requested) {
+        const ensured = await live.ensureValidatedAtInstrument(requested, "1m");
+        if (!ensured.ok) {
+          instrumentPermissionError = `${ensured.code}: ${ensured.message}`;
+          blockers.push(ensured.code);
+        }
+        const quoteRaw = await getForexConnectDemoMutationAdapter().getOfferQuote(requested);
+        const qBid = quoteRaw.bid == null ? null : Number(quoteRaw.bid);
+        const qAsk = quoteRaw.ask == null ? null : Number(quoteRaw.ask);
+        bid = Number.isFinite(qBid as number) ? (qBid as number) : null;
+        ask = Number.isFinite(qAsk as number) ? (qAsk as number) : null;
+        quoteInstrument = quoteRaw.instrument != null
+          ? String(quoteRaw.instrument)
+          : requested;
+        if (quoteRaw.offerTime != null) {
+          lastQuoteAt = quoteRaw.offerTime as string | number;
+          const ts = parseQuoteTimestampMs(quoteRaw.offerTime);
+          if (ts != null && lastQuoteAgeMs == null) {
+            lastQuoteAgeMs = Math.max(0, Date.now() - ts);
+          }
+        }
+      }
+
+      const readinessEval = evaluateQuoteSubscriptionReadiness({
+        sessionStatus: String((status as { status?: string }).status || ""),
+        configuredInstrumentCount: configured.instruments.length,
+        intendedCount: life.intendedCount,
+        subscriptionCount: Number(
+          stream.subscriptionCount
+          ?? (status as { subscriptionCount?: number }).subscriptionCount
+          ?? 0,
+        ),
+        offersListenerActive: Boolean(
+          stream.offersListenerActive
+          ?? (status as { offersListenerActive?: boolean }).offersListenerActive,
+        ),
+        streamState: String(
+          stream.streamState
+          ?? (status as { streamState?: string }).streamState
+          ?? "",
+        ),
+        requestedInstrument: requested,
+        quoteInstrument,
+        lastQuoteAt,
+        lastQuoteAgeMs,
+        freshnessThresholdMs: MARKET_QUOTE_STALE_MS,
+        bid,
+        ask,
+        subscriptionError: null,
+        instrumentPermissionError,
+      });
+      quoteSubscriptionReadiness = { ...readinessEval, configuredInstruments: configured.instruments };
+      if (!readinessEval.readyForExecutionQuote) {
+        blockers.push(readinessEval.code);
+        ownerActionChecklist.push(
+          "Ensure an AT selectedInstrument (or monitor instrument) is set, then restore/subscribe Offers until a fresh bid/ask is observed.",
+        );
+      }
+    } catch {
+      quoteSubscriptionReadiness = {
+        code: "SUBSCRIPTION_FAILED",
+        readyForExecutionQuote: false,
+        message: "Quote subscription readiness diagnostics unavailable.",
+      };
+      blockers.push("SUBSCRIPTION_FAILED");
+    }
+
     return {
       ok: blockers.length === 0,
-      phase: "58.5",
+      phase: "59.0.3",
       connected,
       environment: env || null,
       demoSession: demoOk,
@@ -233,13 +331,14 @@ export class DemoLifecycleOrchestrator {
       partialCloseDocumented: Boolean((caps as { supportsPartialClose?: boolean }).supportsPartialClose),
       sdkCapabilities: caps,
       activeGrantCount: getDemoExecutionGrantStore().listActive().length,
+      quoteSubscriptionReadiness,
       blockers,
       ownerActionChecklist,
       mayAttemptDemoMutation: blockers.length === 0,
       placesOrdersGlobal: false,
       liveLocked: true,
       note:
-        "Unauthenticated 403 on this route is correct. Mutation remains fail-closed until Node+sidecar flags, secret, and grant are all valid.",
+        "Unauthenticated 403 on this route is correct. Mutation remains fail-closed until Node+sidecar flags, secret, grant, and a fresh valid quote are all valid. CONNECTED alone is not quote-ready.",
     };
   }
 
@@ -248,27 +347,59 @@ export class DemoLifecycleOrchestrator {
    * Does not mutate broker orders.
    */
   async probeQuote(instrument: string): Promise<Record<string, unknown>> {
-    const bridge = getForexConnectBridge();
     const symbol = String(instrument || "").trim();
     let subscribe: Record<string, unknown> | null = null;
     try {
-      subscribe = await bridge.subscribeQuotes(symbol) as unknown as Record<string, unknown>;
+      // Phase 59.0.3 — validate allowlist+catalog, then live.ensure (durable intended).
+      const { getForexConnectLiveCandleService } = await import(
+        "../../../market-data/forexconnect/live-service.js"
+      );
+      const live = getForexConnectLiveCandleService();
+      const ensured = await live.ensureValidatedAtInstrument(symbol, "1m");
+      subscribe = {
+        ok: ensured.ok,
+        via: "live.ensureValidatedAtInstrument",
+        code: ensured.code,
+        streamState: ensured.series?.streamState ?? null,
+        providerSymbol: ensured.series?.providerSymbol ?? symbol,
+        message: ensured.message,
+        placesOrders: false,
+      };
     } catch (error) {
       subscribe = {
         ok: false,
+        via: "live.ensureValidatedAtInstrument",
         error: error instanceof Error ? error.message : "subscribe failed",
       };
     }
     const quote = await getForexConnectDemoMutationAdapter().getOfferQuote(symbol);
+    const { evaluateExecutionQuoteEvidence, parseQuoteTimestampMs } = await import(
+      "../quote-subscription-readiness.js"
+    );
+    const { MARKET_QUOTE_STALE_MS } = await import("../quote-freshness.js");
+    const qBid = quote.bid == null ? null : Number(quote.bid);
+    const qAsk = quote.ask == null ? null : Number(quote.ask);
+    const evidence = evaluateExecutionQuoteEvidence({
+      requestedInstrument: symbol,
+      quoteInstrument: quote.instrument != null ? String(quote.instrument) : symbol,
+      bid: Number.isFinite(qBid as number) ? (qBid as number) : null,
+      ask: Number.isFinite(qAsk as number) ? (qAsk as number) : null,
+      lastQuoteAt: (quote.offerTime as string | number | null | undefined) ?? null,
+      lastQuoteAgeMs: null,
+      freshnessThresholdMs: MARKET_QUOTE_STALE_MS,
+    });
     return {
-      ok: Boolean(quote.ok) && Boolean(quote.quotePresent),
-      phase: "58.5",
+      ok: Boolean(quote.ok) && Boolean(quote.quotePresent) && evidence.readyForExecutionQuote,
+      phase: "59.0.3",
       instrument: symbol,
       subscribe,
       quote,
+      quoteReadiness: evidence,
+      quoteTimestampMs: parseQuoteTimestampMs(quote.offerTime),
       mutatesBroker: false,
       placesOrdersGlobal: false,
-      note: "Offer table snapshot is the DEMO open preflight source; stream subscribe is best-effort.",
+      note:
+        "Offer table snapshot is the DEMO open preflight source; subscribe uses validated live.ensure (registers intended).",
     };
   }
 
@@ -370,16 +501,35 @@ export class DemoLifecycleOrchestrator {
     }
 
     const adapter = getForexConnectDemoMutationAdapter();
-    // Best-effort Offers subscription so snapshot is more likely current.
+    // Phase 59.0.3 — validate allowlist+catalog, then durable intended via live.ensure.
     try {
-      await getForexConnectBridge().subscribeQuotes(req.instrument);
-    } catch {
-      /* offer-quote snapshot remains authoritative for preflight */
+      const { getForexConnectLiveCandleService } = await import(
+        "../../../market-data/forexconnect/live-service.js"
+      );
+      const ensured = await getForexConnectLiveCandleService().ensureValidatedAtInstrument(
+        req.instrument,
+        "1m",
+      );
+      if (!ensured.ok) {
+        base.state = "VALIDATION_FAILED";
+        base.lastCode = ensured.code;
+        base.lastError = ensured.message;
+        base.evidence = { ensureValidated: ensured };
+        this.upsert(base);
+        return { ok: false, code: base.lastCode, error: base.lastError, record: base };
+      }
+    } catch (error) {
+      base.state = "VALIDATION_FAILED";
+      base.lastCode = "SUBSCRIPTION_FAILED";
+      base.lastError = error instanceof Error ? error.message : "Validated subscribe failed.";
+      this.upsert(base);
+      return { ok: false, code: base.lastCode, error: base.lastError, record: base };
     }
     const quoteRaw = await adapter.getOfferQuote(req.instrument);
     const quotePresent = Boolean(quoteRaw.quotePresent ?? quoteRaw.ok);
     const quoteBid = quoteRaw.bid == null ? null : Number(quoteRaw.bid);
     const quoteAsk = quoteRaw.ask == null ? null : Number(quoteRaw.ask);
+    const { MARKET_QUOTE_STALE_MS } = await import("../quote-freshness.js");
 
     const preflight = evaluateDemoLifecyclePreflight({
       instrument: req.instrument,
@@ -391,6 +541,11 @@ export class DemoLifecycleOrchestrator {
       quotePresent: quotePresent && Number.isFinite(quoteBid) && Number.isFinite(quoteAsk),
       quoteBid: Number.isFinite(quoteBid as number) ? (quoteBid as number) : null,
       quoteAsk: Number.isFinite(quoteAsk as number) ? (quoteAsk as number) : null,
+      quoteInstrument: quoteRaw.instrument != null ? String(quoteRaw.instrument) : req.instrument,
+      quoteTimestamp: (quoteRaw.offerTime as string | number | null | undefined) ?? null,
+      lastQuoteAgeMs: null,
+      nowMs: Date.now(),
+      freshnessThresholdMs: MARKET_QUOTE_STALE_MS,
       requireProtective: req.requireProtective,
       stopLoss: req.stopLoss ?? null,
       takeProfit: req.takeProfit ?? null,

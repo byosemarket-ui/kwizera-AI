@@ -57,6 +57,7 @@ describe("Phase 58.3 wiring", () => {
 
 describe("Phase 58.3 DEMO preflight", () => {
   it("passes when DEMO session, grant, quote, and optional protection are valid", () => {
+    const nowMs = Date.parse("2026-10-25T12:00:00.000Z");
     const r = evaluateDemoLifecyclePreflight({
       instrument: "EUR/USD",
       direction: "BUY",
@@ -67,6 +68,10 @@ describe("Phase 58.3 DEMO preflight", () => {
       quotePresent: true,
       quoteBid: 1.1,
       quoteAsk: 1.1002,
+      quoteInstrument: "EUR/USD",
+      quoteTimestamp: nowMs - 250,
+      nowMs,
+      freshnessThresholdMs: 15_000,
       requireProtective: true,
       stopLoss: 1.095,
       takeProfit: 1.115,
@@ -79,6 +84,7 @@ describe("Phase 58.3 DEMO preflight", () => {
   });
 
   it("blocks stale/missing quote and LIVE environment", () => {
+    const nowMs = Date.parse("2026-10-25T12:00:00.000Z");
     const missing = evaluateDemoLifecyclePreflight({
       instrument: "EUR/USD",
       direction: "BUY",
@@ -98,6 +104,29 @@ describe("Phase 58.3 DEMO preflight", () => {
     expect(missing.ok).toBe(false);
     expect(missing.blockers).toContain("QUOTE_UNAVAILABLE");
 
+    const stale = evaluateDemoLifecyclePreflight({
+      instrument: "EUR/USD",
+      direction: "BUY",
+      lots: 1,
+      maxLots: 1,
+      environment: "demo",
+      sessionConnected: true,
+      quotePresent: true,
+      quoteBid: 1.1,
+      quoteAsk: 1.1002,
+      quoteInstrument: "EUR/USD",
+      lastQuoteAgeMs: 60_000,
+      nowMs,
+      freshnessThresholdMs: 15_000,
+      requireProtective: false,
+      stopLoss: null,
+      takeProfit: null,
+      entryHint: null,
+      grantActive: true,
+    });
+    expect(stale.blockers).toContain("QUOTE_STALE");
+    expect(stale.maySubmitDemoMutation).toBe(false);
+
     const live = evaluateDemoLifecyclePreflight({
       instrument: "EUR/USD",
       direction: "BUY",
@@ -108,6 +137,9 @@ describe("Phase 58.3 DEMO preflight", () => {
       quotePresent: true,
       quoteBid: 1.1,
       quoteAsk: 1.1002,
+      quoteInstrument: "EUR/USD",
+      quoteTimestamp: nowMs - 100,
+      nowMs,
       requireProtective: false,
       stopLoss: null,
       takeProfit: null,
