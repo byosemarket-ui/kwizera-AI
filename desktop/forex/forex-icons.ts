@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Activity, BarChart3, BookOpen, Brain, Globe, LayoutDashboard, LineChart,
+  Activity, BarChart3, BookOpen, Brain, Globe, LayoutDashboard, LineChart, List,
   NotebookPen, Radar, Settings, Shield, Star, Waypoints, Zap, History,
 } from "lucide-react";
 import type { ForexNavIconId } from "./forex-routes";
@@ -18,6 +18,7 @@ const ICONS: Record<ForexNavIconId, LucideIcon> = {
   waypoints: Waypoints,
   notebook: NotebookPen,
   shield: Shield,
+  list: List,
   "bar-chart": BarChart3,
   history: History,
   settings: Settings,

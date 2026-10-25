@@ -320,7 +320,9 @@ describe("Phase 56.2.3 ForexConnect RO + safety greps", () => {
     expect(api).toMatch(/broker-ro-tables/);
     expect(api).toMatch(/listOrders/);
     expect(api).toMatch(/listTrades/);
-    expect(api).toMatch(/CLOSED_TRADES_NOT_IMPLEMENTED/);
+    // Phase 60.0.2+ — ClosedTrades is implemented (current trading day); stub string removed.
+    expect(api).toMatch(/listClosedTrades/);
+    expect(api).toMatch(/CURRENT_TRADING_DAY/);
     expect(api).toMatch(/placesOrders:\s*false/);
     expect(api).toMatch(/EXECUTION_FORBIDDEN/);
     expect(api).toMatch(/capitalAllocationPercent/);

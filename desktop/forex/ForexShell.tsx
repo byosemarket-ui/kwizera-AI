@@ -3,6 +3,7 @@ import { ForexDashboard } from "./ForexDashboard";
 import { ForexMarketsPage } from "./ForexMarketsPage";
 import { ForexAiAnalysisPage } from "./ForexAiAnalysisPage";
 import { ForexAutomatedTradingPage } from "./ForexAutomatedTradingPage";
+import { ForexTradeMonitorPage } from "./ForexTradeMonitorPage";
 import { ForexMonitorPage } from "./ForexMonitorPage";
 import { SelectedMarketBar } from "./SelectedMarketBar";
 import { ForexHeader } from "./ForexHeader";
@@ -223,6 +224,13 @@ export function ForexShell({
   } else if (route === "automated-trading") {
     content = (
       <ForexAutomatedTradingPage
+        selectedMarket={selectedMarket}
+        timeframe={chartTimeframe}
+      />
+    );
+  } else if (route === "trade-monitor") {
+    content = (
+      <ForexTradeMonitorPage
         selectedMarket={selectedMarket}
         timeframe={chartTimeframe}
       />

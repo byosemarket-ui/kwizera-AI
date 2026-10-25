@@ -343,6 +343,86 @@ export class ForexConnectBridge {
   }
 
   /**
+   * Phase 60.0.2 — read-only ClosedTrades (current trading day) via sidecar.
+   * Never mutates broker state. Incomplete day history is not an all-time ledger.
+   */
+  async listClosedTrades(): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    const status = await this.getStatus();
+    try {
+      const remote = await sidecarFetch(cfg, "/closed-trades", { method: "GET" }, this.fetchImpl);
+      const body = remote.body as unknown as Record<string, unknown>;
+      return {
+        ...body,
+        trading: "DISABLED",
+        placesOrders: false,
+        mutatesBroker: false,
+        historyScope: body.historyScope ?? "CURRENT_TRADING_DAY",
+        status: body.status ?? status,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        capabilityStatus: "ERROR",
+        code: "SERVICE_UNAVAILABLE",
+        closedTrades: [],
+        count: 0,
+        historyScope: "CURRENT_TRADING_DAY",
+        trading: "DISABLED",
+        placesOrders: false,
+        mutatesBroker: false,
+        error: {
+          code: "FOREXCONNECT_SERVICE_UNAVAILABLE",
+          message: sanitize(
+            error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
+          ),
+        },
+        status,
+      };
+    }
+  }
+
+  /**
+   * Phase 60.0.3 — read-only Summary table (instrument-level NetPL) via sidecar.
+   * Never mutates. Do not sum with Trades floating P/L or treat as account-wide.
+   */
+  async listSummary(): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    const status = await this.getStatus();
+    try {
+      const remote = await sidecarFetch(cfg, "/summary", { method: "GET" }, this.fetchImpl);
+      const body = remote.body as unknown as Record<string, unknown>;
+      return {
+        ...body,
+        trading: "DISABLED",
+        placesOrders: false,
+        mutatesBroker: false,
+        metricScope: body.metricScope ?? "INSTRUMENT_SUMMARY",
+        status: body.status ?? status,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        capabilityStatus: "ERROR",
+        code: "SERVICE_UNAVAILABLE",
+        summaries: [],
+        count: 0,
+        metricScope: "INSTRUMENT_SUMMARY",
+        trading: "DISABLED",
+        placesOrders: false,
+        mutatesBroker: false,
+        error: {
+          code: "FOREXCONNECT_SERVICE_UNAVAILABLE",
+          message: sanitize(
+            error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
+          ),
+        },
+        status,
+      };
+    }
+  }
+
+  /**
    * Phase 47B — read-only Accounts table via sidecar.
    * Never places orders. Returns explicit status when disconnected / empty.
    */

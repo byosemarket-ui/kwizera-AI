@@ -31,6 +31,7 @@ const REQUIRED_PATHS = [
   "/forex/ai-analysis",
   "/forex/signals",
   "/forex/automated-trading",
+  "/forex/trade-monitor",
   "/forex/strategies",
   "/forex/trade-journal",
   "/forex/risk-management",
@@ -64,7 +65,9 @@ describe("Forex Phase 1 routing", () => {
     expect(FOREX_NAV.find((item) => item.id === "signals")?.label).toBe("Market Monitor");
     expect(FOREX_NAV.find((item) => item.id === "automated-trading")?.implemented).toBe(true);
     expect(FOREX_NAV.find((item) => item.id === "automated-trading")?.label).toBe("Automated Trading");
-    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "watchlist", "charts", "technical-analysis", "ai-analysis", "signals", "automated-trading"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "trade-monitor")?.implemented).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "trade-monitor")?.label).toBe("Trade Monitor");
+    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "watchlist", "charts", "technical-analysis", "ai-analysis", "signals", "automated-trading", "trade-monitor"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
     expect(FOREX_DASHBOARD_MODULES).toHaveLength(8);
   });
 });
@@ -96,6 +99,7 @@ describe("Forex Phase 2 navigation", () => {
     expect(getForexBreadcrumbs("technical-analysis").map((item) => item.label)).toEqual(["Forex", "Analysis", "Technical Analysis"]);
     expect(getForexBreadcrumbs("ai-analysis").map((item) => item.label)).toEqual(["Forex", "AI Trading", "AI Analysis"]);
     expect(getForexBreadcrumbs("automated-trading").map((item) => item.label)).toEqual(["Forex", "Trading", "Automated Trading"]);
+    expect(getForexBreadcrumbs("trade-monitor").map((item) => item.label)).toEqual(["Forex", "Trading", "Trade Monitor"]);
     expect(getForexBreadcrumbs("trade-journal").map((item) => item.label)).toEqual(["Forex", "Trading", "Trade Journal"]);
     expect(getForexBreadcrumbs("settings").map((item) => item.label)).toEqual(["Forex", "Settings"]);
     expect(getForexDocumentTitle("dashboard")).toBe("KWIZERA AI STUDIO — Forex Dashboard");

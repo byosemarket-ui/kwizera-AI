@@ -954,6 +954,11 @@ def _normalize_account_row(
             "getUsableMargin",
         )
     )
+    # Day/gross P/L only when the Accounts row exposes them (never invent).
+    day_pl = _finite(_row_get(row, "day_pl", "DayPL", "dayPL", "get_day_pl", "getDayPL"))
+    gross_pl_account = _finite(
+        _row_get(row, "gross_pl", "GrossPL", "grossPL", "get_gross_pl", "getGrossPL")
+    )
     row_currency = _row_get(
         row,
         "account_currency",
@@ -996,9 +1001,16 @@ def _normalize_account_row(
         "equity": equity,
         "usedMargin": used_margin,
         "usableMargin": usable_margin,
+        "dayPl": day_pl,
+        "grossPl": gross_pl_account,
         "currencySource": currency_src,
         "missingFields": missing,
         "source": "forexconnect-accounts",
+        "equityIncludesFloatingPl": True,
+        "note": (
+            "Equity/NAV is the broker Accounts field when present and typically already "
+            "includes floating P/L — do not add trade-level floatingPl again."
+        ),
     }
 
 
@@ -1060,24 +1072,115 @@ def _normalize_order_row(row: Any) -> Optional[dict[str, Any]]:
         return None
 
 
+def _serialize_table_time(value: Any) -> Optional[str]:
+    """Serialize broker table datetime without inventing timestamps."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    text = str(value).strip()
+    return text or None
+
+
 def _normalize_trade_row(row: Any) -> Optional[dict[str, Any]]:
+    """Phase 60.0.2 — include broker gross_pl / close when the installed SDK exposes them."""
     try:
-        trade_id = getattr(row, "trade_id", None) or getattr(row, "TradeID", None)
-        offer = getattr(row, "instrument", None) or getattr(row, "OfferID", None) or getattr(row, "Symbol", None)
-        side = getattr(row, "buy_sell", None) or getattr(row, "BuySell", None)
-        amount = getattr(row, "amount", None) or getattr(row, "Amount", None)
-        open_rate = getattr(row, "open_rate", None) or getattr(row, "OpenRate", None)
-        sl = getattr(row, "stop", None) or getattr(row, "Stop", None)
-        tp = getattr(row, "limit", None) or getattr(row, "Limit", None)
+        trade_id = _row_get(row, "trade_id", "TradeID", "TradeId")
+        offer = _row_get(row, "instrument", "Instrument", "Symbol", "symbol")
+        offer_id = _row_get(row, "offer_id", "OfferID", "OfferId")
+        if offer is None and offer_id is not None:
+            offer = offer_id
+        side = _row_get(row, "buy_sell", "BuySell")
+        amount = _row_get(row, "amount", "Amount")
+        open_rate = _row_get(row, "open_rate", "OpenRate")
+        # Broker mark/close on open trades (O2GTradeTableRow.close / close_rate).
+        close_rate = _row_get(row, "close", "Close", "close_rate", "CloseRate")
+        sl = _row_get(row, "stop", "Stop")
+        tp = _row_get(row, "limit", "Limit")
+        gross_pl = _finite(_row_get(row, "gross_pl", "GrossPL", "grossPL", "pl", "PL"))
+        commission = _finite(_row_get(row, "commission", "Commission"))
+        rollover = _finite(
+            _row_get(row, "rollover_interest", "RolloverInterest", "rolloverInterest", "roll", "Roll")
+        )
+        account_id = _row_get(row, "account_id", "AccountID", "AccountId")
+        open_time = _serialize_table_time(_row_get(row, "open_time", "OpenTime", "openTime"))
+        used_margin = _finite(_row_get(row, "used_margin", "UsedMargin", "usedMargin"))
+        # Associated opening order id when the installed SDK exposes it (never invented).
+        open_order_id = _row_get(
+            row, "open_order_id", "OpenOrderID", "OpenOrderId", "order_id", "OrderID", "OrderId"
+        )
         return {
             "tradeId": str(trade_id) if trade_id is not None else None,
-            "instrument": str(offer) if offer is not None else None,
+            "accountIdMasked": _mask_account_id(account_id) if account_id is not None else None,
+            "offerId": str(offer_id).strip() if offer_id is not None and str(offer_id).strip() else None,
+            "instrument": str(offer).strip() if offer is not None and str(offer).strip() else None,
             "side": str(side) if side is not None else None,
             "amount": float(amount) if amount is not None and str(amount).strip() != "" else None,
             "openRate": float(open_rate) if open_rate is not None and str(open_rate).strip() != "" else None,
+            "currentPrice": float(close_rate) if close_rate is not None and str(close_rate).strip() != "" else None,
+            "currentPriceSource": "forexconnect-trades.close" if close_rate is not None and str(close_rate).strip() != "" else None,
             "stopLoss": float(sl) if sl is not None and str(sl).strip() != "" else None,
             "takeProfit": float(tp) if tp is not None and str(tp).strip() != "" else None,
+            "grossPl": gross_pl,
+            "floatingPl": gross_pl,
+            "floatingPlSource": "forexconnect-trades.gross_pl" if gross_pl is not None else None,
+            "commission": commission,
+            "rolloverInterest": rollover,
+            "usedMargin": used_margin,
+            "openTime": open_time,
+            "orderId": str(open_order_id).strip() if open_order_id is not None and str(open_order_id).strip() else None,
+            "plBasis": "gross" if gross_pl is not None else None,
             "source": "forexconnect-trades",
+        }
+    except Exception:
+        return None
+
+
+def _normalize_closed_trade_row(row: Any) -> Optional[dict[str, Any]]:
+    """Phase 60.0.2 — ClosedTrades (current trading day). Never invents P/L."""
+    try:
+        trade_id = _row_get(row, "trade_id", "TradeID", "TradeId")
+        offer = _row_get(row, "instrument", "Instrument", "Symbol", "symbol")
+        offer_id = _row_get(row, "offer_id", "OfferID", "OfferId")
+        if offer is None and offer_id is not None:
+            offer = offer_id
+        side = _row_get(row, "buy_sell", "BuySell")
+        amount = _row_get(row, "amount", "Amount")
+        open_rate = _row_get(row, "open_rate", "OpenRate")
+        close_rate = _row_get(row, "close_rate", "CloseRate", "close", "Close")
+        gross_pl = _finite(_row_get(row, "gross_pl", "GrossPL", "grossPL"))
+        commission = _finite(_row_get(row, "commission", "Commission"))
+        rollover = _finite(
+            _row_get(row, "rollover_interest", "RolloverInterest", "rolloverInterest", "roll", "Roll")
+        )
+        account_id = _row_get(row, "account_id", "AccountID", "AccountId")
+        open_time = _serialize_table_time(_row_get(row, "open_time", "OpenTime", "openTime"))
+        close_time = _serialize_table_time(_row_get(row, "close_time", "CloseTime", "closeTime"))
+        # Net only when broker components allow a defined sum (gross + commission + rollover).
+        # Commission/rollover are account-currency deltas; missing components leave net null.
+        net_pl = None
+        if gross_pl is not None and commission is not None and rollover is not None:
+            net_pl = gross_pl + commission + rollover
+        return {
+            "tradeId": str(trade_id) if trade_id is not None else None,
+            "accountIdMasked": _mask_account_id(account_id) if account_id is not None else None,
+            "offerId": str(offer_id).strip() if offer_id is not None and str(offer_id).strip() else None,
+            "instrument": str(offer).strip() if offer is not None and str(offer).strip() else None,
+            "side": str(side) if side is not None else None,
+            "amount": float(amount) if amount is not None and str(amount).strip() != "" else None,
+            "openRate": float(open_rate) if open_rate is not None and str(open_rate).strip() != "" else None,
+            "closeRate": float(close_rate) if close_rate is not None and str(close_rate).strip() != "" else None,
+            "openTime": open_time,
+            "closeTime": close_time,
+            "grossPl": gross_pl,
+            "commission": commission,
+            "rolloverInterest": rollover,
+            "netPl": net_pl,
+            "plBasis": "gross" if gross_pl is not None else None,
+            "historyScope": "CURRENT_TRADING_DAY",
+            "source": "forexconnect-closed-trades",
         }
     except Exception:
         return None
@@ -1172,6 +1275,76 @@ def orders_payload() -> dict[str, Any]:
 def trades_payload() -> dict[str, Any]:
     """Phase 56.2.3 — read-only Trades (open positions) table. Never closes/modifies positions."""
     return _ro_table_payload("TRADES", "trades", _normalize_trade_row)
+
+
+def closed_trades_payload() -> dict[str, Any]:
+    """Phase 60.0.2 — read-only ClosedTrades (current trading day). Never mutates broker state."""
+    payload = _ro_table_payload("CLOSED_TRADES", "closedTrades", _normalize_closed_trade_row)
+    # Clarify incomplete history scope whenever the table is readable.
+    note = str(payload.get("note") or "")
+    scope = (
+        "ClosedTrades contains positions closed during the current trading day only — "
+        "not a durable all-time ledger."
+    )
+    payload["historyScope"] = "CURRENT_TRADING_DAY"
+    payload["note"] = f"{note} {scope}".strip() if note else scope
+    payload["mutatesBroker"] = False
+    payload["placesOrders"] = False
+    payload["trading"] = "DISABLED"
+    return payload
+
+
+def _normalize_summary_row(row: Any) -> Optional[dict[str, Any]]:
+    """Phase 60.0.3 — instrument-level Summary NetPL when SDK exposes SUMMARY. Never invents."""
+    try:
+        offer = _row_get(row, "instrument", "Instrument", "Symbol", "symbol", "offer", "Offer")
+        offer_id = _row_get(row, "offer_id", "OfferID", "OfferId")
+        if offer is None and offer_id is not None:
+            offer = offer_id
+        account_id = _row_get(row, "account_id", "AccountID", "AccountId")
+        # Documented Summary field: NetPL (instrument-scope, not per-trade, not account-wide).
+        net_pl = _finite(_row_get(row, "net_pl", "NetPL", "netPL", "get_net_pl", "getNetPL"))
+        gross_pl = _finite(_row_get(row, "gross_pl", "GrossPL", "grossPL"))
+        amount = _finite(_row_get(row, "amount", "Amount"))
+        buy_amount = _finite(_row_get(row, "buy_amount", "BuyAmount"))
+        sell_amount = _finite(_row_get(row, "sell_amount", "SellAmount"))
+        if offer is None and net_pl is None and gross_pl is None:
+            return None
+        return {
+            "instrument": str(offer).strip() if offer is not None and str(offer).strip() else None,
+            "offerId": str(offer_id).strip() if offer_id is not None and str(offer_id).strip() else None,
+            "accountIdMasked": _mask_account_id(account_id) if account_id is not None else None,
+            "netPl": net_pl,
+            "grossPl": gross_pl,
+            "amount": amount,
+            "buyAmount": buy_amount,
+            "sellAmount": sell_amount,
+            "metricScope": "INSTRUMENT_SUMMARY",
+            "plBasis": "net" if net_pl is not None else ("gross" if gross_pl is not None else None),
+            "source": "forexconnect-summary",
+            "note": (
+                "Summary NetPL is instrument-level — do not treat as per-trade or account-wide P/L, "
+                "and do not sum with Trades.gross_pl."
+            ),
+        }
+    except Exception:
+        return None
+
+
+def summary_payload() -> dict[str, Any]:
+    """Phase 60.0.3 — read-only Summary table (instrument NetPL). Never mutates broker state."""
+    payload = _ro_table_payload("SUMMARY", "summaries", _normalize_summary_row)
+    note = str(payload.get("note") or "")
+    scope = (
+        "ForexConnect Summary rows are instrument-scoped. NetPL here is not per-trade and not "
+        "an account total — do not double-count with Trades floating P/L or Accounts dayPl."
+    )
+    payload["metricScope"] = "INSTRUMENT_SUMMARY"
+    payload["note"] = f"{note} {scope}".strip() if note else scope
+    payload["mutatesBroker"] = False
+    payload["placesOrders"] = False
+    payload["trading"] = "DISABLED"
+    return payload
 
 
 def accounts_payload() -> dict[str, Any]:
@@ -2213,6 +2386,28 @@ class Handler(BaseHTTPRequestHandler):
             # Phase 56.2.3 — read-only Trades table if SDK exposes it. Never mutates.
             payload = trades_payload()
             self._send(200 if payload.get("ok") or payload.get("capabilityStatus") == "UNSUPPORTED" else 503, payload)
+            return
+        if path == "/closed-trades":
+            # Phase 60.0.2 — read-only ClosedTrades (current trading day). Never mutates.
+            payload = closed_trades_payload()
+            self._send(
+                200 if payload.get("ok") or payload.get("capabilityStatus") in (
+                    "UNSUPPORTED",
+                    "AVAILABLE_BUT_DISCONNECTED",
+                ) else 503,
+                payload,
+            )
+            return
+        if path == "/summary":
+            # Phase 60.0.3 — read-only Summary (instrument NetPL). Never mutates.
+            payload = summary_payload()
+            self._send(
+                200 if payload.get("ok") or payload.get("capabilityStatus") in (
+                    "UNSUPPORTED",
+                    "AVAILABLE_BUT_DISCONNECTED",
+                ) else 503,
+                payload,
+            )
             return
         if path == "/candles":
             qs = parse_qs(parsed.query or "")

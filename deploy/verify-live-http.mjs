@@ -51,6 +51,9 @@ await assertStudio("/forex/dashboard");
 await assertStudio("/forex/markets");
 await assertStudio("/forex/signals");
 await assertStudio("/forex/settings");
+// Phase 60 Trade Monitor — SPA shell routes (HTML shell; no broker mutation).
+await assertStudio("/forex/trade-monitor");
+await assertStudio("/forex/positions");
 
 const legacy = await get("/dev");
 if (legacy.status !== 200 || !/Dev Dashboard/i.test(legacy.text)) {

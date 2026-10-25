@@ -117,9 +117,15 @@ export interface ForexConnectAccountRow {
   equity: number | null;
   usedMargin: number | null;
   usableMargin: number | null;
+  /** Phase 60.0.2 — Accounts.day_pl when SDK exposes it. */
+  dayPl?: number | null;
+  /** Phase 60.0.2 — Accounts.gross_pl when SDK exposes it. */
+  grossPl?: number | null;
+  equityIncludesFloatingPl?: boolean;
   currencySource?: string | null;
   missingFields?: string[];
   source?: string;
+  note?: string;
 }
 
 export interface ForexConnectAccountsResult {

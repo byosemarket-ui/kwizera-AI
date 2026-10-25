@@ -9,6 +9,7 @@ export type ForexRouteId =
   | "ai-analysis"
   | "signals"
   | "automated-trading"
+  | "trade-monitor"
   | "strategies"
   | "trade-journal"
   | "risk-management"
@@ -39,6 +40,7 @@ export type ForexNavIconId =
   | "waypoints"
   | "notebook"
   | "shield"
+  | "list"
   | "bar-chart"
   | "history"
   | "settings";
@@ -193,6 +195,19 @@ export const FOREX_NAV: ForexNavItem[] = [
     phaseNote: "Phase 51",
   },
   {
+    id: "trade-monitor",
+    label: "Trade Monitor",
+    path: "/forex/trade-monitor",
+    implemented: true,
+    inSidebar: true,
+    group: "trading",
+    groupLabel: "Trading",
+    icon: "list",
+    description:
+      "Read-only live positions, working orders, and account exposure from ForexConnect. Does not place or modify broker orders.",
+    phaseNote: "Phase 60.0.1",
+  },
+  {
     id: "strategies",
     label: "Strategies",
     path: "/forex/strategies",
@@ -273,6 +288,7 @@ export const FOREX_PATH_ALIASES: Record<string, ForexRouteId> = {
   "/forex/analysis/intelligence": "market-intelligence",
   "/forex/ai": "ai-analysis",
   "/forex/auto-trading": "automated-trading",
+  "/forex/positions": "trade-monitor",
   "/forex/journal": "trade-journal",
   "/forex/risk": "risk-management",
 };

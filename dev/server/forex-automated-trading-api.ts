@@ -64,15 +64,72 @@ export async function handleForexAutomatedTradingApi(
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
         return true;
       }
-      // Phase 56.2.3 — admin-gated RO accounts + ORDERS/TRADES capability probe.
+      // Phase 56.2.3 / 60.0.2 / 60.0.3 — admin-gated RO accounts + ORDERS/TRADES/CLOSED_TRADES/SUMMARY
+      // + Offers mark enrichment via existing pollQuotes (no duplicate session/subscribe).
       // Path deliberately avoids the substring "order" (blocked by EXECUTION_FORBIDDEN gate).
       const { getForexConnectBridge } = await import("../../ai/market-data/forexconnect/client.js");
+      const {
+        enrichOpenTradesWithMarks,
+        ingestBrokerTradeSnapshots,
+        getAtTradeHistoryStore,
+        reconcileTradeMonitorSources,
+      } = await import("../../ai/forex-ai/automated-trading/trade-history/index.js");
       const bridge = getForexConnectBridge();
-      const [accounts, openOrders, openTrades] = await Promise.all([
+      const [accounts, openOrders, openTrades, closedTrades, summary, fcStatus] = await Promise.all([
         bridge.listAccounts(),
         bridge.listOrders(),
         bridge.listTrades(),
+        bridge.listClosedTrades(),
+        bridge.listSummary(),
+        bridge.getStatus(),
       ]);
+      let quotes: Awaited<ReturnType<typeof bridge.pollQuotes>> = [];
+      try {
+        quotes = await bridge.pollQuotes();
+      } catch {
+        quotes = [];
+      }
+      const tradeRowsRaw = Array.isArray((openTrades as { trades?: unknown[] }).trades)
+        ? (openTrades as { trades: unknown[] }).trades
+        : [];
+      const enrichedTrades = enrichOpenTradesWithMarks(tradeRowsRaw, quotes);
+      const environment = String(
+        (fcStatus as { environment?: string }).environment
+        ?? (accounts as { status?: { environment?: string } }).status?.environment
+        ?? "DEMO",
+      );
+      const ingest = await ingestBrokerTradeSnapshots({
+        environment,
+        openTrades: { trades: enrichedTrades },
+        closedTrades,
+      }).catch(() => null);
+      const historyStore = getAtTradeHistoryStore();
+      const historyMeta = historyStore.snapshot();
+      const orderRows = Array.isArray((openOrders as { orders?: unknown[] }).orders)
+        ? (openOrders as { orders: Array<Record<string, unknown>> }).orders
+        : [];
+      const closedRows = Array.isArray((closedTrades as { closedTrades?: unknown[] }).closedTrades)
+        ? (closedTrades as { closedTrades: Array<Record<string, unknown>> }).closedTrades
+        : [];
+      const summaryRows = Array.isArray((summary as { summaries?: unknown[] }).summaries)
+        ? (summary as { summaries: Array<Record<string, unknown>> }).summaries
+        : [];
+      const reconciliation = reconcileTradeMonitorSources({
+        environment,
+        openTrades: enrichedTrades as Array<{ tradeId?: string | null; accountIdMasked?: string | null }>,
+        closedDayTrades: closedRows as Array<{ tradeId?: string | null }>,
+        historyRecords: historyMeta.records,
+        activeOrders: orderRows as Array<{ orderId?: string | null }>,
+        instrumentSummaries: summaryRows as Array<{ instrument?: string | null; netPl?: number | null }>,
+      });
+      const closedCapability = String(
+        (closedTrades as { capabilityStatus?: string }).capabilityStatus
+        ?? ((closedTrades as { ok?: boolean }).ok ? "AVAILABLE" : "ERROR"),
+      );
+      const summaryCapability = String(
+        (summary as { capabilityStatus?: string }).capabilityStatus
+        ?? ((summary as { ok?: boolean }).ok ? "AVAILABLE" : "ERROR"),
+      );
       sendJson(res, 200, {
         ok: true,
         placesOrders: false,
@@ -92,10 +149,15 @@ export async function handleForexAutomatedTradingApi(
             balance: a.balance,
             usedMargin: a.usedMargin,
             usableMargin: a.usableMargin,
+            dayPl: (a as { dayPl?: number | null }).dayPl ?? null,
+            grossPl: (a as { grossPl?: number | null }).grossPl ?? null,
+            equityIncludesFloatingPl: true,
             missingFields: a.missingFields,
           })),
           fetchedAt: accounts.fetchedAt,
           trading: "DISABLED",
+          note:
+            "Equity/NAV already includes floating P/L when provided by the broker — do not add trade floatingPl again.",
         },
         openWorkingOrders: {
           ...openOrders,
@@ -108,26 +170,338 @@ export async function handleForexAutomatedTradingApi(
         },
         openPositions: {
           ...openTrades,
+          trades: enrichedTrades,
+          count: enrichedTrades.length,
           placesOrders: false,
           mutatesBroker: false,
           trading: "DISABLED",
+          markEnrichment: {
+            source: "forexconnect-offers-pollQuotes",
+            quoteCount: quotes.length,
+            duplicateSubscription: false,
+            note:
+              "Mark prices use existing Offers pollQuotes path (BUY→bid, SELL→ask). Stale/invalid quotes are not presented as live.",
+          },
           note:
             (openTrades as { note?: string }).note
-            ?? "Read-only open-positions table probe (TRADES). Not a broker mutation.",
+            ?? "Read-only open-positions table probe (TRADES). Floating P/L from trades.gross_pl when SDK exposes it.",
         },
         closedTrades: {
-          ok: false,
-          capabilityStatus: "MISSING",
-          code: "CLOSED_TRADES_NOT_IMPLEMENTED",
-          count: 0,
-          note: "ClosedTrades history RO is not implemented in Phase 56.2.4 — not required for open exposure reconciliation.",
+          ...closedTrades,
+          placesOrders: false,
+          mutatesBroker: false,
+          trading: "DISABLED",
+          historyScope:
+            (closedTrades as { historyScope?: string }).historyScope
+            ?? "CURRENT_TRADING_DAY",
+          capabilityStatus: closedCapability,
+          note:
+            (closedTrades as { note?: string }).note
+            ?? "ClosedTrades is current trading day only — not an all-time ledger.",
         },
-        phase: "56.2.4",
+        instrumentSummaries: {
+          ...summary,
+          placesOrders: false,
+          mutatesBroker: false,
+          trading: "DISABLED",
+          metricScope: "INSTRUMENT_SUMMARY",
+          capabilityStatus: summaryCapability,
+          note:
+            (summary as { note?: string }).note
+            ?? "Summary NetPL is instrument-scoped — never sum with trade floating P/L or label as account-wide.",
+        },
+        tradeHistoryIngest: ingest
+          ? {
+              openUpserted: ingest.openUpserted,
+              closedUpserted: ingest.closedUpserted,
+              skipped: ingest.skipped,
+              skippedMissingId: ingest.skippedMissingId,
+              historyAvailableFromUtc: ingest.historyAvailableFromUtc,
+            }
+          : null,
+        reconciliation,
+        historyAvailableFromUtc: historyMeta.historyAvailableFromUtc,
+        phase: "60.0.6",
         quantityUnitSemantics: "SEE_STATUS_QUANTITY_SEMANTICS",
         minStopDistance: "SEE_STATUS_QUANTITY_SEMANTICS",
         note:
-          "Use GET /api/forex/automated-trading/status for XAU quantity/min-stop evidence and exposure reconciliation. This route remains a read-only tables probe.",
+          "Use GET /api/forex/automated-trading/status for XAU quantity/min-stop evidence and exposure reconciliation. This route remains a read-only tables probe. Persisted history via GET /api/forex/automated-trading/trade-history. Performance via GET /api/forex/automated-trading/trade-performance. An empty closed/history array is not proof of all-time completeness. Session CONNECTED ≠ quote received.",
       });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/trade-performance")) {
+      if (req.method !== "GET") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      // Phase 60.0.4 / 60.0.5 — read-only selected-period performance from persisted CLOSED + live snapshot.
+      try {
+        const {
+          getAtTradeHistoryStore,
+          buildPerformanceSummary,
+          startOfUtcDayMs,
+          TRADE_HISTORY_COVERAGE_NOTE,
+          safeFiniteNumber,
+        } = await import("../../ai/forex-ai/automated-trading/trade-history/index.js");
+        const { getForexConnectBridge } = await import("../../ai/market-data/forexconnect/client.js");
+        const store = getAtTradeHistoryStore();
+        const preset = String(url.searchParams.get("preset") ?? "").trim().toLowerCase();
+        let fromUtc = url.searchParams.get("from") || url.searchParams.get("fromUtc");
+        let toUtc = url.searchParams.get("to") || url.searchParams.get("toUtc");
+        const nowMs = Date.now();
+        let periodLabel = "selected_range";
+        if (preset === "today") {
+          fromUtc = new Date(startOfUtcDayMs(nowMs)).toISOString();
+          toUtc = new Date(nowMs).toISOString();
+          periodLabel = "today_utc";
+        } else if (preset === "all" || (!fromUtc && !toUtc && !preset)) {
+          fromUtc = store.snapshot().historyAvailableFromUtc;
+          toUtc = new Date(nowMs).toISOString();
+          periodLabel = "all_persisted";
+        }
+        if (fromUtc && !Number.isFinite(Date.parse(fromUtc))) {
+          sendJson(res, 400, {
+            ok: false,
+            error: { code: "INVALID_FROM", message: "from/fromUtc must be a valid ISO timestamp." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        if (toUtc && !Number.isFinite(Date.parse(toUtc))) {
+          sendJson(res, 400, {
+            ok: false,
+            error: { code: "INVALID_TO", message: "to/toUtc must be a valid ISO timestamp." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        const accountIdMasked = url.searchParams.get("accountIdMasked");
+        const environment = url.searchParams.get("environment");
+        const instrument = url.searchParams.get("instrument");
+        const direction = url.searchParams.get("direction") || url.searchParams.get("side");
+        const accountScope = accountIdMasked?.trim() || null;
+        // Reject obvious unmasked numeric account IDs — history only stores masked forms.
+        if (accountScope && /^\d{5,}$/.test(accountScope)) {
+          sendJson(res, 400, {
+            ok: false,
+            error: {
+              code: "INVALID_ACCOUNT_SCOPE",
+              message: "accountIdMasked must be a masked account identifier, not a raw account id.",
+            },
+            placesOrders: false,
+          });
+          return true;
+        }
+        const closed = store.queryMatchingAll({
+          fromUtc,
+          toUtc,
+          instrument,
+          direction: direction
+            ? direction.toUpperCase().replace(/^B$/, "BUY").replace(/^S$/, "SELL")
+            : null,
+          status: "CLOSED",
+          accountIdMasked: accountScope,
+          environment: environment?.trim() || null,
+        });
+
+        // Optional live open/order counts — reuse shared bridge; no new Offers subscription.
+        const bridge = getForexConnectBridge();
+        const [accounts, openTrades, openOrders] = await Promise.all([
+          bridge.listAccounts().catch(() => ({ ok: false, accounts: [] as unknown[] })),
+          bridge.listTrades().catch(() => ({ trades: [] as unknown[] })),
+          bridge.listOrders().catch(() => ({ orders: [] as unknown[] })),
+        ]);
+        const accountRows = Array.isArray((accounts as { accounts?: unknown[] }).accounts)
+          ? (accounts as { accounts: Array<Record<string, unknown>> }).accounts
+          : [];
+        const primary = accountScope
+          ? accountRows.find((a) => String(a.accountIdMasked ?? "") === accountScope)
+          : accountRows[0];
+        const tradeRowsRaw = Array.isArray((openTrades as { trades?: unknown[] }).trades)
+          ? (openTrades as { trades: Array<Record<string, unknown>> }).trades
+          : [];
+        const tradeRows = accountScope
+          ? tradeRowsRaw.filter((t) => String(t.accountIdMasked ?? "") === accountScope)
+          : tradeRowsRaw;
+        const orderRowsRaw = Array.isArray((openOrders as { orders?: unknown[] }).orders)
+          ? (openOrders as { orders: Array<Record<string, unknown>> }).orders
+          : [];
+        const orderRows = accountScope
+          ? orderRowsRaw.filter((o) => {
+            const acct = o.accountIdMasked;
+            return acct == null || String(acct) === accountScope;
+          })
+          : orderRowsRaw;
+        const currency = primary?.accountCurrency != null ? String(primary.accountCurrency) : null;
+        const openForAnalytics = tradeRows.map((t) => ({
+          tradeId: t.tradeId != null ? String(t.tradeId) : null,
+          accountIdMasked: t.accountIdMasked != null ? String(t.accountIdMasked) : null,
+          floatingPl: safeFiniteNumber(t.floatingPl ?? t.grossPl),
+          currency,
+        }));
+        const performance = buildPerformanceSummary({
+          openTrades: openForAnalytics,
+          activeOrderCount: orderRows.length,
+          closedTrades: closed.map((r) => ({
+            recordKey: r.recordKey,
+            tradeId: r.tradeId,
+            accountIdMasked: r.accountIdMasked,
+            lifecycleStatus: r.lifecycleStatus,
+            grossPl: r.grossPl,
+            netPl: r.netPl,
+            commission: r.commission,
+            rolloverInterest: r.rolloverInterest,
+            closeTime: r.closeTime,
+            openTime: r.openTime,
+            currency,
+          })),
+          period: {
+            fromUtc,
+            toUtc,
+            historyAvailableFromUtc: store.snapshot().historyAvailableFromUtc,
+            accountCurrency: currency,
+            equity: safeFiniteNumber(primary?.equity),
+            equityIncludesFloatingPl: true,
+            nowMs,
+          },
+          periodLabel,
+        });
+        sendJson(res, 200, {
+          ok: true,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+          coverageNote: TRADE_HISTORY_COVERAGE_NOTE,
+          emptyClosedIsNotCompleteHistory: true,
+          accountScope,
+          performance,
+          phase: "60.0.6",
+        });
+      } catch {
+        sendJson(res, 500, {
+          ok: false,
+          error: {
+            code: "TRADE_PERFORMANCE_UNAVAILABLE",
+            message: "Trade performance summary is temporarily unavailable.",
+          },
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        });
+      }
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/trade-history")) {
+      if (req.method !== "GET") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      // Phase 60.0.3 — authenticated, account-scoped, read-only persisted trade history.
+      try {
+        const {
+          getAtTradeHistoryStore,
+          TRADE_HISTORY_COVERAGE_NOTE,
+        } = await import("../../ai/forex-ai/automated-trading/trade-history/index.js");
+        const store = getAtTradeHistoryStore();
+        const fromUtc = url.searchParams.get("from") || url.searchParams.get("fromUtc");
+        const toUtc = url.searchParams.get("to") || url.searchParams.get("toUtc");
+        const instrument = url.searchParams.get("instrument");
+        const direction = url.searchParams.get("direction") || url.searchParams.get("side");
+        const statusParam = url.searchParams.get("status");
+        const accountIdMasked = url.searchParams.get("accountIdMasked");
+        const environment = url.searchParams.get("environment");
+        const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+        const offsetRaw = Number(url.searchParams.get("offset") ?? 0);
+        if (fromUtc && !Number.isFinite(Date.parse(fromUtc))) {
+          sendJson(res, 400, {
+            ok: false,
+            error: { code: "INVALID_FROM", message: "from/fromUtc must be a valid ISO timestamp." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        if (toUtc && !Number.isFinite(Date.parse(toUtc))) {
+          sendJson(res, 400, {
+            ok: false,
+            error: { code: "INVALID_TO", message: "to/toUtc must be a valid ISO timestamp." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        if (direction && !/^(BUY|SELL|B|S)$/i.test(direction.trim())) {
+          sendJson(res, 400, {
+            ok: false,
+            error: { code: "INVALID_DIRECTION", message: "direction must be BUY or SELL." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        const accountScope = accountIdMasked?.trim() || null;
+        if (accountScope && /^\d{5,}$/.test(accountScope)) {
+          sendJson(res, 400, {
+            ok: false,
+            error: {
+              code: "INVALID_ACCOUNT_SCOPE",
+              message: "accountIdMasked must be a masked account identifier, not a raw account id.",
+            },
+            placesOrders: false,
+          });
+          return true;
+        }
+        const status =
+          statusParam && /^(OPEN|CLOSED|ALL)$/i.test(statusParam.trim())
+            ? (statusParam.trim().toUpperCase() as "OPEN" | "CLOSED" | "ALL")
+            : statusParam
+              ? null
+              : "ALL";
+        if (statusParam && status == null) {
+          sendJson(res, 400, {
+            ok: false,
+            error: { code: "INVALID_STATUS", message: "status must be OPEN, CLOSED, or ALL." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        const result = store.query({
+          fromUtc,
+          toUtc,
+          instrument,
+          direction: direction ? direction.toUpperCase().replace(/^B$/, "BUY").replace(/^S$/, "SELL") : null,
+          status,
+          accountIdMasked: accountScope,
+          environment: environment?.trim() || null,
+          limit: Number.isFinite(limitRaw) ? limitRaw : 50,
+          offset: Number.isFinite(offsetRaw) ? offsetRaw : 0,
+        });
+        sendJson(res, 200, {
+          ok: true,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+          historyAvailableFromUtc: result.historyAvailableFromUtc,
+          coverageNote: TRADE_HISTORY_COVERAGE_NOTE,
+          emptyResultIsNotCompleteHistory: true,
+          accountScope,
+          total: result.total,
+          limit: result.limit,
+          offset: result.offset,
+          records: result.records,
+          phase: "60.0.6",
+        });
+      } catch {
+        sendJson(res, 500, {
+          ok: false,
+          error: {
+            code: "TRADE_HISTORY_UNAVAILABLE",
+            message: "Persisted trade history is temporarily unavailable.",
+          },
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        });
+      }
       return true;
     }
 

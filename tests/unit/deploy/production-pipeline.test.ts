@@ -83,6 +83,8 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(verify).toContain("/api/health");
     expect(verify).toContain("/desktop/");
     expect(verify).toContain("/forex");
+    expect(verify).toContain("/forex/trade-monitor");
+    expect(verify).toContain("/forex/positions");
     expect(verify).toContain("/dev");
     expect(verify).toMatch(/Dev Dashboard/);
   });
@@ -112,6 +114,13 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(yml).toContain("BatchMode=yes");
     expect(yml).toContain("npm run build:production");
     expect(yml).toContain("npx vitest run tests/unit/deploy tests/unit/dev/server");
+    expect(yml).toContain("tests/unit/ai/forex-ai/phase60-0-3-trade-history.test.ts");
+    expect(yml).toContain("tests/unit/ai/forex-ai/phase60-0-4-trade-performance.test.ts");
+    expect(yml).toContain("tests/unit/ai/forex-ai/phase60-0-5-trade-monitor-integration.test.ts");
+    expect(yml).toContain("tests/unit/ai/forex-ai/phase60-0-6-runtime-readiness.test.ts");
+    expect(yml).toContain("tests/unit/ai/forex-ai/phase60-0-8-release-gate.test.ts");
+    expect(yml).toContain("tests/unit/desktop/forex-phase60-trade-monitor.test.ts");
+    expect(yml).toContain("tests/unit/ai/forex-ai/phase55-preflight-safety.test.ts");
     expect(yml).toContain("tests/unit/ai/admin-control-plane");
     expect(yml).toContain("tests/unit/desktop/admin-control-center.test.ts");
     expect(yml).toContain("tests/unit/desktop/customer-platform.test.ts");
