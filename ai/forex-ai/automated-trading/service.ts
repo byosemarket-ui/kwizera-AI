@@ -73,6 +73,9 @@ import {
   toAutomationPublicStatus,
   type AutomationControlPublicStatus,
 } from "./automation-control/index.js";
+import { prepareDemoExecutionPlan as buildDemoExecutionPlan } from "./order-execution/prepare-plan.js";
+import type { AtExecutionPlan } from "./order-execution/types.js";
+import { getDemoExecutionGrantStore } from "./demo-execution/grant-store.js";
 import { deriveOperationalStatus } from "./operational-status.js";
 import {
   assembleVerificationResult,
@@ -2465,6 +2468,60 @@ export class AutomatedTradingService {
    * Phase 57.0 — validate/persist a broker intent. Never submits.
    * Disabled mutation adapter is probed only to prove EXECUTION_FORBIDDEN.
    */
+  /**
+   * Phase 59.0 — Build a DEMO open-market plan from decision + simulation draft.
+   * Non-mutating: never calls ForexConnect, never creates grants, never flips placesOrders.
+   */
+  prepareDemoExecutionPlan(input: {
+    decisionId?: unknown;
+    draftId?: unknown;
+    grantId?: unknown;
+    lotsOverride?: unknown;
+    maxDecisionAgeMs?: unknown;
+  }): AtExecutionPlan {
+    const decisionId = input.decisionId != null ? String(input.decisionId).trim() : "";
+    const draftId = input.draftId != null ? String(input.draftId).trim() : "";
+    const decision = decisionId
+      ? this.decisionEngine.listHistory(40).find((d) => d.decisionId === decisionId) ?? null
+      : this.decisionEngine.getLatest();
+    const draft = draftId
+      ? this.simRiskEngine.getById(draftId)
+      : this.simRiskEngine.getLatest();
+
+    const grantStore = getDemoExecutionGrantStore();
+    const grantId = String(input.grantId ?? "").trim();
+    const grantCheck = grantId
+      ? grantStore.requireActive(grantId)
+      : { ok: false as const, code: "GRANT_ID_REQUIRED" as const, error: "grantId is required." };
+    const grant = grantCheck.ok ? grantCheck.grant : null;
+
+    const lotsOverrideRaw = input.lotsOverride;
+    const lotsOverride = lotsOverrideRaw == null || lotsOverrideRaw === ""
+      ? null
+      : Math.floor(Number(lotsOverrideRaw));
+    const maxAgeRaw = input.maxDecisionAgeMs;
+    const maxDecisionAgeMs = maxAgeRaw == null || maxAgeRaw === ""
+      ? null
+      : Number(maxAgeRaw);
+
+    const env = this.store.getState().selectedEnvironment;
+
+    return buildDemoExecutionPlan({
+      decision,
+      draft,
+      grantId: grant?.grantId ?? grantId,
+      grantActive: Boolean(grantCheck.ok && grant),
+      grantMaxLots: grant?.maxLots ?? 1,
+      grantInstrumentAllowlist: grant?.instrumentAllowlist ?? [],
+      environment: env,
+      lotsOverride: Number.isFinite(lotsOverride as number) ? (lotsOverride as number) : null,
+      maxDecisionAgeMs: Number.isFinite(maxDecisionAgeMs as number)
+        ? (maxDecisionAgeMs as number)
+        : null,
+      requireProtective: true,
+    });
+  }
+
   async validateBrokerIntent(input: BrokerIntentPreflightInput) {
     const engine = getAtBrokerIntentEngine();
     const result = await engine.validateAndPersist({

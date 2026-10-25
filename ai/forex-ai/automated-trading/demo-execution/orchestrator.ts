@@ -306,6 +306,13 @@ export class DemoLifecycleOrchestrator {
       stopLoss: req.stopLoss ?? null,
       takeProfit: req.takeProfit ?? null,
       protectionStatus: req.requireProtective ? "REQUESTED" : "NOT_REQUESTED",
+      evidence: {
+        sourceDecisionId: req.sourceDecisionId ?? null,
+        sourceAnalysisId: req.sourceAnalysisId ?? null,
+        sourceDraftId: req.sourceDraftId ?? null,
+        sourcePlanId: req.sourcePlanId ?? null,
+        phase: "59.0",
+      },
     });
 
     if (!grantCheck.ok) {

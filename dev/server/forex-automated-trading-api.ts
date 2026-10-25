@@ -1225,6 +1225,32 @@ export async function handleForexAutomatedTradingApi(
         return true;
       }
 
+      // Phase 59.0 — prepare analysis→risk→DEMO request plan (non-mutating).
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/prepare-from-draft")) {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+          return true;
+        }
+        const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+        const plan = service.prepareDemoExecutionPlan({
+          decisionId: body.decisionId,
+          draftId: body.draftId,
+          grantId: body.grantId,
+          lotsOverride: body.lotsOverride,
+          maxDecisionAgeMs: body.maxDecisionAgeMs,
+        });
+        sendJson(res, plan.status === "READY_FOR_DEMO_GRANT_SUBMISSION" ? 200 : 422, {
+          ok: plan.status === "READY_FOR_DEMO_GRANT_SUBMISSION",
+          plan,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+          liveUnauthorized: true,
+          note: "Prepare-from-draft never submits to ForexConnect. Call open-market separately only when authorized.",
+        });
+        return true;
+      }
+
       if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/open-market")) {
         if (req.method !== "POST") {
           sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
@@ -1263,6 +1289,10 @@ export async function handleForexAutomatedTradingApi(
           attachProtectiveAfterFill: body.attachProtectiveAfterFill !== false,
           closeIfUnprotected: body.closeIfUnprotected !== false,
           idempotencyKey: String(body.idempotencyKey ?? "").trim() || `demo_open_${Date.now()}`,
+          sourceDecisionId: body.sourceDecisionId == null ? null : String(body.sourceDecisionId),
+          sourceAnalysisId: body.sourceAnalysisId == null ? null : String(body.sourceAnalysisId),
+          sourceDraftId: body.sourceDraftId == null ? null : String(body.sourceDraftId),
+          sourcePlanId: body.sourcePlanId == null ? null : String(body.sourcePlanId),
         });
         sendJson(res, result.ok ? 200 : 422, {
           ...result,

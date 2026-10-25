@@ -8,6 +8,8 @@ export * from "./decision/index.js";
 export * from "./simulation-risk/index.js";
 export * from "./broker-intent/index.js";
 export * from "./automation-control/index.js";
+// Phase 59.0: import order-execution directly from ./order-execution (avoid barrel weight).
+
 export {
   assembleVerificationResult,
   buildMarketFromQuote,

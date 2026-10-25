@@ -72,6 +72,11 @@ export interface DemoOpenMarketRequest {
   attachProtectiveAfterFill?: boolean;
   closeIfUnprotected?: boolean;
   idempotencyKey: string;
+  /** Phase 59.0 — optional audit linkage from analysis/decision/draft (never secrets). */
+  sourceDecisionId?: string | null;
+  sourceAnalysisId?: string | null;
+  sourceDraftId?: string | null;
+  sourcePlanId?: string | null;
 }
 
 export interface DemoCloseTradeRequest {
