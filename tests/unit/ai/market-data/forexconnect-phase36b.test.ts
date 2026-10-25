@@ -52,7 +52,7 @@ describe("Phase 36B Admin authorization boundary", () => {
       adminApi: true,
     });
     expect(denied.allowed).toBe(false);
-    expect(denied.reason).toMatch(/Admin API token required/i);
+    expect(denied.reason).toMatch(/Admin API token missing from request/i);
     expect(denied.mayRevealSecrets).toBe(false);
 
     const allowed = assertAdminAccess({

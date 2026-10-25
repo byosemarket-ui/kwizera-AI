@@ -55,7 +55,7 @@ describe("Phase 38B Forex Admin auth", () => {
 
     expect(requireForexAdmin(req, res, sendJson, "/api/forex-admin/meta")).toBe(false);
     expect(status).toBe(403);
-    expect((body as { error?: { code?: string } })?.error?.code).toBe("ADMIN_FORBIDDEN");
+    expect((body as { error?: { code?: string } })?.error?.code).toBe("ADMIN_TOKEN_MISSING");
 
     const reqOk = {
       headers: {
