@@ -783,13 +783,48 @@ def instruments_payload() -> dict[str, Any]:
         instruments = list(_state["instruments"])
         count = int(_state["instrumentCount"] or 0)
         fetched_at = _state["lastInstrumentAt"]
+        live_quotes = dict(_quotes)
+    # Phase 59.0.11 — overlay live Offers quote bid/ask/tradingStatus onto the discovery
+    # catalog. Discovery snapshot alone can freeze TradingStatus=C and stale bid/ask while
+    # /quotes and stream are already LIVE with genuine price changes.
+    overlaid: list[dict[str, Any]] = []
+    overlay_count = 0
+    for raw in instruments:
+        item = dict(raw) if isinstance(raw, dict) else {}
+        canon = str(item.get("canonicalSymbol") or _canonical(str(item.get("providerSymbol") or "")))
+        q = live_quotes.get(canon)
+        if q is None:
+            provider = str(item.get("providerSymbol") or "").strip()
+            if provider:
+                q = live_quotes.get(_canonical(provider))
+        if isinstance(q, dict):
+            if q.get("bid") is not None:
+                item["bid"] = q.get("bid")
+            if q.get("ask") is not None:
+                item["ask"] = q.get("ask")
+            if q.get("tradingStatus") is not None:
+                item["tradingStatus"] = q.get("tradingStatus")
+            if q.get("offerId") is not None and not item.get("offerId"):
+                item["offerId"] = q.get("offerId")
+            item["liveQuoteOverlay"] = True
+            item["liveQuoteReceivedAtMs"] = q.get("receivedAtMs")
+            item["liveQuoteEventSource"] = q.get("eventSource")
+            overlay_count += 1
+        else:
+            item["liveQuoteOverlay"] = False
+        overlaid.append(item)
     return {
         "ok": True,
         "count": count,
-        "instruments": instruments,
+        "instruments": overlaid,
         "fetchedAt": fetched_at,
+        "liveQuoteOverlayCount": overlay_count,
         "status": status,
-        "note": "Instruments from authenticated ForexConnect Offers table. No fabricated entries.",
+        "note": (
+            "Instruments from authenticated ForexConnect Offers discovery. "
+            "When a live subscribed quote exists, bid/ask/tradingStatus are overlaid from "
+            "the Offers stream (not invented). Discovery-only fields remain the catalog baseline."
+        ),
     }
 
 
@@ -1877,6 +1912,7 @@ def _offer_to_quote(row: Any) -> Optional[dict[str, Any]]:
     if ask is None:
         ask = _finite(_try_index(row, "ask"))
     offer_id = _row_get(row, "offer_id", "OfferID", "offerId")
+    trading_status = _row_get(row, "trading_status", "TradingStatus", "tradingStatus")
     mid = (bid + ask) / 2 if bid is not None and ask is not None and bid <= ask else None
     received = _now_iso()
     received_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -1891,6 +1927,8 @@ def _offer_to_quote(row: Any) -> Optional[dict[str, Any]]:
         "candlePrice": bid,
         "priceBasis": "bid",
         "offerId": str(offer_id) if offer_id is not None else None,
+        # Phase 59.0.11 — surface live Offers TradingStatus (never invent O/C).
+        "tradingStatus": str(trading_status).strip() if trading_status is not None and str(trading_status).strip() else None,
         "sourceTimestampMs": received_ms,
         "receivedAt": received,
         "receivedAtMs": received_ms,

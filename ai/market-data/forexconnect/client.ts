@@ -796,6 +796,7 @@ export class ForexConnectBridge {
         receivedAtMs: n.receivedAtMs,
         offerId: n.offerId,
         eventSource: n.eventSource,
+        tradingStatus: n.tradingStatus,
       });
     }
     return out;

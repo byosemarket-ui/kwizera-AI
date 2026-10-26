@@ -42,13 +42,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Phase 59.0 / 59.0.3 / 59.0.5 / 59.0.6 contract tests
+      - name: Run Phase 59.0 / 59.0.3 / 59.0.5 / 59.0.6 / 59.0.11 contract tests
         run: >
           npx vitest run
           tests/unit/ai/forex-ai/phase59-0-order-execution-engine.test.ts
           tests/unit/ai/forex-ai/phase59-0-3-quote-subscription-readiness.test.ts
           tests/unit/ai/forex-ai/phase59-0-5-market-readiness-order-path.test.ts
           tests/unit/ai/forex-ai/phase59-0-6-account-sizing-order-contract.test.ts
+          tests/unit/ai/forex-ai/phase59-0-11-live-readiness-diagnostics.test.ts
 
       - name: Typecheck order-execution + trade-monitor (scoped)
         run: |

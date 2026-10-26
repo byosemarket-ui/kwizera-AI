@@ -312,3 +312,193 @@ export function withEvaluatedMarketReadiness(
     },
   };
 }
+
+/** Phase 59.0.11 — broker Offers TradingStatus eligibility (fail closed). */
+export type AtTradingStatusEligibilityCode =
+  | "TRADING_STATUS_OPEN"
+  | "TRADING_STATUS_CLOSED"
+  | "TRADING_STATUS_UNKNOWN";
+
+export interface AtTradingStatusEligibility {
+  code: AtTradingStatusEligibilityCode;
+  tradingStatus: string | null;
+  /** True only when broker reports O/OPEN. Never invents open from missing status. */
+  tradable: boolean;
+  message: string;
+}
+
+/**
+ * Map FXCM Offers TradingStatus. Do not treat missing status as open.
+ * Authoritative values observed in this product: O/OPEN vs C/CLOSED.
+ */
+export function interpretOffersTradingStatus(
+  tradingStatus: string | null | undefined,
+): AtTradingStatusEligibility {
+  const raw = tradingStatus != null ? String(tradingStatus).trim() : "";
+  if (!raw) {
+    return {
+      code: "TRADING_STATUS_UNKNOWN",
+      tradingStatus: null,
+      tradable: false,
+      message: "Offers TradingStatus unavailable — fail closed for order readiness.",
+    };
+  }
+  const upper = raw.toUpperCase();
+  if (upper === "C" || upper === "CLOSED") {
+    return {
+      code: "TRADING_STATUS_CLOSED",
+      tradingStatus: raw,
+      tradable: false,
+      message: `Broker TradingStatus=${raw} — instrument session closed for trading (quotes may still move).`,
+    };
+  }
+  if (upper === "O" || upper === "OPEN") {
+    return {
+      code: "TRADING_STATUS_OPEN",
+      tradingStatus: raw,
+      tradable: true,
+      message: `Broker TradingStatus=${raw} — instrument open for trading (still requires fresh genuine bid/ask).`,
+    };
+  }
+  return {
+    code: "TRADING_STATUS_UNKNOWN",
+    tradingStatus: raw,
+    tradable: false,
+    message: `Broker TradingStatus=${raw} is not a verified open code — fail closed.`,
+  };
+}
+
+export interface LiveOfferQuoteFreshnessInput {
+  bid: number | null | undefined;
+  ask: number | null | undefined;
+  streamState: string | null | undefined;
+  priceChangeAgeMs: number | null | undefined;
+  receiptAgeMs: number | null | undefined;
+  updateCount: number | null | undefined;
+  tradingStatus?: string | null | undefined;
+  sourceTimestampMs?: number | null | undefined;
+  receivedAtMs?: number | null | undefined;
+  instrument?: string | null | undefined;
+  nowMs?: number;
+  staleMs?: number;
+}
+
+export interface LiveOfferQuoteFreshnessEvaluation extends AtQuoteFreshnessEvaluation {
+  /** Distinct from aged verification snapshot — live Offers session evidence. */
+  source: "LIVE_OFFERS_SESSION";
+  tradingStatus: string | null;
+  tradingEligibility: AtTradingStatusEligibility;
+  /**
+   * True only when live bid/ask is LIVE_FRESH AND TradingStatus is open.
+   * Never true from heartbeat-only or catalog snapshot alone.
+   */
+  orderPathMarketReady: boolean;
+  orderPathBlockerCode: string | null;
+}
+
+/**
+ * Phase 59.0.11 — evaluate the live Offers session independently of a frozen verification snapshot.
+ * Heartbeat receipt age alone never yields LIVE_FRESH / orderPathMarketReady.
+ */
+export function evaluateLiveOfferQuoteFreshness(
+  input: LiveOfferQuoteFreshnessInput,
+): LiveOfferQuoteFreshnessEvaluation {
+  const nowMs = input.nowMs ?? Date.now();
+  const staleMs = input.staleMs ?? MARKET_QUOTE_STALE_MS;
+  const tradingEligibility = interpretOffersTradingStatus(input.tradingStatus);
+  const updateCount =
+    typeof input.updateCount === "number" && Number.isFinite(input.updateCount)
+      ? Math.max(0, Math.floor(input.updateCount))
+      : 0;
+  const priceChangeAgeMs =
+    typeof input.priceChangeAgeMs === "number" && Number.isFinite(input.priceChangeAgeMs)
+      ? Math.max(0, input.priceChangeAgeMs)
+      : null;
+  const receiptAgeMs =
+    typeof input.receiptAgeMs === "number" && Number.isFinite(input.receiptAgeMs)
+      ? Math.max(0, input.receiptAgeMs)
+      : null;
+  const bid =
+    typeof input.bid === "number" && Number.isFinite(input.bid) ? input.bid : null;
+  const ask =
+    typeof input.ask === "number" && Number.isFinite(input.ask) ? input.ask : null;
+  const feedStatus = input.streamState != null ? String(input.streamState) : null;
+
+  const base = {
+    source: "LIVE_OFFERS_SESSION" as const,
+    instrument: input.instrument != null ? String(input.instrument) : null,
+    feedStatus,
+    bid,
+    ask,
+    sourceTimestampMs:
+      typeof input.sourceTimestampMs === "number" && Number.isFinite(input.sourceTimestampMs)
+        ? input.sourceTimestampMs
+        : null,
+    receivedAtMs:
+      typeof input.receivedAtMs === "number" && Number.isFinite(input.receivedAtMs)
+        ? input.receivedAtMs
+        : null,
+    verifiedAtUtc: null,
+    verificationAgeMs: null,
+    priceChangeAgeMsAtSnapshot: priceChangeAgeMs,
+    receiptAgeMsAtSnapshot: receiptAgeMs,
+    effectivePriceChangeAgeMs: priceChangeAgeMs,
+    effectiveReceiptAgeMs: receiptAgeMs,
+    updateCount,
+    freshnessThresholdMs: staleMs,
+    evaluatedAtMs: nowMs,
+    evaluatedAtUtc: new Date(nowMs).toISOString(),
+    snapshotFingerprint: null,
+    tradingStatus: tradingEligibility.tradingStatus,
+    tradingEligibility,
+  };
+
+  const fail = (
+    reasonCode: AtQuoteFreshnessReasonCode,
+    orderPathBlockerCode: string,
+  ): LiveOfferQuoteFreshnessEvaluation => ({
+    ...base,
+    fresh: false,
+    reasonCode,
+    orderPathMarketReady: false,
+    orderPathBlockerCode,
+  });
+
+  if (bid == null || ask == null) {
+    return fail("BID_ASK_MISSING", "LIVE_BID_ASK_MISSING");
+  }
+  if (!(bid > 0) || !(ask > 0) || ask < bid) {
+    return fail("BID_ASK_INVALID", "LIVE_BID_ASK_INVALID");
+  }
+  if (updateCount <= 0) {
+    return fail("NO_QUOTE_UPDATES", "LIVE_NO_PRICE_CHANGES");
+  }
+  if (priceChangeAgeMs == null) {
+    return fail("PRICE_CHANGE_AGE_UNKNOWN", "LIVE_PRICE_CHANGE_AGE_UNKNOWN");
+  }
+  if (priceChangeAgeMs > staleMs) {
+    if (receiptAgeMs != null && receiptAgeMs <= staleMs) {
+      return fail("HEARTBEAT_ONLY_NO_PRICE_CHANGE", "LIVE_HEARTBEAT_ONLY");
+    }
+    return fail("QUOTE_AGE_EXCEEDED", "LIVE_PRICE_CHANGE_STALE");
+  }
+  if (String(feedStatus ?? "") !== "LIVE") {
+    return fail("FEED_NOT_LIVE", `LIVE_FEED_${String(feedStatus ?? "UNKNOWN")}`);
+  }
+  if (!tradingEligibility.tradable) {
+    return {
+      ...base,
+      fresh: true,
+      reasonCode: "LIVE_FRESH",
+      orderPathMarketReady: false,
+      orderPathBlockerCode: tradingEligibility.code,
+    };
+  }
+  return {
+    ...base,
+    fresh: true,
+    reasonCode: "LIVE_FRESH",
+    orderPathMarketReady: true,
+    orderPathBlockerCode: null,
+  };
+}

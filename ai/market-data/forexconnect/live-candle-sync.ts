@@ -209,6 +209,7 @@ export function normalizeFcOfferQuote(raw: unknown, receivedAtMs = Date.now()): 
   receivedAtMs: number;
   offerId: string | null;
   eventSource: string | null;
+  tradingStatus: string | null;
 } | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -244,6 +245,10 @@ export function normalizeFcOfferQuote(raw: unknown, receivedAtMs = Date.now()): 
   const eventSource = typeof r.eventSource === "string" && r.eventSource.trim()
     ? r.eventSource.trim()
     : null;
+  const tradingRaw = r.tradingStatus ?? r.TradingStatus ?? r.trading_status;
+  const tradingStatus = tradingRaw != null && String(tradingRaw).trim()
+    ? String(tradingRaw).trim()
+    : null;
   return {
     providerSymbol,
     canonicalSymbol,
@@ -256,5 +261,6 @@ export function normalizeFcOfferQuote(raw: unknown, receivedAtMs = Date.now()): 
     receivedAtMs: resolvedReceivedAtMs,
     offerId: r.offerId != null ? String(r.offerId) : null,
     eventSource,
+    tradingStatus,
   };
 }

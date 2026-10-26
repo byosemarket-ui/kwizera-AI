@@ -37,6 +37,8 @@ export interface ForexConnectLiveQuote {
   offerId?: string | null;
   /** Sidecar Offers origin — absent on seeded snapshots (must not alone establish LIVE). */
   eventSource?: "offers-callback" | "offers-table-diff" | string | null;
+  /** Live Offers TradingStatus when the sidecar surfaces it (e.g. O/C). Never invented. */
+  tradingStatus?: string | null;
 }
 
 export interface ForexConnectLiveCandle {

@@ -83,6 +83,7 @@ import {
 } from "./verification-engine.js";
 import type { AutomatedTradingVerificationResult } from "./verification-types.js";
 import {
+  evaluateLiveOfferQuoteFreshness,
   evaluateVerificationQuoteFreshness,
   withEvaluatedMarketReadiness,
 } from "./quote-freshness.js";
@@ -951,6 +952,37 @@ export class AutomatedTradingService {
     const freshnessEval = evaluateVerificationQuoteFreshness(verificationRaw, {
       expectedInstrument: envState.selectedInstrument,
     });
+    // Phase 59.0.11 — independently sample live Offers session so a frozen verification
+    // snapshot cannot be mistaken for the current market (and vice versa).
+    let liveOfferFreshness: ReturnType<typeof evaluateLiveOfferQuoteFreshness> | null = null;
+    try {
+      if (envState.selectedInstrument) {
+        const liveSvc = getForexConnectLiveCandleService();
+        const latest = liveSvc.getLatestQuoteState(envState.selectedInstrument);
+        if (latest) {
+          const nowMs = Date.now();
+          liveOfferFreshness = evaluateLiveOfferQuoteFreshness({
+            instrument: envState.selectedInstrument,
+            bid: latest.quote.bid,
+            ask: latest.quote.ask,
+            streamState: latest.streamState,
+            priceChangeAgeMs: latest.lastPriceChangeAtMs != null
+              ? Math.max(0, nowMs - latest.lastPriceChangeAtMs)
+              : null,
+            receiptAgeMs: latest.lastQuoteAtMs != null
+              ? Math.max(0, nowMs - latest.lastQuoteAtMs)
+              : null,
+            updateCount: latest.updateCount,
+            tradingStatus: latest.quote.tradingStatus ?? null,
+            sourceTimestampMs: latest.quote.sourceTimestampMs,
+            receivedAtMs: latest.quote.receivedAtMs,
+            nowMs,
+          });
+        }
+      }
+    } catch {
+      liveOfferFreshness = null;
+    }
     const verification = verificationRaw
       ? withEvaluatedMarketReadiness(verificationRaw, freshnessEval)
       : null;
@@ -965,8 +997,24 @@ export class AutomatedTradingService {
       }
       accountVerified = verification.identityStatus === "ACCOUNT_VERIFIED";
       if (!freshnessEval.fresh && verificationRaw?.readiness.marketDataHealthVerified) {
+        if (liveOfferFreshness?.fresh) {
+          blockers.push(
+            `Verification snapshot aged (${freshnessEval.reasonCode}); live Offers feed is ${liveOfferFreshness.reasonCode} — re-run Verify to refresh the snapshot.`,
+          );
+        } else {
+          blockers.push(
+            `Market verification snapshot is no longer fresh (${freshnessEval.reasonCode}).`,
+          );
+        }
+      }
+    }
+    if (liveOfferFreshness && !liveOfferFreshness.orderPathMarketReady) {
+      const code = liveOfferFreshness.orderPathBlockerCode ?? liveOfferFreshness.reasonCode;
+      if (code === "TRADING_STATUS_CLOSED" || code === "TRADING_STATUS_UNKNOWN") {
+        blockers.push(liveOfferFreshness.tradingEligibility.message);
+      } else if (!liveOfferFreshness.fresh) {
         blockers.push(
-          `Market verification snapshot is no longer fresh (${freshnessEval.reasonCode}).`,
+          `Live Offers order-path market not ready (${code}).`,
         );
       }
     }
@@ -1277,6 +1325,28 @@ export class AutomatedTradingService {
         sourceTimestampMs: freshnessEval.sourceTimestampMs,
         receivedAtMs: freshnessEval.receivedAtMs,
       },
+      liveOfferFreshness: liveOfferFreshness
+        ? {
+            source: liveOfferFreshness.source,
+            fresh: liveOfferFreshness.fresh,
+            reasonCode: liveOfferFreshness.reasonCode,
+            thresholdMs: liveOfferFreshness.freshnessThresholdMs,
+            bid: liveOfferFreshness.bid,
+            ask: liveOfferFreshness.ask,
+            feedStatus: liveOfferFreshness.feedStatus,
+            effectivePriceChangeAgeMs: liveOfferFreshness.effectivePriceChangeAgeMs,
+            effectiveReceiptAgeMs: liveOfferFreshness.effectiveReceiptAgeMs,
+            updateCount: liveOfferFreshness.updateCount,
+            tradingStatus: liveOfferFreshness.tradingStatus,
+            tradingEligibilityCode: liveOfferFreshness.tradingEligibility.code,
+            tradingEligible: liveOfferFreshness.tradingEligibility.tradable,
+            orderPathMarketReady: liveOfferFreshness.orderPathMarketReady,
+            orderPathBlockerCode: liveOfferFreshness.orderPathBlockerCode,
+            evaluatedAtUtc: liveOfferFreshness.evaluatedAtUtc,
+            sourceTimestampMs: liveOfferFreshness.sourceTimestampMs,
+            receivedAtMs: liveOfferFreshness.receivedAtMs,
+          }
+        : null,
       updatedAtUtc: fresh.updatedAtUtc,
       placesOrders: false,
     };

@@ -166,6 +166,30 @@ export interface AutomatedTradingPublicStatus {
     sourceTimestampMs: number | null;
     receivedAtMs: number | null;
   } | null;
+  /**
+   * Phase 59.0.11 — live Offers session freshness independent of verification snapshot aging.
+   * orderPathMarketReady requires LIVE_FRESH bid/ask AND tradable TradingStatus.
+   */
+  liveOfferFreshness: {
+    source: "LIVE_OFFERS_SESSION";
+    fresh: boolean;
+    reasonCode: string;
+    thresholdMs: number;
+    bid: number | null;
+    ask: number | null;
+    feedStatus: string | null;
+    effectivePriceChangeAgeMs: number | null;
+    effectiveReceiptAgeMs: number | null;
+    updateCount: number;
+    tradingStatus: string | null;
+    tradingEligibilityCode: string;
+    tradingEligible: boolean;
+    orderPathMarketReady: boolean;
+    orderPathBlockerCode: string | null;
+    evaluatedAtUtc: string;
+    sourceTimestampMs: number | null;
+    receivedAtMs: number | null;
+  } | null;
   updatedAtUtc: string;
   placesOrders: false;
 }
