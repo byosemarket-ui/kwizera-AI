@@ -138,6 +138,8 @@ export interface TradeMonitorConnectionSnapshot {
   lastQuoteAt: string | null;
   lastQuoteAgeMs: number | null;
   updateCount: number | null;
+  /** Offers table rows cached for subscriptions — not LIVE tick proof. */
+  offersSnapshotPresent: boolean | null;
   quoteFreshnessLabel: string;
 }
 

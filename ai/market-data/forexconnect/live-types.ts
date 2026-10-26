@@ -65,8 +65,12 @@ export interface ForexConnectStreamDiagnostics {
   pollCycles: number;
   pollChanges: number;
   lastCallbackAt: string | null;
+  /** Genuine bid/ask change observed via Offers poll — never same-price heartbeat. */
   lastPollChangeAt: string | null;
+  /** Same-price Offers re-read (heartbeat); not a tick. */
+  lastPollHeartbeatAt?: string | null;
   offersPollerActive: boolean;
+  offersSnapshotCount?: number;
 }
 
 export interface SafeForexConnectLiveSeries {
@@ -113,6 +117,9 @@ export interface ForexConnectStreamStatus {
   /** Last Offers receipt including same-price heartbeats. */
   lastReceiptAt?: string | null;
   lastReceiptAgeMs?: number | null;
+  /** Cached Offers rows for subscribed symbols (seed/heartbeat); not LIVE proof. */
+  offersSnapshotCount?: number;
+  offersSnapshotPresent?: boolean;
   lastStreamError: string | null;
   updateCount: number;
   lastEventSource?: string | null;

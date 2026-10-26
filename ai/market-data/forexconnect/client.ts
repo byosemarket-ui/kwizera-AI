@@ -843,6 +843,12 @@ export class ForexConnectBridge {
         lastQuoteAgeMs: body.lastQuoteAgeMs == null ? null : Number(body.lastQuoteAgeMs),
         lastReceiptAt: body.lastReceiptAt ? String(body.lastReceiptAt) : null,
         lastReceiptAgeMs: body.lastReceiptAgeMs == null ? null : Number(body.lastReceiptAgeMs),
+        offersSnapshotCount: body.offersSnapshotCount == null
+          ? undefined
+          : Number(body.offersSnapshotCount),
+        offersSnapshotPresent: typeof body.offersSnapshotPresent === "boolean"
+          ? body.offersSnapshotPresent
+          : undefined,
         lastStreamError: body.lastStreamError
           ? sanitize(String(body.lastStreamError))
           : null,
@@ -876,9 +882,16 @@ export class ForexConnectBridge {
               lastPollChangeAt: (body.diagnostics as Record<string, unknown>).lastPollChangeAt
                 ? String((body.diagnostics as Record<string, unknown>).lastPollChangeAt)
                 : null,
+              lastPollHeartbeatAt: (body.diagnostics as Record<string, unknown>).lastPollHeartbeatAt
+                ? String((body.diagnostics as Record<string, unknown>).lastPollHeartbeatAt)
+                : null,
               offersPollerActive: Boolean(
                 (body.diagnostics as Record<string, unknown>).offersPollerActive,
               ),
+              offersSnapshotCount: (body.diagnostics as Record<string, unknown>).offersSnapshotCount
+                == null
+                ? undefined
+                : Number((body.diagnostics as Record<string, unknown>).offersSnapshotCount),
             }
           : null,
         latency: body.latency && typeof body.latency === "object"

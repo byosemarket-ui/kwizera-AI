@@ -70,7 +70,8 @@ _stream: dict[str, Any] = {
     "pollChanges": 0,
     "lastEventSource": None,
     "lastCallbackAt": None,
-    "lastPollChangeAt": None,
+    "lastPollChangeAt": None,  # genuine bid/ask change via poll only
+    "lastPollHeartbeatAt": None,  # same-price Offers re-read (not a tick)
     "offersPollerActive": False,
 }
 _state: dict[str, Any] = {
@@ -253,6 +254,7 @@ def _reset_stream_diagnostics_locked() -> None:
     _stream["lastEventSource"] = None
     _stream["lastCallbackAt"] = None
     _stream["lastPollChangeAt"] = None
+    _stream["lastPollHeartbeatAt"] = None
     _stream["offersPollerActive"] = False
 
 
@@ -296,6 +298,7 @@ def _stop_offers_listener_locked() -> None:
     _stream["callbackParseFailures"] = 0
     _stream["lastCallbackAt"] = None
     _stream["lastPollChangeAt"] = None
+    _stream["lastPollHeartbeatAt"] = None
 
 
 def _logout_locked() -> None:
@@ -1914,6 +1917,7 @@ def _store_quote(
                 # Same bid/ask: refresh receipt time so feed health can distinguish
                 # active Offers reads (NO_RECENT_MARKET_UPDATES) from a dead feed (STALE).
                 # Do not increment updateCount or lastQuoteAt (price-change only).
+                # Do not stamp lastPollChangeAt — that is reserved for genuine bid/ask diffs.
                 heart = dict(prev)
                 heart["receivedAt"] = quote["receivedAt"]
                 heart["receivedAtMs"] = quote.get("receivedAtMs", prev.get("receivedAtMs"))
@@ -1928,7 +1932,7 @@ def _store_quote(
                 if event_source == "offers-callback":
                     _stream["lastCallbackAt"] = quote["receivedAt"]
                 elif event_source == "offers-table-diff":
-                    _stream["lastPollChangeAt"] = quote["receivedAt"]
+                    _stream["lastPollHeartbeatAt"] = quote["receivedAt"]
                 return False
         quote = dict(quote)
         quote["eventSource"] = event_source
@@ -2194,9 +2198,10 @@ def stream_status_payload() -> dict[str, Any]:
     status = _safe_status()
     with _state_lock:
         last_price_at = _stream["lastQuoteAt"]
-        last_receipt_at = _stream.get("lastReceiptAt") or _stream.get("lastPollChangeAt") or _stream.get(
-            "lastCallbackAt"
-        )
+        last_receipt_at = _stream.get("lastReceiptAt") or _stream.get("lastPollHeartbeatAt") or _stream.get(
+            "lastPollChangeAt"
+        ) or _stream.get("lastCallbackAt")
+        offers_snapshot_count = len(_quotes)
         price_age_ms = _age_ms_from_iso(last_price_at)
         receipt_age_ms = _age_ms_from_iso(last_receipt_at)
         stream_state = "DISCONNECTED"
@@ -2244,6 +2249,8 @@ def stream_status_payload() -> dict[str, Any]:
             "lastQuoteAgeMs": price_age_ms,
             "lastReceiptAt": last_receipt_at,
             "lastReceiptAgeMs": receipt_age_ms,
+            "offersSnapshotCount": offers_snapshot_count,
+            "offersSnapshotPresent": offers_snapshot_count > 0,
             "lastStreamError": _stream["lastStreamError"],
             "updateCount": int(_stream["updateCount"] or 0),
             "lastEventSource": _stream.get("lastEventSource"),
@@ -2258,7 +2265,9 @@ def stream_status_payload() -> dict[str, Any]:
                 "pollChanges": int(_stream["pollChanges"] or 0),
                 "lastCallbackAt": _stream.get("lastCallbackAt"),
                 "lastPollChangeAt": _stream.get("lastPollChangeAt"),
+                "lastPollHeartbeatAt": _stream.get("lastPollHeartbeatAt"),
                 "offersPollerActive": bool(_stream["offersPollerActive"]),
+                "offersSnapshotCount": offers_snapshot_count,
                 "lastReceiptAt": last_receipt_at,
                 "lastReceiptAgeMs": receipt_age_ms,
                 "lastPriceChangeAgeMs": price_age_ms,
@@ -2269,7 +2278,9 @@ def stream_status_payload() -> dict[str, Any]:
                 "note": (
                     "FXCM Offers rows do not expose a distinct broker event timestamp in this SDK path; "
                     "sourceTimestampMs equals sidecar receipt time. lastQuoteAgeMs is last bid/ask "
-                    "change age; lastReceiptAgeMs is last Offers receipt age (includes same-price heartbeats)."
+                    "change age; lastReceiptAgeMs is last Offers receipt age (includes same-price heartbeats). "
+                    "lastPollChangeAt advances only on genuine bid/ask diffs; same-price polls use "
+                    "lastPollHeartbeatAt."
                 ),
             },
             "priceBasis": "bid",
@@ -2277,7 +2288,9 @@ def stream_status_payload() -> dict[str, Any]:
             "note": (
                 "LIVE only after a genuine Offers bid/ask change within 15s "
                 "(SDK callback or Offers table diff). Active receipts without a recent price "
-                "change are NO_RECENT_MARKET_UPDATES. Seeded snapshots do not set LIVE."
+                "change are NO_RECENT_MARKET_UPDATES. Seeded snapshots do not set LIVE. "
+                "MARKET_INACTIVE means no bid/ask tick since subscribe after sufficient poll "
+                "evidence — offersSnapshotPresent may still be true from Offers table rows."
             ),
             "status": status,
         }

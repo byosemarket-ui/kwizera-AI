@@ -194,15 +194,17 @@ describe("Phase 60.0.2 backend/sidecar contracts", () => {
     expect(api).toContain("equityIncludesFloatingPl");
   });
 
-  it("UI shows closed-day scope and account P/L honesty", () => {
+  it("UI shows closed/history coverage and account P/L honesty", () => {
     const page = read("desktop/forex/ForexTradeMonitorPage.tsx");
-    expect(page).toContain("Current trading day only");
-    expect(page).toContain("forexconnect-closed-trades");
+    expect(page).toContain("buildClosed24hBundle");
+    expect(page).toContain('data-coverage="closed-24h"');
     expect(page).toContain("equityIncludesFloatingPl");
-    expect(page).toMatch(/trade-performance|Partial history|win rate/i);
+    expect(page).toMatch(/Partial history|Float P\/L/i);
+    expect(page).toContain("READ-ONLY");
     const css = read("desktop/forex/forex.css");
     expect(css).toContain(".fx-trade-monitor");
     expect(css).toContain(".fx-tm-table-wrap");
+    expect(css).toContain(".fx-tm-strip");
   });
 
   it("preserves DisabledBrokerMutationAdapter on ordinary AT path", () => {
