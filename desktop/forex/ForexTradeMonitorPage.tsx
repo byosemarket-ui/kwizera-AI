@@ -1215,6 +1215,20 @@ export function ForexTradeMonitorPage(_props: {
               Partial history: {p.coverage.note}
             </p>
           ) : null}
+          <p
+            className="fx-tm-avail-chip"
+            data-summary-source="forexconnect-summary"
+            data-metric-scope={
+              tables?.instrumentSummaries?.metricScope ?? "INSTRUMENT_SUMMARY"
+            }
+            title="Broker Instrument Summary NetPL is not account equity"
+          >
+            Summary source forexconnect-summary · metricScope{" "}
+            {tables?.instrumentSummaries?.metricScope ?? "INSTRUMENT_SUMMARY"}
+            {historyAvailableFrom
+              ? ` · history from ${formatTimestamp(historyAvailableFrom)}`
+              : ""}
+          </p>
           {primaryAccount?.equityIncludesFloatingPl ? (
             <p className="fx-tm-muted">
               Equity may already include floating P/L — float is not added again.

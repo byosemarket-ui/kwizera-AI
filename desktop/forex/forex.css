@@ -4102,6 +4102,16 @@ html.reduce-motion .fx-sidebar {
   color: var(--fx-muted);
   font-size: 0.72rem;
 }
+.fx-tm-avail-chip {
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--fx-border);
+  background: color-mix(in srgb, var(--fx-elevated) 80%, transparent);
+  color: var(--fx-muted);
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
 .fx-tm-view-scroll {
   display: flex;
   flex-wrap: nowrap;

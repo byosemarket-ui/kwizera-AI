@@ -234,7 +234,7 @@ describe("Phase 60.0.4 contracts + UI helpers", () => {
 
     const page = read("desktop/forex/ForexTradeMonitorPage.tsx");
     expect(page).toContain("trade-performance");
-    expect(page).toMatch(/data-phase="60\.0\.[456]"/);
+    expect(page).toMatch(/data-phase="60\.0\.(?:[456]|10|11)"/);
     expect(page).toContain("AbortController");
     expect(page).toContain("Partial history");
     expect(page).not.toMatch(/openTrueMarket|createGrant/);

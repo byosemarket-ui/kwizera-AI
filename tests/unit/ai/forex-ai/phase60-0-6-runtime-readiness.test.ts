@@ -172,7 +172,7 @@ describe("Phase 60.0.6 wiring + safety evidence", () => {
     expect(page).toContain("Promise.allSettled");
     expect(page).toContain("buildRuntimeObservability");
     expect(page).toContain("shouldMarkLastKnownStale");
-    expect(page).toContain('data-phase="60.0.6"');
+    expect(page).toMatch(/data-phase="60\.0\.(?:6|10|11)"/);
     expect(page).toContain("data-may-label-mark-live");
     expect(page).toContain("data-quote-layer");
     expect(page).toContain("data-poller-layer");
