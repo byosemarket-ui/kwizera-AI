@@ -128,25 +128,32 @@ export interface ForexConnectProfileActionResult {
 }
 
 /**
- * Phase 60.0.14 — re-export shared Forex Admin token service.
- * Persistence is browser-local (localStorage); see desktop/forex/admin-access/forex-admin-token.ts.
+ * Phase 60.0.14 — shared Forex Admin token service (browser-local persistence).
+ * See desktop/forex/admin-access/forex-admin-token.ts.
  */
-export {
-  FOREX_ADMIN_TOKEN_STORAGE_KEY,
-  getForexAdminToken as getForexAdminSessionToken,
-  saveForexAdminToken,
-  clearForexAdminToken as clearForexAdminSessionToken,
-} from "../forex/admin-access/forex-admin-token";
-
 import {
   buildForexAdminHeaders,
+  clearForexAdminToken,
+  getForexAdminToken,
   saveForexAdminToken,
 } from "../forex/admin-access/forex-admin-token";
 
-/** @deprecated Prefer saveForexAdminToken — kept for ForexConnect admin page call sites. */
+/** Same storage key as the shared Forex Admin Access service. */
+export const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
+
+export function getForexAdminSessionToken(): string {
+  return getForexAdminToken();
+}
+
 export function setForexAdminSessionToken(token: string): void {
   saveForexAdminToken(token);
 }
+
+export function clearForexAdminSessionToken(): void {
+  clearForexAdminToken();
+}
+
+export { saveForexAdminToken };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
