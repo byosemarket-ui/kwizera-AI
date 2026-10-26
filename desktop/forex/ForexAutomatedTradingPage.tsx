@@ -497,7 +497,7 @@ export function ForexAutomatedTradingPage(props: {
           mayAttemptDemoMutation: false,
           blockers: ["ADMIN_AUTHORIZATION_REQUIRED"],
           ownerActionChecklist: [
-            "Configure Admin API token under Forex Dashboard → Admin Access.",
+            "Configure Admin API token under Forex → Admin Access.",
             "Token must match KWIZERA_ADMIN_API_TOKEN on the server — never commit or log it.",
           ],
           authErrorCode: demoJson?.error?.code ?? "ADMIN_FORBIDDEN",

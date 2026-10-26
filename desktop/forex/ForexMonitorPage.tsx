@@ -196,7 +196,7 @@ export function ForexMonitorPage({
 
   const start = async () => {
     if (!getForexAdminToken()) {
-      setError("Admin API token required. Configure it under Forex Dashboard → Admin Access.");
+      setError("Admin API token required. Configure it under Forex → Admin Access.");
       return;
     }
     if (!symbol) {

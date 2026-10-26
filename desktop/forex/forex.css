@@ -4452,13 +4452,109 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 60.0.14 — Central Forex Admin Access */
+/* Phase 60.0.14 / 60.0.15 â€” Central Forex Admin Access */
+.fx-admin-access-page {
+  max-width: 44rem;
+}
+.fx-admin-access-dash-link {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.85rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--fx-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--fx-elevated) 88%, transparent);
+  font-size: 0.75rem;
+  color: var(--fx-muted);
+}
+.fx-admin-access-dash-link .fx-text-button {
+  margin-left: auto;
+}
+.fx-admin-access-return {
+  margin: 0 0 0.65rem;
+  font-size: 0.75rem;
+}
 .fx-admin-access {
   margin: 0 0 1rem;
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--fx-border);
   border-radius: 8px;
   background: color-mix(in srgb, var(--fx-elevated) 92%, transparent);
+}
+.fx-admin-access-actions .fx-btn.is-danger {
+  color: #fca5a5;
+  border-color: color-mix(in srgb, #ef4444 40%, var(--fx-border));
+}
+.fx-admin-access-modules {
+  margin-top: 0.85rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--fx-border);
+}
+.fx-admin-access-modules-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.fx-admin-access-modules-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.fx-admin-access-modules-pill {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #22c55e 40%, var(--fx-border));
+  color: #86efac;
+  font-size: 0.65rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.fx-admin-access-modules-meta {
+  margin: 0.35rem 0 0.55rem;
+  color: var(--fx-muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+.fx-admin-access-modules-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.4rem;
+}
+.fx-admin-access-module {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--fx-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--fx-bg, #0b1220) 70%, transparent);
+  font-size: 0.72rem;
+}
+.fx-admin-access-module-label {
+  font-weight: 600;
+}
+.fx-admin-access-module-tag {
+  color: var(--fx-muted);
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+.fx-admin-access-security {
+  margin: 0.7rem 0 0;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--fx-border);
+  background: color-mix(in srgb, var(--fx-bg, #0b1220) 55%, transparent);
+  color: var(--fx-muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
 }
 .fx-admin-access-head {
   display: flex;

@@ -4,6 +4,7 @@ import { ForexMarketsPage } from "./ForexMarketsPage";
 import { ForexAiAnalysisPage } from "./ForexAiAnalysisPage";
 import { ForexAutomatedTradingPage } from "./ForexAutomatedTradingPage";
 import { ForexTradeMonitorPage } from "./ForexTradeMonitorPage";
+import { ForexAdminAccessPage } from "./ForexAdminAccessPage";
 import { ForexMonitorPage } from "./ForexMonitorPage";
 import { SelectedMarketBar } from "./SelectedMarketBar";
 import { ForexHeader } from "./ForexHeader";
@@ -235,6 +236,8 @@ export function ForexShell({
         timeframe={chartTimeframe}
       />
     );
+  } else if (route === "admin-access") {
+    content = <ForexAdminAccessPage />;
   } else {
     content = (
       <ForexModulePage

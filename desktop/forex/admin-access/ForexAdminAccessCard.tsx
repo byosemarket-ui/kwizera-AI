@@ -1,5 +1,5 @@
 /**
- * Phase 60.0.14 — Compact central Forex Admin Access card.
+ * Phase 60.0.14/60.0.15 — Central Forex Admin Access card.
  * Token is never logged or shown in full after save.
  */
 import { useCallback, useEffect, useId, useState } from "react";
@@ -22,6 +22,14 @@ type VerifyResult = {
   state: ForexAdminVerifyState;
   message: string;
 };
+
+/** Modules that call buildForexAdminHeaders / shared token — not proof of live auth. */
+export const FOREX_ADMIN_SHARED_MODULES = [
+  { id: "trade-monitor", label: "Trade Monitor" },
+  { id: "signals", label: "Market Monitor" },
+  { id: "automated-trading", label: "Automated Trading" },
+  { id: "trade-history", label: "Trade History" },
+] as const;
 
 async function probeAdminAuth(tokenPresent: boolean): Promise<VerifyResult> {
   if (!tokenPresent) {
@@ -72,7 +80,7 @@ export function ForexAdminAccessCard({
   const [verify, setVerify] = useState<VerifyResult>({
     state: snapshot.configured ? "idle" : "unconfigured",
     message: snapshot.configured
-      ? "Configured locally — not yet verified with server."
+      ? "Saved in this browser only · not yet verified with server."
       : "No token configured in this browser.",
   });
   const [busy, setBusy] = useState(false);
@@ -92,7 +100,7 @@ export function ForexAdminAccessCard({
     }
     setVerify({
       state: "idle",
-      message: "Configured locally — not yet verified with server.",
+      message: "Saved in this browser only · not yet verified with server.",
     });
   }, [snapshot.generation, snapshot.configured]);
 
@@ -157,11 +165,10 @@ export function ForexAdminAccessCard({
       <header className="fx-admin-access-head">
         <div>
           <h2 id="fx-admin-access-title" className="fx-admin-access-title">
-            Forex Admin Access
+            Forex Admin Token
           </h2>
           <p className="fx-admin-access-meta">
-            One token for Trade Monitor, Market Monitor, Automated Trading, and other protected Forex reads.
-            Stored in this browser profile only — not encrypted against XSS.
+            One token for authorized Forex modules on this browser.
           </p>
         </div>
         <span
@@ -201,6 +208,7 @@ export function ForexAdminAccessCard({
             className="fx-btn fx-tm-btn is-secondary"
             onClick={() => setShow((v) => !v)}
             aria-pressed={show}
+            aria-label={show ? "Hide token" : "Show token"}
           >
             {show ? "Hide" : "Show"}
           </button>
@@ -215,6 +223,7 @@ export function ForexAdminAccessCard({
             className="fx-btn fx-tm-btn"
             onClick={onSave}
             disabled={busy || !draft.trim()}
+            aria-label={snapshot.configured ? "Update admin token" : "Save admin token"}
           >
             {snapshot.configured ? "Update" : "Save"}
           </button>
@@ -223,14 +232,16 @@ export function ForexAdminAccessCard({
             className="fx-btn fx-tm-btn is-secondary"
             onClick={() => void runVerify()}
             disabled={busy || !snapshot.configured}
+            aria-label="Verify admin token with server"
           >
             Verify
           </button>
           <button
             type="button"
-            className="fx-btn fx-tm-btn is-secondary"
+            className="fx-btn fx-tm-btn is-secondary is-danger"
             onClick={onClear}
             disabled={busy || !snapshot.configured}
+            aria-label="Clear admin token"
           >
             Clear
           </button>
@@ -257,27 +268,73 @@ export function ForexAdminAccessCard({
             localStorage unavailable — persistence may be limited to this tab.
           </p>
         ) : null}
+
+        <div
+          className="fx-admin-access-modules"
+          data-fx-admin-modules="true"
+          aria-labelledby="fx-admin-modules-title"
+        >
+          <div className="fx-admin-access-modules-head">
+            <h3 id="fx-admin-modules-title" className="fx-admin-access-modules-title">
+              Connected modules
+            </h3>
+            <span className="fx-admin-access-modules-pill">Uses shared token</span>
+          </div>
+          <p className="fx-admin-access-modules-meta">
+            These modules use the shared token automatically. A green “connected” auth status
+            appears only after each module’s own successful server response — not from this list.
+          </p>
+          <ul className="fx-admin-access-modules-grid">
+            {FOREX_ADMIN_SHARED_MODULES.map((mod) => (
+              <li
+                key={mod.id}
+                className="fx-admin-access-module"
+                data-fx-admin-module={mod.id}
+                data-shared-token="true"
+              >
+                <span className="fx-admin-access-module-label">{mod.label}</span>
+                <span className="fx-admin-access-module-tag">Shared token</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="fx-admin-access-security" role="note">
+          Credentials are never added to URLs or sent to public market-data providers.
+        </p>
       </div>
     </section>
   );
 }
 
+const ADMIN_ACCESS_PATH = "/forex/admin-access";
+
 /** Compact auth CTA used on pages that no longer host their own token form. */
 export function ForexAdminAccessLink({
+  onOpenAdminAccess,
   onOpenDashboard,
   reason,
 }: {
+  /** Prefer in-app navigation when the shell provides it. */
+  onOpenAdminAccess?: () => void;
+  /** @deprecated Use onOpenAdminAccess — kept for call-site compatibility. */
   onOpenDashboard?: () => void;
   reason?: string;
 }) {
   const { snapshot } = useForexAdminToken();
   const go = () => {
-    if (onOpenDashboard) {
-      onOpenDashboard();
+    const navigate = onOpenAdminAccess ?? onOpenDashboard;
+    if (navigate) {
+      navigate();
       return;
     }
     if (typeof window !== "undefined") {
-      window.location.assign("/forex/dashboard#fx-admin-access");
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      const target =
+        returnTo && !returnTo.startsWith(ADMIN_ACCESS_PATH)
+          ? `${ADMIN_ACCESS_PATH}?returnTo=${encodeURIComponent(returnTo)}`
+          : ADMIN_ACCESS_PATH;
+      window.location.assign(target);
     }
   };
   return (

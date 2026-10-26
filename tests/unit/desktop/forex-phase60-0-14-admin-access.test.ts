@@ -110,14 +110,20 @@ describe("Phase 60.0.14 shared Forex Admin token service", () => {
 });
 
 describe("Phase 60.0.14 module migration contracts", () => {
-  it("dashboard hosts central Admin Access; modules drop duplicate token forms", () => {
+  it("central Admin Access card remains shared; modules drop duplicate token forms", () => {
     const dash = read("desktop/forex/ForexDashboard.tsx");
-    expect(dash).toContain("ForexAdminAccessCard");
-    expect(dash).toContain("fx-admin-access");
+    expect(dash).not.toContain("ForexAdminAccessCard");
+    expect(dash).toContain("fx-admin-access-dash-link");
+    expect(dash).toContain("admin-access");
+
+    const page = read("desktop/forex/ForexAdminAccessPage.tsx");
+    expect(page).toContain("ForexAdminAccessCard");
+    expect(page).toContain('data-forex-page="admin-access"');
 
     const card = read("desktop/forex/admin-access/ForexAdminAccessCard.tsx");
-    expect(card).toContain("Forex Admin Access");
+    expect(card).toContain("Forex Admin Token");
     expect(card).toContain("data-fx-admin-masked");
+    expect(card).toContain("/forex/admin-access");
     expect(card).not.toMatch(/console\.(log|debug|info|warn|error)\([^\n]*token/i);
 
     const tm = read("desktop/forex/ForexTradeMonitorPage.tsx");

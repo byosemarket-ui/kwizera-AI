@@ -36,6 +36,7 @@ const REQUIRED_PATHS = [
   "/forex/trade-journal",
   "/forex/risk-management",
   "/forex/performance",
+  "/forex/admin-access",
   "/forex/settings",
 ];
 
@@ -67,7 +68,10 @@ describe("Forex Phase 1 routing", () => {
     expect(FOREX_NAV.find((item) => item.id === "automated-trading")?.label).toBe("Automated Trading");
     expect(FOREX_NAV.find((item) => item.id === "trade-monitor")?.implemented).toBe(true);
     expect(FOREX_NAV.find((item) => item.id === "trade-monitor")?.label).toBe("Trade Monitor");
-    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "watchlist", "charts", "technical-analysis", "ai-analysis", "signals", "automated-trading", "trade-monitor"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "admin-access")?.implemented).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "admin-access")?.label).toBe("Admin Access");
+    expect(FOREX_NAV.find((item) => item.id === "admin-access")?.group).toBe("security");
+    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "watchlist", "charts", "technical-analysis", "ai-analysis", "signals", "automated-trading", "trade-monitor", "admin-access"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
     expect(FOREX_DASHBOARD_MODULES).toHaveLength(8);
   });
 });
@@ -101,8 +105,10 @@ describe("Forex Phase 2 navigation", () => {
     expect(getForexBreadcrumbs("automated-trading").map((item) => item.label)).toEqual(["Forex", "Trading", "Automated Trading"]);
     expect(getForexBreadcrumbs("trade-monitor").map((item) => item.label)).toEqual(["Forex", "Trading", "Trade Monitor"]);
     expect(getForexBreadcrumbs("trade-journal").map((item) => item.label)).toEqual(["Forex", "Trading", "Trade Journal"]);
+    expect(getForexBreadcrumbs("admin-access").map((item) => item.label)).toEqual(["Forex", "Admin Access"]);
     expect(getForexBreadcrumbs("settings").map((item) => item.label)).toEqual(["Forex", "Settings"]);
     expect(getForexDocumentTitle("dashboard")).toBe("KWIZERA AI STUDIO — Forex Dashboard");
+    expect(getForexDocumentTitle("admin-access")).toBe("KWIZERA AI STUDIO — Admin Access");
     expect(getForexDocumentTitle("markets")).toBe("KWIZERA AI STUDIO — Markets");
     expect(getForexDocumentTitle("not-found")).toContain("Page not found");
   });

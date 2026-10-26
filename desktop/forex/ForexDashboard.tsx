@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Activity, Brain, Newspaper, NotebookPen, Shield, Waypoints, Zap, BarChart3 } from "lucide-react";
 import { ForexSectionHeader } from "./components/ForexSectionHeader";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
@@ -6,7 +5,7 @@ import { ForexEmptyState } from "./components/ForexEmptyState";
 import { ForexOverviewCard } from "./components/ForexOverviewCard";
 import { MarketCard } from "./components/MarketCard";
 import { MarketChartPanel } from "./components/MarketChartPanel";
-import { ForexAdminAccessCard } from "./admin-access/ForexAdminAccessCard";
+import { useForexAdminToken } from "./admin-access/use-forex-admin-token";
 import {
   FOREX_ACTIVITY,
   FOREX_QUICK_ACTIONS,
@@ -64,13 +63,7 @@ export function ForexDashboard({
     : fxcmSelected
       ? `${selectedMarket.displaySymbol} · ${timeframeLabel(timeframe)} · shared FXCM mid candles with Charts`
       : "Select a provider market from Markets for live candles";
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.location.hash !== "#fx-admin-access") return;
-    const el = document.getElementById("fx-admin-access");
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
+  const { snapshot: adminToken } = useForexAdminToken();
 
   return (
     <section
@@ -92,7 +85,19 @@ export function ForexDashboard({
         <p className="fx-panel-meta">Forex workspace · {clock}</p>
       </div>
 
-      <ForexAdminAccessCard />
+      <p
+        className="fx-admin-access-dash-link"
+        data-fx-admin-dash-link="true"
+        data-token-configured={adminToken.configured ? "true" : "false"}
+      >
+        <Shield size={14} aria-hidden="true" />
+        <span>
+          Admin Access · {adminToken.configured ? "token saved locally" : "token not configured"}
+        </span>
+        <button type="button" className="fx-text-button" onClick={() => onOpenModule("admin-access")}>
+          Open
+        </button>
+      </p>
 
       <section className="fx-selected-binance" data-forex-section="selected-market">
         <div className="fx-panel-header">

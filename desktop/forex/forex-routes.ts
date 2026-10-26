@@ -15,6 +15,7 @@ export type ForexRouteId =
   | "risk-management"
   | "performance"
   | "backtesting"
+  | "admin-access"
   | "settings";
 
 export type ForexViewId = ForexRouteId | "not-found";
@@ -25,6 +26,7 @@ export type ForexNavGroupId =
   | "analysis"
   | "ai"
   | "trading"
+  | "security"
   | "system";
 
 export type ForexNavIconId =
@@ -268,13 +270,25 @@ export const FOREX_NAV: ForexNavItem[] = [
     phaseNote: "Coming Soon",
   },
   {
+    id: "admin-access",
+    label: "Admin Access",
+    path: "/forex/admin-access",
+    implemented: true,
+    inSidebar: true,
+    group: "security",
+    groupLabel: "Security",
+    icon: "shield",
+    description: "Configure the shared Admin API token for protected Forex reads.",
+    phaseNote: "Available",
+  },
+  {
     id: "settings",
     label: "Settings",
     path: "/forex/settings",
     implemented: false,
     inSidebar: true,
-    group: "system",
-    groupLabel: "System",
+    group: "security",
+    groupLabel: "Security",
     icon: "settings",
     description: "Forex-specific settings will be implemented progressively.",
     phaseNote: "Coming Soon",
@@ -299,6 +313,7 @@ export const FOREX_GROUP_ORDER: ForexNavGroupId[] = [
   "analysis",
   "ai",
   "trading",
+  "security",
   "system",
 ];
 
@@ -391,6 +406,10 @@ export function getForexBreadcrumbs(view: ForexViewId): ForexBreadcrumb[] {
   const crumbs: ForexBreadcrumb[] = [{ label: "Forex", route: "dashboard" }];
   if (item.id === "dashboard") {
     crumbs.push({ label: "Dashboard" });
+    return crumbs;
+  }
+  if (item.id === "admin-access") {
+    crumbs.push({ label: "Admin Access" });
     return crumbs;
   }
   if (item.id === "settings") {
