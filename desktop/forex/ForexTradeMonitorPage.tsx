@@ -1226,17 +1226,25 @@ export function ForexTradeMonitorPage(_props: {
                     <th scope="col">Size</th>
                     <th scope="col">Rate</th>
                     <th scope="col">Status</th>
+                    <th scope="col">Mapped</th>
+                    <th scope="col">TIF</th>
                   </tr>
                 </thead>
                 <tbody>
                   {workingOrders.map((row, idx) => (
-                    <tr key={row.orderId ?? `ord-${idx}`} data-row-source={row.source}>
+                    <tr
+                      key={row.orderId ?? `ord-${idx}`}
+                      data-row-source={row.source}
+                      data-order-status-normalized={row.normalizedStatus}
+                    >
                       <td>{row.orderId ?? formatUnavailable()}</td>
                       <td>{row.instrument ?? formatUnavailable()}</td>
                       <td>{formatSide(row.side)}</td>
                       <td>{formatOptionalNumber(row.amount, { digits: 2 })}</td>
                       <td>{formatOptionalNumber(row.rate, { digits: 5 })}</td>
                       <td>{row.status ?? formatUnavailable()}</td>
+                      <td title={row.statusLabel}>{row.normalizedStatus}</td>
+                      <td>{row.timeInForce ?? formatUnavailable()}</td>
                     </tr>
                   ))}
                 </tbody>

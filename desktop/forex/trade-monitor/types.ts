@@ -54,13 +54,30 @@ export interface TradeMonitorPositionRow {
   source: "forexconnect-trades";
 }
 
+/** Phase 59.0.6 — normalized Orders.status (raw preserved separately). */
+export type TradeMonitorNormalizedOrderStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "PARTIALLY_FILLED"
+  | "FILLED"
+  | "CANCELLED"
+  | "EXPIRED"
+  | "UNKNOWN";
+
 export interface TradeMonitorOrderRow {
   orderId: string | null;
   instrument: string | null;
   side: string | null;
   amount: number | null;
   rate: number | null;
+  /** Raw broker status string (never invented). */
   status: string | null;
+  /** Phase 59.0.6 — mapped lifecycle; UNKNOWN when missing/unmapped. */
+  normalizedStatus: TradeMonitorNormalizedOrderStatus;
+  statusLabel: string;
+  /** Phase 59.0.7 — Orders.time_in_force when SDK exposes it. */
+  timeInForce: string | null;
   source: "forexconnect-orders";
 }
 

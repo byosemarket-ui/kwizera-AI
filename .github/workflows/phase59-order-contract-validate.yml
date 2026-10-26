@@ -1,0 +1,79 @@
+# Phase 59.0.7 — Non-deploying validation for DEMO order-contract / sizing / TM mapping.
+# Does NOT deploy, restart services, or use broker mutation secrets.
+# Trigger only via workflow_dispatch (or push to a non-main branch if used later).
+name: Phase 59 order-contract validate
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - "ai/forex-ai/automated-trading/order-execution/**"
+      - "desktop/forex/trade-monitor/**"
+      - "desktop/forex/ForexTradeMonitorPage.tsx"
+      - "tests/unit/ai/forex-ai/phase59-0-*.test.ts"
+      - "services/forexconnect-sidecar/**"
+      - ".github/workflows/phase59-order-contract-validate.yml"
+
+concurrency:
+  group: phase59-order-contract-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  validate:
+    name: Phase 59 offline contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Phase 59.0 / 59.0.3 / 59.0.5 / 59.0.6 contract tests
+        run: >
+          npx vitest run
+          --pool=forks
+          --maxWorkers=1
+          tests/unit/ai/forex-ai/phase59-0-order-execution-engine.test.ts
+          tests/unit/ai/forex-ai/phase59-0-3-quote-subscription-readiness.test.ts
+          tests/unit/ai/forex-ai/phase59-0-5-market-readiness-order-path.test.ts
+          tests/unit/ai/forex-ai/phase59-0-6-account-sizing-order-contract.test.ts
+
+      - name: Typecheck order-execution + trade-monitor (scoped)
+        run: |
+          if npx tsc -p tsconfig.json --noEmit --pretty false 2>tsc-err.txt; then
+            echo "tsc ok"
+          else
+            if grep -E "ai/forex-ai/automated-trading/order-execution|desktop/forex/trade-monitor|ForexTradeMonitorPage" tsc-err.txt; then
+              cat tsc-err.txt
+              exit 1
+            fi
+            echo "tsc reported unrelated project errors; Phase 59 scoped paths clean."
+            head -n 40 tsc-err.txt || true
+          fi
+
+      - name: Safety invariant source gate
+        run: |
+          set -e
+          grep -n "DisabledBrokerMutationAdapter" ai/forex-ai/automated-trading/service.ts
+          grep -nE "placesOrders:[[:space:]]*false" ai/forex-ai/automated-trading/service.ts
+          grep -nE "acceptsForExecution:[[:space:]]*false" ai/forex-ai/automated-trading/broker-intent/mutation-stub.ts
+          grep -n "LIVE_MUTATION_FORBIDDEN" services/forexconnect-sidecar/mutation_demo.py
+          grep -n "gate_demo_mutation" services/forexconnect-sidecar/mutation_demo.py
+          if grep -nE "VPS_SSH_KEY|KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET|production-deploy" .github/workflows/phase59-order-contract-validate.yml; then
+            echo "Non-deploy workflow must not reference deploy/mutation secrets" >&2
+            exit 1
+          fi

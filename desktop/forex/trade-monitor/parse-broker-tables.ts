@@ -2,6 +2,7 @@
  * Phase 60.0.1 / 60.0.2 / 60.0.3 — normalize broker-ro-tables + trade-history JSON.
  * Fail closed: missing arrays become empty; never invent P/L fields.
  */
+import { normalizeBrokerOrderStatus } from "../../../ai/forex-ai/automated-trading/order-execution/normalize-broker-order-status";
 import type {
   TradeMonitorAccountRow,
   TradeMonitorClosedTradeRow,
@@ -131,13 +132,18 @@ export function parseBrokerRoTables(raw: unknown): TradeMonitorTablesPayload | n
       : [];
   const orders: TradeMonitorOrderRow[] = orderRowsRaw.map((row) => {
     const r = (row && typeof row === "object" ? row : {}) as Record<string, unknown>;
+    const rawStatus = asString(r.status);
+    const mapped = normalizeBrokerOrderStatus(rawStatus);
     return {
       orderId: asString(r.orderId),
       instrument: asString(r.instrument),
       side: asString(r.side),
       amount: asFinite(r.amount),
       rate: asFinite(r.rate),
-      status: asString(r.status),
+      status: rawStatus,
+      normalizedStatus: mapped.normalized,
+      statusLabel: mapped.label,
+      timeInForce: asString(r.timeInForce),
       source: "forexconnect-orders",
     };
   });

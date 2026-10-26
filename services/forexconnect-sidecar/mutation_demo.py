@@ -86,6 +86,17 @@ def sdk_capability_probe() -> dict[str, Any]:
             out["ordersConstants"] = sorted(names)[:80]
             out["hasCreateOrderRequest"] = True
             out["hasSendRequest"] = True
+        # Phase 59.0.7 — list TIF constants when present (probe only; no request sent).
+        tif = getattr(getattr(fxcorepy, "Constants", None), "TIF", None)
+        if tif is not None:
+            tif_names = [n for n in dir(tif) if not n.startswith("_")]
+            out["tifConstants"] = sorted(tif_names)[:40]
+            out["documentedOmDefaultTif"] = "IOC"
+            out["documentedOmSupportedTif"] = ["GTC", "IOC", "FOK", "DAY"]
+            out["tifNote"] = (
+                "FXCM Open Market docs: TimeInForce optional; OM defaults to IOC. "
+                "GTD may exist on Constants.TIF but needs expiry — treat as unsupported until modelled."
+            )
     except Exception as exc:
         out["ok"] = False
         out["error"] = str(exc)[:240]

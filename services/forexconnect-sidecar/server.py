@@ -1062,6 +1062,8 @@ def _normalize_order_row(row: Any) -> Optional[dict[str, Any]]:
         amount = getattr(row, "amount", None) or getattr(row, "Amount", None)
         rate = getattr(row, "rate", None) or getattr(row, "Rate", None)
         status = getattr(row, "status", None) or getattr(row, "Status", None)
+        # Phase 59.0.7 — surface Orders.time_in_force when the installed SDK exposes it (never invent).
+        tif = _row_get(row, "time_in_force", "TimeInForce", "timeInForce", "TIF")
         return {
             "orderId": str(order_id) if order_id is not None else None,
             "instrument": str(offer) if offer is not None else None,
@@ -1069,6 +1071,7 @@ def _normalize_order_row(row: Any) -> Optional[dict[str, Any]]:
             "amount": float(amount) if amount is not None and str(amount).strip() != "" else None,
             "rate": float(rate) if rate is not None and str(rate).strip() != "" else None,
             "status": str(status) if status is not None else None,
+            "timeInForce": str(tif).strip() if tif is not None and str(tif).strip() else None,
             "source": "forexconnect-orders",
         }
     except Exception:
