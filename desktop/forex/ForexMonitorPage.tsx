@@ -1,32 +1,15 @@
 /**
- * Phase 38F — Continuous server-side market monitoring control panel.
- * Mutations require Admin API token (same session key as Forex Admin).
+ * Phase 38F / 60.0.14 — Continuous server-side market monitoring control panel.
+ * Mutations require Admin API token via the shared Forex Admin Access service.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ForexAdminAccessLink } from "./admin-access/ForexAdminAccessCard";
+import { buildForexAdminHeaders, getForexAdminToken } from "./admin-access/forex-admin-token";
+import { useForexAdminToken } from "./admin-access/use-forex-admin-token";
 import { ForexSectionHeader } from "./components/ForexSectionHeader";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 import type { ChartTimeframeId } from "./chart/types";
-/** Shared with Forex Admin / Admin Control Center — browser session only. */
-const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
-
-function getForexAdminSessionToken(): string {
-  try {
-    return sessionStorage.getItem(FOREX_ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function setForexAdminSessionToken(token: string): void {
-  try {
-    const trimmed = token.trim();
-    if (trimmed) sessionStorage.setItem(FOREX_ADMIN_TOKEN_STORAGE_KEY, trimmed);
-    else sessionStorage.removeItem(FOREX_ADMIN_TOKEN_STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
-}
 
 type MonitorSession = {
   sessionId: string;
@@ -70,22 +53,11 @@ type MonitorEvent = {
   dataFreshness?: string | null;
 };
 
-function authHeaders(): Record<string, string> {
-  const token = getForexAdminSessionToken();
-  if (!token) return {};
-  return {
-    Authorization: `Bearer ${token}`,
-    "x-kwizera-admin-token": token,
-  };
-}
-
 async function monitorFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
     headers: {
-      Accept: "application/json",
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...authHeaders(),
+      ...buildForexAdminHeaders(path, { includeJsonContentType: Boolean(init?.body) }),
       ...(init?.headers ?? {}),
     },
   });
@@ -148,7 +120,8 @@ export function ForexMonitorPage({
   selectedMarket: SelectedMarket | null;
   timeframe: ChartTimeframeId;
 }) {
-  const [tokenDraft, setTokenDraft] = useState(() => getForexAdminSessionToken());
+  const { snapshot: adminSnap } = useForexAdminToken();
+  const authGenRef = useRef(adminSnap.generation);
   const [sessions, setSessions] = useState<MonitorSession[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [events, setEvents] = useState<MonitorEvent[]>([]);
@@ -211,13 +184,21 @@ export function ForexMonitorPage({
     if (selected?.sessionId) void refreshEvents(selected.sessionId);
   }, [selected?.sessionId, refreshEvents, selected?.lifecycleState, selected?.evaluationCount]);
 
-  const saveToken = () => {
-    setForexAdminSessionToken(tokenDraft);
+  useEffect(() => {
+    if (authGenRef.current === adminSnap.generation) return;
+    authGenRef.current = adminSnap.generation;
+    setSessions([]);
+    setEvents([]);
+    setStats(null);
     setError(null);
     void refresh();
-  };
+  }, [adminSnap.generation, refresh]);
 
   const start = async () => {
+    if (!getForexAdminToken()) {
+      setError("Admin API token required. Configure it under Forex Dashboard → Admin Access.");
+      return;
+    }
     if (!symbol) {
       setError("Select a market instrument first.");
       return;
@@ -269,25 +250,13 @@ export function ForexMonitorPage({
 
       {metaNote ? <p className="fx-page-desc">{metaNote}</p> : null}
 
-      <div className="fx-monitor-auth">
-        <label className="fx-monitor-label" htmlFor="fx-monitor-token">
-          Admin API token (session only — {FOREX_ADMIN_TOKEN_STORAGE_KEY})
-        </label>
-        <div className="fx-monitor-auth-row">
-          <input
-            id="fx-monitor-token"
-            type="password"
-            className="fx-monitor-input"
-            value={tokenDraft}
-            onChange={(e) => setTokenDraft(e.target.value)}
-            placeholder="KWIZERA_ADMIN_API_TOKEN"
-            autoComplete="off"
-          />
-          <button type="button" className="fx-studio-link" onClick={saveToken}>
-            Save token
-          </button>
-        </div>
-      </div>
+      <ForexAdminAccessLink
+        reason={
+          adminSnap.configured
+            ? "Admin token configured. Open Admin Access to update or clear."
+            : "Admin API token required for Market Monitor controls."
+        }
+      />
 
       <div className="fx-monitor-controls">
         <div className="fx-monitor-identity">

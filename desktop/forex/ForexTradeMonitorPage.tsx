@@ -1,8 +1,12 @@
 /**
- * Phase 60.0.1–60.0.10 — Trade Monitor (read-only), compact responsive UI.
+ * Phase 60.0.1–60.0.14 — Trade Monitor (read-only), compact responsive UI.
  * Does not place, modify, cancel, or close broker orders.
+ * Admin auth uses the shared Forex Admin Access service.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ForexAdminAccessLink } from "./admin-access/ForexAdminAccessCard";
+import { buildForexAdminHeaders } from "./admin-access/forex-admin-token";
+import { useForexAdminToken } from "./admin-access/use-forex-admin-token";
 import type { ChartTimeframeId } from "./chart/types";
 import type { SelectedMarket } from "./market-data/selected-market";
 import {
@@ -40,35 +44,8 @@ import {
   type TradeMonitorViewId,
 } from "./trade-monitor/view-filter";
 
-const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
 const POLL_MS = 12_000;
 const HISTORY_PAGE_SIZE = 25;
-
-function readAdminToken(): string {
-  try {
-    return sessionStorage.getItem(FOREX_ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function writeAdminToken(token: string) {
-  try {
-    const trimmed = token.trim();
-    if (trimmed) sessionStorage.setItem(FOREX_ADMIN_TOKEN_STORAGE_KEY, trimmed);
-    else sessionStorage.removeItem(FOREX_ADMIN_TOKEN_STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-function adminHeaders(token: string): HeadersInit {
-  return {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-    "x-kwizera-admin-token": token,
-  };
-}
 
 function MetricValue({
   text,
@@ -102,8 +79,7 @@ export function ForexTradeMonitorPage(_props: {
   selectedMarket: SelectedMarket | null;
   timeframe: ChartTimeframeId;
 }) {
-  const [token, setToken] = useState(readAdminToken);
-  const [tokenDraft, setTokenDraft] = useState(token);
+  const { token, snapshot: adminSnap } = useForexAdminToken();
   const [tables, setTables] = useState<TradeMonitorTablesPayload | null>(null);
   const [tablesState, setTablesState] = useState<TradeMonitorLoadState>("idle");
   const [tablesError, setTablesError] = useState<string | null>(null);
@@ -132,11 +108,7 @@ export function ForexTradeMonitorPage(_props: {
   const tablesReqId = useRef(0);
   const historyReqId = useRef(0);
   const perfReqId = useRef(0);
-
-  const applyToken = useCallback(() => {
-    writeAdminToken(tokenDraft);
-    setToken(tokenDraft.trim());
-  }, [tokenDraft]);
+  const authGenRef = useRef(adminSnap.generation);
 
   const loadConnection = useCallback(async () => {
     try {
@@ -210,8 +182,9 @@ export function ForexTradeMonitorPage(_props: {
     const reqId = ++tablesReqId.current;
     setTablesState((prev) => (prev === "ready" || prev === "empty" ? prev : "loading"));
     try {
-      const res = await fetch("/api/forex/automated-trading/broker-ro-tables", {
-        headers: adminHeaders(token),
+      const tablesPath = "/api/forex/automated-trading/broker-ro-tables";
+      const res = await fetch(tablesPath, {
+        headers: buildForexAdminHeaders(tablesPath, { includeJsonContentType: true }),
         signal: ac.signal,
       });
       if (reqId !== tablesReqId.current) return;
@@ -291,9 +264,13 @@ export function ForexTradeMonitorPage(_props: {
       if (historyStatus !== "ALL") params.set("status", historyStatus);
       if (primaryAccountMasked) params.set("accountIdMasked", primaryAccountMasked);
 
+      const historyPath = `/api/forex/automated-trading/trade-history?${params.toString()}`;
       const res = await fetch(
-        `/api/forex/automated-trading/trade-history?${params.toString()}`,
-        { headers: adminHeaders(token), signal: ac.signal },
+        historyPath,
+        {
+          headers: buildForexAdminHeaders(historyPath, { includeJsonContentType: true }),
+          signal: ac.signal,
+        },
       );
       if (reqId !== historyReqId.current) return;
       const body = await res.json().catch(() => null) as Record<string, unknown> | null;
@@ -356,9 +333,13 @@ export function ForexTradeMonitorPage(_props: {
       if (historyDirection !== "ALL") params.set("direction", historyDirection);
       if (primaryAccountMasked) params.set("accountIdMasked", primaryAccountMasked);
 
+      const perfPath = `/api/forex/automated-trading/trade-performance?${params.toString()}`;
       const res = await fetch(
-        `/api/forex/automated-trading/trade-performance?${params.toString()}`,
-        { headers: adminHeaders(token), signal: ac.signal },
+        perfPath,
+        {
+          headers: buildForexAdminHeaders(perfPath, { includeJsonContentType: true }),
+          signal: ac.signal,
+        },
       );
       if (reqId !== perfReqId.current) return;
       const body = await res.json().catch(() => null) as Record<string, unknown> | null;
@@ -417,6 +398,21 @@ export function ForexTradeMonitorPage(_props: {
   useEffect(() => {
     void loadPerformance();
   }, [loadPerformance]);
+
+  useEffect(() => {
+    if (authGenRef.current === adminSnap.generation) return;
+    authGenRef.current = adminSnap.generation;
+    setTables(null);
+    setHistory(null);
+    setPerf(null);
+    setTablesError(null);
+    setHistoryError(null);
+    setPerfError(null);
+    setTablesStale(false);
+    void loadTables();
+    void loadHistory();
+    void loadPerformance();
+  }, [adminSnap.generation, loadTables, loadHistory, loadPerformance]);
 
   const primaryAccount = tables?.accounts.accounts[0] ?? null;
   const currency = primaryAccount?.accountCurrency ?? null;
@@ -592,27 +588,11 @@ export function ForexTradeMonitorPage(_props: {
         </p>
       ) : null}
 
-      {/* Compact auth — collapsible when already authorized */}
-      <details className="fx-tm-auth-details" open={needsAuth || !token}>
-        <summary className="fx-tm-auth-summary">Admin token</summary>
-        <div className="fx-tm-auth-row">
-          <label className="fx-tm-label visually-hidden" htmlFor="fx-tm-admin-token">
-            Admin API token
-          </label>
-          <input
-            id="fx-tm-admin-token"
-            className="fx-tm-input"
-            type="password"
-            autoComplete="off"
-            value={tokenDraft}
-            onChange={(e) => setTokenDraft(e.target.value)}
-            placeholder="Admin API token — session only"
-          />
-          <button type="button" className="fx-btn fx-tm-btn" onClick={applyToken}>
-            Apply
-          </button>
-        </div>
-      </details>
+      {(needsAuth || !token) ? (
+        <ForexAdminAccessLink
+          reason="Admin token required for broker tables, history, and performance."
+        />
+      ) : null}
 
       {/* C View selector */}
       <div

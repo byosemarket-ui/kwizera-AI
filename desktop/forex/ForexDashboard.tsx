@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Activity, Brain, Newspaper, NotebookPen, Shield, Waypoints, Zap, BarChart3 } from "lucide-react";
 import { ForexSectionHeader } from "./components/ForexSectionHeader";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
@@ -5,6 +6,7 @@ import { ForexEmptyState } from "./components/ForexEmptyState";
 import { ForexOverviewCard } from "./components/ForexOverviewCard";
 import { MarketCard } from "./components/MarketCard";
 import { MarketChartPanel } from "./components/MarketChartPanel";
+import { ForexAdminAccessCard } from "./admin-access/ForexAdminAccessCard";
 import {
   FOREX_ACTIVITY,
   FOREX_QUICK_ACTIONS,
@@ -63,6 +65,13 @@ export function ForexDashboard({
       ? `${selectedMarket.displaySymbol} · ${timeframeLabel(timeframe)} · shared FXCM mid candles with Charts`
       : "Select a provider market from Markets for live candles";
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#fx-admin-access") return;
+    const el = document.getElementById("fx-admin-access");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   return (
     <section
       className="fx-dashboard"
@@ -82,6 +91,8 @@ export function ForexDashboard({
         <h2 id="fx-dashboard-title" className="fx-sr-only">Forex Dashboard</h2>
         <p className="fx-panel-meta">Forex workspace · {clock}</p>
       </div>
+
+      <ForexAdminAccessCard />
 
       <section className="fx-selected-binance" data-forex-section="selected-market">
         <div className="fx-panel-header">

@@ -1,13 +1,16 @@
 /**
- * Phase 51.1 / 52 — Automated Trading UI (isolation + verification).
+ * Phase 51.1 / 52 / 60.0.14 — Automated Trading UI (isolation + verification).
  * Configuration and read-only verification only — never places broker orders.
+ * Admin auth uses the shared Forex Admin Access service.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ForexAdminAccessLink } from "./admin-access/ForexAdminAccessCard";
+import { buildForexAdminHeaders } from "./admin-access/forex-admin-token";
+import { useForexAdminToken } from "./admin-access/use-forex-admin-token";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import { formatBrokerExecutionBadgeLabel } from "./broker-execution-label";
 import type { SelectedMarket } from "./market-data/selected-market";
 
-const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
 const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 54";
 
 type Env = "DEMO" | "LIVE";
@@ -166,30 +169,11 @@ type AuditEvent = {
   detail: string;
 };
 
-function readAdminToken(): string {
-  try {
-    return sessionStorage.getItem(FOREX_ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function writeAdminToken(token: string) {
-  try {
-    const trimmed = token.trim();
-    if (trimmed) sessionStorage.setItem(FOREX_ADMIN_TOKEN_STORAGE_KEY, trimmed);
-    else sessionStorage.removeItem(FOREX_ADMIN_TOKEN_STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-function adminHeaders(token: string): HeadersInit {
-  return {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-    "x-kwizera-admin-token": token,
-  };
+/** Headers for approved Forex AT API paths via the shared admin token service. */
+function adminHeaders(_token?: string): HeadersInit {
+  return buildForexAdminHeaders("/api/forex/automated-trading/status", {
+    includeJsonContentType: true,
+  });
 }
 
 function operationalTone(code: string | undefined): "live" | "future" | "offline" {
@@ -249,8 +233,8 @@ export function ForexAutomatedTradingPage(props: {
   selectedMarket?: SelectedMarket | null;
   timeframe?: string;
 }) {
-  const [token, setToken] = useState(readAdminToken);
-  const [tokenDraft, setTokenDraft] = useState(token);
+  const { token, snapshot: adminSnap } = useForexAdminToken();
+  const authGenRef = useRef(adminSnap.generation);
   const [status, setStatus] = useState<PublicStatus | null>(null);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -513,7 +497,7 @@ export function ForexAutomatedTradingPage(props: {
           mayAttemptDemoMutation: false,
           blockers: ["ADMIN_AUTHORIZATION_REQUIRED"],
           ownerActionChecklist: [
-            "Paste Admin API token in Admin authorization below (x-kwizera-admin-token).",
+            "Configure Admin API token under Forex Dashboard → Admin Access.",
             "Token must match KWIZERA_ADMIN_API_TOKEN on the server — never commit or log it.",
           ],
           authErrorCode: demoJson?.error?.code ?? "ADMIN_FORBIDDEN",
@@ -531,6 +515,15 @@ export function ForexAutomatedTradingPage(props: {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (authGenRef.current === adminSnap.generation) return;
+    authGenRef.current = adminSnap.generation;
+    setStatus(null);
+    setAudit([]);
+    setError(null);
+    void load();
+  }, [adminSnap.generation, load]);
 
   useEffect(() => {
     const latest = openaiStatus?.latest as { analysisId?: string; chartImage?: { available?: boolean } } | null;
@@ -567,11 +560,6 @@ export function ForexAutomatedTradingPage(props: {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [openaiStatus?.latest, token]);
-
-  const saveToken = () => {
-    writeAdminToken(tokenDraft);
-    setToken(tokenDraft.trim());
-  };
 
   const postJson = async (path: string, body: Record<string, unknown>) => {
     setBusy(true);
@@ -1149,7 +1137,7 @@ export function ForexAutomatedTradingPage(props: {
 
   const verification = status?.verification ?? null;
   const readiness = status?.readiness ?? verification?.readiness ?? null;
-  const authState = token ? "Authorized (session)" : "Not authorized";
+  const authState = token ? "Token configured (this browser)" : "Not authorized";
   const selectedInstrument =
     shellInstrument
     ?? status?.selectedEnvState?.selectedInstrument
@@ -1465,36 +1453,18 @@ export function ForexAutomatedTradingPage(props: {
         ) : null}
       </section>
 
-      <details className="fx-auto-trading-auth" data-fx-at-admin-auth="true">
-        <summary className="fx-auto-trading-auth-summary">
-          <span>Admin authorization</span>
-          <span className="fx-auto-trading-auth-state" data-fx-at-auth-state={token ? "ready" : "missing"}>
-            {authState}
-          </span>
-        </summary>
-        <div className="fx-auto-trading-auth-body">
-          <label className="fx-ai-label" htmlFor="fx-at-admin-token">
-            Admin API token (session only)
-          </label>
-          <div className="fx-auto-trading-token-row">
-            <input
-              id="fx-at-admin-token"
-              type="password"
-              autoComplete="off"
-              value={tokenDraft}
-              onChange={(e) => setTokenDraft(e.target.value)}
-              placeholder="KWIZERA_ADMIN_API_TOKEN"
-              aria-describedby="fx-at-auth-hint"
-            />
-            <button type="button" className="fx-capture-button" onClick={saveToken}>
-              Save token
-            </button>
-          </div>
-          <p id="fx-at-auth-hint" className="fx-auto-trading-hint">
-            Session-only. Not written to localStorage, URLs, or logs.
-          </p>
-        </div>
-      </details>
+      <div className="fx-auto-trading-auth" data-fx-at-admin-auth="true" data-fx-at-auth-state={token ? "ready" : "missing"}>
+        <p className="fx-auto-trading-hint" style={{ marginBottom: "0.35rem" }}>
+          Admin authorization: <strong>{authState}</strong>
+        </p>
+        <ForexAdminAccessLink
+          reason={
+            token
+              ? "Token managed centrally. Open Admin Access to update or clear."
+              : "Admin API token required for protected Automated Trading reads."
+          }
+        />
+      </div>
 
       {error ? <p className="fx-capture-status is-error" role="alert">{error}</p> : null}
 

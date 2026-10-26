@@ -127,47 +127,32 @@ export interface ForexConnectProfileActionResult {
   error?: { code: string; message: string };
 }
 
-/** Shared with Admin Control Center — browser session only, never persisted to disk by us. */
-export const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
+/**
+ * Phase 60.0.14 — re-export shared Forex Admin token service.
+ * Persistence is browser-local (localStorage); see desktop/forex/admin-access/forex-admin-token.ts.
+ */
+export {
+  FOREX_ADMIN_TOKEN_STORAGE_KEY,
+  getForexAdminToken as getForexAdminSessionToken,
+  saveForexAdminToken,
+  clearForexAdminToken as clearForexAdminSessionToken,
+} from "../forex/admin-access/forex-admin-token";
 
-export function getForexAdminSessionToken(): string {
-  try {
-    return sessionStorage.getItem(FOREX_ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
-  } catch {
-    return "";
-  }
-}
+import {
+  buildForexAdminHeaders,
+  saveForexAdminToken,
+} from "../forex/admin-access/forex-admin-token";
 
+/** @deprecated Prefer saveForexAdminToken — kept for ForexConnect admin page call sites. */
 export function setForexAdminSessionToken(token: string): void {
-  try {
-    const trimmed = token.trim();
-    if (trimmed) sessionStorage.setItem(FOREX_ADMIN_TOKEN_STORAGE_KEY, trimmed);
-    else sessionStorage.removeItem(FOREX_ADMIN_TOKEN_STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-export function clearForexAdminSessionToken(): void {
-  setForexAdminSessionToken("");
-}
-
-function forexAdminAuthHeaders(): Record<string, string> {
-  const token = getForexAdminSessionToken();
-  if (!token) return {};
-  return {
-    Authorization: `Bearer ${token}`,
-    "x-kwizera-admin-token": token,
-  };
+  saveForexAdminToken(token);
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
     headers: {
-      Accept: "application/json",
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...forexAdminAuthHeaders(),
+      ...buildForexAdminHeaders(path, { includeJsonContentType: Boolean(init?.body) }),
       ...(init?.headers ?? {}),
     },
   });
