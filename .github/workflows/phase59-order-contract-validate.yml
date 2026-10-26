@@ -71,7 +71,9 @@ jobs:
           grep -nE "acceptsForExecution:[[:space:]]*false" ai/forex-ai/automated-trading/broker-intent/mutation-stub.ts
           grep -n "LIVE_MUTATION_FORBIDDEN" services/forexconnect-sidecar/mutation_demo.py
           grep -n "gate_demo_mutation" services/forexconnect-sidecar/mutation_demo.py
-          if grep -nE "VPS_SSH_KEY|KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET|production-deploy" .github/workflows/phase59-order-contract-validate.yml; then
+          # Assemble forbidden tokens so this step cannot self-match its own source line.
+          FORBIDDEN="$(printf '%s|%s|%s' 'VPS_SSH_''KEY' 'KWIZERA_FOREXCONNECT_DEMO_MUTATION_''SECRET' 'production-''deploy')"
+          if grep -nE "$FORBIDDEN" .github/workflows/phase59-order-contract-validate.yml; then
             echo "Non-deploy workflow must not reference deploy/mutation secrets" >&2
             exit 1
           fi
