@@ -24,6 +24,8 @@ describe("Phase 59.0.12E blocker classification", () => {
     expect(classifyDemoReadinessBlocker("ENVIRONMENT_NOT_DEMO")).toBe("SESSION");
     expect(classifyDemoReadinessBlocker("QUOTE_STALE")).toBe("MARKET");
     expect(classifyDemoReadinessBlocker("SUBSCRIPTION_FAILED")).toBe("MARKET");
+    expect(classifyDemoReadinessBlocker("CATALOG_UNAVAILABLE")).toBe("MARKET");
+    expect(classifyDemoReadinessBlocker("INSTRUMENT_NOT_PERMITTED")).toBe("MARKET");
     expect(classifyDemoReadinessBlocker("SDK_MUTATION_SURFACE_UNVERIFIED")).toBe("SDK");
   });
 
