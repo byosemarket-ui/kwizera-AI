@@ -365,10 +365,12 @@ export function ForexAutomatedTradingPage(props: {
     executionDisabled?: true;
     note?: string;
   } | null>(null);
-  /** Phase 58.1 — DEMO lifecycle readiness (not a broker success claim). */
+  /** Phase 58.1 / 59.0.12F — DEMO lifecycle readiness (not a broker success claim). */
   const [demoLifecycle, setDemoLifecycle] = useState<{
     mayAttemptDemoMutation?: boolean;
     blockers?: string[];
+    blockerCategories?: Record<string, string[]>;
+    primaryBlocker?: string | null;
     ownerActionChecklist?: string[];
     environment?: string | null;
     connected?: boolean;
@@ -376,9 +378,21 @@ export function ForexAutomatedTradingPage(props: {
     mutationEnvEnabled?: boolean;
     sidecarMutationEnvEnabled?: boolean;
     nodeMutationEnvEnabled?: boolean;
+    nodeMutationSecretConfigured?: boolean;
+    sidecarMutationSecretConfigured?: boolean;
+    mutationSecretConfigured?: boolean;
+    grantCoverage?: {
+      ok?: boolean;
+      activeGrantCount?: number;
+      coveringGrantCount?: number;
+      requestedInstrument?: string | null;
+      requestedLots?: number | null;
+      blockers?: string[];
+    } | null;
     liveLocked?: boolean;
     protectiveSurfaceDocumented?: boolean;
     authErrorCode?: string | null;
+    phase?: string | null;
   } | null>(null);
   const [demoGrantBusy, setDemoGrantBusy] = useState(false);
   const [demoQuoteProbe, setDemoQuoteProbe] = useState<string | null>(null);
@@ -441,8 +455,11 @@ export function ForexAutomatedTradingPage(props: {
       };
       const demoJson = await demoRes.json() as {
         ok?: boolean;
+        phase?: string;
         mayAttemptDemoMutation?: boolean;
         blockers?: string[];
+        blockerCategories?: Record<string, unknown>;
+        primaryBlocker?: string | null;
         ownerActionChecklist?: string[];
         environment?: string | null;
         connected?: boolean;
@@ -450,6 +467,10 @@ export function ForexAutomatedTradingPage(props: {
         mutationEnvEnabled?: boolean;
         sidecarMutationEnvEnabled?: boolean;
         nodeMutationEnvEnabled?: boolean;
+        nodeMutationSecretConfigured?: boolean;
+        sidecarMutationSecretConfigured?: boolean;
+        mutationSecretConfigured?: boolean;
+        grantCoverage?: Record<string, unknown> | null;
         liveLocked?: boolean;
         protectiveSurfaceDocumented?: boolean;
         error?: { code?: string; message?: string };
@@ -483,9 +504,22 @@ export function ForexAutomatedTradingPage(props: {
       if (biRes.ok && biJson.ok && biJson.brokerIntent) setBrokerIntent(biJson.brokerIntent);
       if (autoRes.ok && autoJson.ok && autoJson.automation) setAutomation(autoJson.automation);
       if (demoRes.ok && demoJson) {
+        const cats = demoJson.blockerCategories && typeof demoJson.blockerCategories === "object"
+          ? Object.fromEntries(
+            Object.entries(demoJson.blockerCategories as Record<string, unknown>).map(([k, v]) => [
+              k,
+              Array.isArray(v) ? v.map(String) : [],
+            ]),
+          )
+          : undefined;
+        const gc = demoJson.grantCoverage && typeof demoJson.grantCoverage === "object"
+          ? demoJson.grantCoverage as Record<string, unknown>
+          : null;
         setDemoLifecycle({
           mayAttemptDemoMutation: Boolean(demoJson.mayAttemptDemoMutation),
           blockers: Array.isArray(demoJson.blockers) ? demoJson.blockers.map(String) : [],
+          blockerCategories: cats,
+          primaryBlocker: demoJson.primaryBlocker != null ? String(demoJson.primaryBlocker) : null,
           ownerActionChecklist: Array.isArray(demoJson.ownerActionChecklist)
             ? demoJson.ownerActionChecklist.map(String)
             : [],
@@ -495,9 +529,23 @@ export function ForexAutomatedTradingPage(props: {
           mutationEnvEnabled: Boolean(demoJson.mutationEnvEnabled),
           sidecarMutationEnvEnabled: Boolean(demoJson.sidecarMutationEnvEnabled),
           nodeMutationEnvEnabled: Boolean(demoJson.nodeMutationEnvEnabled),
+          nodeMutationSecretConfigured: Boolean(demoJson.nodeMutationSecretConfigured),
+          sidecarMutationSecretConfigured: Boolean(demoJson.sidecarMutationSecretConfigured),
+          mutationSecretConfigured: Boolean(demoJson.mutationSecretConfigured),
+          grantCoverage: gc
+            ? {
+              ok: Boolean(gc.ok),
+              activeGrantCount: Number(gc.activeGrantCount ?? 0),
+              coveringGrantCount: Number(gc.coveringGrantCount ?? 0),
+              requestedInstrument: gc.requestedInstrument == null ? null : String(gc.requestedInstrument),
+              requestedLots: gc.requestedLots == null ? null : Number(gc.requestedLots),
+              blockers: Array.isArray(gc.blockers) ? gc.blockers.map(String) : [],
+            }
+            : null,
           liveLocked: demoJson.liveLocked !== false,
           protectiveSurfaceDocumented: demoJson.protectiveSurfaceDocumented !== false,
           authErrorCode: null,
+          phase: demoJson.phase != null ? String(demoJson.phase) : null,
         });
       } else if (demoRes.status === 403) {
         setDemoLifecycle({
@@ -1341,16 +1389,24 @@ export function ForexAutomatedTradingPage(props: {
         data-fx-at-demo-lifecycle="true"
         aria-label="DEMO execution certification readiness"
       >
-        <h2 className="fx-auto-trading-panel-title">DEMO lifecycle readiness (Phase 58.5)</h2>
+        <h2 className="fx-auto-trading-panel-title">
+          DEMO lifecycle readiness ({demoLifecycle?.phase ?? "Phase 59.0.12F"})
+        </h2>
         <p className="fx-auto-trading-hint">
           Grant-scoped DEMO path: open/protect/cancel/partial-close. LIVE locked. placesOrders remains false.
           Readiness is not broker success. Mutation stays fail-closed until owner config + grant.
+          Secret values are never shown — presence booleans only; Node/sidecar equality is verified at mutation time.
         </p>
         <ul className="fx-auto-trading-hint" style={{ margin: "0.35rem 0 0", paddingLeft: "1.1rem" }}>
           <li>
             May attempt DEMO mutation:{" "}
             {demoLifecycle?.mayAttemptDemoMutation ? "YES (all gates)" : "NO"}
             {demoLifecycle?.authErrorCode ? ` · auth=${demoLifecycle.authErrorCode}` : ""}
+          </li>
+          <li>
+            Primary blocker:{" "}
+            {demoLifecycle?.primaryBlocker
+              || (demoLifecycle?.mayAttemptDemoMutation ? "(none)" : "(not reported)")}
           </li>
           <li>
             Session: {demoLifecycle?.connected ? "CONNECTED" : "not connected"} · env=
@@ -1361,8 +1417,32 @@ export function ForexAutomatedTradingPage(props: {
             Mutation flags: node=
             {demoLifecycle?.nodeMutationEnvEnabled ? "ON" : "OFF"} · sidecar=
             {demoLifecycle?.sidecarMutationEnvEnabled ? "ON" : "OFF"} · combined=
-            {demoLifecycle?.mutationEnvEnabled ? "ON" : "OFF"} · grants=
-            {demoLifecycle?.activeGrantCount ?? 0}
+            {demoLifecycle?.mutationEnvEnabled ? "ON" : "OFF"}
+          </li>
+          <li>
+            Mutation secrets configured: node=
+            {demoLifecycle?.nodeMutationSecretConfigured ? "YES" : "NO"} · sidecar=
+            {demoLifecycle?.sidecarMutationSecretConfigured ? "YES" : "NO"} · both=
+            {demoLifecycle?.mutationSecretConfigured ? "YES" : "NO"}
+            {" "}(presence only — equality checked on submit, never displayed)
+          </li>
+          <li>
+            Grant coverage: active=
+            {demoLifecycle?.grantCoverage?.activeGrantCount
+              ?? demoLifecycle?.activeGrantCount
+              ?? 0}
+            {" · covering="}
+            {demoLifecycle?.grantCoverage?.coveringGrantCount ?? 0}
+            {" · scope="}
+            {demoLifecycle?.grantCoverage?.requestedInstrument ?? "—"}
+            {demoLifecycle?.grantCoverage?.requestedLots != null
+              ? ` @ ${demoLifecycle.grantCoverage.requestedLots} lot(s)`
+              : ""}
+            {" · ok="}
+            {String(demoLifecycle?.grantCoverage?.ok ?? false)}
+            {(demoLifecycle?.grantCoverage?.blockers && demoLifecycle.grantCoverage.blockers.length)
+              ? ` · grant blockers=${demoLifecycle.grantCoverage.blockers.join(",")}`
+              : ""}
           </li>
           <li>
             Protective surface:{" "}
@@ -1376,6 +1456,20 @@ export function ForexAutomatedTradingPage(props: {
               ? demoLifecycle.blockers.join(", ")
               : "(none reported)"}
           </li>
+          {demoLifecycle?.blockerCategories
+            ? (
+              <li>
+                Categories:{" "}
+                {(["OWNER_CONFIG", "GRANT_AUTHORIZATION", "SESSION", "MARKET", "SDK", "UNKNOWN"] as const)
+                  .map((k) => {
+                    const list = demoLifecycle.blockerCategories?.[k] ?? [];
+                    return list.length ? `${k}=[${list.join(",")}]` : null;
+                  })
+                  .filter(Boolean)
+                  .join(" · ") || "(empty)"}
+              </li>
+            )
+            : null}
           {(demoLifecycle?.ownerActionChecklist && demoLifecycle.ownerActionChecklist.length > 0) ? (
             <li>
               Owner actions: {demoLifecycle.ownerActionChecklist.join(" | ")}

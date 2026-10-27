@@ -54,6 +54,7 @@ jobs:
           tests/unit/ai/forex-ai/phase59-0-6-account-sizing-order-contract.test.ts
           tests/unit/ai/forex-ai/phase59-0-11-live-readiness-diagnostics.test.ts
           tests/unit/ai/forex-ai/phase59-0-12e-readiness-blocker-classification.test.ts
+          tests/unit/desktop/forex-phase59-0-12f-demo-readiness-ui.test.ts
 
       - name: Typecheck order-execution + trade-monitor (scoped)
         run: |
