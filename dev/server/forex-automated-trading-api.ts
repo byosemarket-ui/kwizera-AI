@@ -1521,7 +1521,14 @@ export async function handleForexAutomatedTradingApi(
           sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
           return true;
         }
-        const readiness = await orch.readiness();
+        // Phase 59.0.12E — optional instrument/lots scope grant coverage without mutating.
+        const instrumentQ = url.searchParams.get("instrument");
+        const lotsQ = url.searchParams.get("lots");
+        const lotsParsed = lotsQ == null || lotsQ === "" ? null : Number(lotsQ);
+        const readiness = await orch.readiness({
+          instrument: instrumentQ,
+          lots: lotsParsed != null && Number.isFinite(lotsParsed) ? lotsParsed : null,
+        });
         sendJson(res, 200, {
           ...readiness,
           placesOrders: false,

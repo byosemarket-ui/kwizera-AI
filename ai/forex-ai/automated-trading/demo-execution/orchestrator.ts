@@ -14,6 +14,11 @@ import {
   nodeDemoMutationEnvEnabled,
 } from "./forexconnect-mutation-adapter.js";
 import { evaluateDemoLifecyclePreflight } from "./preflight.js";
+import {
+  evaluateDemoGrantCoverage,
+  groupDemoReadinessBlockers,
+  primaryDemoReadinessBlocker,
+} from "./readiness-blockers.js";
 import type {
   DemoCancelPendingRequest,
   DemoCloseTradeRequest,
@@ -159,7 +164,10 @@ export class DemoLifecycleOrchestrator {
     return getDemoExecutionGrantStore().revoke(grantId);
   }
 
-  async readiness(): Promise<Record<string, unknown>> {
+  async readiness(opts?: {
+    instrument?: string | null;
+    lots?: number | null;
+  }): Promise<Record<string, unknown>> {
     const bridge = getForexConnectBridge();
     const status = await bridge.getStatus();
     const caps = await getForexConnectDemoMutationAdapter().probeSdkCapabilities();
@@ -169,8 +177,14 @@ export class DemoLifecycleOrchestrator {
     const sidecarMutationEnv = Boolean((caps as { mutationEnvEnabled?: boolean }).mutationEnvEnabled);
     const nodeMutationEnv = nodeDemoMutationEnvEnabled();
     const mutationEnv = sidecarMutationEnv && nodeMutationEnv;
-    const secretOk = Boolean((caps as { mutationSecretConfigured?: boolean }).mutationSecretConfigured)
-      && Boolean(String(process.env.KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET || "").trim());
+    // Phase 59.0.12E — report Node vs sidecar secret presence separately (booleans only).
+    const sidecarMutationSecretConfigured = Boolean(
+      (caps as { mutationSecretConfigured?: boolean }).mutationSecretConfigured,
+    );
+    const nodeMutationSecretConfigured = Boolean(
+      String(process.env.KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET || "").trim(),
+    );
+    const secretOk = sidecarMutationSecretConfigured && nodeMutationSecretConfigured;
     const sdkOk = Boolean((caps as { hasCreateOrderRequest?: boolean }).hasCreateOrderRequest)
       && Boolean((caps as { trueMarketOpen?: unknown }).trueMarketOpen != null
         || (caps as { ordersConstants?: string[] }).ordersConstants?.includes?.("TRUE_MARKET_OPEN"));
@@ -185,15 +199,27 @@ export class DemoLifecycleOrchestrator {
       || (caps as { ordersConstants?: string[] }).ordersConstants?.includes?.("STOP"),
     );
 
+    const activeGrants = getDemoExecutionGrantStore().listActive();
+    const grantCoverage = evaluateDemoGrantCoverage({
+      instrument: opts?.instrument,
+      lots: opts?.lots,
+      grants: activeGrants,
+    });
+
     const blockers: string[] = [];
     if (!connected) blockers.push("SESSION_NOT_CONNECTED");
     if (!demoOk) blockers.push("ENVIRONMENT_NOT_DEMO");
     if (!sidecarMutationEnv) blockers.push("SIDECAR_MUTATION_ENV_DISABLED");
     if (!nodeMutationEnv) blockers.push("NODE_MUTATION_ENV_DISABLED");
+    if (!sidecarMutationSecretConfigured) blockers.push("SIDECAR_MUTATION_SECRET_NOT_CONFIGURED");
+    if (!nodeMutationSecretConfigured) blockers.push("NODE_MUTATION_SECRET_NOT_CONFIGURED");
+    // Compatibility umbrella for clients that still key on the Phase 58.5 code.
     if (!secretOk) blockers.push("MUTATION_SECRET_NOT_CONFIGURED");
     if (!sdkOk) blockers.push("SDK_MUTATION_SURFACE_UNVERIFIED");
     if (!protectiveSurface) blockers.push("SDK_PROTECTIVE_SURFACE_UNVERIFIED");
-    if (getDemoExecutionGrantStore().listActive().length === 0) blockers.push("NO_ACTIVE_DEMO_GRANT");
+    for (const code of grantCoverage.blockers) {
+      if (!blockers.includes(code)) blockers.push(code);
+    }
 
     const ownerActionChecklist: string[] = [];
     if (!sidecarMutationEnv || !nodeMutationEnv) {
@@ -206,9 +232,11 @@ export class DemoLifecycleOrchestrator {
         "Set identical KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET on Node + sidecar (never in browser).",
       );
     }
-    if (getDemoExecutionGrantStore().listActive().length === 0) {
+    if (!grantCoverage.ok) {
       ownerActionChecklist.push(
-        "Authenticate with Admin API token, then POST /demo-lifecycle/grant (short ttl, maxLots=1, instrument allowlist).",
+        opts?.instrument
+          ? `Authenticate with Admin API token, then POST /demo-lifecycle/grant (short ttl, maxLots>=${Math.max(1, Math.floor(Number(opts.lots) || 1))}, instrumentAllowlist including ${String(opts.instrument)}).`
+          : "Authenticate with Admin API token, then POST /demo-lifecycle/grant (short ttl, maxLots=1, instrument allowlist).",
       );
     }
     ownerActionChecklist.push(
@@ -316,9 +344,11 @@ export class DemoLifecycleOrchestrator {
       blockers.push("SUBSCRIPTION_FAILED");
     }
 
+    const blockerCategories = groupDemoReadinessBlockers(blockers);
+    const primaryBlocker = primaryDemoReadinessBlocker(blockers);
     return {
       ok: blockers.length === 0,
-      phase: "59.0.3",
+      phase: "59.0.12E",
       connected,
       environment: env || null,
       demoSession: demoOk,
@@ -326,19 +356,24 @@ export class DemoLifecycleOrchestrator {
       sidecarMutationEnvEnabled: sidecarMutationEnv,
       nodeMutationEnvEnabled: nodeMutationEnv,
       mutationSecretConfigured: secretOk,
+      sidecarMutationSecretConfigured,
+      nodeMutationSecretConfigured,
       protectiveSurfaceDocumented: protectiveSurface,
       cancelSurfaceDocumented: cancelSurface,
       partialCloseDocumented: Boolean((caps as { supportsPartialClose?: boolean }).supportsPartialClose),
       sdkCapabilities: caps,
-      activeGrantCount: getDemoExecutionGrantStore().listActive().length,
+      activeGrantCount: activeGrants.length,
+      grantCoverage,
       quoteSubscriptionReadiness,
       blockers,
+      blockerCategories,
+      primaryBlocker: blockers.length ? primaryBlocker : null,
       ownerActionChecklist,
       mayAttemptDemoMutation: blockers.length === 0,
       placesOrdersGlobal: false,
       liveLocked: true,
       note:
-        "Unauthenticated 403 on this route is correct. Mutation remains fail-closed until Node+sidecar flags, secret, grant, and a fresh valid quote are all valid. CONNECTED alone is not quote-ready.",
+        "Unauthenticated 403 on this route is correct. Mutation remains fail-closed until Node+sidecar flags, secret, grant, and a fresh valid quote are all valid. CONNECTED alone is not quote-ready. Blockers are categorized (OWNER_CONFIG / GRANT_AUTHORIZATION / SESSION / MARKET / SDK) — not a single generic BLOCKED.",
     };
   }
 
@@ -490,12 +525,16 @@ export class DemoLifecycleOrchestrator {
       }
     }
 
-    const ready = await this.readiness();
+    const ready = await this.readiness({
+      instrument: req.instrument,
+      lots: req.lots,
+    });
     if (!ready.mayAttemptDemoMutation) {
+      const primary = primaryDemoReadinessBlocker(ready.blockers);
       base.state = "MUTATION_DISABLED";
-      base.lastCode = "READINESS_BLOCKED";
+      base.lastCode = primary;
       base.lastError = `DEMO mutation readiness failed: ${(ready.blockers as string[]).join(",")}`;
-      base.evidence = { readiness: ready };
+      base.evidence = { readiness: ready, readinessPrimaryBlocker: primary };
       this.upsert(base);
       return { ok: false, code: base.lastCode, error: base.lastError, record: base };
     }
@@ -718,12 +757,16 @@ export class DemoLifecycleOrchestrator {
       return { ok: false, code: grantCheck.code, error: grantCheck.error, record: rec };
     }
 
-    const ready = await this.readiness();
+    const ready = await this.readiness({
+      instrument: req.instrument,
+      lots: null,
+    });
     if (!ready.mayAttemptDemoMutation) {
+      const primary = primaryDemoReadinessBlocker(ready.blockers);
       rec.state = "MUTATION_DISABLED";
-      rec.lastCode = "READINESS_BLOCKED";
+      rec.lastCode = primary;
       rec.lastError = `DEMO mutation readiness failed: ${(ready.blockers as string[]).join(",")}`;
-      rec.evidence = { ...rec.evidence, readiness: ready };
+      rec.evidence = { ...rec.evidence, readiness: ready, readinessPrimaryBlocker: primary };
       this.upsert(rec);
       return { ok: false, code: rec.lastCode, error: rec.lastError, record: rec };
     }
@@ -797,10 +840,11 @@ export class DemoLifecycleOrchestrator {
 
     const ready = await this.readiness();
     if (!ready.mayAttemptDemoMutation) {
+      const primary = primaryDemoReadinessBlocker(ready.blockers);
       rec.state = "MUTATION_DISABLED";
-      rec.lastCode = "READINESS_BLOCKED";
+      rec.lastCode = primary;
       rec.lastError = `DEMO mutation readiness failed: ${(ready.blockers as string[]).join(",")}`;
-      rec.evidence = { ...rec.evidence, readiness: ready };
+      rec.evidence = { ...rec.evidence, readiness: ready, readinessPrimaryBlocker: primary };
       this.upsert(rec);
       return { ok: false, code: rec.lastCode, error: rec.lastError, record: rec };
     }

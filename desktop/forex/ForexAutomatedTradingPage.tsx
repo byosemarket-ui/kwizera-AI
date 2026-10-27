@@ -403,7 +403,14 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/simulation-lifecycle/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/broker-intent/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/automation/status", { headers: adminHeaders(token) }),
-        fetch("/api/forex/automated-trading/demo-lifecycle/readiness", { headers: adminHeaders(token) }),
+        fetch(
+          `/api/forex/automated-trading/demo-lifecycle/readiness?${new URLSearchParams({
+            instrument: shellInstrument
+              || "XAU/USD",
+            lots: "1",
+          }).toString()}`,
+          { headers: adminHeaders(token) },
+        ),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -1385,7 +1392,11 @@ export function ForexAutomatedTradingPage(props: {
                 if (!token) return;
                 setDemoGrantBusy(true);
                 try {
-                  const instrument = shellInstrument || "EUR/USD";
+                  // Prefer AT-selected / verified instrument — never default to an unrelated pair.
+                  const instrument =
+                    shellInstrument
+                    || status?.selectedEnvState?.selectedInstrument
+                    || "XAU/USD";
                   const res = await fetch("/api/forex/automated-trading/demo-lifecycle/grant", {
                     method: "POST",
                     headers: adminHeaders(token),
@@ -1421,7 +1432,10 @@ export function ForexAutomatedTradingPage(props: {
                 if (!token) return;
                 setDemoGrantBusy(true);
                 try {
-                  const instrument = shellInstrument || "EUR/USD";
+                  const instrument =
+                    shellInstrument
+                    || status?.selectedEnvState?.selectedInstrument
+                    || "XAU/USD";
                   const res = await fetch("/api/forex/automated-trading/demo-lifecycle/quote-probe", {
                     method: "POST",
                     headers: adminHeaders(token),
