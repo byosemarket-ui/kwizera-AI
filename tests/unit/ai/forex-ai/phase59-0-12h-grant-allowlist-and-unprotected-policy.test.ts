@@ -152,7 +152,7 @@ describe("Phase 59.0.12H grant coverage + unprotected policy wiring", () => {
   it("orchestrator gates close on policy.autonomousCloseAuthorized", () => {
     const orch = read("ai/forex-ai/automated-trading/demo-execution/orchestrator.ts");
     expect(orch).toContain("evaluateUnprotectedFillPolicy");
-    expect(orch).toContain("autonomousCloseAuthorized === true");
+    expect(orch).toContain("policyAllowsAutonomousClose");
     expect(orch).toContain("closeIfUnprotected === true");
     expect(orch).not.toMatch(/closeIfUnprotected\s*!==\s*false/);
   });

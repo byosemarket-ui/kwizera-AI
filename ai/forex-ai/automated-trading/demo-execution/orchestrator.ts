@@ -683,9 +683,9 @@ export class DemoLifecycleOrchestrator {
       // Explicit closeIfUnprotected=true is an opt-in DEMO cleanup only when
       // the policy would authorize it (currently always false).
       const unprotectedPolicy = evaluateUnprotectedFillPolicy();
-      const shouldClose =
-        unprotectedPolicy.autonomousCloseAuthorized === true
-        && req.closeIfUnprotected === true;
+      // Policy currently returns literal false; coerce so TS stays valid if policy widens later.
+      const policyAllowsAutonomousClose = Boolean(unprotectedPolicy.autonomousCloseAuthorized);
+      const shouldClose = policyAllowsAutonomousClose && req.closeIfUnprotected === true;
       base.state = "PROTECTION_FAILED";
       base.protectionStatus = "FAILED";
       base.lastCode = unprotectedPolicy.code;
