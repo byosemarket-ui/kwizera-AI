@@ -1158,6 +1158,7 @@ export function assertNoSecretsInForexConnectPayload(
   const text = JSON.stringify(payload);
   const candidates = [
     String(env.KWIZERA_FOREXCONNECT_PASSWORD ?? "").trim(),
+    String(env.KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET ?? "").trim(),
     ...extraSecrets.map((s) => String(s ?? "").trim()),
   ].filter((s) => s.length >= 4);
   for (const secret of candidates) {

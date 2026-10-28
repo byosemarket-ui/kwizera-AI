@@ -64,6 +64,8 @@ describe("Phase 58.2 wiring — protective surface", () => {
     expect(orch).toContain("PROTECTION_LEVELS_REQUIRED");
     expect(orch).toContain("CLOSED_AFTER_PROTECTION_FAILURE");
     expect(orch).toContain("attachProtective");
+    expect(orch).toContain("evaluateUnprotectedFillPolicy");
+    expect(orch).toContain("autonomousCloseAuthorized");
   });
 
   it("DisabledBrokerMutationAdapter remains for normal AT path", () => {

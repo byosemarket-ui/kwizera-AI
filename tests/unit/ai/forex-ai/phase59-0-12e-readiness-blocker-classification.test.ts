@@ -127,7 +127,7 @@ describe("Phase 59.0.12E grant coverage for planned instrument/lots", () => {
     expect(r.blockers).toEqual([]);
   });
 
-  it("treats empty allowlist as unrestricted for the requested instrument", () => {
+  it("fails closed when active grant has empty allowlist (never unrestricted)", () => {
     const r = evaluateDemoGrantCoverage({
       instrument: "XAU/USD",
       lots: 1,
@@ -138,7 +138,24 @@ describe("Phase 59.0.12E grant coverage for planned instrument/lots", () => {
         environment: "DEMO",
       }],
     });
+    expect(r.ok).toBe(false);
+    expect(r.coveringGrantCount).toBe(0);
+    expect(r.blockers).toContain("NO_GRANT_COVERING_INSTRUMENT");
+  });
+
+  it("normalizes spacing/case for allowlist match without broadening access", () => {
+    const r = evaluateDemoGrantCoverage({
+      instrument: "xau / usd",
+      lots: 1,
+      grants: [{
+        instrumentAllowlist: ["XAU/USD"],
+        maxLots: 1,
+        expiresAtUtc: future,
+        environment: "DEMO",
+      }],
+    });
     expect(r.ok).toBe(true);
+    expect(r.coveringGrantCount).toBe(1);
   });
 });
 

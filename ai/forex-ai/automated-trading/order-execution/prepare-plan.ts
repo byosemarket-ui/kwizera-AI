@@ -343,7 +343,8 @@ export function prepareDemoExecutionPlan(
     takeProfit: takeProfit!,
     entryHint: entry,
     attachProtectiveAfterFill: true,
-    closeIfUnprotected: true,
+    // Must match evaluateUnprotectedFillPolicy: no autonomous close on unprotected fill.
+    closeIfUnprotected: false,
     idempotencyKey,
     sourceDecisionId: decisionId,
     sourceAnalysisId: input.decision!.sourceAnalysisId,

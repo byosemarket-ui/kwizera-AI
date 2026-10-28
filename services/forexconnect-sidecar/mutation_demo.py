@@ -14,6 +14,7 @@ KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION=1 and a shared secret is presented.
 """
 from __future__ import annotations
 
+import hmac
 import os
 import threading
 from typing import Any, Optional
@@ -33,11 +34,19 @@ def mutation_enabled() -> bool:
 
 
 def verify_mutation_secret(header_value: Optional[str]) -> bool:
+    """Compare presented secret to env without leaking values; use constant-time compare."""
     expected = _env("KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET")
     if not expected:
         return False
     provided = str(header_value or "").strip()
-    return bool(provided) and provided == expected
+    if not provided:
+        return False
+    # hmac.compare_digest requires equal-length str/bytes; length mismatch → False without early
+    # equality leak of content (still may differ on length — acceptable for this gate).
+    try:
+        return hmac.compare_digest(provided, expected)
+    except (TypeError, ValueError):
+        return False
 
 
 def sdk_capability_probe() -> dict[str, Any]:

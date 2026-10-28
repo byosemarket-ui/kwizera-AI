@@ -7,7 +7,10 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
-import { evaluateProtectiveGeometry } from "../broker-intent/protective-geometry.js";
+import {
+  evaluateProtectiveGeometry,
+  evaluateUnprotectedFillPolicy,
+} from "../broker-intent/protective-geometry.js";
 import { getDemoExecutionGrantStore } from "./grant-store.js";
 import {
   getForexConnectDemoMutationAdapter,
@@ -235,8 +238,8 @@ export class DemoLifecycleOrchestrator {
     if (!grantCoverage.ok) {
       ownerActionChecklist.push(
         opts?.instrument
-          ? `Authenticate with Admin API token, then POST /demo-lifecycle/grant (short ttl, maxLots>=${Math.max(1, Math.floor(Number(opts.lots) || 1))}, instrumentAllowlist including ${String(opts.instrument)}).`
-          : "Authenticate with Admin API token, then POST /demo-lifecycle/grant (short ttl, maxLots=1, instrument allowlist).",
+          ? `Authenticate with Admin API token, then POST /demo-lifecycle/grant (short ttl, maxLots>=${Math.max(1, Math.floor(Number(opts.lots) || 1))}, non-empty instrumentAllowlist explicitly including ${String(opts.instrument)}; empty allowlists are rejected).`
+          : "Authenticate with Admin API token, then POST /demo-lifecycle/grant (short ttl, maxLots=1, non-empty instrumentAllowlist; empty allowlists are rejected).",
       );
     }
     ownerActionChecklist.push(
@@ -676,13 +679,30 @@ export class DemoLifecycleOrchestrator {
     );
 
     if (req.requireProtective && base.fillConfirmed && !brokerProtected) {
-      const shouldClose = req.closeIfUnprotected !== false;
+      // Align with evaluateUnprotectedFillPolicy: never autonomously close.
+      // Explicit closeIfUnprotected=true is an opt-in DEMO cleanup only when
+      // the policy would authorize it (currently always false).
+      const unprotectedPolicy = evaluateUnprotectedFillPolicy();
+      const shouldClose =
+        unprotectedPolicy.autonomousCloseAuthorized === true
+        && req.closeIfUnprotected === true;
       base.state = "PROTECTION_FAILED";
       base.protectionStatus = "FAILED";
-      base.lastCode = "PROTECTION_NOT_CONFIRMED";
+      base.lastCode = unprotectedPolicy.code;
       base.lastError =
         "Fill observed but broker stop+limit not both confirmed. "
-        + (shouldClose ? "Closing unprotected DEMO test trade." : "Leaving position open per closeIfUnprotected=false.");
+        + unprotectedPolicy.message
+        + (shouldClose
+          ? " Closing unprotected DEMO trade (explicit opt-in)."
+          : " Leaving position open; block additional entries; owner incident policy required.");
+      base.evidence = {
+        ...base.evidence,
+        unprotectedFillPolicy: unprotectedPolicy,
+        blockAdditionalEntries: unprotectedPolicy.blockAdditionalEntries,
+        raiseCriticalAlert: unprotectedPolicy.raiseCriticalAlert,
+        autonomousCloseAuthorized: unprotectedPolicy.autonomousCloseAuthorized,
+        closeIfUnprotectedRequested: req.closeIfUnprotected === true,
+      };
 
       if (shouldClose && base.tradeId) {
         base.state = "CLOSE_PENDING";
@@ -709,7 +729,7 @@ export class DemoLifecycleOrchestrator {
       this.upsert(base);
       return {
         ok: false,
-        code: base.lastCode ?? "PROTECTION_NOT_CONFIRMED",
+        code: base.lastCode ?? "PROTECTION_UNVERIFIED",
         error: base.lastError,
         record: base,
       };

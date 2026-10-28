@@ -173,9 +173,10 @@ describe("Phase 58.3 grant + early validation", () => {
 
   it("creates Phase 58.3 purpose grants", () => {
     const store = new DemoExecutionGrantStore(join(dir, "data", "forex", "grants.json"));
-    const g = store.create({ ttlMs: 60_000, maxLots: 1 });
+    const g = store.create({ ttlMs: 60_000, maxLots: 1, instrumentAllowlist: ["XAU/USD"] });
     expect(g.purpose).toBe("PHASE_58_3_DEMO_LIFECYCLE");
     expect(g.environment).toBe("DEMO");
+    expect(g.instrumentAllowlist).toEqual(["XAU/USD"]);
   });
 
   it("rejects requireProtective without levels before broker call", async () => {

@@ -1568,21 +1568,35 @@ export async function handleForexAutomatedTradingApi(
           return true;
         }
         const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
-        const grant = orch.createGrant({
-          ttlMs: typeof body.ttlMs === "number" ? body.ttlMs : undefined,
-          accountIdMasked: body.accountIdMasked == null ? null : String(body.accountIdMasked),
-          instrumentAllowlist: Array.isArray(body.instrumentAllowlist)
-            ? body.instrumentAllowlist.map(String)
-            : undefined,
-          maxLots: typeof body.maxLots === "number" ? body.maxLots : 1,
-        });
-        sendJson(res, 200, {
-          ok: true,
-          grant,
-          placesOrders: false,
-          acceptsForExecution: false,
-          note: "Time-bounded DEMO grant created. Does not enable global trading or LIVE. Does not enable mutation flag.",
-        });
+        try {
+          const grant = orch.createGrant({
+            ttlMs: typeof body.ttlMs === "number" ? body.ttlMs : undefined,
+            accountIdMasked: body.accountIdMasked == null ? null : String(body.accountIdMasked),
+            instrumentAllowlist: Array.isArray(body.instrumentAllowlist)
+              ? body.instrumentAllowlist.map(String)
+              : undefined,
+            maxLots: typeof body.maxLots === "number" ? body.maxLots : 1,
+          });
+          sendJson(res, 200, {
+            ok: true,
+            grant,
+            placesOrders: false,
+            acceptsForExecution: false,
+            note: "Time-bounded DEMO grant created. Does not enable global trading or LIVE. Does not enable mutation flag.",
+          });
+        } catch (error) {
+          const code = error && typeof error === "object" && "code" in error
+            ? String((error as { code: unknown }).code)
+            : "GRANT_CREATE_FAILED";
+          const message = error instanceof Error ? error.message : "DEMO grant creation failed.";
+          sendJson(res, 422, {
+            ok: false,
+            error: { code, message },
+            placesOrders: false,
+            acceptsForExecution: false,
+            liveUnauthorized: true,
+          });
+        }
         return true;
       }
 
@@ -1668,7 +1682,8 @@ export async function handleForexAutomatedTradingApi(
           takeProfit: Number.isFinite(takeProfit as number) ? (takeProfit as number) : null,
           entryHint: Number.isFinite(entryHint as number) ? (entryHint as number) : null,
           attachProtectiveAfterFill: body.attachProtectiveAfterFill !== false,
-          closeIfUnprotected: body.closeIfUnprotected !== false,
+          // Opt-in only; default false aligns with evaluateUnprotectedFillPolicy.
+          closeIfUnprotected: body.closeIfUnprotected === true,
           idempotencyKey: String(body.idempotencyKey ?? "").trim() || `demo_open_${Date.now()}`,
           sourceDecisionId: body.sourceDecisionId == null ? null : String(body.sourceDecisionId),
           sourceAnalysisId: body.sourceAnalysisId == null ? null : String(body.sourceAnalysisId),

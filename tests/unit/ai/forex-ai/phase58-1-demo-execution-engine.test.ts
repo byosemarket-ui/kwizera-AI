@@ -44,9 +44,32 @@ describe("Phase 58.1 DEMO grant store", () => {
   });
 
   it("never authorizes LIVE environment on grant records", () => {
-    const g = store.create({ ttlMs: 60_000 });
+    const g = store.create({ ttlMs: 60_000, instrumentAllowlist: ["XAU/USD"] });
     expect(g.environment).toBe("DEMO");
     expect((g as { environment: string }).environment).not.toBe("LIVE");
+  });
+
+  it("rejects empty or whitespace-only instrument allowlists on create", () => {
+    expect(() => store.create({ ttlMs: 60_000 })).toThrow(/non-empty instrumentAllowlist/);
+    expect(() => store.create({ ttlMs: 60_000, instrumentAllowlist: [] })).toThrow();
+    expect(() => store.create({ ttlMs: 60_000, instrumentAllowlist: ["  ", ""] })).toThrow();
+  });
+
+  it("requireActive fails closed for empty allowlist and unrelated instruments", () => {
+    const g = store.create({
+      ttlMs: 120_000,
+      maxLots: 1,
+      instrumentAllowlist: ["XAU/USD"],
+    });
+    expect(store.requireActive(g.grantId, "xau / usd", 1).ok).toBe(true);
+    expect(store.requireActive(g.grantId, "EUR/USD", 1).ok).toBe(false);
+    expect(store.requireActive(g.grantId, undefined, 1).ok).toBe(false);
+    // Simulate legacy persisted grant with empty allowlist.
+    (g as { instrumentAllowlist: string[] }).instrumentAllowlist = [];
+    expect(store.requireActive(g.grantId, "XAU/USD", 1)).toMatchObject({
+      ok: false,
+      code: "GRANT_ALLOWLIST_EMPTY",
+    });
   });
 });
 
@@ -59,6 +82,8 @@ describe("Phase 58.1 wiring and safety", () => {
     expect(mod).toContain("KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION");
     expect(mod).toContain("create_order_request");
     expect(mod).toContain("send_request");
+    expect(mod).toContain("hmac.compare_digest");
+    expect(mod).not.toMatch(/provided\s*==\s*expected/);
   });
 
   it("sidecar exposes sdk-capabilities and gated demo-mutation routes", () => {

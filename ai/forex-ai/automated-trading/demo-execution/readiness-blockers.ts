@@ -29,6 +29,9 @@ const GRANT_AUTHORIZATION = new Set([
   "GRANT_NOT_FOUND",
   "INSTRUMENT_NOT_ALLOWLISTED",
   "LOTS_EXCEED_GRANT",
+  "GRANT_ALLOWLIST_EMPTY",
+  "GRANT_ALLOWLIST_REQUIRED",
+  "INSTRUMENT_REQUIRED",
 ]);
 
 const SESSION = new Set([
@@ -124,7 +127,8 @@ function normalizeSymbol(s: string): string {
 
 /**
  * When instrument/lots are supplied, require at least one unexpired DEMO grant
- * that allowlists the instrument (empty allowlist = unrestricted) and maxLots >= lots.
+ * that explicitly allowlists the instrument and maxLots >= lots.
+ * Empty allowlists never cover any instrument (fail closed).
  * When instrument is omitted, only active-grant presence is evaluated by the caller.
  */
 export function evaluateDemoGrantCoverage(input: GrantCoverageInput): GrantCoverageResult {
@@ -172,7 +176,8 @@ export function evaluateDemoGrantCoverage(input: GrantCoverageInput): GrantCover
   const want = normalizeSymbol(instrument);
   const covering = active.filter((g) => {
     const allow = Array.isArray(g.instrumentAllowlist) ? g.instrumentAllowlist : [];
-    if (allow.length === 0) return true;
+    // Fail closed: empty allowlist covers nothing.
+    if (allow.length === 0) return false;
     return allow.some((a) => normalizeSymbol(String(a)) === want);
   });
 
