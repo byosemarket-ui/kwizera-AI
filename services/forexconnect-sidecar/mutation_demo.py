@@ -14,6 +14,7 @@ KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION=1 and a shared secret is presented.
 """
 from __future__ import annotations
 
+import hashlib
 import hmac
 import os
 import threading
@@ -31,6 +32,14 @@ def mutation_enabled() -> bool:
         "yes",
         "on",
     )
+
+
+def mutation_secret_fingerprint() -> Optional[str]:
+    """SHA-256 hex of the mutation secret for cross-process consistency checks. Never log the secret."""
+    expected = _env("KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET")
+    if not expected:
+        return None
+    return hashlib.sha256(expected.encode("utf-8")).hexdigest()
 
 
 def verify_mutation_secret(header_value: Optional[str]) -> bool:
@@ -65,6 +74,8 @@ def sdk_capability_probe() -> dict[str, Any]:
         "ordersConstants": [],
         "mutationEnvEnabled": mutation_enabled(),
         "mutationSecretConfigured": bool(_env("KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET")),
+        # Fingerprint only (never the secret). Node compares for consistency; strip from public UI.
+        "mutationSecretFingerprint": mutation_secret_fingerprint(),
         "phase": "58.3",
         "supportsDeleteOrder": True,
         "supportsPartialClose": True,

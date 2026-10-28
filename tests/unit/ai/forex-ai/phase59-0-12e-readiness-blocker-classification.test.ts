@@ -170,7 +170,9 @@ describe("Phase 59.0.12E wiring invariants", () => {
     expect(orch).toContain("nodeMutationSecretConfigured");
     expect(orch).toContain("sidecarMutationSecretConfigured");
     expect(orch).toContain("primaryDemoReadinessBlocker");
-    expect(orch).toContain('phase: "59.0.12E"');
+    expect(orch).toContain('phase: "59.0.12I"');
+    expect(orch).toContain("components");
+    expect(orch).toContain("mutationSecretsConsistent");
     // Must not flip global placesOrders
     expect(orch).toContain("placesOrdersGlobal: false");
   });

@@ -84,6 +84,8 @@ describe("Phase 58.1 wiring and safety", () => {
     expect(mod).toContain("send_request");
     expect(mod).toContain("hmac.compare_digest");
     expect(mod).not.toMatch(/provided\s*==\s*expected/);
+    expect(mod).toContain("mutation_secret_fingerprint");
+    expect(mod).toContain("mutationSecretFingerprint");
   });
 
   it("sidecar exposes sdk-capabilities and gated demo-mutation routes", () => {

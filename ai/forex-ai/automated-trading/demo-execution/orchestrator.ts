@@ -4,20 +4,23 @@
  * Does not enable global Master Trading, placesOrders, or automatic entry.
  */
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
+import { resolveStorageRoot } from "../../../../storage/paths/storage-paths.js";
 import {
   evaluateProtectiveGeometry,
   evaluateUnprotectedFillPolicy,
 } from "../broker-intent/protective-geometry.js";
-import { getDemoExecutionGrantStore } from "./grant-store.js";
+import { getDemoExecutionGrantStore, resolveDemoExecutionGrantsPath } from "./grant-store.js";
 import {
   getForexConnectDemoMutationAdapter,
   nodeDemoMutationEnvEnabled,
+  nodeMutationSecretFingerprint,
 } from "./forexconnect-mutation-adapter.js";
 import { evaluateDemoLifecyclePreflight } from "./preflight.js";
 import {
+  buildDemoReadinessComponents,
   evaluateDemoGrantCoverage,
   groupDemoReadinessBlockers,
   primaryDemoReadinessBlocker,
@@ -32,7 +35,17 @@ import type {
 } from "./types.js";
 
 function storePath(): string {
-  return join(process.cwd(), "data", "forex", "demo-lifecycle-records.json");
+  const primary = join(resolveStorageRoot(), "forex", "demo-lifecycle-records.json");
+  const legacy = join(process.cwd(), "data", "forex", "demo-lifecycle-records.json");
+  if (!existsSync(primary) && existsSync(legacy)) {
+    try {
+      mkdirSync(dirname(primary), { recursive: true });
+      copyFileSync(legacy, primary);
+    } catch {
+      /* keep primary */
+    }
+  }
+  return primary;
 }
 
 function nowIso(): string {
@@ -188,6 +201,17 @@ export class DemoLifecycleOrchestrator {
       String(process.env.KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET || "").trim(),
     );
     const secretOk = sidecarMutationSecretConfigured && nodeMutationSecretConfigured;
+    const nodeFp = nodeMutationSecretFingerprint();
+    const sideFpRaw = (caps as { mutationSecretFingerprint?: string | null }).mutationSecretFingerprint;
+    const sideFp = sideFpRaw != null && String(sideFpRaw).trim()
+      ? String(sideFpRaw).trim().toLowerCase()
+      : null;
+    // true = proven match; false = proven mismatch; null = unknown (missing or pre-fingerprint sidecar).
+    let mutationSecretsConsistent: boolean | null = null;
+    if (nodeFp && sideFp) {
+      mutationSecretsConsistent = nodeFp === sideFp;
+    }
+
     const sdkOk = Boolean((caps as { hasCreateOrderRequest?: boolean }).hasCreateOrderRequest)
       && Boolean((caps as { trueMarketOpen?: unknown }).trueMarketOpen != null
         || (caps as { ordersConstants?: string[] }).ordersConstants?.includes?.("TRUE_MARKET_OPEN"));
@@ -197,9 +221,12 @@ export class DemoLifecycleOrchestrator {
       || (caps as { stopOrder?: unknown }).stopOrder != null
       || (caps as { ordersConstants?: string[] }).ordersConstants?.includes?.("STOP"),
     );
-    const cancelSurface = Boolean(
-      (caps as { supportsDeleteOrder?: boolean }).supportsDeleteOrder
-      || (caps as { ordersConstants?: string[] }).ordersConstants?.includes?.("STOP"),
+    // Cancel is DELETE_ORDER — do not treat STOP as cancel capability.
+    const cancelSurface = Boolean((caps as { supportsDeleteOrder?: boolean }).supportsDeleteOrder);
+    const closeSurface = Boolean(
+      (caps as { trueMarketClose?: unknown }).trueMarketClose != null
+      || (caps as { supportsPartialClose?: boolean }).supportsPartialClose
+      || (caps as { ordersConstants?: string[] }).ordersConstants?.includes?.("TRUE_MARKET_CLOSE"),
     );
 
     const activeGrants = getDemoExecutionGrantStore().listActive();
@@ -218,8 +245,13 @@ export class DemoLifecycleOrchestrator {
     if (!nodeMutationSecretConfigured) blockers.push("NODE_MUTATION_SECRET_NOT_CONFIGURED");
     // Compatibility umbrella for clients that still key on the Phase 58.5 code.
     if (!secretOk) blockers.push("MUTATION_SECRET_NOT_CONFIGURED");
+    if (mutationSecretsConsistent === false && nodeMutationSecretConfigured && sidecarMutationSecretConfigured) {
+      blockers.push("MUTATION_SECRET_MISMATCH");
+    }
     if (!sdkOk) blockers.push("SDK_MUTATION_SURFACE_UNVERIFIED");
     if (!protectiveSurface) blockers.push("SDK_PROTECTIVE_SURFACE_UNVERIFIED");
+    if (!cancelSurface) blockers.push("SDK_CANCEL_SURFACE_UNVERIFIED");
+    if (!closeSurface) blockers.push("SDK_CLOSE_SURFACE_UNVERIFIED");
     for (const code of grantCoverage.blockers) {
       if (!blockers.includes(code)) blockers.push(code);
     }
@@ -230,9 +262,9 @@ export class DemoLifecycleOrchestrator {
         "Set KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION=1 on both Node app and ForexConnect sidecar, then restart those processes only if authorized.",
       );
     }
-    if (!secretOk) {
+    if (!secretOk || mutationSecretsConsistent === false) {
       ownerActionChecklist.push(
-        "Set identical KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET on Node + sidecar (never in browser).",
+        "Set identical KWIZERA_FOREXCONNECT_DEMO_MUTATION_SECRET on Node + sidecar (never in browser/git). Presence on both sides is not enough — values must match.",
       );
     }
     if (!grantCoverage.ok) {
@@ -250,8 +282,9 @@ export class DemoLifecycleOrchestrator {
     );
 
     // Phase 59.0.3 — quote subscription readiness (CONNECTED ≠ quote-ready).
-    // Pass real offer bid/ask/timestamp when available; gate mayAttemptDemoMutation on quote readiness.
+    // Prefer readiness ?instrument= over AT configured instrument when provided.
     let quoteSubscriptionReadiness: Record<string, unknown> | null = null;
+    let quoteReady = false;
     try {
       const { getForexConnectLiveCandleService } = await import(
         "../../../market-data/forexconnect/live-service.js"
@@ -267,7 +300,8 @@ export class DemoLifecycleOrchestrator {
       const life = live.getLifecycleDiagnostics();
       const stream = await bridge.getStreamStatus();
       const configured = collectConfiguredAtQuoteInstruments();
-      const requested = configured.instruments[0]?.symbol ?? null;
+      const optsInstrument = opts?.instrument != null ? String(opts.instrument).trim() : "";
+      const requested = optsInstrument || configured.instruments[0]?.symbol || null;
 
       let bid: number | null = null;
       let ask: number | null = null;
@@ -305,8 +339,11 @@ export class DemoLifecycleOrchestrator {
 
       const readinessEval = evaluateQuoteSubscriptionReadiness({
         sessionStatus: String((status as { status?: string }).status || ""),
-        configuredInstrumentCount: configured.instruments.length,
-        intendedCount: life.intendedCount,
+        configuredInstrumentCount: Math.max(
+          configured.instruments.length,
+          requested ? 1 : 0,
+        ),
+        intendedCount: Math.max(life.intendedCount, requested ? 1 : 0),
         subscriptionCount: Number(
           stream.subscriptionCount
           ?? (status as { subscriptionCount?: number }).subscriptionCount
@@ -331,11 +368,18 @@ export class DemoLifecycleOrchestrator {
         subscriptionError: null,
         instrumentPermissionError,
       });
-      quoteSubscriptionReadiness = { ...readinessEval, configuredInstruments: configured.instruments };
+      quoteReady = Boolean(readinessEval.readyForExecutionQuote);
+      quoteSubscriptionReadiness = {
+        ...readinessEval,
+        configuredInstruments: configured.instruments,
+        readinessInstrument: requested,
+      };
       if (!readinessEval.readyForExecutionQuote) {
         blockers.push(readinessEval.code);
         ownerActionChecklist.push(
-          "Ensure an AT selectedInstrument (or monitor instrument) is set, then restore/subscribe Offers until a fresh bid/ask is observed.",
+          requested
+            ? `Ensure Offers subscription and a fresh bid/ask for ${requested} (CONNECTED alone is not quote-ready).`
+            : "Ensure an AT selectedInstrument (or pass ?instrument=) then restore/subscribe Offers until a fresh bid/ask is observed.",
         );
       }
     } catch {
@@ -345,13 +389,36 @@ export class DemoLifecycleOrchestrator {
         message: "Quote subscription readiness diagnostics unavailable.",
       };
       blockers.push("SUBSCRIPTION_FAILED");
+      quoteReady = false;
     }
+
+    const componentReport = buildDemoReadinessComponents({
+      blockers,
+      connected,
+      demoSession: demoOk,
+      nodeMutationEnvEnabled: nodeMutationEnv,
+      sidecarMutationEnvEnabled: sidecarMutationEnv,
+      nodeMutationSecretConfigured,
+      sidecarMutationSecretConfigured,
+      mutationSecretsConsistent,
+      grantCoverageOk: grantCoverage.ok,
+      quoteReady,
+      sdkMutationOk: sdkOk,
+      sdkProtectiveOk: protectiveSurface,
+      sdkCancelOk: cancelSurface,
+      sdkCloseOk: closeSurface,
+    });
 
     const blockerCategories = groupDemoReadinessBlockers(blockers);
     const primaryBlocker = primaryDemoReadinessBlocker(blockers);
+
+    // Strip fingerprint from capabilities echoed to clients (boolean consistency only).
+    const capsSafe = { ...(caps as Record<string, unknown>) };
+    delete capsSafe.mutationSecretFingerprint;
+
     return {
-      ok: blockers.length === 0,
-      phase: "59.0.12E",
+      ok: blockers.length === 0 && componentReport.mayAttemptDemoMutation,
+      phase: "59.0.12I",
       connected,
       environment: env || null,
       demoSession: demoOk,
@@ -361,22 +428,28 @@ export class DemoLifecycleOrchestrator {
       mutationSecretConfigured: secretOk,
       sidecarMutationSecretConfigured,
       nodeMutationSecretConfigured,
+      mutationSecretsConsistent,
       protectiveSurfaceDocumented: protectiveSurface,
       cancelSurfaceDocumented: cancelSurface,
+      closeSurfaceDocumented: closeSurface,
       partialCloseDocumented: Boolean((caps as { supportsPartialClose?: boolean }).supportsPartialClose),
-      sdkCapabilities: caps,
+      sdkCapabilities: capsSafe,
       activeGrantCount: activeGrants.length,
       grantCoverage,
+      grantStorePath: resolveDemoExecutionGrantsPath(),
       quoteSubscriptionReadiness,
+      components: componentReport.components,
       blockers,
       blockerCategories,
       primaryBlocker: blockers.length ? primaryBlocker : null,
       ownerActionChecklist,
-      mayAttemptDemoMutation: blockers.length === 0,
+      mayAttemptDemoMutation: componentReport.mayAttemptDemoMutation,
+      mayAttemptDemoCancel: componentReport.mayAttemptDemoCancel,
+      mayAttemptDemoClose: componentReport.mayAttemptDemoClose,
       placesOrdersGlobal: false,
       liveLocked: true,
       note:
-        "Unauthenticated 403 on this route is correct. Mutation remains fail-closed until Node+sidecar flags, secret, grant, and a fresh valid quote are all valid. CONNECTED alone is not quote-ready. Blockers are categorized (OWNER_CONFIG / GRANT_AUTHORIZATION / SESSION / MARKET / SDK) — not a single generic BLOCKED.",
+        "Unauthenticated 403 on this route is correct. CONNECTED or live quotes alone never authorize mutation. components[] scores connection / marketData / mutationConfig / secret / grant / orderSubmission / modificationCancellation / positionCloseMonitor separately. Secrets are presence + consistency booleans only — never values.",
     };
   }
 

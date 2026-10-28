@@ -6,8 +6,9 @@
  * An empty or missing allowlist never authorizes any instrument.
  */
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { resolveStorageRoot } from "../../../../storage/paths/storage-paths.js";
 import type { DemoExecutionGrant } from "./types.js";
 
 const DEFAULT_TTL_MS = 15 * 60_000;
@@ -22,8 +23,33 @@ export class GrantAllowlistError extends Error {
   }
 }
 
-function defaultPath(): string {
+/** Durable path under KWIZERA_STORAGE_ROOT (survives app-tree redeploys). */
+export function resolveDemoExecutionGrantsPath(storageRoot?: string): string {
+  return join(
+    storageRoot ?? resolveStorageRoot(),
+    "forex",
+    "demo-execution-grants.json",
+  );
+}
+
+/** Legacy cwd-relative path used before storage-root migration. */
+export function legacyDemoExecutionGrantsPath(): string {
   return join(process.cwd(), "data", "forex", "demo-execution-grants.json");
+}
+
+function defaultPath(): string {
+  const primary = resolveDemoExecutionGrantsPath();
+  const legacy = legacyDemoExecutionGrantsPath();
+  // One-time migrate so existing VPS grants are not orphaned after path fix.
+  if (!existsSync(primary) && existsSync(legacy)) {
+    try {
+      mkdirSync(dirname(primary), { recursive: true });
+      copyFileSync(legacy, primary);
+    } catch {
+      /* keep primary path; empty store is fail-closed */
+    }
+  }
+  return primary;
 }
 
 /** Normalize for comparison: strip whitespace, uppercase. */

@@ -2,6 +2,7 @@
  * Phase 58.3 — ForexConnect DEMO mutation adapter (Node → sidecar).
  * Calls gated sidecar routes only. Does not set global placesOrders=true.
  */
+import { createHash } from "node:crypto";
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
 
 export interface DemoMutationOpenResult {
@@ -61,6 +62,13 @@ export function nodeDemoMutationEnvEnabled(): boolean {
   return ["1", "true", "yes", "on"].includes(
     String(process.env.KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION || "").trim().toLowerCase(),
   );
+}
+
+/** SHA-256 hex of Node mutation secret for consistency checks. Never log or return the secret. */
+export function nodeMutationSecretFingerprint(): string | null {
+  const s = secret();
+  if (!s) return null;
+  return createHash("sha256").update(s, "utf8").digest("hex");
 }
 
 function requireNodeMutationGate(): DemoMutationOpenResult | null {
