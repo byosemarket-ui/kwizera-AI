@@ -1516,6 +1516,43 @@ export async function handleForexAutomatedTradingApi(
         return true;
       }
 
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/auto-grant/status")) {
+        if (req.method !== "GET") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+          return true;
+        }
+        const { getAutoDemoGrantLifecycleWorker } = await import(
+          "../../ai/forex-ai/automated-trading/demo-execution/auto-grant-lifecycle.js"
+        );
+        sendJson(res, 200, {
+          ...getAutoDemoGrantLifecycleWorker().getStatus(),
+          placesOrders: false,
+          acceptsForExecution: false,
+          liveUnauthorized: true,
+        });
+        return true;
+      }
+
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/auto-grant/tick")) {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+          return true;
+        }
+        // Admin-gated manual tick for dry_run/enabled verification — never places broker orders.
+        const { getAutoDemoGrantLifecycleWorker } = await import(
+          "../../ai/forex-ai/automated-trading/demo-execution/auto-grant-lifecycle.js"
+        );
+        const tick = await getAutoDemoGrantLifecycleWorker().tick();
+        sendJson(res, tick.ok ? 200 : 422, {
+          ...tick,
+          placesOrders: false,
+          acceptsForExecution: false,
+          liveUnauthorized: true,
+          mutatesBroker: false,
+        });
+        return true;
+      }
+
       if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/readiness")) {
         if (req.method !== "GET") {
           sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });

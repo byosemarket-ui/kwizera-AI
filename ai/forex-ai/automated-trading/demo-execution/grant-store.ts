@@ -11,9 +11,15 @@ import { dirname, join } from "node:path";
 import { resolveStorageRoot } from "../../../../storage/paths/storage-paths.js";
 import type { DemoExecutionGrant } from "./types.js";
 
-const DEFAULT_TTL_MS = 15 * 60_000;
-const MAX_TTL_MS = 60 * 60_000;
-const MAX_LOTS = 10;
+export const DEMO_GRANT_DEFAULT_TTL_MS = 15 * 60_000;
+export const DEMO_GRANT_MAX_TTL_MS = 60 * 60_000;
+export const DEMO_GRANT_MAX_LOTS = 10;
+
+/** @deprecated Use DEMO_GRANT_DEFAULT_TTL_MS */
+const DEFAULT_TTL_MS = DEMO_GRANT_DEFAULT_TTL_MS;
+/** @deprecated Use DEMO_GRANT_MAX_TTL_MS */
+const MAX_TTL_MS = DEMO_GRANT_MAX_TTL_MS;
+const MAX_LOTS = DEMO_GRANT_MAX_LOTS;
 
 export class GrantAllowlistError extends Error {
   readonly code = "GRANT_ALLOWLIST_REQUIRED";
@@ -86,6 +92,16 @@ export class DemoExecutionGrantStore {
     this.load();
   }
 
+  /** Absolute path of the durable grant JSON file. */
+  get filePath(): string {
+    return this.path;
+  }
+
+  /** Re-read from disk (restart recovery / concurrent tick safety). */
+  reload(): void {
+    this.load();
+  }
+
   private load(): void {
     try {
       if (!existsSync(this.path)) {
@@ -110,6 +126,34 @@ export class DemoExecutionGrantStore {
 
   listActive(nowMs = Date.now()): DemoExecutionGrant[] {
     return this.grants.filter((g) => this.isActive(g, nowMs));
+  }
+
+  /**
+   * Active DEMO grant that allowlists instrument and maxLots >= lots,
+   * with remaining lifetime strictly greater than minRemainingMs.
+   */
+  findCoveringActive(input: {
+    instrument: string;
+    lots: number;
+    minRemainingMs?: number;
+    nowMs?: number;
+  }): DemoExecutionGrant | null {
+    const nowMs = input.nowMs ?? Date.now();
+    const minRemaining = Math.max(0, Math.floor(input.minRemainingMs ?? 0));
+    const want = normalizeGrantInstrument(input.instrument);
+    const lots = Math.max(1, Math.floor(Number(input.lots) || 1));
+    if (!want) return null;
+    for (const g of this.listActive(nowMs)) {
+      const allow = normalizeInstrumentAllowlist(g.instrumentAllowlist);
+      if (allow.length === 0) continue;
+      if (!allow.some((a) => normalizeGrantInstrument(a) === want)) continue;
+      if (Number(g.maxLots ?? 0) < lots) continue;
+      const exp = Date.parse(g.expiresAtUtc);
+      if (!Number.isFinite(exp)) continue;
+      if (exp - nowMs <= minRemaining) continue;
+      return g;
+    }
+    return null;
   }
 
   isActive(grant: DemoExecutionGrant, nowMs = Date.now()): boolean {

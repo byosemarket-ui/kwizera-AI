@@ -25,6 +25,7 @@ import {
   groupDemoReadinessBlockers,
   primaryDemoReadinessBlocker,
 } from "./readiness-blockers.js";
+import { getAutoDemoGrantLifecycleWorker } from "./auto-grant-lifecycle.js";
 import type {
   DemoCancelPendingRequest,
   DemoCloseTradeRequest,
@@ -162,8 +163,9 @@ export class DemoLifecycleOrchestrator {
         accountIdMasked: g.accountIdMasked,
       })),
       latestLifecycle: latest,
+      autoDemoGrantLifecycle: getAutoDemoGrantLifecycleWorker().getStatus(),
       note:
-        "DEMO lifecycle: grant + quote preflight + sidecar mutation flag/secret. Supports open/protect/cancel-pending/partial-close. LIVE locked.",
+        "DEMO lifecycle: grant + quote preflight + sidecar mutation flag/secret. Supports open/protect/cancel-pending/partial-close. LIVE locked. Auto grant mode defaults to off.",
     };
   }
 
@@ -448,8 +450,9 @@ export class DemoLifecycleOrchestrator {
       mayAttemptDemoClose: componentReport.mayAttemptDemoClose,
       placesOrdersGlobal: false,
       liveLocked: true,
+      autoDemoGrantLifecycle: getAutoDemoGrantLifecycleWorker().getStatus(),
       note:
-        "Unauthenticated 403 on this route is correct. CONNECTED or live quotes alone never authorize mutation. components[] scores connection / marketData / mutationConfig / secret / grant / orderSubmission / modificationCancellation / positionCloseMonitor separately. Secrets are presence + consistency booleans only — never values.",
+        "Unauthenticated 403 on this route is correct. CONNECTED or live quotes alone never authorize mutation. components[] scores connection / marketData / mutationConfig / secret / grant / orderSubmission / modificationCancellation / positionCloseMonitor separately. Secrets are presence + consistency booleans only — never values. Auto grant mode defaults to off and never places orders.",
     };
   }
 

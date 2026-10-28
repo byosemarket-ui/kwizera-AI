@@ -3111,6 +3111,14 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
     void serviceSingleton.recoverAutomationControlOnBoot().catch(() => {
       /* keep defaults */
     });
+    // Phase 59.0.13 — auto DEMO grant lifecycle (mode=off by default; never broker orders).
+    void import("./demo-execution/auto-grant-lifecycle.js")
+      .then(({ resumeAutoDemoGrantLifecycleFromPersistence }) => {
+        resumeAutoDemoGrantLifecycleFromPersistence();
+      })
+      .catch(() => {
+        /* keep grant lifecycle manual until module loads */
+      });
   }
   return serviceSingleton;
 }
