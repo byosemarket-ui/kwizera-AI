@@ -43,3 +43,38 @@ export function userFacingForexConnectError(error: unknown): { code: string; mes
     message: message.replace(/(password|passwd|pwd)\s*[:=]\s*\S+/gi, "$1=[redacted]").slice(0, 400),
   };
 }
+
+/**
+ * Map ForexConnect error codes to HTTP status.
+ * Client/input problems must not be reported as 502 Bad Gateway (upstream failure).
+ * Evidence: UNKNOWN_INSTRUMENT was previously returned as 502 on production candle routes.
+ */
+export function forexConnectErrorHttpStatus(code: string): number {
+  const c = String(code ?? "").toUpperCase();
+  if (
+    c.includes("DISABLED")
+    || c.includes("NOT_CONFIGURED")
+    || c.includes("SERVICE_UNAVAILABLE")
+    || c.includes("SDK_UNAVAILABLE")
+  ) {
+    return 503;
+  }
+  if (c.includes("UNKNOWN_INSTRUMENT") || c.includes("INSTRUMENT_NOT_FOUND")) {
+    return 404;
+  }
+  if (
+    c.includes("UNSUPPORTED")
+    || c.includes("INVALID")
+    || c.includes("VALIDATION")
+  ) {
+    return 400;
+  }
+  if (c.includes("AUTHENTICATION") || c.includes("UNAUTHORIZED")) {
+    return 401;
+  }
+  if (c.includes("SUBSCRIPTION_LIMIT")) {
+    return 429;
+  }
+  // Genuine upstream/session/historical failures remain 502.
+  return 502;
+}

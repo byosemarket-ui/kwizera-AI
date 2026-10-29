@@ -20,6 +20,7 @@ import { parseMarketProviderId } from "../../ai/market-data/providers/identity.j
 import { userFacingBinanceError } from "../../ai/market-data/binance/errors.js";
 import {
   ForexConnectMarketDataError,
+  forexConnectErrorHttpStatus,
   userFacingForexConnectError,
 } from "../../ai/market-data/forexconnect/errors.js";
 import { FxcmMarketDataError, userFacingFxcmError } from "../../ai/market-data/fxcm/errors.js";
@@ -45,11 +46,7 @@ function mapError(error: unknown): { status: number; code: string; message: stri
   ) {
     const fc = userFacingForexConnectError(error);
     return {
-      status: fc.code === "FOREXCONNECT_DISABLED" || fc.code === "FOREXCONNECT_NOT_CONFIGURED"
-        ? 503
-        : fc.code.includes("UNSUPPORTED") || fc.code.includes("INVALID")
-          ? 400
-          : 502,
+      status: forexConnectErrorHttpStatus(fc.code),
       code: fc.code,
       message: fc.message,
     };

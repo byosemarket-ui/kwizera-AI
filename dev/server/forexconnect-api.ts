@@ -31,7 +31,10 @@ import {
   createForexConnectBridge,
   type ForexConnectBridge,
 } from "../../ai/market-data/forexconnect/client.js";
-import { ForexConnectMarketDataError } from "../../ai/market-data/forexconnect/errors.js";
+import {
+  ForexConnectMarketDataError,
+  forexConnectErrorHttpStatus,
+} from "../../ai/market-data/forexconnect/errors.js";
 import {
   FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES,
   resolveForexConnectLiveTimeframe,
@@ -378,7 +381,7 @@ export async function handleForexConnectApi(
         });
       } catch (error) {
         if (error instanceof ForexConnectMarketDataError) {
-          sendJson(res, 503, {
+          sendJson(res, forexConnectErrorHttpStatus(error.code), {
             ok: false,
             error: { code: error.code, message: error.message },
             quotes: [],
@@ -421,7 +424,7 @@ export async function handleForexConnectApi(
         sendJson(res, 200, result);
       } catch (error) {
         if (error instanceof ForexConnectMarketDataError) {
-          sendJson(res, 503, {
+          sendJson(res, forexConnectErrorHttpStatus(error.code), {
             ok: false,
             error: { code: error.code, message: error.message },
             placesOrders: false,
@@ -477,12 +480,7 @@ export async function handleForexConnectApi(
         return true;
       } catch (error) {
         if (error instanceof ForexConnectMarketDataError) {
-          const http = error.code.includes("UNSUPPORTED") || error.code.includes("INVALID")
-            ? 400
-            : error.code.includes("DISABLED") || error.code.includes("NOT_CONFIGURED")
-              ? 503
-              : 502;
-          sendJson(res, http, {
+          sendJson(res, forexConnectErrorHttpStatus(error.code), {
             ok: false,
             error: { code: error.code, message: error.message },
             provider: "FOREXCONNECT",
