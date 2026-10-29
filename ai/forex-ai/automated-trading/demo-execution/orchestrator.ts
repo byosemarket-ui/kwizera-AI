@@ -21,12 +21,20 @@ import {
 } from "./forexconnect-mutation-adapter.js";
 import { evaluateDemoLifecyclePreflight } from "./preflight.js";
 import {
+  evaluateDemoOpenMarketRisk,
+  loadDemoOpenMarketRiskLimitsDetailed,
+  sumOpenExposureLotsFromTradesPayload,
+  type DemoOpenMarketAccountSnapshot,
+  type DemoOpenMarketInstrumentSpecs,
+} from "./open-market-risk.js";
+import {
   buildDemoReadinessComponents,
   evaluateDemoGrantCoverage,
   groupDemoReadinessBlockers,
   primaryDemoReadinessBlocker,
 } from "./readiness-blockers.js";
 import { getAutoDemoGrantLifecycleWorker } from "./auto-grant-lifecycle.js";
+import { normalizeGrantInstrument } from "./grant-store.js";
 import type {
   DemoCancelPendingRequest,
   DemoCloseTradeRequest,
@@ -35,6 +43,7 @@ import type {
   DemoOpenMarketRequest,
   DemoProtectionStatus,
 } from "./types.js";
+import type { ForexConnectAccountRow, ForexConnectInstrument } from "../../../market-data/forexconnect/types.js";
 
 const MAX_LIFECYCLE_RECORDS = 200;
 const UNCERTAIN_STATES: DemoLifecycleState[] = [
@@ -81,6 +90,61 @@ function prioritizeLifecycleRecords(records: DemoLifecycleRecord[]): DemoLifecyc
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function selectDemoRiskAccount(
+  accounts: ForexConnectAccountRow[],
+  requestedAccountId: string | null | undefined,
+  fetchedAtUtc: string | null,
+): DemoOpenMarketAccountSnapshot | null {
+  if (!Array.isArray(accounts) || accounts.length === 0) return null;
+  const want = String(requestedAccountId ?? "").trim();
+  const row = want
+    ? accounts.find((a) => a.accountId === want) ?? null
+    : accounts.length === 1
+      ? accounts[0]!
+      : accounts[0]!;
+  if (!row) return null;
+  return {
+    accountId: row.accountId,
+    accountIdMasked: row.accountIdMasked ?? null,
+    environment: row.environment,
+    accountCurrency: row.accountCurrency,
+    equity: row.equity,
+    usableMargin: row.usableMargin,
+    balance: row.balance,
+    usedMargin: row.usedMargin,
+    missingFields: row.missingFields,
+    fetchedAtUtc,
+    equityIncludesFloatingPl: row.equityIncludesFloatingPl,
+  };
+}
+
+function selectDemoRiskInstrumentSpecs(
+  instruments: ForexConnectInstrument[],
+  instrument: string,
+): DemoOpenMarketInstrumentSpecs | null {
+  const want = normalizeGrantInstrument(instrument);
+  if (!want || !Array.isArray(instruments)) return null;
+  const row = instruments.find((i) => {
+    const keys = [i.providerSymbol, i.displaySymbol, i.canonicalSymbol]
+      .map((s) => normalizeGrantInstrument(String(s ?? "")));
+    return keys.includes(want);
+  });
+  if (!row) return null;
+  const condStop = row.condDistStop;
+  return {
+    providerSymbol: row.providerSymbol,
+    baseUnitSize: row.baseUnitSize ?? null,
+    pointSize: row.pointSize ?? null,
+    pipCostAccount: row.pipCost ?? null,
+    mmrPerLot: row.mmrPerLot ?? null,
+    condDistStopRaw:
+      condStop != null && Number.isFinite(Number(condStop)) ? Number(condStop) : null,
+    condDistReportedUnit: row.condDistUnit ?? null,
+    condDistMethod: row.condDistMethod ?? null,
+    condDistAvailable: Boolean(row.condDistAvailable),
+  };
 }
 
 function emptyRecord(partial: Partial<DemoLifecycleRecord> & {
@@ -825,6 +889,86 @@ export class DemoLifecycleOrchestrator {
       base.state = "VALIDATION_FAILED";
       base.lastCode = preflight.code;
       base.lastError = `DEMO preflight blocked: ${preflight.blockers.join(",")}`;
+      if (req.requireProtective) base.protectionStatus = "FAILED";
+      this.upsert(base);
+      return { ok: false, code: base.lastCode, error: base.lastError, record: base };
+    }
+
+    // Phase 3.5 — fail-closed equity / margin / max-loss / exposure before any broker mutation.
+    const bridge = getForexConnectBridge();
+    const accountsResult = await bridge.listAccounts();
+    const instrumentsResult = await bridge.listInstruments();
+    const tradesResult = await bridge.listTrades();
+    const accountSnap = selectDemoRiskAccount(
+      accountsResult.ok ? accountsResult.accounts : [],
+      req.accountId,
+      accountsResult.fetchedAt ?? null,
+    );
+    const specs = selectDemoRiskInstrumentSpecs(
+      instrumentsResult.ok ? instrumentsResult.instruments : [],
+      req.instrument,
+    );
+    const openExposureLots = sumOpenExposureLotsFromTradesPayload(
+      tradesResult as Record<string, unknown>,
+      {
+        instrument: req.instrument,
+        baseUnitSize: specs?.baseUnitSize ?? null,
+        scope: "instrument",
+      },
+    );
+    const entryPrice =
+      req.entryHint != null && Number.isFinite(req.entryHint)
+        ? Number(req.entryHint)
+        : preflight.entryHintUsed;
+    const hasUnresolvedUnprotectedFill = this.records.some(
+      (r) =>
+        r.state === "PROTECTION_FAILED"
+        && r.fillConfirmed
+        && r.tradeId
+        && (r.remainingAmount == null || Number(r.remainingAmount) > 0),
+    );
+    const riskLimitsLoad = loadDemoOpenMarketRiskLimitsDetailed();
+    const risk = evaluateDemoOpenMarketRisk({
+      instrument: req.instrument,
+      direction: req.direction,
+      lots: req.lots,
+      stopLoss: req.stopLoss ?? null,
+      takeProfit: req.takeProfit ?? null,
+      entryPrice,
+      requireProtective: req.requireProtective === true,
+      grantMaxLots: grantCheck.grant.maxLots,
+      requestedAccountId: req.accountId ?? null,
+      account: accountSnap,
+      accountFetchOk: Boolean(accountsResult.ok),
+      accountCount: Array.isArray(accountsResult.accounts) ? accountsResult.accounts.length : 0,
+      instrumentSpecs: specs,
+      openExposureLots,
+      tradesFetchOk: Boolean((tradesResult as { ok?: boolean }).ok),
+      hasUnresolvedUnprotectedFill,
+      quoteTimestamp: (quoteRaw.offerTime as string | number | null | undefined) ?? null,
+      quoteMaxAgeMs: MARKET_QUOTE_STALE_MS,
+      limits: riskLimitsLoad.limits,
+      limitsConfigInvalid: riskLimitsLoad.configInvalid,
+      limitsInvalidKeys: riskLimitsLoad.invalidKeys,
+      nowMs: Date.now(),
+    });
+    base.evidence = {
+      ...base.evidence,
+      openMarketRisk: {
+        ok: risk.ok,
+        code: risk.code,
+        blockers: risk.blockers,
+        details: risk.details,
+        accountIdMasked: accountSnap?.accountIdMasked ?? null,
+        accountsFetchedAt: accountsResult.fetchedAt ?? null,
+        instrumentsOk: Boolean(instrumentsResult.ok),
+        tradesOk: Boolean((tradesResult as { ok?: boolean }).ok),
+      },
+    };
+    if (!risk.maySubmitDemoMutation) {
+      base.state = "VALIDATION_FAILED";
+      base.lastCode = risk.code;
+      base.lastError = `DEMO open-market risk blocked: ${risk.blockers.join(",")}`;
       if (req.requireProtective) base.protectionStatus = "FAILED";
       this.upsert(base);
       return { ok: false, code: base.lastCode, error: base.lastError, record: base };
