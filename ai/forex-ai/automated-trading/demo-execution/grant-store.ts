@@ -6,8 +6,9 @@
  * An empty or missing allowlist never authorizes any instrument.
  */
 import { randomUUID } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { readJsonSafeSync, writeJsonAtomicSync } from "../../../../storage/safe-json.js";
 import { resolveStorageRoot } from "../../../../storage/paths/storage-paths.js";
 import type { DemoExecutionGrant } from "./types.js";
 
@@ -86,6 +87,9 @@ export function normalizeInstrumentAllowlist(raw: unknown): string[] {
 export class DemoExecutionGrantStore {
   private readonly path: string;
   private grants: DemoExecutionGrant[] = [];
+  /** True when load quarantined corrupt JSON — create/require fail closed until restart with valid store. */
+  private persistenceDegraded = false;
+  private persistenceError: string | null = null;
 
   constructor(path = defaultPath()) {
     this.path = path;
@@ -97,31 +101,49 @@ export class DemoExecutionGrantStore {
     return this.path;
   }
 
+  get isPersistenceDegraded(): boolean {
+    return this.persistenceDegraded;
+  }
+
+  get persistenceDegradedReason(): string | null {
+    return this.persistenceError;
+  }
+
   /** Re-read from disk (restart recovery / concurrent tick safety). */
   reload(): void {
     this.load();
   }
 
   private load(): void {
-    try {
-      if (!existsSync(this.path)) {
-        this.grants = [];
-        return;
-      }
-      const raw = JSON.parse(readFileSync(this.path, "utf8")) as { grants?: DemoExecutionGrant[] };
-      this.grants = Array.isArray(raw.grants) ? raw.grants : [];
-    } catch {
+    const loaded = readJsonSafeSync<{ schemaVersion?: string; grants?: DemoExecutionGrant[] }>(
+      this.path,
+      { schemaVersion: "demo-execution-grants-v1", grants: [] },
+    );
+    if (loaded.recovered) {
+      this.persistenceDegraded = true;
+      this.persistenceError = loaded.error
+        ? `Grant store recovered from corrupt file: ${loaded.error}`
+        : "Grant store recovered from corrupt/unreadable file.";
       this.grants = [];
+      return;
     }
+    this.persistenceDegraded = false;
+    this.persistenceError = null;
+    const raw = loaded.value;
+    this.grants = Array.isArray(raw.grants) ? raw.grants : [];
   }
 
   private save(): void {
-    mkdirSync(dirname(this.path), { recursive: true });
-    writeFileSync(
-      this.path,
-      JSON.stringify({ schemaVersion: "demo-execution-grants-v1", grants: this.grants }, null, 2),
-      "utf8",
-    );
+    if (this.persistenceDegraded) {
+      throw new Error(
+        this.persistenceError
+          ?? "Grant store persistence is degraded; refusing to overwrite after corrupt load.",
+      );
+    }
+    writeJsonAtomicSync(this.path, {
+      schemaVersion: "demo-execution-grants-v1",
+      grants: this.grants,
+    });
   }
 
   listActive(nowMs = Date.now()): DemoExecutionGrant[] {
@@ -172,6 +194,12 @@ export class DemoExecutionGrantStore {
     instrumentAllowlist?: string[];
     maxLots?: number;
   }): DemoExecutionGrant {
+    if (this.persistenceDegraded) {
+      throw new Error(
+        this.persistenceError
+          ?? "Grant store persistence is degraded; refusing create after corrupt load.",
+      );
+    }
     const allowlist = normalizeInstrumentAllowlist(input.instrumentAllowlist);
     if (allowlist.length === 0) {
       throw new GrantAllowlistError(
@@ -221,6 +249,14 @@ export class DemoExecutionGrantStore {
     code: string;
     error: string;
   } {
+    if (this.persistenceDegraded) {
+      return {
+        ok: false,
+        code: "GRANT_STORE_PERSISTENCE_DEGRADED",
+        error: this.persistenceError
+          ?? "Grant store persistence is degraded; refusing authorization.",
+      };
+    }
     const grant = this.get(grantId);
     if (!grant) return { ok: false, code: "GRANT_NOT_FOUND", error: "DEMO grant not found." };
     if (!this.isActive(grant)) {

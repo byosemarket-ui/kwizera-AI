@@ -123,6 +123,23 @@ describe("Phase 59.0.14 lifecycle persistence + idempotency", () => {
     expect(store.requireActive(g.grantId, "XAU/USD", 1).ok).toBe(true);
   });
 
+  it("corrupt grant store fails closed for create and requireActive", () => {
+    const path = join(dir, "forex", "demo-execution-grants.json");
+    mkdirSync(join(dir, "forex"), { recursive: true });
+    writeFileSync(path, "{broken", "utf8");
+    const store = new DemoExecutionGrantStore(path);
+    expect(store.isPersistenceDegraded).toBe(true);
+    expect(store.requireActive("any", "XAU/USD", 1)).toMatchObject({
+      ok: false,
+      code: "GRANT_STORE_PERSISTENCE_DEGRADED",
+    });
+    expect(() => store.create({
+      ttlMs: 60_000,
+      maxLots: 1,
+      instrumentAllowlist: ["XAU/USD"],
+    })).toThrow(/corrupt|degraded|recovered/i);
+  });
+
   it("atomic save survives orchestrator upsert round-trip", async () => {
     const orch = new DemoLifecycleOrchestrator();
     const g = orch.createGrant({
