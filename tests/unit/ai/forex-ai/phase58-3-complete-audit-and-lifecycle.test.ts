@@ -153,9 +153,13 @@ describe("Phase 58.3 DEMO preflight", () => {
 describe("Phase 58.3 grant + early validation", () => {
   let dir: string;
   let cwdSpy: ReturnType<typeof vi.spyOn> | null = null;
+  let prevStorage: string | undefined;
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "kw-demo-life-583-"));
+    prevStorage = process.env.KWIZERA_STORAGE_ROOT;
+    process.env.KWIZERA_STORAGE_ROOT = dir;
+    mkdirSync(join(dir, "forex"), { recursive: true });
     mkdirSync(join(dir, "data", "forex"), { recursive: true });
     writeFileSync(join(dir, "data", "forex", "demo-execution-grants.json"), JSON.stringify({ grants: [] }));
     writeFileSync(join(dir, "data", "forex", "demo-lifecycle-records.json"), JSON.stringify({ records: [] }));
@@ -166,6 +170,8 @@ describe("Phase 58.3 grant + early validation", () => {
 
   afterEach(() => {
     cwdSpy?.mockRestore();
+    if (prevStorage == null) delete process.env.KWIZERA_STORAGE_ROOT;
+    else process.env.KWIZERA_STORAGE_ROOT = prevStorage;
     resetDemoExecutionGrantStoreForTests();
     resetDemoLifecycleOrchestratorForTests();
     rmSync(dir, { recursive: true, force: true });

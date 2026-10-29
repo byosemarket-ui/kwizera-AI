@@ -4,9 +4,10 @@
  * Does not enable global Master Trading, placesOrders, or automatic entry.
  */
 import { randomUUID } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
+import { readJsonSafeSync, writeJsonAtomicSync } from "../../../../storage/safe-json.js";
 import { resolveStorageRoot } from "../../../../storage/paths/storage-paths.js";
 import {
   evaluateProtectiveGeometry,
@@ -35,6 +36,18 @@ import type {
   DemoProtectionStatus,
 } from "./types.js";
 
+const MAX_LIFECYCLE_RECORDS = 200;
+const UNCERTAIN_STATES: DemoLifecycleState[] = [
+  "SUBMITTING",
+  "SUBMISSION_UNKNOWN",
+  "RECONCILIATION_REQUIRED",
+  "ACCEPTED_PENDING",
+  "PROTECTION_PENDING",
+  "CLOSE_PENDING",
+  "CANCEL_PENDING",
+];
+const SUCCESS_OPEN_STATES: DemoLifecycleState[] = ["POSITION_OPEN", "FILLED", "PROTECTED"];
+
 function storePath(): string {
   const primary = join(resolveStorageRoot(), "forex", "demo-lifecycle-records.json");
   const legacy = join(process.cwd(), "data", "forex", "demo-lifecycle-records.json");
@@ -47,6 +60,23 @@ function storePath(): string {
     }
   }
   return primary;
+}
+
+function prioritizeLifecycleRecords(records: DemoLifecycleRecord[]): DemoLifecycleRecord[] {
+  // Prefer uncertain/open records so truncation cannot drop duplicate-order protection.
+  const rank = (r: DemoLifecycleRecord): number => {
+    if (UNCERTAIN_STATES.includes(r.state)) return 0;
+    if (SUCCESS_OPEN_STATES.includes(r.state) || r.fillConfirmed) return 1;
+    if (r.state === "PROTECTION_FAILED") return 2;
+    return 3;
+  };
+  return [...records]
+    .sort((a, b) => {
+      const d = rank(a) - rank(b);
+      if (d !== 0) return d;
+      return String(b.updatedAtUtc).localeCompare(String(a.updatedAtUtc));
+    })
+    .slice(0, MAX_LIFECYCLE_RECORDS);
 }
 
 function nowIso(): string {
@@ -101,45 +131,118 @@ function protectionStatusFromBroker(
 
 export class DemoLifecycleOrchestrator {
   private records: DemoLifecycleRecord[] = [];
+  /** True when store load quarantined corrupt JSON — block new broker mutations until recovered. */
+  private persistenceDegraded = false;
+  private persistenceError: string | null = null;
+  private readonly inflightIdempotency = new Set<string>();
 
   constructor() {
     this.load();
   }
 
   private load(): void {
-    try {
-      if (!existsSync(storePath())) {
-        this.records = [];
-        return;
-      }
-      const raw = JSON.parse(readFileSync(storePath(), "utf8")) as { records?: DemoLifecycleRecord[] };
-      this.records = Array.isArray(raw.records)
-        ? raw.records.map((r) => emptyRecord({
+    const loaded = readJsonSafeSync<{ schemaVersion?: string; records?: DemoLifecycleRecord[] }>(
+      storePath(),
+      { schemaVersion: "demo-lifecycle-v3", records: [] },
+    );
+    if (loaded.recovered) {
+      // Fail closed: corrupt store must not silently erase idempotency protection for new submits.
+      this.persistenceDegraded = true;
+      this.persistenceError = loaded.error
+        ? `Lifecycle store recovered from corrupt file: ${loaded.error}`
+        : "Lifecycle store recovered from corrupt/unreadable file.";
+      this.records = [];
+      return;
+    }
+    this.persistenceDegraded = false;
+    this.persistenceError = null;
+    const raw = loaded.value;
+    this.records = Array.isArray(raw.records)
+      ? raw.records
+        .filter((r) => r && typeof r.lifecycleId === "string" && typeof r.idempotencyKey === "string")
+        .map((r) => emptyRecord({
           ...r,
           lifecycleId: r.lifecycleId,
           idempotencyKey: r.idempotencyKey,
         }))
-        : [];
-    } catch {
-      this.records = [];
-    }
+      : [];
   }
 
   private save(): void {
-    mkdirSync(dirname(storePath()), { recursive: true });
-    writeFileSync(
-      storePath(),
-      JSON.stringify({ schemaVersion: "demo-lifecycle-v3", records: this.records.slice(0, 100) }, null, 2),
-      "utf8",
-    );
+    const records = prioritizeLifecycleRecords(this.records);
+    this.records = records;
+    writeJsonAtomicSync(storePath(), {
+      schemaVersion: "demo-lifecycle-v4",
+      records,
+      persistenceDegraded: this.persistenceDegraded,
+      updatedAtUtc: nowIso(),
+    });
+    // A successful atomic write clears prior degradation after operator-driven recovery path
+    // that restored a valid file and constructed a fresh orchestrator; keep flag if set mid-process.
   }
 
   private upsert(rec: DemoLifecycleRecord): DemoLifecycleRecord {
+    rec.updatedAtUtc = nowIso();
     const idx = this.records.findIndex((r) => r.lifecycleId === rec.lifecycleId);
     if (idx >= 0) this.records[idx] = rec;
     else this.records.unshift(rec);
     this.save();
     return rec;
+  }
+
+  private rejectPersistenceDegraded(req: {
+    idempotencyKey: string;
+    grantId?: string;
+    instrument?: string | null;
+  }): {
+    ok: false;
+    code: "PERSISTENCE_DEGRADED";
+    error: string;
+    record: DemoLifecycleRecord;
+  } {
+    const record = emptyRecord({
+      lifecycleId: randomUUID(),
+      state: "EXECUTION_DISABLED",
+      grantId: req.grantId ?? null,
+      idempotencyKey: req.idempotencyKey,
+      instrument: req.instrument ?? null,
+      lastCode: "PERSISTENCE_DEGRADED",
+      lastError: this.persistenceError
+        ?? "DEMO lifecycle persistence is degraded; refusing broker mutation to protect idempotency.",
+    });
+    return {
+      ok: false,
+      code: "PERSISTENCE_DEGRADED",
+      error: record.lastError ?? "PERSISTENCE_DEGRADED",
+      record,
+    };
+  }
+
+  private replayIdempotent(
+    existing: DemoLifecycleRecord,
+  ): {
+    ok: boolean;
+    code: string;
+    error: string | null;
+    record: DemoLifecycleRecord;
+  } {
+    if (UNCERTAIN_STATES.includes(existing.state)) {
+      return {
+        ok: false,
+        code: "IDEMPOTENT_RECONCILIATION_REQUIRED",
+        error:
+          `Prior submission for this idempotencyKey is unresolved (state=${existing.state}). `
+          + "Reconcile broker state before retrying; do not resubmit blindly.",
+        record: existing,
+      };
+    }
+    const ok = SUCCESS_OPEN_STATES.includes(existing.state) || existing.fillConfirmed;
+    return {
+      ok,
+      code: ok ? "IDEMPOTENT_REPLAY" : (existing.lastCode ?? "IDEMPOTENT_REPLAY"),
+      error: ok ? null : (existing.lastError ?? existing.lastCode),
+      record: existing,
+    };
   }
 
   getStatus(): Record<string, unknown> {
@@ -164,8 +267,11 @@ export class DemoLifecycleOrchestrator {
       })),
       latestLifecycle: latest,
       autoDemoGrantLifecycle: getAutoDemoGrantLifecycleWorker().getStatus(),
+      persistenceDegraded: this.persistenceDegraded,
+      persistenceError: this.persistenceError,
+      lifecycleRecordCount: this.records.length,
       note:
-        "DEMO lifecycle: grant + quote preflight + sidecar mutation flag/secret. Supports open/protect/cancel-pending/partial-close. LIVE locked. Auto grant mode defaults to off.",
+        "DEMO lifecycle: grant + quote preflight + sidecar mutation flag/secret. Supports open/protect/cancel-pending/partial-close. LIVE locked. Auto grant mode defaults to off. Corrupt lifecycle store fails closed (PERSISTENCE_DEGRADED).",
     };
   }
 
@@ -523,15 +629,58 @@ export class DemoLifecycleOrchestrator {
     error: string | null;
     record: DemoLifecycleRecord;
   }> {
+    if (this.persistenceDegraded) {
+      return this.rejectPersistenceDegraded(req);
+    }
+
     const existing = this.records.find((r) => r.idempotencyKey === req.idempotencyKey);
     if (existing) {
-      const successStates: DemoLifecycleState[] = ["POSITION_OPEN", "FILLED", "PROTECTED"];
-      return {
-        ok: successStates.includes(existing.state) || existing.fillConfirmed,
-        code: "IDEMPOTENT_REPLAY",
-        error: null,
-        record: existing,
-      };
+      return this.replayIdempotent(existing);
+    }
+
+    if (!req.idempotencyKey || !String(req.idempotencyKey).trim()) {
+      const record = emptyRecord({
+        lifecycleId: randomUUID(),
+        state: "VALIDATION_FAILED",
+        grantId: req.grantId,
+        idempotencyKey: "missing",
+        instrument: req.instrument,
+        lastCode: "IDEMPOTENCY_KEY_REQUIRED",
+        lastError: "idempotencyKey is required for DEMO open-market submissions.",
+      });
+      return { ok: false, code: "IDEMPOTENCY_KEY_REQUIRED", error: record.lastError, record };
+    }
+
+    if (this.inflightIdempotency.has(req.idempotencyKey)) {
+      const record = emptyRecord({
+        lifecycleId: randomUUID(),
+        state: "RECONCILIATION_REQUIRED",
+        grantId: req.grantId,
+        idempotencyKey: req.idempotencyKey,
+        instrument: req.instrument,
+        lastCode: "IDEMPOTENCY_IN_FLIGHT",
+        lastError: "A submission with this idempotencyKey is already in flight.",
+      });
+      return { ok: false, code: "IDEMPOTENCY_IN_FLIGHT", error: record.lastError, record };
+    }
+
+    this.inflightIdempotency.add(req.idempotencyKey);
+    try {
+      return await this.openMarketLocked(req);
+    } finally {
+      this.inflightIdempotency.delete(req.idempotencyKey);
+    }
+  }
+
+  private async openMarketLocked(req: DemoOpenMarketRequest): Promise<{
+    ok: boolean;
+    code: string;
+    error: string | null;
+    record: DemoLifecycleRecord;
+  }> {
+    const existing = this.records.find((r) => r.idempotencyKey === req.idempotencyKey);
+    if (existing) {
+      return this.replayIdempotent(existing);
     }
 
     const grantCheck = getDemoExecutionGrantStore().requireActive(
@@ -828,12 +977,27 @@ export class DemoLifecycleOrchestrator {
     error: string | null;
     record: DemoLifecycleRecord;
   }> {
+    if (this.persistenceDegraded) {
+      return this.rejectPersistenceDegraded(req);
+    }
+
     const existing = this.records.find((r) => r.idempotencyKey === req.idempotencyKey);
     if (existing && existing.closeConfirmed && existing.state === "CLOSED") {
       return { ok: true, code: "IDEMPOTENT_REPLAY", error: null, record: existing };
     }
+    if (existing && UNCERTAIN_STATES.includes(existing.state) && existing.state !== "CLOSE_PENDING") {
+      return {
+        ok: false,
+        code: "IDEMPOTENT_RECONCILIATION_REQUIRED",
+        error: `Prior operation unresolved (state=${existing.state}). Reconcile before retry.`,
+        record: existing,
+      };
+    }
 
-    const grantCheck = getDemoExecutionGrantStore().requireActive(req.grantId);
+    const grantCheck = getDemoExecutionGrantStore().requireActive(
+      req.grantId,
+      req.instrument ?? undefined,
+    );
     const rec = existing ?? emptyRecord({
       lifecycleId: randomUUID(),
       state: "CLOSE_PENDING",
@@ -910,9 +1074,21 @@ export class DemoLifecycleOrchestrator {
     error: string | null;
     record: DemoLifecycleRecord;
   }> {
+    if (this.persistenceDegraded) {
+      return this.rejectPersistenceDegraded(req);
+    }
+
     const existing = this.records.find((r) => r.idempotencyKey === req.idempotencyKey);
     if (existing && existing.cancelConfirmed) {
       return { ok: true, code: "IDEMPOTENT_REPLAY", error: null, record: existing };
+    }
+    if (existing && UNCERTAIN_STATES.includes(existing.state) && existing.state !== "CANCEL_PENDING") {
+      return {
+        ok: false,
+        code: "IDEMPOTENT_RECONCILIATION_REQUIRED",
+        error: `Prior operation unresolved (state=${existing.state}). Reconcile before retry.`,
+        record: existing,
+      };
     }
 
     const grantCheck = getDemoExecutionGrantStore().requireActive(req.grantId);

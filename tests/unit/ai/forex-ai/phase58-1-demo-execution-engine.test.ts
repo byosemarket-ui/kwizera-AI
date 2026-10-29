@@ -63,7 +63,9 @@ describe("Phase 58.1 DEMO grant store", () => {
     });
     expect(store.requireActive(g.grantId, "xau / usd", 1).ok).toBe(true);
     expect(store.requireActive(g.grantId, "EUR/USD", 1).ok).toBe(false);
-    expect(store.requireActive(g.grantId, undefined, 1).ok).toBe(false);
+    // Instrument optional for close/cancel grant liveness checks; lots still enforced.
+    expect(store.requireActive(g.grantId, undefined, 1).ok).toBe(true);
+    expect(store.requireActive(g.grantId, undefined, 5).ok).toBe(false);
     // Simulate legacy persisted grant with empty allowlist.
     (g as { instrumentAllowlist: string[] }).instrumentAllowlist = [];
     expect(store.requireActive(g.grantId, "XAU/USD", 1)).toMatchObject({

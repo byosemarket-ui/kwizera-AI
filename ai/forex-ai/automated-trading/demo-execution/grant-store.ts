@@ -237,23 +237,19 @@ export class DemoExecutionGrantStore {
       };
     }
 
+    // Open-market must supply instrument. Close/cancel may omit it and only validate grant liveness;
+    // when instrument is provided it must still match the allowlist.
     const instrumentRaw = instrument != null ? String(instrument).trim() : "";
-    if (!instrumentRaw) {
-      return {
-        ok: false,
-        code: "INSTRUMENT_REQUIRED",
-        error: "Instrument is required to authorize a DEMO grant.",
-      };
-    }
-
-    const want = normalizeGrantInstrument(instrumentRaw);
-    const allowed = allow.some((a) => normalizeGrantInstrument(a) === want);
-    if (!allowed) {
-      return {
-        ok: false,
-        code: "INSTRUMENT_NOT_ALLOWLISTED",
-        error: "Instrument not on DEMO grant allowlist.",
-      };
+    if (instrumentRaw) {
+      const want = normalizeGrantInstrument(instrumentRaw);
+      const allowed = allow.some((a) => normalizeGrantInstrument(a) === want);
+      if (!allowed) {
+        return {
+          ok: false,
+          code: "INSTRUMENT_NOT_ALLOWLISTED",
+          error: "Instrument not on DEMO grant allowlist.",
+        };
+      }
     }
 
     if (lots != null && lots > grant.maxLots) {

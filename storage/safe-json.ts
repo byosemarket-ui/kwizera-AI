@@ -138,3 +138,11 @@ export async function writeJsonAtomic(filePath: string, value: unknown): Promise
   await fs.writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
   await fs.rename(temporaryPath, filePath);
 }
+
+/** Sync atomic write for stores that cannot await (e.g. DEMO lifecycle orchestrator). */
+export function writeJsonAtomicSync(filePath: string, value: unknown): void {
+  fsSync.mkdirSync(path.dirname(filePath), { recursive: true });
+  const temporaryPath = `${filePath}.${createHash("sha1").update(randomUUID()).digest("hex")}.tmp`;
+  fsSync.writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  fsSync.renameSync(temporaryPath, filePath);
+}
