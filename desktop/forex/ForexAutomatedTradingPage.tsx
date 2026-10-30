@@ -396,6 +396,23 @@ export function ForexAutomatedTradingPage(props: {
   } | null>(null);
   const [demoGrantBusy, setDemoGrantBusy] = useState(false);
   const [demoQuoteProbe, setDemoQuoteProbe] = useState<string | null>(null);
+  /** Phase 4.1 — auto-engine dry-run status (never a broker fill claim). */
+  const [autoEngine, setAutoEngine] = useState<{
+    mode?: string;
+    strategyId?: string;
+    instruments?: string[];
+    timeframe?: string;
+    lastTickAtUtc?: string | null;
+    lastPrepareCode?: string | null;
+    blockNewEntries?: boolean;
+    placesOrders?: false;
+    mutatesBroker?: false;
+    note?: string;
+    dailyRiskAuthoritative?: boolean | null;
+    dailyRealizedPnl?: number | null;
+    lastSignalDirection?: string | null;
+    lastSignalCode?: string | null;
+  } | null>(null);
   const seq = useRef(0);
 
   const shellInstrument = fcInstrumentFromMarket(props.selectedMarket ?? null);
@@ -1382,6 +1399,94 @@ export function ForexAutomatedTradingPage(props: {
           </li>
           <li>No one-click execution. Authorization required for any future DEMO phase.</li>
         </ul>
+      </section>
+
+      <section
+        className="fx-auto-trading-panel"
+        data-fx-at-auto-engine="true"
+        aria-label="Automated DEMO engine dry-run status"
+      >
+        <h2 className="fx-auto-trading-panel-title">Auto-engine (Phase 4.1 dry-run)</h2>
+        <p className="fx-auto-trading-hint">
+          {autoEngine?.note
+            ?? "Signal → risk prepare loop. Mutation disabled until separate activation."}
+        </p>
+        <ul className="fx-auto-trading-hint" style={{ margin: "0.35rem 0 0", paddingLeft: "1.1rem" }}>
+          <li>
+            Mode: {autoEngine?.mode ?? "—"} · strategy={autoEngine?.strategyId ?? "—"} · tf=
+            {autoEngine?.timeframe ?? "—"}
+          </li>
+          <li>
+            Instruments: {(autoEngine?.instruments ?? []).join(", ") || "—"} · blockNewEntries=
+            {String(autoEngine?.blockNewEntries ?? true)}
+          </li>
+          <li>
+            Last signal: {autoEngine?.lastSignalDirection ?? "—"}
+            {autoEngine?.lastSignalCode ? ` (${autoEngine.lastSignalCode})` : ""} · prepare=
+            {autoEngine?.lastPrepareCode ?? "—"}
+          </li>
+          <li>
+            Daily risk authoritative: {String(autoEngine?.dailyRiskAuthoritative ?? false)}
+            {autoEngine?.dailyRealizedPnl != null
+              ? ` · day realized PnL=${autoEngine.dailyRealizedPnl}`
+              : ""}
+          </li>
+          <li>
+            placesOrders={String(autoEngine?.placesOrders ?? false)} · mutatesBroker=
+            {String(autoEngine?.mutatesBroker ?? false)} · lastTick=
+            {autoEngine?.lastTickAtUtc ?? "—"}
+          </li>
+        </ul>
+        <button
+          type="button"
+          className="fx-auto-trading-btn"
+          data-fx-at-auto-engine-refresh="true"
+          disabled={busy || !token}
+          onClick={() => {
+            void (async () => {
+              try {
+                const res = await fetch("/api/forex/automated-trading/auto-engine/status", {
+                  headers: adminHeaders(token),
+                });
+                const json = await res.json() as {
+                  ok?: boolean;
+                  engine?: Record<string, unknown>;
+                  dailyRisk?: Record<string, unknown> | null;
+                };
+                if (!res.ok || !json.ok) return;
+                const eng = json.engine ?? {};
+                const daily = (eng.dailyRisk as Record<string, unknown> | null | undefined)
+                  ?? json.dailyRisk
+                  ?? null;
+                const lastSignal = eng.lastSignal as Record<string, unknown> | null | undefined;
+                setAutoEngine({
+                  mode: eng.mode == null ? undefined : String(eng.mode),
+                  strategyId: eng.strategyId == null ? undefined : String(eng.strategyId),
+                  instruments: Array.isArray(eng.instruments) ? eng.instruments.map(String) : [],
+                  timeframe: eng.timeframe == null ? undefined : String(eng.timeframe),
+                  lastTickAtUtc: eng.lastTickAtUtc == null ? null : String(eng.lastTickAtUtc),
+                  lastPrepareCode: eng.lastPrepareCode == null ? null : String(eng.lastPrepareCode),
+                  blockNewEntries: eng.blockNewEntries !== false,
+                  placesOrders: false,
+                  mutatesBroker: false,
+                  note: eng.note == null ? undefined : String(eng.note),
+                  dailyRiskAuthoritative: daily ? Boolean(daily.authoritative) : null,
+                  dailyRealizedPnl: daily && Number.isFinite(Number(daily.realizedPnlAccount))
+                    ? Number(daily.realizedPnlAccount)
+                    : null,
+                  lastSignalDirection: lastSignal?.direction == null
+                    ? null
+                    : String(lastSignal.direction),
+                  lastSignalCode: lastSignal?.code == null ? null : String(lastSignal.code),
+                });
+              } catch {
+                /* keep prior */
+              }
+            })();
+          }}
+        >
+          Refresh auto-engine status
+        </button>
       </section>
 
       <section

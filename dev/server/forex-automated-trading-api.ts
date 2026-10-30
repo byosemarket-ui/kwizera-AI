@@ -517,6 +517,93 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/auto-engine/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const {
+        loadAutoEngineConfig,
+        getDailyRiskStore,
+        getAutoSignalStore,
+        getAutoEngineWorker,
+        SMA_CROSSOVER_RULES,
+      } = await import("../../ai/forex-ai/automated-trading/auto-engine/index.js");
+      const worker = getAutoEngineWorker();
+      sendJson(res, 200, {
+        ok: true,
+        engine: worker?.getStatus() ?? {
+          phase: "4.1",
+          enabled: loadAutoEngineConfig().enabled,
+          mode: loadAutoEngineConfig().mode,
+          strategyId: SMA_CROSSOVER_RULES.strategyId,
+          instruments: loadAutoEngineConfig().instruments,
+          timeframe: loadAutoEngineConfig().timeframe,
+          lastTickAtUtc: null,
+          lastSignal: getAutoSignalStore().list(1)[0] ?? null,
+          lastPrepareCode: null,
+          dailyRisk: getDailyRiskStore().get(),
+          positionReconcileCode: null,
+          blockNewEntries: true,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+          note: "Auto-engine status (idle). Mutation remains disabled.",
+        },
+        strategy: SMA_CROSSOVER_RULES,
+        recentSignals: getAutoSignalStore().list(25),
+        dailyRisk: getDailyRiskStore().get(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        liveUnauthorized: true,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/auto-engine/tick")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      // Dry-run tick only — never submits broker orders.
+      const {
+        AutoEngineWorker,
+        setAutoEngineWorkerForTests,
+        loadAutoEngineConfig,
+      } = await import("../../ai/forex-ai/automated-trading/auto-engine/index.js");
+      const { createProductionAutoEngineDeps } = await import(
+        "../../ai/forex-ai/automated-trading/auto-engine/production-deps.js"
+      );
+      const cfg = loadAutoEngineConfig();
+      if (cfg.mode === "off") {
+        sendJson(res, 200, {
+          ok: false,
+          code: "AUTO_ENGINE_OFF",
+          message: "Set KWIZERA_AUTO_ENGINE_MODE=dry_run to enable prepare-only ticks.",
+          placesOrders: false,
+          mutatesBroker: false,
+        });
+        return true;
+      }
+      const worker = new AutoEngineWorker(createProductionAutoEngineDeps({
+        emergencyEntryLock: true,
+        masterEnable: false,
+      }));
+      setAutoEngineWorkerForTests(worker);
+      const status = await worker.tick();
+      sendJson(res, 200, {
+        ok: true,
+        engine: status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        liveUnauthorized: true,
+        note: "Tick completed in prepare-only mode. No broker mutation was attempted.",
+      });
+      return true;
+    }
+
     if (isAtPath(url.pathname, "/api/forex/automated-trading/audit")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
