@@ -4,12 +4,46 @@
  * Broker submit only via worker armed_execute + submitAuthorized gates.
  */
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
-import { DEMO_OPEN_RISK_DEFAULTS } from "../demo-execution/open-market-risk.js";
+import type { ForexConnectInstrument } from "../../../market-data/forexconnect/types.js";
+import {
+  DEMO_OPEN_RISK_DEFAULTS,
+  countOpenPositionsFromTradesPayload,
+  sumOpenExposureLotsFromTradesPayload,
+  type DemoOpenMarketInstrumentSpecs,
+} from "../demo-execution/open-market-risk.js";
 import { getDemoLifecycleOrchestrator } from "../demo-execution/orchestrator.js";
-import { getDemoExecutionGrantStore } from "../demo-execution/grant-store.js";
+import { getDemoExecutionGrantStore, normalizeGrantInstrument } from "../demo-execution/grant-store.js";
+import { blocksAdditionalDemoEntries } from "../demo-execution/open-fill-assessment.js";
 import { loadAutoEngineConfig } from "./config.js";
 import type { AutoEngineTickDeps } from "./worker.js";
 import type { StrategyCandle } from "./strategy/rules.js";
+
+function selectInstrumentSpecs(
+  instruments: ForexConnectInstrument[],
+  instrument: string,
+): DemoOpenMarketInstrumentSpecs | null {
+  const want = normalizeGrantInstrument(instrument);
+  if (!want || !Array.isArray(instruments)) return null;
+  const row = instruments.find((i) => {
+    const keys = [i.providerSymbol, i.displaySymbol, i.canonicalSymbol]
+      .map((s) => normalizeGrantInstrument(String(s ?? "")));
+    return keys.includes(want);
+  });
+  if (!row) return null;
+  const condStop = row.condDistStop;
+  return {
+    providerSymbol: row.providerSymbol,
+    baseUnitSize: row.baseUnitSize ?? null,
+    pointSize: row.pointSize ?? null,
+    pipCostAccount: row.pipCost ?? null,
+    mmrPerLot: row.mmrPerLot ?? null,
+    condDistStopRaw:
+      condStop != null && Number.isFinite(Number(condStop)) ? Number(condStop) : null,
+    condDistReportedUnit: row.condDistUnit ?? null,
+    condDistMethod: row.condDistMethod ?? null,
+    condDistAvailable: Boolean(row.condDistAvailable),
+  };
+}
 
 function mapCandles(raw: unknown): StrategyCandle[] {
   if (!Array.isArray(raw)) return [];
@@ -95,28 +129,21 @@ export function createProductionAutoEngineDeps(
     },
     async loadAccountRiskContext() {
       const bridge = getForexConnectBridge();
-      const [accounts, trades, closed, status] = await Promise.all([
+      const primaryInstrument = config.instruments[0] ?? "XAU/USD";
+      const [accounts, trades, closed, status, listed] = await Promise.all([
         bridge.listAccounts(),
         bridge.listTrades(),
         bridge.listClosedTrades(),
         bridge.getStatus(),
+        bridge.listInstruments(),
       ]);
-      const acct = accounts.ok && Array.isArray(accounts.accounts) && accounts.accounts[0]
-        ? (accounts.accounts[0] as Record<string, unknown>)
+      const acctRow = accounts.ok && Array.isArray(accounts.accounts) && accounts.accounts[0]
+        ? accounts.accounts[0]
         : null;
-      const equity = acct ? Number(acct.equity ?? acct.Equity) : null;
-      const balance = acct ? Number(acct.balance ?? acct.Balance) : null;
-      const usableMargin = acct
-        ? Number(acct.usableMargin ?? acct.UsableMargin ?? acct.dayPL)
-        : null;
-      // Prefer explicit usableMargin fields when present.
-      const usable = acct
-        ? Number(
-          acct.usableMargin
-            ?? acct.UsableMargin
-            ?? acct.availableMargin
-            ?? acct.AvailableMargin,
-        )
+      const equity = acctRow && Number.isFinite(Number(acctRow.equity)) ? Number(acctRow.equity) : null;
+      const balance = acctRow && Number.isFinite(Number(acctRow.balance)) ? Number(acctRow.balance) : null;
+      const usable = acctRow && Number.isFinite(Number(acctRow.usableMargin))
+        ? Number(acctRow.usableMargin)
         : null;
 
       const openTrades = trades.ok && Array.isArray((trades as { trades?: unknown }).trades)
@@ -158,46 +185,81 @@ export function createProductionAutoEngineDeps(
       const allowRaw = String(process.env.KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION ?? "").trim();
       const allowDemoMutationEnabled = allowRaw === "1" || /^true$/i.test(allowRaw);
 
+      const instruments = listed.ok && Array.isArray(listed.instruments) ? listed.instruments : [];
+      const instrumentSpecs = selectInstrumentSpecs(instruments, primaryInstrument);
+      const tradesPayload = trades as unknown as Record<string, unknown>;
+      const openExposureLots = sumOpenExposureLotsFromTradesPayload(tradesPayload, {
+        instrument: primaryInstrument,
+        baseUnitSize: instrumentSpecs?.baseUnitSize ?? null,
+        scope: "instrument",
+      });
+      const openPositionCount = countOpenPositionsFromTradesPayload(tradesPayload, {
+        instrument: primaryInstrument,
+        scope: "instrument",
+      });
+
+      const orch = getDemoLifecycleOrchestrator();
+      const internalPositions = orch.listInternalPositionsForReconcile();
+      const hasUnresolvedUnprotectedFill = internalPositions.some((p) =>
+        p.blocksAdditionalEntries === true
+        || blocksAdditionalDemoEntries({
+          fillConfirmed: p.fillConfirmed,
+          tradeId: p.tradeId,
+          state: p.blocksAdditionalEntries ? "PROTECTION_FAILED" : "PROTECTED",
+        })
+      );
+
+      const want = config.instruments.map((s) => normalizeGrantInstrument(s));
+      const activeGrant = getDemoExecutionGrantStore().listActive().find((g) =>
+        (g.instrumentAllowlist ?? []).some((i) => want.includes(normalizeGrantInstrument(i)))
+      ) ?? null;
+      const activeGrantId = activeGrant?.grantId ?? null;
+      const grantMaxLots = activeGrant && Number.isFinite(Number(activeGrant.maxLots))
+        ? Number(activeGrant.maxLots)
+        : 1;
+      const entriesUsedInGrant = activeGrantId
+        ? internalPositions.filter((p) =>
+          p.fillConfirmed && want.includes(normalizeGrantInstrument(p.instrument))
+        ).length
+        : 0;
+
       return {
         riskPartial: {
-          requestedAccountId: acct?.accountId == null ? null : String(acct.accountId),
-          account: acct
+          requestedAccountId: acctRow?.accountId ?? null,
+          account: acctRow
             ? {
-              accountId: String(acct.accountId ?? acct.AccountID ?? ""),
-              environment: "demo",
-              accountCurrency: acct.accountCurrency == null && acct.currency == null
-                ? null
-                : String(acct.accountCurrency ?? acct.currency),
-              equity: Number.isFinite(equity) ? equity : null,
-              usableMargin: Number.isFinite(usable) ? usable : (Number.isFinite(usableMargin) ? usableMargin : null),
-              balance: Number.isFinite(balance) ? balance : null,
-              missingFields: [],
+              accountId: String(acctRow.accountId),
+              environment: String(acctRow.environment ?? "demo"),
+              accountCurrency: acctRow.accountCurrency,
+              equity,
+              usableMargin: usable,
+              balance,
+              missingFields: acctRow.missingFields ?? [],
               fetchedAtUtc: accounts.fetchedAt ?? new Date().toISOString(),
+              equityIncludesFloatingPl: acctRow.equityIncludesFloatingPl,
             }
             : null,
           accountFetchOk: Boolean(accounts.ok),
           accountCount: Array.isArray(accounts.accounts) ? accounts.accounts.length : 0,
-          instrumentSpecs: null,
-          openExposureLots: null,
-          openPositionCount: null,
+          instrumentSpecs,
+          openExposureLots,
+          openPositionCount,
           tradesFetchOk: Boolean(trades.ok),
-          hasUnresolvedUnprotectedFill: false,
+          hasUnresolvedUnprotectedFill,
           quoteTimestamp: Date.now(),
           limits: { ...DEMO_OPEN_RISK_DEFAULTS },
         },
-        grantMaxLots: 1,
+        grantMaxLots,
         emergencyEntryLock: options?.emergencyEntryLock !== false,
         masterEnable: options?.masterEnable === true,
         allowDemoMutationEnabled,
-        entriesUsedInGrant: 0,
+        entriesUsedInGrant,
         cooldownUntilMs: 0,
-        accountId: acct?.accountId == null ? null : String(acct.accountId),
-        accountCurrency: acct
-          ? String(acct.accountCurrency ?? acct.currency ?? "")
-          : null,
-        equity: Number.isFinite(equity) ? equity : null,
-        balance: Number.isFinite(balance) ? balance : null,
-        usableMargin: Number.isFinite(usable) ? usable : null,
+        accountId: acctRow?.accountId ?? null,
+        accountCurrency: acctRow?.accountCurrency ?? null,
+        equity,
+        balance,
+        usableMargin: usable,
         accountsFetchedAtUtc: accounts.fetchedAt ?? null,
         dayClosedTrades,
         closedTradesFetchOk: Boolean((closed as { ok?: boolean }).ok),
@@ -212,17 +274,8 @@ export function createProductionAutoEngineDeps(
           lots: Number.isFinite(Number(t.lots)) ? Number(t.lots) : null,
           amount: Number.isFinite(Number(t.amount ?? t.Amount)) ? Number(t.amount ?? t.Amount) : null,
         })).filter((t) => t.tradeId),
-        internalPositions: getDemoLifecycleOrchestrator().listInternalPositionsForReconcile(),
-        activeGrantId: (() => {
-          const active = getDemoExecutionGrantStore().listActive();
-          const want = config.instruments.map((s) => s.replace(/\s+/g, "").toUpperCase());
-          const hit = active.find((g) =>
-            (g.instrumentAllowlist ?? []).some((i) =>
-              want.includes(String(i).replace(/\s+/g, "").toUpperCase())
-            )
-          );
-          return hit?.grantId ?? null;
-        })(),
+        internalPositions,
+        activeGrantId,
       };
     },
   };
