@@ -396,20 +396,28 @@ export function ForexAutomatedTradingPage(props: {
   } | null>(null);
   const [demoGrantBusy, setDemoGrantBusy] = useState(false);
   const [demoQuoteProbe, setDemoQuoteProbe] = useState<string | null>(null);
-  /** Phase 4.1 — auto-engine dry-run status (never a broker fill claim). */
+  /** Phase 4.3 — auto-engine status (submit only when armed_execute gates pass). */
   const [autoEngine, setAutoEngine] = useState<{
     mode?: string;
     strategyId?: string;
     instruments?: string[];
     timeframe?: string;
+    lots?: number | null;
+    continuousEnabled?: boolean;
+    submitAuthorized?: boolean;
+    workerLockHeld?: boolean;
     lastTickAtUtc?: string | null;
     lastPrepareCode?: string | null;
+    lastSubmitCode?: string | null;
+    positionReconcileCode?: string | null;
     blockNewEntries?: boolean;
     placesOrders?: false;
     mutatesBroker?: false;
     note?: string;
     dailyRiskAuthoritative?: boolean | null;
     dailyRealizedPnl?: number | null;
+    dailyUnrealizedPnl?: number | null;
+    accountCurrency?: string | null;
     lastSignalDirection?: string | null;
     lastSignalCode?: string | null;
   } | null>(null);
@@ -1406,29 +1414,39 @@ export function ForexAutomatedTradingPage(props: {
         data-fx-at-auto-engine="true"
         aria-label="Automated DEMO engine dry-run status"
       >
-        <h2 className="fx-auto-trading-panel-title">Auto-engine (Phase 4.1 dry-run)</h2>
+        <h2 className="fx-auto-trading-panel-title">Auto-engine (Phase 4.3)</h2>
         <p className="fx-auto-trading-hint">
           {autoEngine?.note
-            ?? "Signal → risk prepare loop. Mutation disabled until separate activation."}
+            ?? "Signal → risk prepare loop. DEMO submit only when armed_execute gates pass. LIVE locked."}
         </p>
         <ul className="fx-auto-trading-hint" style={{ margin: "0.35rem 0 0", paddingLeft: "1.1rem" }}>
           <li>
             Mode: {autoEngine?.mode ?? "—"} · strategy={autoEngine?.strategyId ?? "—"} · tf=
-            {autoEngine?.timeframe ?? "—"}
+            {autoEngine?.timeframe ?? "—"} · lots={autoEngine?.lots ?? "—"}
           </li>
           <li>
             Instruments: {(autoEngine?.instruments ?? []).join(", ") || "—"} · blockNewEntries=
-            {String(autoEngine?.blockNewEntries ?? true)}
+            {String(autoEngine?.blockNewEntries ?? true)} · reconcile=
+            {autoEngine?.positionReconcileCode ?? "—"}
+          </li>
+          <li>
+            Continuous={String(autoEngine?.continuousEnabled ?? false)} · lockHeld=
+            {String(autoEngine?.workerLockHeld ?? false)} · submitAuthorized=
+            {String(autoEngine?.submitAuthorized ?? false)}
           </li>
           <li>
             Last signal: {autoEngine?.lastSignalDirection ?? "—"}
             {autoEngine?.lastSignalCode ? ` (${autoEngine.lastSignalCode})` : ""} · prepare=
-            {autoEngine?.lastPrepareCode ?? "—"}
+            {autoEngine?.lastPrepareCode ?? "—"} · submit={autoEngine?.lastSubmitCode ?? "—"}
           </li>
           <li>
             Daily risk authoritative: {String(autoEngine?.dailyRiskAuthoritative ?? false)}
+            {autoEngine?.accountCurrency ? ` · ccy=${autoEngine.accountCurrency}` : ""}
             {autoEngine?.dailyRealizedPnl != null
-              ? ` · day realized PnL=${autoEngine.dailyRealizedPnl}`
+              ? ` · day realized=${autoEngine.dailyRealizedPnl}`
+              : ""}
+            {autoEngine?.dailyUnrealizedPnl != null
+              ? ` · unrealized=${autoEngine.dailyUnrealizedPnl}`
               : ""}
           </li>
           <li>
@@ -1464,8 +1482,16 @@ export function ForexAutomatedTradingPage(props: {
                   strategyId: eng.strategyId == null ? undefined : String(eng.strategyId),
                   instruments: Array.isArray(eng.instruments) ? eng.instruments.map(String) : [],
                   timeframe: eng.timeframe == null ? undefined : String(eng.timeframe),
+                  lots: Number.isFinite(Number(eng.lots)) ? Number(eng.lots) : null,
+                  continuousEnabled: eng.continuousEnabled === true,
+                  submitAuthorized: eng.submitAuthorized === true,
+                  workerLockHeld: eng.workerLockHeld === true,
                   lastTickAtUtc: eng.lastTickAtUtc == null ? null : String(eng.lastTickAtUtc),
                   lastPrepareCode: eng.lastPrepareCode == null ? null : String(eng.lastPrepareCode),
+                  lastSubmitCode: eng.lastSubmitCode == null ? null : String(eng.lastSubmitCode),
+                  positionReconcileCode: eng.positionReconcileCode == null
+                    ? null
+                    : String(eng.positionReconcileCode),
                   blockNewEntries: eng.blockNewEntries !== false,
                   placesOrders: false,
                   mutatesBroker: false,
@@ -1474,6 +1500,12 @@ export function ForexAutomatedTradingPage(props: {
                   dailyRealizedPnl: daily && Number.isFinite(Number(daily.realizedPnlAccount))
                     ? Number(daily.realizedPnlAccount)
                     : null,
+                  dailyUnrealizedPnl: daily && Number.isFinite(Number(daily.unrealizedPnlAccount))
+                    ? Number(daily.unrealizedPnlAccount)
+                    : null,
+                  accountCurrency: daily?.accountCurrency == null
+                    ? null
+                    : String(daily.accountCurrency),
                   lastSignalDirection: lastSignal?.direction == null
                     ? null
                     : String(lastSignal.direction),
