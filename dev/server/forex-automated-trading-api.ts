@@ -1689,6 +1689,21 @@ export async function handleForexAutomatedTradingApi(
           return true;
         }
         const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+        const idempotencyKey = String(body.idempotencyKey ?? "").trim();
+        if (!idempotencyKey) {
+          // Never invent keys — Date.now() fallbacks break duplicate-submit protection.
+          sendJson(res, 400, {
+            ok: false,
+            error: {
+              code: "IDEMPOTENCY_KEY_REQUIRED",
+              message: "idempotencyKey is required for DEMO open-market submissions.",
+            },
+            placesOrders: false,
+            acceptsForExecution: false,
+            liveUnauthorized: true,
+          });
+          return true;
+        }
         const directionRaw = String(body.direction ?? body.buySell ?? "").toUpperCase();
         const direction = directionRaw === "SELL" ? "SELL" as const : directionRaw === "BUY" ? "BUY" as const : null;
         if (!direction) {
@@ -1696,6 +1711,20 @@ export async function handleForexAutomatedTradingApi(
             ok: false,
             error: { code: "INVALID_DIRECTION", message: "direction must be BUY or SELL." },
             placesOrders: false,
+          });
+          return true;
+        }
+        const lots = Number(body.lots);
+        if (!Number.isInteger(lots) || lots < 1) {
+          sendJson(res, 400, {
+            ok: false,
+            error: {
+              code: "LOTS_INVALID",
+              message: "lots must be an explicit integer >= 1 (no silent default/coercion).",
+            },
+            placesOrders: false,
+            acceptsForExecution: false,
+            liveUnauthorized: true,
           });
           return true;
         }
@@ -1712,7 +1741,7 @@ export async function handleForexAutomatedTradingApi(
           grantId: String(body.grantId ?? "").trim(),
           instrument: String(body.instrument ?? "").trim(),
           direction,
-          lots: Math.max(1, Math.floor(Number(body.lots ?? 1))),
+          lots,
           accountId: body.accountId == null ? null : String(body.accountId),
           requireProtective: body.requireProtective === true,
           stopLoss: Number.isFinite(stopLoss as number) ? (stopLoss as number) : null,
@@ -1721,7 +1750,7 @@ export async function handleForexAutomatedTradingApi(
           attachProtectiveAfterFill: body.attachProtectiveAfterFill !== false,
           // Opt-in only; default false aligns with evaluateUnprotectedFillPolicy.
           closeIfUnprotected: body.closeIfUnprotected === true,
-          idempotencyKey: String(body.idempotencyKey ?? "").trim() || `demo_open_${Date.now()}`,
+          idempotencyKey,
           sourceDecisionId: body.sourceDecisionId == null ? null : String(body.sourceDecisionId),
           sourceAnalysisId: body.sourceAnalysisId == null ? null : String(body.sourceAnalysisId),
           sourceDraftId: body.sourceDraftId == null ? null : String(body.sourceDraftId),
@@ -1746,13 +1775,27 @@ export async function handleForexAutomatedTradingApi(
         const amount = amountRaw == null || amountRaw === ""
           ? null
           : Math.floor(Number(amountRaw));
+        const closeIdempotencyKey = String(body.idempotencyKey ?? "").trim();
+        if (!closeIdempotencyKey) {
+          sendJson(res, 400, {
+            ok: false,
+            error: {
+              code: "IDEMPOTENCY_KEY_REQUIRED",
+              message: "idempotencyKey is required for DEMO close-trade submissions.",
+            },
+            placesOrders: false,
+            acceptsForExecution: false,
+            liveUnauthorized: true,
+          });
+          return true;
+        }
         const result = await orch.closeTrade({
           grantId: String(body.grantId ?? "").trim(),
           tradeId: String(body.tradeId ?? "").trim(),
           instrument: body.instrument == null ? null : String(body.instrument),
           accountId: body.accountId == null ? null : String(body.accountId),
           amount: Number.isFinite(amount as number) && (amount as number) > 0 ? (amount as number) : null,
-          idempotencyKey: String(body.idempotencyKey ?? "").trim() || `demo_close_${Date.now()}`,
+          idempotencyKey: closeIdempotencyKey,
         });
         sendJson(res, result.ok ? 200 : 422, {
           ...result,
@@ -1769,11 +1812,25 @@ export async function handleForexAutomatedTradingApi(
           return true;
         }
         const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+        const cancelIdempotencyKey = String(body.idempotencyKey ?? "").trim();
+        if (!cancelIdempotencyKey) {
+          sendJson(res, 400, {
+            ok: false,
+            error: {
+              code: "IDEMPOTENCY_KEY_REQUIRED",
+              message: "idempotencyKey is required for DEMO cancel-pending submissions.",
+            },
+            placesOrders: false,
+            acceptsForExecution: false,
+            liveUnauthorized: true,
+          });
+          return true;
+        }
         const result = await orch.cancelPending({
           grantId: String(body.grantId ?? "").trim(),
           brokerOrderId: String(body.brokerOrderId ?? body.orderId ?? "").trim(),
           accountId: body.accountId == null ? null : String(body.accountId),
-          idempotencyKey: String(body.idempotencyKey ?? "").trim() || `demo_cancel_${Date.now()}`,
+          idempotencyKey: cancelIdempotencyKey,
         });
         sendJson(res, result.ok ? 200 : 422, {
           ...result,

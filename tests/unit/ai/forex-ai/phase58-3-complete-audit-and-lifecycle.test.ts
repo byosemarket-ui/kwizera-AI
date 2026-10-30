@@ -42,6 +42,16 @@ describe("Phase 58.3 wiring", () => {
     expect(api).toContain("placesOrders: false");
   });
 
+  it("API requires client idempotencyKey and rejects invented Date.now fallbacks", () => {
+    const api = read("dev/server/forex-automated-trading-api.ts");
+    expect(api).not.toMatch(/demo_open_\$\{Date\.now\(\)\}/);
+    expect(api).not.toMatch(/demo_close_\$\{Date\.now\(\)\}/);
+    expect(api).not.toMatch(/demo_cancel_\$\{Date\.now\(\)\}/);
+    expect(api).not.toContain("Math.max(1, Math.floor(Number(body.lots ?? 1)))");
+    expect(api).toContain('code: "IDEMPOTENCY_KEY_REQUIRED"');
+    expect(api).toContain('code: "LOTS_INVALID"');
+  });
+
   it("Node bridge exposes cancel and offer-quote", () => {
     const client = read("ai/market-data/forexconnect/client.ts");
     expect(client).toContain("demoMutationCancelPending");

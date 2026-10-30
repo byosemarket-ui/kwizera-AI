@@ -28,6 +28,11 @@ import {
   type DemoOpenMarketInstrumentSpecs,
 } from "./open-market-risk.js";
 import {
+  assessOpenFillAmount,
+  blocksAdditionalDemoEntries,
+} from "./open-fill-assessment.js";
+import { emitCriticalAlert } from "./critical-alert.js";
+import {
   buildDemoReadinessComponents,
   evaluateDemoGrantCoverage,
   groupDemoReadinessBlockers,
@@ -920,13 +925,7 @@ export class DemoLifecycleOrchestrator {
       req.entryHint != null && Number.isFinite(req.entryHint)
         ? Number(req.entryHint)
         : preflight.entryHintUsed;
-    const hasUnresolvedUnprotectedFill = this.records.some(
-      (r) =>
-        r.state === "PROTECTION_FAILED"
-        && r.fillConfirmed
-        && r.tradeId
-        && (r.remainingAmount == null || Number(r.remainingAmount) > 0),
-    );
+    const hasUnresolvedUnprotectedFill = this.records.some((r) => blocksAdditionalDemoEntries(r));
     const riskLimitsLoad = loadDemoOpenMarketRiskLimitsDetailed();
     const risk = evaluateDemoOpenMarketRisk({
       instrument: req.instrument,
@@ -1006,14 +1005,32 @@ export class DemoLifecycleOrchestrator {
     }
 
     const trade = result.trade;
+    let fillAssessment: ReturnType<typeof assessOpenFillAmount> | null = null;
     if (trade && trade.tradeId) {
       base.tradeId = String(trade.tradeId);
       base.fillConfirmed = true;
       base.state = "POSITION_OPEN";
       if (trade.amount != null) base.remainingAmount = Number(trade.amount);
+      fillAssessment = assessOpenFillAmount({
+        requestedLots: req.lots,
+        baseUnitSize: specs?.baseUnitSize ?? null,
+        filledAmount: trade.amount == null ? null : Number(trade.amount),
+      });
+      base.evidence = { ...base.evidence, fillAssessment };
+      if (!fillAssessment.ok) {
+        // Fail closed: do not invent a successful full-fill state for partial/unknown amounts.
+        // Streaming multi-partial fills are not supported by this orchestrator.
+        base.state = "RECONCILIATION_REQUIRED";
+        base.lastCode = fillAssessment.code;
+        base.lastError = fillAssessment.message;
+      }
     } else {
       base.fillConfirmed = false;
       base.state = "ACCEPTED_PENDING";
+      base.lastCode = result.code || "ACCEPTED_PENDING_UNCONFIRMED";
+      base.lastError =
+        "Broker open returned without a confirmed tradeId/fill. "
+        + "Do not treat as a filled position; reconcile before retrying.";
     }
 
     let brokerProtected = Boolean(result.brokerProtected);
@@ -1064,11 +1081,23 @@ export class DemoLifecycleOrchestrator {
         + (shouldClose
           ? " Closing unprotected DEMO trade (explicit opt-in)."
           : " Leaving position open; block additional entries; owner incident policy required.");
+      const criticalAlert = unprotectedPolicy.raiseCriticalAlert
+        ? await emitCriticalAlert({
+          code: unprotectedPolicy.code,
+          message: unprotectedPolicy.message,
+          lifecycleId: base.lifecycleId,
+          tradeId: base.tradeId,
+          instrument: req.instrument,
+          dedupeKey: `unprotected:${base.tradeId || base.lifecycleId}`,
+          evidence: { state: base.state, brokerProtected, fillAssessment },
+        })
+        : null;
       base.evidence = {
         ...base.evidence,
         unprotectedFillPolicy: unprotectedPolicy,
         blockAdditionalEntries: unprotectedPolicy.blockAdditionalEntries,
         raiseCriticalAlert: unprotectedPolicy.raiseCriticalAlert,
+        criticalAlert,
         autonomousCloseAuthorized: unprotectedPolicy.autonomousCloseAuthorized,
         closeIfUnprotectedRequested: req.closeIfUnprotected === true,
       };
@@ -1104,6 +1133,30 @@ export class DemoLifecycleOrchestrator {
       };
     }
 
+    // Preserve fill-amount fail-closed state; do not overwrite with PROTECTED/POSITION_OPEN.
+    if (fillAssessment && !fillAssessment.ok) {
+      base.state = "RECONCILIATION_REQUIRED";
+      base.lastCode = fillAssessment.code;
+      base.lastError = fillAssessment.message;
+      const criticalAlert = await emitCriticalAlert({
+        code: fillAssessment.code,
+        message: fillAssessment.message,
+        lifecycleId: base.lifecycleId,
+        tradeId: base.tradeId,
+        instrument: req.instrument,
+        dedupeKey: `fill-mismatch:${base.tradeId || base.lifecycleId}`,
+        evidence: { fillAssessment, brokerProtected },
+      });
+      base.evidence = { ...base.evidence, criticalAlert };
+      this.upsert(base);
+      return {
+        ok: false,
+        code: fillAssessment.code,
+        error: fillAssessment.message,
+        record: base,
+      };
+    }
+
     if (brokerProtected) {
       base.state = "PROTECTED";
       base.protectionStatus = "BROKER_CONFIRMED";
@@ -1112,6 +1165,16 @@ export class DemoLifecycleOrchestrator {
     }
 
     this.upsert(base);
+    // Unconfirmed fills must not be reported as successful opens (idempotency still blocks resubmit).
+    if (!base.fillConfirmed || base.state === "ACCEPTED_PENDING") {
+      return {
+        ok: false,
+        code: base.lastCode ?? "ACCEPTED_PENDING_UNCONFIRMED",
+        error: base.lastError
+          ?? "Open remains unconfirmed; reconcile broker state before treating as success.",
+        record: base,
+      };
+    }
     return { ok: true, code: result.code, error: null, record: base };
   }
 
@@ -1165,11 +1228,12 @@ export class DemoLifecycleOrchestrator {
       instrument: req.instrument,
       lots: null,
     });
-    if (!ready.mayAttemptDemoMutation) {
+    // Close must require close-surface readiness, not open+protective submission gates.
+    if (!ready.mayAttemptDemoClose) {
       const primary = primaryDemoReadinessBlocker(ready.blockers);
       rec.state = "MUTATION_DISABLED";
       rec.lastCode = primary;
-      rec.lastError = `DEMO mutation readiness failed: ${(ready.blockers as string[]).join(",")}`;
+      rec.lastError = `DEMO close readiness failed: ${(ready.blockers as string[]).join(",")}`;
       rec.evidence = { ...rec.evidence, readiness: ready, readinessPrimaryBlocker: primary };
       this.upsert(rec);
       return { ok: false, code: rec.lastCode, error: rec.lastError, record: rec };
@@ -1255,11 +1319,12 @@ export class DemoLifecycleOrchestrator {
     }
 
     const ready = await this.readiness();
-    if (!ready.mayAttemptDemoMutation) {
+    // Cancel must require cancel-surface readiness, not open+protective submission gates.
+    if (!ready.mayAttemptDemoCancel) {
       const primary = primaryDemoReadinessBlocker(ready.blockers);
       rec.state = "MUTATION_DISABLED";
       rec.lastCode = primary;
-      rec.lastError = `DEMO mutation readiness failed: ${(ready.blockers as string[]).join(",")}`;
+      rec.lastError = `DEMO cancel readiness failed: ${(ready.blockers as string[]).join(",")}`;
       rec.evidence = { ...rec.evidence, readiness: ready, readinessPrimaryBlocker: primary };
       this.upsert(rec);
       return { ok: false, code: rec.lastCode, error: rec.lastError, record: rec };

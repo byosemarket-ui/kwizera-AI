@@ -4,5 +4,7 @@ export * from "./preflight.js";
 export * from "./forexconnect-mutation-adapter.js";
 export * from "./readiness-blockers.js";
 export * from "./open-market-risk.js";
+export * from "./open-fill-assessment.js";
+export * from "./critical-alert.js";
 export * from "./orchestrator.js";
 export * from "./auto-grant-lifecycle.js";
