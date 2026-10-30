@@ -51,7 +51,8 @@ export const PROPOSED_BOUNDED_DEMO_ACTIVATION = {
     "Does not authorize LIVE trading.",
     "Does not auto-enable mutation when imported.",
     "Day PnL and day-start equity telemetry must be authoritative before daily-loss/drawdown gates can pass.",
-    "Phase 4.1 auto-engine runs signal→prepare in dry_run only; broker submit still requires separate activation.",
+    "Phase 4.3 auto-engine may submit only when mode=armed_execute, submitAuthorized=1, DEMO mutation enabled, active grant, authoritative daily-risk, and reconcile clear.",
+    "Continuous worker requires KWIZERA_AUTO_ENGINE_CONTINUOUS=1 plus cross-process file lock ownership.",
     "Strategy kwizera.sma-crossover.v1 is plumbing/demo rules — no profitability claim.",
   ] as readonly string[],
 } as const;

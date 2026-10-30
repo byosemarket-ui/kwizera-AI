@@ -273,6 +273,31 @@ describe("Phase 61.0 prepare-entry + position reconcile + fills", () => {
     expect(r.blockers).toContain("BROKER_DISCONNECTED");
   });
 
+  it("blocks when internal filled trade is missing at broker (Phase 4.2 regression)", () => {
+    const r = reconcilePositions({
+      brokerConnected: true,
+      tradesFetchOk: true,
+      internal: [
+        {
+          lifecycleId: "L2",
+          instrument: "XAU/USD",
+          tradeId: "TX-MISSING",
+          direction: "BUY",
+          lots: 1,
+          protectionStatus: "CONFIRMED",
+          fillConfirmed: true,
+          blocksAdditionalEntries: false,
+        },
+      ],
+      broker: [],
+      allowlistInstruments: ["XAU/USD"],
+    });
+    expect(r.ok).toBe(false);
+    expect(r.blockNewEntries).toBe(true);
+    expect(r.blockers).toContain("MISSING_BROKER_POSITION");
+    expect(r.missingBrokerTradeIds).toContain("TX-MISSING");
+  });
+
   it("aggregates partial fills with duplicate suppression and fail-closed incomplete streams", () => {
     const incomplete = accumulateFillEvents({
       events: [
@@ -298,88 +323,189 @@ describe("Phase 61.0 prepare-entry + position reconcile + fills", () => {
   });
 });
 
+function makeWorkerDeps(): ConstructorParameters<typeof AutoEngineWorker>[0] {
+  return {
+    config: {
+      enabled: true,
+      mode: "dry_run",
+      instruments: ["XAU/USD"],
+      timeframe: "15m",
+      lots: 0.01,
+      pollIntervalMs: 30_000,
+      strategyId: SMA_CROSSOVER_RULES.strategyId,
+      maxSpread: null,
+      sessionUtcStartMinute: 0,
+      sessionUtcEndMinute: 24 * 60,
+      continuousEnabled: false,
+      submitAuthorized: false,
+      placesOrders: false,
+      acceptsForExecution: false,
+      mutatesBroker: false,
+    },
+    nowMs: Date.UTC(2026, 0, 1, 12, 0, 0),
+    loadCandles: async () => makeTrendCandles(40),
+    loadPointSize: async () => 0.01,
+    loadQuoteMeta: async () => ({ ageMs: 500, spread: 0.2 }),
+    loadAccountRiskContext: async () => ({
+      riskPartial: {
+        requestedAccountId: null,
+        account: {
+          accountId: "a1",
+          environment: "demo",
+          accountCurrency: "USD",
+          equity: 10_000,
+          usableMargin: 8_000,
+          balance: 10_000,
+          missingFields: [],
+          fetchedAtUtc: new Date(Date.UTC(2026, 0, 1, 12, 0, 0)).toISOString(),
+        },
+        accountFetchOk: true,
+        accountCount: 1,
+        instrumentSpecs: {
+          providerSymbol: "XAU/USD",
+          baseUnitSize: 1,
+          pointSize: 0.01,
+          pipCostAccount: 0.01,
+          mmrPerLot: 100,
+          condDistStopRaw: 0,
+          condDistReportedUnit: "pips",
+          condDistMethod: "getCondDistStopForTrade",
+          condDistAvailable: true,
+        },
+        openExposureLots: 0,
+        openPositionCount: 0,
+        tradesFetchOk: true,
+        hasUnresolvedUnprotectedFill: false,
+        quoteTimestamp: Date.UTC(2026, 0, 1, 12, 0, 0),
+        limits: { ...DEMO_OPEN_RISK_DEFAULTS, cooldownAfterLossMs: 0 },
+      },
+      grantMaxLots: 1,
+      emergencyEntryLock: true,
+      masterEnable: false,
+      allowDemoMutationEnabled: false,
+      entriesUsedInGrant: 0,
+      cooldownUntilMs: 0,
+      accountId: "a1",
+      accountCurrency: "USD",
+      equity: 10_000,
+      balance: 10_000,
+      usableMargin: 8_000,
+      accountsFetchedAtUtc: new Date(Date.UTC(2026, 0, 1, 12, 0, 0)).toISOString(),
+      dayClosedTrades: [],
+      closedTradesFetchOk: true,
+      closedTradesFetchedAtUtc: new Date(Date.UTC(2026, 0, 1, 12, 0, 0)).toISOString(),
+      openUnrealizedPnl: 0,
+      openTradesFetchOk: true,
+      openTradesFetchedAtUtc: new Date(Date.UTC(2026, 0, 1, 12, 0, 0)).toISOString(),
+      brokerConnected: true,
+      brokerPositions: [],
+      internalPositions: [],
+      activeGrantId: null,
+    }),
+  };
+}
+
 describe("Phase 61.0 auto-engine worker dry-run tick", () => {
   it("ticks without placing orders", async () => {
-    const worker = new AutoEngineWorker({
-      config: {
-        enabled: true,
-        mode: "dry_run",
-        instruments: ["XAU/USD"],
-        timeframe: "15m",
-        lots: 1,
-        pollIntervalMs: 30_000,
-        strategyId: SMA_CROSSOVER_RULES.strategyId,
-        maxSpread: null,
-        sessionUtcStartMinute: 0,
-        sessionUtcEndMinute: 24 * 60,
-        placesOrders: false,
-        acceptsForExecution: false,
-        mutatesBroker: false,
-      },
-      nowMs: Date.UTC(2026, 0, 1, 12, 0, 0),
-      loadCandles: async () => makeTrendCandles(40),
-      loadPointSize: async () => 0.01,
-      loadQuoteMeta: async () => ({ ageMs: 500, spread: 0.2 }),
-      loadAccountRiskContext: async () => ({
-        riskPartial: {
-          requestedAccountId: null,
-          account: {
-            accountId: "a1",
-            environment: "demo",
-            accountCurrency: "USD",
-            equity: 10_000,
-            usableMargin: 8_000,
-            balance: 10_000,
-            missingFields: [],
-            fetchedAtUtc: new Date(Date.UTC(2026, 0, 1, 12, 0, 0)).toISOString(),
-          },
-          accountFetchOk: true,
-          accountCount: 1,
-          instrumentSpecs: {
-            providerSymbol: "XAU/USD",
-            baseUnitSize: 1,
-            pointSize: 0.01,
-            pipCostAccount: 0.01,
-            mmrPerLot: 100,
-            condDistStopRaw: 0,
-            condDistReportedUnit: "pips",
-            condDistMethod: "getCondDistStopForTrade",
-            condDistAvailable: true,
-          },
-          openExposureLots: 0,
-          openPositionCount: 0,
-          tradesFetchOk: true,
-          hasUnresolvedUnprotectedFill: false,
-          quoteTimestamp: Date.UTC(2026, 0, 1, 12, 0, 0),
-          limits: { ...DEMO_OPEN_RISK_DEFAULTS, cooldownAfterLossMs: 0 },
-        },
-        grantMaxLots: 1,
-        emergencyEntryLock: true,
-        masterEnable: false,
-        allowDemoMutationEnabled: false,
-        entriesUsedInGrant: 0,
-        cooldownUntilMs: 0,
-        accountId: "a1",
-        accountCurrency: "USD",
-        equity: 10_000,
-        balance: 10_000,
-        usableMargin: 8_000,
-        accountsFetchedAtUtc: new Date(Date.UTC(2026, 0, 1, 12, 0, 0)).toISOString(),
-        dayClosedTrades: [],
-        closedTradesFetchOk: true,
-        closedTradesFetchedAtUtc: new Date(Date.UTC(2026, 0, 1, 12, 0, 0)).toISOString(),
-        openUnrealizedPnl: 0,
-        openTradesFetchOk: true,
-        openTradesFetchedAtUtc: new Date(Date.UTC(2026, 0, 1, 12, 0, 0)).toISOString(),
-        brokerConnected: true,
-        brokerPositions: [],
-        internalPositions: [],
-      }),
-    });
+    const worker = new AutoEngineWorker(makeWorkerDeps());
     const status = await worker.tick();
     expect(status.placesOrders).toBe(false);
     expect(status.mutatesBroker).toBe(false);
-    expect(status.phase).toBe("4.1");
+    expect(status.phase).toBe("4.3");
     expect(status.dailyRisk?.authoritative).toBe(true);
+  });
+
+  it("skips overlapping concurrent ticks (Phase 4.2 regression)", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    let accountLoads = 0;
+    const worker = new AutoEngineWorker({
+      ...makeWorkerDeps(),
+      loadAccountRiskContext: async () => {
+        accountLoads += 1;
+        await gate;
+        return makeWorkerDeps().loadAccountRiskContext();
+      },
+    });
+    const first = worker.tick();
+    // Allow first tick to enter tickInFlight before second call.
+    await Promise.resolve();
+    const second = await worker.tick();
+    expect(second.note).toMatch(/overlapping tick/i);
+    expect(second.placesOrders).toBe(false);
+    expect(second.mutatesBroker).toBe(false);
+    release();
+    const firstStatus = await first;
+    expect(firstStatus.placesOrders).toBe(false);
+    expect(accountLoads).toBe(1);
+    expect(worker.start().code).toBe("CONTINUOUS_NOT_ENABLED");
+    worker.stop();
+  });
+});
+
+describe("Phase 4.3 worker lock + submit gates", () => {
+  it("acquires exclusive file lock and rejects second owner", async () => {
+    const { tryAcquireAutoEngineWorkerLock } = await import(
+      "../../../../ai/forex-ai/automated-trading/auto-engine/worker-lock.js"
+    );
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kw-lock-"));
+    const lockPath = path.join(dir, "worker.lock.json");
+    const a = tryAcquireAutoEngineWorkerLock({ ownerId: "owner-a", path: lockPath, staleMs: 60_000 });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    const b = tryAcquireAutoEngineWorkerLock({ ownerId: "owner-b", path: lockPath, staleMs: 60_000 });
+    expect(b.ok).toBe(false);
+    if (!b.ok) expect(b.code).toBe("WORKER_LOCK_HELD");
+    a.handle.release();
+    const c = tryAcquireAutoEngineWorkerLock({ ownerId: "owner-c", path: lockPath, staleMs: 60_000 });
+    expect(c.ok).toBe(true);
+    if (c.ok) c.handle.release();
+  });
+
+  it("refuses DEMO submit when gates are not satisfied", async () => {
+    const { submitPreparedDemoEntry } = await import(
+      "../../../../ai/forex-ai/automated-trading/auto-engine/orchestration/submit-prepared-entry.js"
+    );
+    const denied = await submitPreparedDemoEntry({
+      prepared: {
+        ok: true,
+        code: "ENTRY_PREPARED_DRY_RUN",
+        blockers: [],
+        maySubmitDemoMutation: false,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        mode: "armed_prepare_only",
+        signalId: "sig-x",
+        risk: null,
+        prepared: {
+          instrument: "XAU/USD",
+          direction: "BUY",
+          lots: 0.01,
+          stopLoss: 3900,
+          takeProfit: 4000,
+          entryPrice: 3950,
+          requireProtective: true,
+        },
+        note: "test",
+      },
+      dailyRisk: null,
+      grantId: "missing-grant",
+      allowDemoMutationEnabled: false,
+      emergencyEntryLock: true,
+      masterEnable: false,
+      reconcileBlockNewEntries: false,
+      submitAuthorized: false,
+      orchestrator: {
+        openMarket: async () => {
+          throw new Error("openMarket must not be called");
+        },
+      },
+    });
+    expect(denied.submitted).toBe(false);
+    expect(denied.code).toBe("SUBMIT_NOT_AUTHORIZED");
+    expect(denied.placesOrders).toBe(false);
   });
 });

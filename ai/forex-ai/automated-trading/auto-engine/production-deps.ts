@@ -1,9 +1,12 @@
 /**
  * Production deps for auto-engine ticks.
- * Read-only ForexConnect + local stores only. Never opens/closes/cancels.
+ * Read-only ForexConnect + local stores by default.
+ * Broker submit only via worker armed_execute + submitAuthorized gates.
  */
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
 import { DEMO_OPEN_RISK_DEFAULTS } from "../demo-execution/open-market-risk.js";
+import { getDemoLifecycleOrchestrator } from "../demo-execution/orchestrator.js";
+import { getDemoExecutionGrantStore } from "../demo-execution/grant-store.js";
 import { loadAutoEngineConfig } from "./config.js";
 import type { AutoEngineTickDeps } from "./worker.js";
 import type { StrategyCandle } from "./strategy/rules.js";
@@ -39,6 +42,7 @@ export function createProductionAutoEngineDeps(
   const config = loadAutoEngineConfig();
   return {
     config,
+    getOrchestrator: () => getDemoLifecycleOrchestrator(),
     async loadCandles(instrument, timeframe) {
       const bridge = getForexConnectBridge();
       try {
@@ -208,7 +212,17 @@ export function createProductionAutoEngineDeps(
           lots: Number.isFinite(Number(t.lots)) ? Number(t.lots) : null,
           amount: Number.isFinite(Number(t.amount ?? t.Amount)) ? Number(t.amount ?? t.Amount) : null,
         })).filter((t) => t.tradeId),
-        internalPositions: [],
+        internalPositions: getDemoLifecycleOrchestrator().listInternalPositionsForReconcile(),
+        activeGrantId: (() => {
+          const active = getDemoExecutionGrantStore().listActive();
+          const want = config.instruments.map((s) => s.replace(/\s+/g, "").toUpperCase());
+          const hit = active.find((g) =>
+            (g.instrumentAllowlist ?? []).some((i) =>
+              want.includes(String(i).replace(/\s+/g, "").toUpperCase())
+            )
+          );
+          return hit?.grantId ?? null;
+        })(),
       };
     },
   };

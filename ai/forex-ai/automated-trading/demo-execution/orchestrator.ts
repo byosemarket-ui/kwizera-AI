@@ -358,6 +358,70 @@ export class DemoLifecycleOrchestrator {
     return getDemoExecutionGrantStore().revoke(grantId);
   }
 
+  /** Open/uncertain lifecycle rows for broker reconciliation (read-only). */
+  listInternalPositionsForReconcile(): Array<{
+    lifecycleId: string;
+    instrument: string;
+    tradeId: string | null;
+    direction: "BUY" | "SELL" | null;
+    lots: number | null;
+    protectionStatus: string | null;
+    fillConfirmed: boolean;
+    blocksAdditionalEntries: boolean;
+  }> {
+    const terminal = new Set([
+      "CLOSED",
+      "CANCELLED",
+      "VALIDATION_FAILED",
+      "AUTHORIZATION_REJECTED",
+      "ENVIRONMENT_MISMATCH",
+      "MUTATION_DISABLED",
+      "BROKER_REJECTED",
+      "EXECUTION_DISABLED",
+      "IDLE",
+    ]);
+    return this.records
+      .filter((r) => {
+        if (terminal.has(String(r.state))) return false;
+        if (r.fillConfirmed && !r.closeConfirmed) return true;
+        return [
+          "SUBMITTING",
+          "SUBMISSION_UNKNOWN",
+          "ACCEPTED_PENDING",
+          "FILLED",
+          "POSITION_OPEN",
+          "PROTECTION_PENDING",
+          "PROTECTED",
+          "PROTECTION_UNSUPPORTED",
+          "PROTECTION_FAILED",
+          "CLOSE_PENDING",
+          "PARTIALLY_CLOSED",
+          "RECONCILIATION_REQUIRED",
+          "CANCEL_PENDING",
+        ].includes(String(r.state));
+      })
+      .map((r) => {
+        const prot = String(r.protectionStatus ?? "").toUpperCase();
+        const protectionOk = prot === "BROKER_CONFIRMED" || prot === "CONFIRMED" || prot === "ATTACHED" || prot === "RECONCILED";
+        return {
+          lifecycleId: r.lifecycleId,
+          instrument: String(r.instrument ?? ""),
+          tradeId: r.tradeId,
+          direction: r.direction,
+          lots: r.lots,
+          protectionStatus: protectionOk ? "CONFIRMED" : (r.protectionStatus ?? "FAILED"),
+          fillConfirmed: r.fillConfirmed === true,
+          blocksAdditionalEntries:
+            r.protectionStatus === "FAILED"
+            || r.protectionStatus === "CLOSED_UNPROTECTED"
+            || r.state === "PROTECTION_FAILED"
+            || r.state === "RECONCILIATION_REQUIRED"
+            || r.state === "SUBMISSION_UNKNOWN"
+            || (r.fillConfirmed === true && r.brokerProtected !== true && r.protectionStatus !== "NOT_REQUESTED"),
+        };
+      });
+  }
+
   async readiness(opts?: {
     instrument?: string | null;
     lots?: number | null;

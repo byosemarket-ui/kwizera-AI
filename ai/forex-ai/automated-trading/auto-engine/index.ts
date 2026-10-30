@@ -10,5 +10,7 @@ export * from "./orchestration/prepare-entry.js";
 export * from "./position-monitor/reconcile.js";
 export * from "./lifecycle/fill-event-accumulator.js";
 export * from "./config.js";
+export * from "./worker-lock.js";
 export * from "./worker.js";
+export * from "./orchestration/submit-prepared-entry.js";
 export { createProductionAutoEngineDeps } from "./production-deps.js";

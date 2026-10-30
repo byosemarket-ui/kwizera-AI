@@ -587,7 +587,8 @@ export async function handleForexAutomatedTradingApi(
         return true;
       }
       const worker = new AutoEngineWorker(createProductionAutoEngineDeps({
-        emergencyEntryLock: true,
+        // Tick endpoint stays prepare-safe unless env already authorizes armed_execute.
+        emergencyEntryLock: cfg.mode === "armed_execute" && cfg.submitAuthorized ? false : true,
         masterEnable: false,
       }));
       setAutoEngineWorkerForTests(worker);
@@ -599,7 +600,90 @@ export async function handleForexAutomatedTradingApi(
         acceptsForExecution: false,
         mutatesBroker: false,
         liveUnauthorized: true,
-        note: "Tick completed in prepare-only mode. No broker mutation was attempted.",
+        note: cfg.mode === "armed_execute" && cfg.submitAuthorized
+          ? "Tick completed under armed_execute. Submit only occurs when grant + mutation + daily-risk + reconcile gates all pass."
+          : "Tick completed in prepare-only mode. No broker mutation was attempted.",
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/auto-engine/worker/start")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const {
+        AutoEngineWorker,
+        setAutoEngineWorkerForTests,
+        getAutoEngineWorker,
+        installSharedAutoEngineWorker,
+        loadAutoEngineConfig,
+      } = await import("../../ai/forex-ai/automated-trading/auto-engine/index.js");
+      const { createProductionAutoEngineDeps } = await import(
+        "../../ai/forex-ai/automated-trading/auto-engine/production-deps.js"
+      );
+      const cfg = loadAutoEngineConfig();
+      if (!cfg.continuousEnabled) {
+        sendJson(res, 409, {
+          ok: false,
+          code: "CONTINUOUS_NOT_ENABLED",
+          message: "Set KWIZERA_AUTO_ENGINE_CONTINUOUS=1 only after ownership lock + daily-risk gates are verified.",
+          placesOrders: false,
+          mutatesBroker: false,
+          liveUnauthorized: true,
+        });
+        return true;
+      }
+      const existing = getAutoEngineWorker();
+      if (existing) {
+        sendJson(res, 200, {
+          ok: true,
+          code: "WORKER_ALREADY_PRESENT",
+          engine: existing.getStatus(),
+          placesOrders: false,
+          mutatesBroker: false,
+          liveUnauthorized: true,
+        });
+        return true;
+      }
+      const worker = installSharedAutoEngineWorker(
+        new AutoEngineWorker(createProductionAutoEngineDeps({
+          emergencyEntryLock: cfg.mode === "armed_execute" && cfg.submitAuthorized ? false : true,
+          masterEnable: false,
+        })),
+      );
+      setAutoEngineWorkerForTests(worker);
+      const started = worker.start();
+      sendJson(res, started.ok ? 200 : 409, {
+        ok: started.ok,
+        code: started.code,
+        engine: worker.getStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        liveUnauthorized: true,
+        note: "Continuous worker start attempts cross-process lock. LIVE remains unauthorized.",
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/auto-engine/worker/stop")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const { getAutoEngineWorker, setAutoEngineWorkerForTests } = await import(
+        "../../ai/forex-ai/automated-trading/auto-engine/index.js"
+      );
+      const worker = getAutoEngineWorker();
+      worker?.stop();
+      setAutoEngineWorkerForTests(null);
+      sendJson(res, 200, {
+        ok: true,
+        code: "WORKER_STOPPED",
+        placesOrders: false,
+        mutatesBroker: false,
+        liveUnauthorized: true,
       });
       return true;
     }
@@ -1666,26 +1750,89 @@ export async function handleForexAutomatedTradingApi(
           sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
           return true;
         }
-        // Phase 4.0 — read-only bounded DEMO activation readiness. Never enables mutation.
+        // Phase 4.0/4.3 — read-only bounded DEMO activation readiness. Never enables mutation.
         const {
           evaluateDemoActivationReadiness,
           PROPOSED_BOUNDED_DEMO_ACTIVATION,
           loadDemoOpenMarketRiskLimitsDetailed,
+          getDemoLifecycleOrchestrator,
         } = await import("../../ai/forex-ai/automated-trading/demo-execution/index.js");
+        const {
+          createProductionAutoEngineDeps,
+          AutoEngineWorker,
+          getDailyRiskStore,
+          loadAutoEngineConfig,
+        } = await import("../../ai/forex-ai/automated-trading/auto-engine/index.js");
         const allowRaw = String(process.env.KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION ?? "").trim();
         const allowDemoMutationEnabled = allowRaw === "1" || /^true$/i.test(allowRaw);
+        // Refresh daily-risk from broker RO (tick without submit).
+        const probeWorker = new AutoEngineWorker(createProductionAutoEngineDeps({
+          emergencyEntryLock: true,
+          masterEnable: false,
+        }));
+        const engineStatus = await probeWorker.tick();
+        const daily = getDailyRiskStore().get();
+        const orchStatus = getDemoLifecycleOrchestrator().getStatus();
+        const fc = await (await import("../../ai/market-data/forexconnect/client.js"))
+          .getForexConnectBridge()
+          .getStatus()
+          .catch(() => null as unknown);
+        const fcObj = (fc && typeof fc === "object") ? fc as Record<string, unknown> : {};
+        const profiles = (fcObj.profiles && typeof fcObj.profiles === "object")
+          ? fcObj.profiles as Record<string, unknown>
+          : {};
+        const profileMap = (profiles.profiles && typeof profiles.profiles === "object")
+          ? profiles.profiles as Record<string, Record<string, unknown>>
+          : {};
+        const liveConfigured = profileMap.live?.configured === true;
+        const cfg = loadAutoEngineConfig();
         const result = evaluateDemoActivationReadiness({
+          forexConnectStatus: fcObj.status == null ? null : String(fcObj.status),
+          forexConnectEnvironment: fcObj.environment == null ? null : String(fcObj.environment),
+          activeEnvironment: profiles.activeEnvironment == null
+            ? null
+            : String(profiles.activeEnvironment),
+          trading: fcObj.trading == null ? null : String(fcObj.trading),
+          liveProfileConfigured: liveConfigured,
+          sidecarReachable: fcObj.sidecarReachable === true,
           allowDemoMutationEnabled,
           placesOrders: false,
           acceptsForExecution: false,
-          autoEntryLoopArmed: false,
-          dayRiskTelemetryReady: false,
+          emergencyEntryLock: true,
+          masterEnable: false,
+          autoEntryLoopArmed: cfg.continuousEnabled === true && cfg.mode === "armed_execute",
+          dayRiskTelemetryReady: daily?.authoritative === true,
           openMarketRiskLimits: loadDemoOpenMarketRiskLimitsDetailed().limits,
           proposed: PROPOSED_BOUNDED_DEMO_ACTIVATION,
         });
         sendJson(res, 200, {
           ...result,
-          note: "Read-only activation readiness. Does not enable DEMO mutation, create grants, or place orders.",
+          evidence: {
+            dailyRisk: daily
+              ? {
+                authoritative: daily.authoritative,
+                tradingDayKey: daily.tradingDayKey,
+                accountCurrency: daily.accountCurrency,
+                dayStartEquity: daily.dayStartEquity,
+                currentEquity: daily.currentEquity,
+                realizedPnlAccount: daily.realizedPnlAccount,
+                unrealizedPnlAccount: daily.unrealizedPnlAccount,
+                dailyDrawdownFraction: daily.dailyDrawdownFraction,
+                blockers: daily.blockers,
+                updatedAtUtc: daily.updatedAtUtc,
+              }
+              : null,
+            engine: {
+              mode: engineStatus.mode,
+              lastPrepareCode: engineStatus.lastPrepareCode,
+              positionReconcileCode: engineStatus.positionReconcileCode,
+              blockNewEntries: engineStatus.blockNewEntries,
+              lots: engineStatus.lots,
+            },
+            grants: orchStatus.activeDemoGrants ?? [],
+            liveUnauthorized: true,
+          },
+          note: "Read-only activation readiness with broker-backed daily-risk probe. Does not enable DEMO mutation, create grants, or place orders.",
         });
         return true;
       }

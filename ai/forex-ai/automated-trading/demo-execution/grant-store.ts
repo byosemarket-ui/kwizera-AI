@@ -163,8 +163,8 @@ export class DemoExecutionGrantStore {
     const nowMs = input.nowMs ?? Date.now();
     const minRemaining = Math.max(0, Math.floor(input.minRemainingMs ?? 0));
     const want = normalizeGrantInstrument(input.instrument);
-    const lots = Math.max(1, Math.floor(Number(input.lots) || 1));
-    if (!want) return null;
+    const lots = Number(input.lots);
+    if (!want || !Number.isFinite(lots) || !(lots > 0)) return null;
     for (const g of this.listActive(nowMs)) {
       const allow = normalizeInstrumentAllowlist(g.instrumentAllowlist);
       if (allow.length === 0) continue;

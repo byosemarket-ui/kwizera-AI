@@ -86,15 +86,20 @@ export function prepareAutoEntryFromSignal(input: PrepareAutoEntryInput): Prepar
     note: "Preparation only. Broker mutation remains disabled until separate activation authorization.",
   });
 
-  if (input.emergencyEntryLock !== true) {
-    blockers.push("EMERGENCY_LOCK_REQUIRED");
-  }
   if (input.masterEnable === true) {
     blockers.push("MASTER_ENABLE_MUST_REMAIN_FALSE");
   }
-  // Even when armed_prepare_only, never claim mutation may submit from this helper.
-  if (input.allowDemoMutationEnabled === true) {
-    blockers.push("MUTATION_FLAG_ON_BUT_PREPARE_ONLY");
+  // dry_run: keep emergency lock ON and reject when mutation flag is already on
+  // (mutation must not be live during dry-run plumbing).
+  // armed_prepare_only: allow mutation flag / unlocked emergency for post-activation
+  // prepare; this helper still never sets maySubmitDemoMutation=true.
+  if (mode === "dry_run") {
+    if (input.emergencyEntryLock !== true) {
+      blockers.push("EMERGENCY_LOCK_REQUIRED");
+    }
+    if (input.allowDemoMutationEnabled === true) {
+      blockers.push("MUTATION_FLAG_ON_BUT_PREPARE_ONLY");
+    }
   }
   if (input.signal.status !== "ACTIVE") {
     return baseDeny("SIGNAL_NOT_ACTIVE", [`signal status=${input.signal.status}`]);

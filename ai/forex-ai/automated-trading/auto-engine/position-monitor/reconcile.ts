@@ -68,7 +68,10 @@ export function reconcilePositions(input: {
   for (const pos of input.internal) {
     if (pos.blocksAdditionalEntries) blockers.push("UNPROTECTED_OR_UNSAFE_INTERNAL");
     if (pos.fillConfirmed && pos.tradeId) {
-      if (!brokerById.has(pos.tradeId)) missingBrokerTradeIds.push(pos.tradeId);
+      if (!brokerById.has(pos.tradeId)) {
+        missingBrokerTradeIds.push(pos.tradeId);
+        blockers.push("MISSING_BROKER_POSITION");
+      }
       const prot = String(pos.protectionStatus ?? "").toUpperCase();
       if (prot !== "CONFIRMED" && prot !== "ATTACHED" && prot !== "RECONCILED") {
         missingProtectionTradeIds.push(pos.tradeId);
