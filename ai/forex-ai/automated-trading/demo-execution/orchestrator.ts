@@ -21,6 +21,7 @@ import {
 } from "./forexconnect-mutation-adapter.js";
 import { evaluateDemoLifecyclePreflight } from "./preflight.js";
 import {
+  countOpenPositionsFromTradesPayload,
   evaluateDemoOpenMarketRisk,
   loadDemoOpenMarketRiskLimitsDetailed,
   sumOpenExposureLotsFromTradesPayload,
@@ -921,12 +922,22 @@ export class DemoLifecycleOrchestrator {
         scope: "instrument",
       },
     );
+    const openPositionCount = countOpenPositionsFromTradesPayload(
+      tradesResult as Record<string, unknown>,
+      {
+        instrument: req.instrument,
+        scope: "instrument",
+      },
+    );
     const entryPrice =
       req.entryHint != null && Number.isFinite(req.entryHint)
         ? Number(req.entryHint)
         : preflight.entryHintUsed;
     const hasUnresolvedUnprotectedFill = this.records.some((r) => blocksAdditionalDemoEntries(r));
     const riskLimitsLoad = loadDemoOpenMarketRiskLimitsDetailed();
+    // Day PnL / day-start equity / loss-cooldown telemetry are not yet authoritative
+    // on this path. When those optional limits are unset (defaults), evaluation proceeds.
+    // When env enables them without telemetry, risk fails closed (by design).
     const risk = evaluateDemoOpenMarketRisk({
       instrument: req.instrument,
       direction: req.direction,
@@ -942,10 +953,14 @@ export class DemoLifecycleOrchestrator {
       accountCount: Array.isArray(accountsResult.accounts) ? accountsResult.accounts.length : 0,
       instrumentSpecs: specs,
       openExposureLots,
+      openPositionCount,
       tradesFetchOk: Boolean((tradesResult as { ok?: boolean }).ok),
       hasUnresolvedUnprotectedFill,
       quoteTimestamp: (quoteRaw.offerTime as string | number | null | undefined) ?? null,
       quoteMaxAgeMs: MARKET_QUOTE_STALE_MS,
+      dayRealizedPnlAccount: null,
+      dayStartEquity: null,
+      cooldownUntilMs: riskLimitsLoad.limits.cooldownAfterLossMs > 0 ? null : 0,
       limits: riskLimitsLoad.limits,
       limitsConfigInvalid: riskLimitsLoad.configInvalid,
       limitsInvalidKeys: riskLimitsLoad.invalidKeys,

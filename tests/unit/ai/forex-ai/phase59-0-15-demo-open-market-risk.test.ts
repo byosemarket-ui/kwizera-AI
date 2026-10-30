@@ -54,6 +54,7 @@ function baseInput(over: Partial<DemoOpenMarketRiskInput> = {}): DemoOpenMarketR
     accountCount: 1,
     instrumentSpecs: verifiedSpecs(),
     openExposureLots: 0,
+    openPositionCount: 0,
     tradesFetchOk: true,
     hasUnresolvedUnprotectedFill: false,
     quoteTimestamp: nowMs,

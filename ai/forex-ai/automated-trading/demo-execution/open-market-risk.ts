@@ -35,6 +35,8 @@ export const DEMO_OPEN_RISK_DEFAULTS = {
   maxLotsPerOrder: 1,
   /** Max sum of open broker lots + proposed lots. */
   maxTotalExposureLots: 2,
+  /** Max simultaneous open broker positions for the scoped instrument (count). */
+  maxOpenPositions: 1,
   /** Absolute floor for usable/free margin in account currency. */
   minUsableMargin: 50,
   /** Fraction of equity that must remain free after estimated MMR. */
@@ -45,16 +47,40 @@ export const DEMO_OPEN_RISK_DEFAULTS = {
   maxSlLossFractionOfEquity: 0.02,
   /** Max age of Accounts snapshot before fail-closed. */
   accountMaxAgeMs: 15_000,
+  /**
+   * Absolute max day realized loss in account currency (null = gate disabled).
+   * When set, callers must supply dayRealizedPnlAccount or evaluation fails closed.
+   */
+  maxDailyLossAccount: null as number | null,
+  /**
+   * Max equity drawdown from day-start equity (null = gate disabled).
+   * When set, callers must supply dayStartEquity or evaluation fails closed.
+   */
+  maxDrawdownFractionOfDayStartEquity: null as number | null,
+  /**
+   * UTC session window in minutes from midnight (null/null = no session gate).
+   * Inclusive start, exclusive end; supports wrap across midnight.
+   */
+  sessionUtcStartMinute: null as number | null,
+  sessionUtcEndMinute: null as number | null,
+  /** Cooldown after a realized loss (ms). 0 = disabled. */
+  cooldownAfterLossMs: 0,
 } as const;
 
 export interface DemoOpenMarketRiskLimits {
   maxLotsPerOrder: number;
   maxTotalExposureLots: number;
+  maxOpenPositions: number;
   minUsableMargin: number;
   marginReserveFractionOfEquity: number;
   maxSlLossAccount: number | null;
   maxSlLossFractionOfEquity: number;
   accountMaxAgeMs: number;
+  maxDailyLossAccount: number | null;
+  maxDrawdownFractionOfDayStartEquity: number | null;
+  sessionUtcStartMinute: number | null;
+  sessionUtcEndMinute: number | null;
+  cooldownAfterLossMs: number;
 }
 
 type EnvParse =
@@ -133,6 +159,16 @@ export function loadDemoOpenMarketRiskLimitsDetailed(
     return p.value;
   };
 
+  const pickOptionalMinute = (key: string): number | null => {
+    const p = envNumberStrict(env, key);
+    if (p.kind === "absent") return null;
+    if (p.kind === "invalid" || !Number.isInteger(p.value) || p.value < 0 || p.value > 1440) {
+      invalidKeys.push(key);
+      return null;
+    }
+    return Math.floor(p.value);
+  };
+
   const limits: DemoOpenMarketRiskLimits = {
     maxLotsPerOrder: pickInt(
       "KWIZERA_DEMO_OPEN_MAX_LOTS",
@@ -145,6 +181,12 @@ export function loadDemoOpenMarketRiskLimitsDetailed(
       1,
       50,
       DEMO_OPEN_RISK_DEFAULTS.maxTotalExposureLots,
+    ),
+    maxOpenPositions: pickInt(
+      "KWIZERA_DEMO_OPEN_MAX_OPEN_POSITIONS",
+      1,
+      50,
+      DEMO_OPEN_RISK_DEFAULTS.maxOpenPositions,
     ),
     // Zero disables the floor — treat as invalid when explicitly set.
     minUsableMargin: pickFloat(
@@ -169,7 +211,32 @@ export function loadDemoOpenMarketRiskLimitsDetailed(
       300_000,
       DEMO_OPEN_RISK_DEFAULTS.accountMaxAgeMs,
     ),
+    maxDailyLossAccount: pickOptionalPositive("KWIZERA_DEMO_OPEN_MAX_DAILY_LOSS"),
+    maxDrawdownFractionOfDayStartEquity: pickOptionalPositive(
+      "KWIZERA_DEMO_OPEN_MAX_DRAWDOWN_FRACTION",
+    ),
+    sessionUtcStartMinute: pickOptionalMinute("KWIZERA_DEMO_OPEN_SESSION_UTC_START_MIN"),
+    sessionUtcEndMinute: pickOptionalMinute("KWIZERA_DEMO_OPEN_SESSION_UTC_END_MIN"),
+    cooldownAfterLossMs: pickInt(
+      "KWIZERA_DEMO_OPEN_COOLDOWN_AFTER_LOSS_MS",
+      0,
+      86_400_000,
+      DEMO_OPEN_RISK_DEFAULTS.cooldownAfterLossMs,
+    ),
   };
+
+  if (
+    (limits.sessionUtcStartMinute == null) !== (limits.sessionUtcEndMinute == null)
+  ) {
+    invalidKeys.push("KWIZERA_DEMO_OPEN_SESSION_UTC_PAIR");
+  }
+  if (
+    limits.maxDrawdownFractionOfDayStartEquity != null
+    && !(limits.maxDrawdownFractionOfDayStartEquity > 0
+      && limits.maxDrawdownFractionOfDayStartEquity <= 1)
+  ) {
+    invalidKeys.push("KWIZERA_DEMO_OPEN_MAX_DRAWDOWN_FRACTION");
+  }
 
   return {
     limits,
@@ -229,6 +296,8 @@ export interface DemoOpenMarketRiskInput {
   instrumentSpecs: DemoOpenMarketInstrumentSpecs | null;
   /** Sum of open position lots from RO trades (null = unavailable). */
   openExposureLots: number | null;
+  /** Count of open broker positions in scope (null = unavailable). */
+  openPositionCount: number | null;
   tradesFetchOk: boolean;
   /** Local lifecycle: block when unprotected fill policy requires it. */
   hasUnresolvedUnprotectedFill: boolean;
@@ -236,6 +305,15 @@ export interface DemoOpenMarketRiskInput {
   quoteTimestamp?: string | number | null;
   /** Max allowed quote age at risk evaluation time. */
   quoteMaxAgeMs?: number;
+  /**
+   * Day realized P/L in account currency when maxDailyLossAccount is configured.
+   * null/undefined while the limit is set → fail closed.
+   */
+  dayRealizedPnlAccount?: number | null;
+  /** Equity at UTC day start when drawdown limit is configured. */
+  dayStartEquity?: number | null;
+  /** Epoch ms until which entries remain blocked after a loss (null = none). */
+  cooldownUntilMs?: number | null;
   limits?: DemoOpenMarketRiskLimits;
   /** From loadDemoOpenMarketRiskLimitsDetailed — present invalid env → reject. */
   limitsConfigInvalid?: boolean;
@@ -251,6 +329,7 @@ export interface DemoOpenMarketRiskDetails {
   equity: number | null;
   usableMargin: number | null;
   openExposureLots: number | null;
+  openPositionCount: number | null;
   proposedLots: number;
   stopDistance: number | null;
   minStopDistancePrice: number | null;
@@ -258,6 +337,7 @@ export interface DemoOpenMarketRiskDetails {
   quoteAgeMs: number | null;
   condDistUnit: "pips" | "unknown" | null;
   exposureScope: "instrument";
+  utcMinuteOfDay: number | null;
   limits: DemoOpenMarketRiskLimits;
 }
 
@@ -334,6 +414,11 @@ export function evaluateDemoOpenMarketRisk(
   const unprotected = evaluateUnprotectedFillPolicy();
   const quoteMaxAgeMs = input.quoteMaxAgeMs ?? 15_000;
 
+  const utcMinuteOfDay = (() => {
+    const d = new Date(nowMs);
+    return d.getUTCHours() * 60 + d.getUTCMinutes();
+  })();
+
   const details: DemoOpenMarketRiskDetails = {
     amount: null,
     baseUnitSize: null,
@@ -342,6 +427,7 @@ export function evaluateDemoOpenMarketRisk(
     equity: null,
     usableMargin: null,
     openExposureLots: input.openExposureLots,
+    openPositionCount: input.openPositionCount,
     proposedLots: input.lots,
     stopDistance: null,
     minStopDistancePrice: null,
@@ -349,6 +435,7 @@ export function evaluateDemoOpenMarketRisk(
     quoteAgeMs: null,
     condDistUnit: null,
     exposureScope: "instrument",
+    utcMinuteOfDay,
     limits,
   };
 
@@ -458,6 +545,60 @@ export function evaluateDemoOpenMarketRisk(
     && input.openExposureLots + input.lots > limits.maxTotalExposureLots
   ) {
     blockers.push("MAX_EXPOSURE_LOTS_EXCEEDED");
+  }
+
+  if (
+    !input.tradesFetchOk
+    || input.openPositionCount == null
+    || !Number.isFinite(input.openPositionCount)
+    || !Number.isInteger(input.openPositionCount)
+  ) {
+    blockers.push("OPEN_POSITION_COUNT_UNAVAILABLE");
+  } else if (input.openPositionCount < 0) {
+    blockers.push("OPEN_POSITION_COUNT_INVALID");
+  } else if (input.openPositionCount >= limits.maxOpenPositions) {
+    blockers.push("MAX_OPEN_POSITIONS_EXCEEDED");
+  }
+
+  if (limits.sessionUtcStartMinute != null && limits.sessionUtcEndMinute != null) {
+    if (!isUtcMinuteInSession(
+      utcMinuteOfDay,
+      limits.sessionUtcStartMinute,
+      limits.sessionUtcEndMinute,
+    )) {
+      blockers.push("OUTSIDE_TRADING_SESSION");
+    }
+  }
+
+  if (limits.cooldownAfterLossMs > 0) {
+    const until = input.cooldownUntilMs;
+    if (until == null || !Number.isFinite(until)) {
+      blockers.push("COOLDOWN_STATE_UNAVAILABLE");
+    } else if (nowMs < until) {
+      blockers.push("COOLDOWN_ACTIVE");
+    }
+  }
+
+  if (limits.maxDailyLossAccount != null) {
+    const dayPnl = input.dayRealizedPnlAccount;
+    if (dayPnl == null || !Number.isFinite(dayPnl)) {
+      blockers.push("DAILY_PNL_UNAVAILABLE");
+    } else if (dayPnl <= -limits.maxDailyLossAccount) {
+      blockers.push("MAX_DAILY_LOSS_EXCEEDED");
+    }
+  }
+
+  if (limits.maxDrawdownFractionOfDayStartEquity != null) {
+    const dayStart = input.dayStartEquity;
+    if (dayStart == null || !Number.isFinite(dayStart) || !(dayStart > 0)) {
+      blockers.push("DRAWDOWN_STATE_UNAVAILABLE");
+    } else if (
+      details.equity != null
+      && Number.isFinite(details.equity)
+      && details.equity < dayStart * (1 - limits.maxDrawdownFractionOfDayStartEquity)
+    ) {
+      blockers.push("MAX_DRAWDOWN_EXCEEDED");
+    }
   }
 
   const entry = input.entryPrice;
@@ -637,4 +778,50 @@ export function sumOpenExposureLotsFromTradesPayload(
     sum += amount / bus;
   }
   return Number.isFinite(sum) ? sum : null;
+}
+
+/**
+ * Count open broker positions from a RO /trades payload (instrument-scoped when requested).
+ * Fail-closed → null when structure is unknown.
+ */
+export function countOpenPositionsFromTradesPayload(
+  payload: Record<string, unknown> | null | undefined,
+  options: {
+    instrument?: string | null;
+    scope: "instrument" | "account";
+  },
+): number | null {
+  if (!payload || payload.ok === false) return null;
+  const trades = payload.trades;
+  if (!Array.isArray(trades)) return null;
+  const want = options.instrument
+    ? String(options.instrument).replace(/\s+/g, "").toUpperCase()
+    : null;
+  let count = 0;
+  for (const row of trades) {
+    if (!row || typeof row !== "object") return null;
+    const r = row as Record<string, unknown>;
+    const sym = String(r.instrument ?? r.symbol ?? r.Instrument ?? "").replace(/\s+/g, "").toUpperCase();
+    if (options.scope === "instrument") {
+      if (!want || !sym || sym !== want) continue;
+    }
+    count += 1;
+  }
+  return count;
+}
+
+/** True when UTC minute-of-day is inside [start, end) (supports midnight wrap). */
+export function isUtcMinuteInSession(
+  utcMinuteOfDay: number,
+  startMinute: number,
+  endMinute: number,
+): boolean {
+  if (!Number.isInteger(utcMinuteOfDay) || utcMinuteOfDay < 0 || utcMinuteOfDay >= 1440) {
+    return false;
+  }
+  if (startMinute === endMinute) return false;
+  if (startMinute < endMinute) {
+    return utcMinuteOfDay >= startMinute && utcMinuteOfDay < endMinute;
+  }
+  return utcMinuteOfDay >= startMinute || utcMinuteOfDay < endMinute;
 }

@@ -1574,6 +1574,35 @@ export async function handleForexAutomatedTradingApi(
         return true;
       }
 
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/activation-readiness")) {
+        if (req.method !== "GET") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+          return true;
+        }
+        // Phase 4.0 — read-only bounded DEMO activation readiness. Never enables mutation.
+        const {
+          evaluateDemoActivationReadiness,
+          PROPOSED_BOUNDED_DEMO_ACTIVATION,
+          loadDemoOpenMarketRiskLimitsDetailed,
+        } = await import("../../ai/forex-ai/automated-trading/demo-execution/index.js");
+        const allowRaw = String(process.env.KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION ?? "").trim();
+        const allowDemoMutationEnabled = allowRaw === "1" || /^true$/i.test(allowRaw);
+        const result = evaluateDemoActivationReadiness({
+          allowDemoMutationEnabled,
+          placesOrders: false,
+          acceptsForExecution: false,
+          autoEntryLoopArmed: false,
+          dayRiskTelemetryReady: false,
+          openMarketRiskLimits: loadDemoOpenMarketRiskLimitsDetailed().limits,
+          proposed: PROPOSED_BOUNDED_DEMO_ACTIVATION,
+        });
+        sendJson(res, 200, {
+          ...result,
+          note: "Read-only activation readiness. Does not enable DEMO mutation, create grants, or place orders.",
+        });
+        return true;
+      }
+
       if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/quote-probe")) {
         if (req.method !== "POST") {
           sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
