@@ -66,19 +66,19 @@ describe("Phase 59.0.12H DemoExecutionGrantStore fail-closed", () => {
     );
   });
 
-  it("XAU/USD grant does not authorize EUR/USD; maxLots is integer-clamped", () => {
+  it("XAU/USD grant does not authorize EUR/USD; maxLots allows fractional 0.01", () => {
     const g = store.create({
       ttlMs: 120_000,
-      maxLots: 1.9 as unknown as number,
+      maxLots: 0.01,
       instrumentAllowlist: ["XAU/USD"],
     });
-    expect(g.maxLots).toBe(1);
-    expect(store.requireActive(g.grantId, "XAU/USD", 1).ok).toBe(true);
-    expect(store.requireActive(g.grantId, "EUR/USD", 1)).toMatchObject({
+    expect(g.maxLots).toBe(0.01);
+    expect(store.requireActive(g.grantId, "XAU/USD", 0.01).ok).toBe(true);
+    expect(store.requireActive(g.grantId, "EUR/USD", 0.01)).toMatchObject({
       ok: false,
       code: "INSTRUMENT_NOT_ALLOWLISTED",
     });
-    expect(store.requireActive(g.grantId, "XAU/USD", 2)).toMatchObject({
+    expect(store.requireActive(g.grantId, "XAU/USD", 0.02)).toMatchObject({
       ok: false,
       code: "LOTS_EXCEED_GRANT",
     });

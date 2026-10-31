@@ -62,6 +62,12 @@ describe("Phase 59.0.13 auto DEMO grant config", () => {
     expect(cfg.ttlMs).toBeLessThanOrEqual(60 * 60_000);
     expect(cfg.maxLots).toBeLessThanOrEqual(10);
   });
+
+  it("defaults maxLots to fractional 0.01 (Phase 4.8)", () => {
+    expect(resolveAutoDemoGrantConfig({
+      KWIZERA_FOREXCONNECT_AUTO_DEMO_GRANT_MODE: "off",
+    }).maxLots).toBe(0.01);
+  });
 });
 
 describe("Phase 59.0.13 auto DEMO grant worker", () => {

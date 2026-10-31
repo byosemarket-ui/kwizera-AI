@@ -15,6 +15,8 @@ import type { DemoExecutionGrant } from "./types.js";
 export const DEMO_GRANT_DEFAULT_TTL_MS = 15 * 60_000;
 export const DEMO_GRANT_MAX_TTL_MS = 60 * 60_000;
 export const DEMO_GRANT_MAX_LOTS = 10;
+/** Phase 4.8 — minimum grant maxLots (matches bounded DEMO 0.01 lot profile). */
+export const DEMO_GRANT_MIN_LOTS = 0.01;
 
 /** @deprecated Use DEMO_GRANT_DEFAULT_TTL_MS */
 const DEFAULT_TTL_MS = DEMO_GRANT_DEFAULT_TTL_MS;
@@ -208,10 +210,15 @@ export class DemoExecutionGrantStore {
     }
 
     const ttl = Math.max(60_000, Math.min(MAX_TTL_MS, Math.floor(input.ttlMs ?? DEFAULT_TTL_MS)));
-    const maxLotsRaw = Math.floor(Number(input.maxLots ?? 1));
-    const maxLots = Number.isFinite(maxLotsRaw)
-      ? Math.max(1, Math.min(MAX_LOTS, maxLotsRaw))
-      : 1;
+    // Phase 4.8 — allow fractional maxLots (e.g. 0.01); never floor up to 1.
+    const maxLotsRaw = Number(input.maxLots ?? DEMO_GRANT_MIN_LOTS);
+    const maxLotsRounded = Number.isFinite(maxLotsRaw)
+      ? Math.round(maxLotsRaw * 10_000) / 10_000
+      : DEMO_GRANT_MIN_LOTS;
+    const maxLots = Math.max(
+      DEMO_GRANT_MIN_LOTS,
+      Math.min(MAX_LOTS, maxLotsRounded > 0 ? maxLotsRounded : DEMO_GRANT_MIN_LOTS),
+    );
     const now = Date.now();
     const grant: DemoExecutionGrant = {
       grantId: randomUUID(),

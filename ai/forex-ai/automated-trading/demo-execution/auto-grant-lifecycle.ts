@@ -13,6 +13,7 @@ import {
   DEMO_GRANT_DEFAULT_TTL_MS,
   DEMO_GRANT_MAX_LOTS,
   DEMO_GRANT_MAX_TTL_MS,
+  DEMO_GRANT_MIN_LOTS,
   getDemoExecutionGrantStore,
   normalizeInstrumentAllowlist,
   type DemoExecutionGrantStore,
@@ -115,10 +116,15 @@ export function resolveAutoDemoGrantConfig(
       .split(/[,;]+/)
       .map((s) => s.trim()),
   );
-  const maxLotsRaw = Math.floor(Number(env.KWIZERA_FOREXCONNECT_AUTO_DEMO_GRANT_MAX_LOTS ?? 1));
-  const maxLots = Number.isFinite(maxLotsRaw)
-    ? Math.max(1, Math.min(DEMO_GRANT_MAX_LOTS, maxLotsRaw))
-    : 1;
+  // Phase 4.8 — fractional grant maxLots (default 0.01); do not floor to integer ≥1.
+  const maxLotsRaw = Number(env.KWIZERA_FOREXCONNECT_AUTO_DEMO_GRANT_MAX_LOTS ?? DEMO_GRANT_MIN_LOTS);
+  const maxLotsRounded = Number.isFinite(maxLotsRaw)
+    ? Math.round(maxLotsRaw * 10_000) / 10_000
+    : DEMO_GRANT_MIN_LOTS;
+  const maxLots = Math.max(
+    DEMO_GRANT_MIN_LOTS,
+    Math.min(DEMO_GRANT_MAX_LOTS, maxLotsRounded > 0 ? maxLotsRounded : DEMO_GRANT_MIN_LOTS),
+  );
   const ttlRaw = Math.floor(Number(env.KWIZERA_FOREXCONNECT_AUTO_DEMO_GRANT_TTL_MS ?? DEMO_GRANT_DEFAULT_TTL_MS));
   const ttlMs = Number.isFinite(ttlRaw)
     ? Math.max(60_000, Math.min(DEMO_GRANT_MAX_TTL_MS, ttlRaw))

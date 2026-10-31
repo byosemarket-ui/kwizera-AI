@@ -12,11 +12,28 @@ import {
   type DemoOpenMarketInstrumentSpecs,
 } from "../demo-execution/open-market-risk.js";
 import { getDemoLifecycleOrchestrator } from "../demo-execution/orchestrator.js";
+import { PROPOSED_BOUNDED_DEMO_ACTIVATION } from "../demo-execution/demo-activation-config.js";
 import { getDemoExecutionGrantStore, normalizeGrantInstrument } from "../demo-execution/grant-store.js";
 import { blocksAdditionalDemoEntries } from "../demo-execution/open-fill-assessment.js";
 import { loadAutoEngineConfig } from "./config.js";
 import type { AutoEngineTickDeps } from "./worker.js";
 import type { StrategyCandle } from "./strategy/rules.js";
+
+/** Derive post-loss cooldown end from broker closed-trade PnL (fail-open to 0 when no loss). */
+export function cooldownUntilMsFromClosedTrades(
+  dayClosedTrades: Array<{ closeTimeUtc?: string | null; realizedPnl?: number | null }> | null | undefined,
+  cooldownAfterLossMs: number,
+): number {
+  if (!(cooldownAfterLossMs > 0) || !Array.isArray(dayClosedTrades)) return 0;
+  let lastLossCloseMs = 0;
+  for (const t of dayClosedTrades) {
+    const pnl = t.realizedPnl;
+    if (pnl == null || !Number.isFinite(pnl) || pnl >= 0) continue;
+    const ms = Date.parse(String(t.closeTimeUtc ?? ""));
+    if (Number.isFinite(ms) && ms > lastLossCloseMs) lastLossCloseMs = ms;
+  }
+  return lastLossCloseMs > 0 ? lastLossCloseMs + cooldownAfterLossMs : 0;
+}
 
 function selectInstrumentSpecs(
   instruments: ForexConnectInstrument[],
@@ -271,7 +288,10 @@ export function createProductionAutoEngineDeps(
         masterEnable: options?.masterEnable === true,
         allowDemoMutationEnabled,
         entriesUsedInGrant,
-        cooldownUntilMs: 0,
+        cooldownUntilMs: cooldownUntilMsFromClosedTrades(
+          dayClosedTrades,
+          PROPOSED_BOUNDED_DEMO_ACTIVATION.cooldownAfterLossMs,
+        ),
         accountId: acctRow?.accountId ?? null,
         accountCurrency: acctRow?.accountCurrency ?? null,
         equity,
