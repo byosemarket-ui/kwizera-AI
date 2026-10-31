@@ -83,7 +83,8 @@ describe("Phase 59.0.11 live vs heartbeat vs snapshot", () => {
     expect(hb.orderPathBlockerCode).toBe("LIVE_HEARTBEAT_ONLY");
   });
 
-  it("live evaluator: LIVE_FRESH + TradingStatus C keeps order path blocked", () => {
+  it("live evaluator: TradingStatus C is MARKET_CLOSED (not LIVE_FRESH / heartbeat)", () => {
+    // Phase 4.12 — closed TradingStatus must not be labeled as live quote freshness.
     const closed = evaluateLiveOfferQuoteFreshness({
       instrument: "XAU/USD",
       bid: 4011.85,
@@ -96,11 +97,11 @@ describe("Phase 59.0.11 live vs heartbeat vs snapshot", () => {
       nowMs: Date.parse("2026-10-26T23:24:00.000Z"),
       staleMs: 15_000,
     });
-    expect(closed.fresh).toBe(true);
-    expect(closed.reasonCode).toBe("LIVE_FRESH");
+    expect(closed.fresh).toBe(false);
+    expect(closed.reasonCode).toBe("MARKET_CLOSED");
     expect(closed.tradingEligibility.tradable).toBe(false);
     expect(closed.orderPathMarketReady).toBe(false);
-    expect(closed.orderPathBlockerCode).toBe("TRADING_STATUS_CLOSED");
+    expect(closed.orderPathBlockerCode).toBe("LIVE_TRADING_STATUS_CLOSED");
   });
 
   it("live evaluator: LIVE_FRESH + O yields orderPathMarketReady without claiming broker acceptance", () => {
