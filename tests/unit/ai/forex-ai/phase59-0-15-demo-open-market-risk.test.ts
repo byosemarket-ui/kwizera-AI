@@ -14,8 +14,10 @@ import { join } from "node:path";
 function verifiedSpecs(over: Record<string, unknown> = {}) {
   return {
     providerSymbol: "XAU/USD",
-    // Phase 4.8 — 100 base units × 0.01 lots = integer AMOUNT 1.
+    // Phase 4.8 fixture — 100 base units × 0.01 lots = integer AMOUNT 1.
+    // (Live DEMO docs: baseUnitSize=1 / minQuantity=1 — see Phase 4.9 tests.)
     baseUnitSize: 100,
+    minQuantity: 1,
     pointSize: 0.01,
     pipCostAccount: 0.01,
     mmrPerLot: 100,

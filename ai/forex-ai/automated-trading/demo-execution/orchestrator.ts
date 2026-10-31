@@ -142,6 +142,7 @@ function selectDemoRiskInstrumentSpecs(
   return {
     providerSymbol: row.providerSymbol,
     baseUnitSize: row.baseUnitSize ?? null,
+    minQuantity: row.minQuantity ?? null,
     pointSize: row.pointSize ?? null,
     pipCostAccount: row.pipCost ?? null,
     mmrPerLot: row.mmrPerLot ?? null,

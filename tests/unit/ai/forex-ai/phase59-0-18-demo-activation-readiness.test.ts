@@ -13,6 +13,7 @@ function verifiedSpecs() {
   return {
     providerSymbol: "XAU/USD",
     baseUnitSize: 100,
+    minQuantity: 1,
     pointSize: 0.01,
     pipCostAccount: 0.01,
     mmrPerLot: 100,

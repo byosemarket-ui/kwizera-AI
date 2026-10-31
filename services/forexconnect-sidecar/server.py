@@ -418,14 +418,54 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
                     break
                 except Exception:
                     pass
+        # Phase 4.9 — probe get_mmr with multiple account argument forms; never invent.
+        mmr_probe: dict[str, Any] = {"hit": False, "tried": [], "lastError": None}
+        account_args: list[Any] = [account]
+        try:
+            aid = _row_get(
+                account,
+                "account_id",
+                "AccountID",
+                "accountId",
+                "AccountId",
+                "get_account_id",
+                "getAccountId",
+            )
+            if aid is not None and str(aid).strip() != "":
+                account_args.append(str(aid).strip())
+        except Exception as exc:  # noqa: BLE001 — diagnostic only
+            mmr_probe["lastError"] = type(exc).__name__
         for meth in ("get_mmr", "getMMR"):
-            if hasattr(tsp, meth):
+            if not hasattr(tsp, meth):
+                mmr_probe["tried"].append({"method": meth, "present": False})
+                continue
+            for acc_arg in account_args:
                 try:
-                    # Absolute margin amount for 1 lot — not a rate.
-                    out["mmrPerLot"] = _finite(getattr(tsp, meth)(instrument, account))
-                    break
-                except Exception:
-                    pass
+                    raw = getattr(tsp, meth)(instrument, acc_arg)
+                    parsed = _finite(raw)
+                    mmr_probe["tried"].append({
+                        "method": meth,
+                        "present": True,
+                        "accountArgType": type(acc_arg).__name__,
+                        "rawType": type(raw).__name__,
+                        "finitePositive": bool(parsed is not None and parsed > 0),
+                    })
+                    if parsed is not None and parsed > 0:
+                        # Absolute margin amount for 1 lot — not a rate.
+                        out["mmrPerLot"] = parsed
+                        mmr_probe["hit"] = True
+                        break
+                except Exception as exc:  # noqa: BLE001 — keep null; record class only
+                    mmr_probe["lastError"] = type(exc).__name__
+                    mmr_probe["tried"].append({
+                        "method": meth,
+                        "present": True,
+                        "accountArgType": type(acc_arg).__name__,
+                        "error": type(exc).__name__,
+                    })
+            if mmr_probe["hit"]:
+                break
+        out["mmrProbe"] = mmr_probe
         # Phase 56.2.5 — MinQuantity is the minimum order amount (CFD → contracts).
         # Official ForexConnect: amounts must be multiples of BaseUnitSize; there is
         # no separate fractional "lotStep" on O2GTradingSettingsProvider.
@@ -621,6 +661,7 @@ def _normalize_offer(
         "digits": digits_n,
         "baseUnitSize": base_unit_size,
         "mmrPerLot": mmr_per_lot,
+        "mmrProbe": ts.get("mmrProbe"),
         "minQuantity": min_quantity,
         "lotStep": lot_step,
         "condDistStop": ts.get("condDistStop"),
@@ -2646,10 +2687,11 @@ class Handler(BaseHTTPRequestHandler):
                 return 400
 
             if path == "/demo-mutation/open-market":
+                # Phase 4.9 — preserve fractional lots; open_true_market enforces integer AMOUNT.
                 try:
-                    lots = int(body.get("lots") or 1)
+                    lots = float(body.get("lots") or 1)
                 except (TypeError, ValueError):
-                    lots = 1
+                    lots = 1.0
                 rate_stop = body.get("rateStop", body.get("stopLoss"))
                 rate_limit = body.get("rateLimit", body.get("takeProfit"))
                 try:

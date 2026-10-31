@@ -2,6 +2,7 @@
  * Phase 4.0 — Read-only DEMO activation readiness evaluator.
  * Never enables mutation, never creates grants, never places orders.
  */
+import { evaluateBrokerQuantityContract } from "../order-execution/broker-quantity-contract.js";
 import {
   PROPOSED_BOUNDED_DEMO_ACTIVATION,
   type ProposedBoundedDemoActivation,
@@ -10,6 +11,16 @@ import {
   loadDemoOpenMarketRiskLimitsDetailed,
   type DemoOpenMarketRiskLimits,
 } from "./open-market-risk.js";
+
+/** Phase 4.9 — optional live TradingSettings/Offers fields for quantity/margin gates. */
+export interface DemoActivationBrokerContractInput {
+  providerSymbol?: string | null;
+  baseUnitSize?: number | null;
+  minQuantity?: number | null;
+  mmrPerLot?: number | null;
+  pointSize?: number | null;
+  pipCostAccount?: number | null;
+}
 
 export interface DemoActivationReadinessInput {
   forexConnectStatus?: string | null;
@@ -35,6 +46,8 @@ export interface DemoActivationReadinessInput {
   autoEntryLoopArmed?: boolean | null;
   openMarketRiskLimits?: DemoOpenMarketRiskLimits;
   proposed?: ProposedBoundedDemoActivation;
+  /** Live XAU/USD (or primary) contract fields — never invent. */
+  brokerContract?: DemoActivationBrokerContractInput | null;
   nowMs?: number;
 }
 
@@ -56,6 +69,8 @@ export interface DemoActivationReadinessResult {
   checks: DemoActivationCheck[];
   blockers: string[];
   evaluatedAtUtc: string;
+  /** Phase 4.9 — broker quantity/margin contract evidence (null when specs not supplied). */
+  brokerQuantityContract: ReturnType<typeof evaluateBrokerQuantityContract> | null;
 }
 
 function push(
@@ -234,6 +249,79 @@ export function evaluateDemoActivationReadiness(
     `Proposed instruments=${proposed.permittedInstruments.join(",")}; session UTC ${proposed.sessionUtcStartMinute}-${proposed.sessionUtcEndMinute}; maxEntriesPerGrant=${proposed.maxEntriesPerGrant}.`,
   );
 
+  // Phase 4.9 — authoritative quantity/margin contract vs owner 0.01-lot bound.
+  let brokerQuantityContract: ReturnType<typeof evaluateBrokerQuantityContract> | null = null;
+  const bc = input.brokerContract;
+  if (bc == null) {
+    push(
+      checks,
+      blockers,
+      "BROKER_QUANTITY_CONTRACT",
+      "NOT_VERIFIED",
+      "Broker TradingSettings/Offers contract fields not supplied to readiness.",
+    );
+  } else {
+    brokerQuantityContract = evaluateBrokerQuantityContract({
+      requestedLots: proposed.maxLotsPerOrder,
+      baseUnitSize: bc.baseUnitSize,
+      minQuantity: bc.minQuantity,
+      mmrPerLot: bc.mmrPerLot,
+      maxLotsPerOrder: proposed.maxLotsPerOrder,
+    });
+    if (brokerQuantityContract.ownerMaxBelowBrokerMin) {
+      push(
+        checks,
+        blockers,
+        "OWNER_MAX_LOTS_BELOW_BROKER_MIN",
+        "BLOCKED",
+        `Owner maxLotsPerOrder=${proposed.maxLotsPerOrder} is below broker minLots=${brokerQuantityContract.minLotsFromBroker} (minQuantity=${brokerQuantityContract.minQuantity}, baseUnitSize=${brokerQuantityContract.baseUnitSize}). Do not raise owner size silently.`,
+      );
+    }
+    if (!brokerQuantityContract.amountConversion.ok) {
+      push(
+        checks,
+        blockers,
+        "AMOUNT_CONVERSION",
+        "BLOCKED",
+        brokerQuantityContract.amountConversion.message,
+      );
+    } else {
+      push(
+        checks,
+        blockers,
+        "AMOUNT_CONVERSION",
+        "PASS",
+        brokerQuantityContract.amountConversion.message,
+      );
+    }
+    if (!brokerQuantityContract.mmrAuthoritative) {
+      push(
+        checks,
+        blockers,
+        "MMR_PER_LOT",
+        "BLOCKED",
+        "TradingSettings mmrPerLot unavailable — margin preflight remains fail-closed (do not invent).",
+      );
+    } else {
+      push(
+        checks,
+        blockers,
+        "MMR_PER_LOT",
+        "PASS",
+        `mmrPerLot=${brokerQuantityContract.mmrPerLot} (absolute margin per 1.0 lot); estimated for requested lots=${brokerQuantityContract.estimatedMarginAccount}.`,
+      );
+    }
+    push(
+      checks,
+      blockers,
+      "BROKER_QUANTITY_CONTRACT",
+      brokerQuantityContract.requestedLotsSupported && brokerQuantityContract.mmrAuthoritative
+        ? "PASS"
+        : "BLOCKED",
+      brokerQuantityContract.summary,
+    );
+  }
+
   const hardBlock = blockers.length > 0;
   return {
     ok: !hardBlock,
@@ -247,5 +335,6 @@ export function evaluateDemoActivationReadiness(
     checks,
     blockers,
     evaluatedAtUtc: new Date(nowMs).toISOString(),
+    brokerQuantityContract,
   };
 }

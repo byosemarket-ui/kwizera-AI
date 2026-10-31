@@ -28,7 +28,7 @@ import {
   isDocumentedCondDistMethod,
   resolveCondDistUnit,
 } from "../simulation-risk/conddist-semantics.js";
-import { lotsToBrokerAmount } from "../order-execution/lots-to-broker-amount.js";
+import { evaluateBrokerQuantityContract } from "../order-execution/broker-quantity-contract.js";
 
 export const DEMO_OPEN_RISK_DEFAULTS = {
   /** Hard per-order lot cap for DEMO open-market (grant may be tighter). Phase 4.8 bound. */
@@ -260,6 +260,8 @@ export interface DemoOpenMarketAccountSnapshot {
 export interface DemoOpenMarketInstrumentSpecs {
   providerSymbol: string;
   baseUnitSize: number | null;
+  /** Broker min order AMOUNT (contracts) from TradingSettings getMinQuantity when present. */
+  minQuantity?: number | null;
   pointSize: number | null;
   /** Account-currency pip/point cost per 1.0 lot when Offers PipCost is present. */
   pipCostAccount: number | null;
@@ -516,13 +518,28 @@ export function evaluateDemoOpenMarketRisk(
   if (!specs) {
     blockers.push("INSTRUMENT_SPECS_UNAVAILABLE");
   } else {
-    const sized = lotsToBrokerAmount({
-      lots: input.lots,
+    // Phase 4.9 — single authoritative quantity/margin contract evaluation.
+    const qty = evaluateBrokerQuantityContract({
+      requestedLots: input.lots,
       baseUnitSize: specs.baseUnitSize,
+      minQuantity: specs.minQuantity ?? null,
+      mmrPerLot: specs.mmrPerLot,
+      maxLotsPerOrder: limits.maxLotsPerOrder,
     });
+    const sized = qty.amountConversion;
     details.baseUnitSize = sized.baseUnitSize;
     details.amount = sized.ok ? sized.amount : null;
     if (!sized.ok) blockers.push(sized.code);
+    for (const code of qty.blockers) {
+      if (
+        code === "OWNER_MAX_LOTS_BELOW_BROKER_MIN"
+        || code === "REQUESTED_LOTS_BELOW_BROKER_MIN"
+        || code === "MIN_QUANTITY_UNVERIFIED"
+        || code === "MIN_LOTS_FROM_BROKER_INVALID"
+      ) {
+        blockers.push(code);
+      }
+    }
 
     if (!finitePositive(specs.pointSize)) blockers.push("POINT_SIZE_UNVERIFIED");
     if (!finitePositive(specs.pipCostAccount)) blockers.push("PIP_COST_UNVERIFIED");

@@ -235,6 +235,7 @@ describe("Phase 61.0 prepare-entry + position reconcile + fills", () => {
         instrumentSpecs: {
           providerSymbol: "XAU/USD",
           baseUnitSize: 1,
+          minQuantity: 1,
           pointSize: 0.01,
           pipCostAccount: 0.01,
           mmrPerLot: 100,
@@ -364,6 +365,7 @@ function makeWorkerDeps(): ConstructorParameters<typeof AutoEngineWorker>[0] {
         instrumentSpecs: {
           providerSymbol: "XAU/USD",
           baseUnitSize: 1,
+          minQuantity: 1,
           pointSize: 0.01,
           pipCostAccount: 0.01,
           mmrPerLot: 100,

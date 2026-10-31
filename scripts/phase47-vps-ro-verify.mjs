@@ -366,6 +366,43 @@ report.components.xauContractSpecs = {
 
 const activation = await req("GET", "/api/forex/automated-trading/demo-lifecycle/activation-readiness");
 const actCause = rootCauseFromHttp(activation.status, activation.json);
+const bqc = activation.json?.brokerQuantityContract ?? null;
+const bcEv = activation.json?.evidence?.brokerContract ?? null;
+// Prefer activation RO contract fields when AT status omitted mmr/minQuantity.
+if (bcEv) {
+  report.components.xauContractSpecs.instrumentSpecs = {
+    ...report.components.xauContractSpecs.instrumentSpecs,
+    baseUnitSize: bcEv.baseUnitSize ?? report.components.xauContractSpecs.instrumentSpecs.baseUnitSize,
+    minQuantity: bcEv.minQuantity ?? report.components.xauContractSpecs.instrumentSpecs.minQuantity,
+    mmrPerLot: bcEv.mmrPerLot ?? report.components.xauContractSpecs.instrumentSpecs.mmrPerLot,
+    pointSize: bcEv.pointSize ?? report.components.xauContractSpecs.instrumentSpecs.pointSize,
+    pipCostAccount: bcEv.pipCostAccount
+      ?? report.components.xauContractSpecs.instrumentSpecs.pipCostAccount,
+  };
+  report.components.xauContractSpecs.state =
+    bcEv.baseUnitSize != null || bcEv.minQuantity != null || bcEv.mmrPerLot != null
+      ? "ACTIVE"
+      : report.components.xauContractSpecs.state;
+}
+// Phase 4.9 — documented UI lots → integer AMOUNT conversion evidence (no mutation).
+report.components.amountConversion001 = {
+  state: bqc
+    ? (bqc.requestedLotsSupported === true && bqc.mmrAuthoritative === true ? "PASS" : "BLOCKED")
+    : (activation.status === 200 ? "NOT VERIFIED" : (actCause ? "BLOCKED" : "NOT VERIFIED")),
+  formula: bqc?.formula ?? "amount = baseUnitSize * lots",
+  requestedLots: bqc?.requestedLots ?? 0.01,
+  baseUnitSize: bqc?.baseUnitSize ?? bcEv?.baseUnitSize ?? null,
+  minQuantity: bqc?.minQuantity ?? bcEv?.minQuantity ?? null,
+  minLotsFromBroker: bqc?.minLotsFromBroker ?? null,
+  amountCode: bqc?.amountConversion?.code ?? null,
+  integerAmount: bqc?.amountConversion?.amount ?? null,
+  mmrPerLot: bqc?.mmrPerLot ?? bcEv?.mmrPerLot ?? null,
+  mmrAuthoritative: bqc?.mmrAuthoritative ?? null,
+  ownerMaxBelowBrokerMin: bqc?.ownerMaxBelowBrokerMin ?? null,
+  requestedLotsSupported: bqc?.requestedLotsSupported ?? null,
+  blockers: bqc?.blockers ?? null,
+  summary: bqc?.summary ?? null,
+};
 // HTTP 200 with ok=false means the readiness function ran; not-ready is expected pre-activation.
 report.components.activationReadiness = {
   state: activation.status === 200
@@ -381,6 +418,15 @@ report.components.activationReadiness = {
     ? activation.json.checks.map((c) => ({ code: c.code, status: c.status, message: c.message }))
     : null,
   evidenceDailyAuthoritative: activation.json?.evidence?.dailyRisk?.authoritative ?? null,
+  brokerQuantityContract: bqc
+    ? {
+      requestedLotsSupported: bqc.requestedLotsSupported ?? null,
+      ownerMaxBelowBrokerMin: bqc.ownerMaxBelowBrokerMin ?? null,
+      mmrAuthoritative: bqc.mmrAuthoritative ?? null,
+      amountCode: bqc.amountConversion?.code ?? null,
+      summary: bqc.summary ?? null,
+    }
+    : null,
   rootCause: actCause?.kind ?? null,
 };
 

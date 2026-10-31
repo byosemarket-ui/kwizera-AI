@@ -1797,6 +1797,51 @@ export async function handleForexAutomatedTradingApi(
           : {};
         const liveConfigured = profileMap.live?.configured === true;
         const cfg = loadAutoEngineConfig();
+        // Phase 4.9 — RO instrument contract for XAU/USD (never invent fields).
+        let brokerContract: {
+          providerSymbol: string | null;
+          baseUnitSize: number | null;
+          minQuantity: number | null;
+          mmrPerLot: number | null;
+          pointSize: number | null;
+          pipCostAccount: number | null;
+        } | null = null;
+        try {
+          const listed = await (await import("../../ai/market-data/forexconnect/client.js"))
+            .getForexConnectBridge()
+            .listInstruments();
+          const instruments = Array.isArray(listed?.instruments) ? listed.instruments : [];
+          const want = "XAU/USD";
+          const norm = (s: string) => s.replace(/\s+/g, "").toUpperCase();
+          const row = instruments.find((i: {
+            providerSymbol?: string;
+            displaySymbol?: string;
+            canonicalSymbol?: string;
+          }) => {
+            const keys = [i.providerSymbol, i.displaySymbol, i.canonicalSymbol]
+              .map((s) => norm(String(s ?? "")));
+            return keys.includes(norm(want));
+          }) as {
+            providerSymbol?: string;
+            baseUnitSize?: number | null;
+            minQuantity?: number | null;
+            mmrPerLot?: number | null;
+            pointSize?: number | null;
+            pipCost?: number | null;
+          } | undefined;
+          if (row) {
+            brokerContract = {
+              providerSymbol: row.providerSymbol ?? null,
+              baseUnitSize: row.baseUnitSize ?? null,
+              minQuantity: row.minQuantity ?? null,
+              mmrPerLot: row.mmrPerLot ?? null,
+              pointSize: row.pointSize ?? null,
+              pipCostAccount: row.pipCost ?? null,
+            };
+          }
+        } catch {
+          brokerContract = null;
+        }
         const result = evaluateDemoActivationReadiness({
           forexConnectStatus: fcObj.status == null ? null : String(fcObj.status),
           forexConnectEnvironment: fcObj.environment == null ? null : String(fcObj.environment),
@@ -1816,6 +1861,7 @@ export async function handleForexAutomatedTradingApi(
           dayRiskTelemetryReady: daily?.authoritative === true,
           openMarketRiskLimits: loadDemoOpenMarketRiskLimitsDetailed().limits,
           proposed: PROPOSED_BOUNDED_DEMO_ACTIVATION,
+          brokerContract,
         });
         sendJson(res, 200, {
           ...result,
@@ -1842,9 +1888,10 @@ export async function handleForexAutomatedTradingApi(
               lots: engineStatus.lots,
             },
             grants: orchStatus.activeDemoGrants ?? [],
+            brokerContract,
             liveUnauthorized: true,
           },
-          note: "Read-only activation readiness with broker-backed daily-risk probe. Does not enable DEMO mutation, create grants, or place orders.",
+          note: "Read-only activation readiness with broker-backed daily-risk and quantity/margin contract probe. Does not enable DEMO mutation, create grants, or place orders.",
         });
         return true;
       }
