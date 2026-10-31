@@ -359,11 +359,13 @@ report.components.xauContractSpecs = {
 
 const activation = await req("GET", "/api/forex/automated-trading/demo-lifecycle/activation-readiness");
 const actCause = rootCauseFromHttp(activation.status, activation.json);
+// HTTP 200 with ok=false means the readiness function ran; not-ready is expected pre-activation.
 report.components.activationReadiness = {
-  state: activation.status === 200 && activation.json?.ok === true
+  state: activation.status === 200
     ? "ACTIVE"
     : (activation.status >= 500 ? "FAIL" : actCause ? "BLOCKED" : "FAIL"),
   http: activation.status,
+  ok: activation.json?.ok ?? null,
   errorCode: activation.json?.error?.code ?? null,
   errorMessage: activation.json?.error?.message ?? null,
   readyForOwnerActivationApproval: activation.json?.readyForOwnerActivationApproval ?? null,

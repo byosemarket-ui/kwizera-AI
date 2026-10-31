@@ -110,6 +110,21 @@ jobs:
             echo "SSH authentication failed" >&2
             exit 1
           fi
+          # After deploy, ForexConnect often reports CONNECTING/DISCONNECTED briefly.
+          # Wait for CONNECTED on the public status endpoint before RO account checks.
+          echo "[KWIZERA] Waiting for ForexConnect CONNECTED (up to 180s)"
+          for i in $(seq 1 36); do
+            fc_status="$(curl -fsS --max-time 8 http://162.35.114.19:5173/api/forex/providers/forexconnect/status | python3 -c 'import sys,json; print(json.load(sys.stdin).get("status",""))' || true)"
+            echo "[KWIZERA] FC status attempt $i: ${fc_status:-unknown}"
+            if [ "$fc_status" = "CONNECTED" ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ "${fc_status:-}" != "CONNECTED" ]; then
+            echo "ForexConnect did not reach CONNECTED before RO verify" >&2
+            exit 1
+          fi
           REMOTE_DIR="/tmp/kwizera-phase47-$$"
           ssh "${SSH_BASE[@]}" -p "$SSH_PORT" "$SSH_LOGIN@$VPS_HOST" "mkdir -p '$REMOTE_DIR/lib'"
           scp -P "$SSH_PORT" -i "$HOME/.ssh/deploy_key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
