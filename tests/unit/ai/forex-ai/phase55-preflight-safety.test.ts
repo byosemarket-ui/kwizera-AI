@@ -19,8 +19,10 @@ function read(rel: string): string {
 
 describe("Phase 55 preflight — execution isolation", () => {
   it("keeps execution banner, API order rejection, and no broker order helpers", () => {
-    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/NOT IMPLEMENTED/i);
-    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/PHASE 5/);
+    // Phase 4.11 — banner is honest: monitoring OK, global broker submit disabled.
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/GLOBAL BROKER EXECUTION DISABLED/i);
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/Phase 4\.11/);
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/monitoring\/analysis only/i);
 
     const api = read("dev/server/forex-automated-trading-api.ts");
     expect(api).toContain("EXECUTION_FORBIDDEN");
