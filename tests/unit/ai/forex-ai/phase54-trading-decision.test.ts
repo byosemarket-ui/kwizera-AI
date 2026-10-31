@@ -399,8 +399,9 @@ describe("Phase 54 static contracts", () => {
     resetAtDecisionStoreForTests();
   });
 
-  it("registers decision APIs, Phase 54 banner, keeps orders forbidden, no Local AI", () => {
-    expect(AUTOMATED_EXECUTION_BANNER).toContain("PHASE 54");
+  it("registers decision APIs, Phase 4.11 banner, keeps orders forbidden, no Local AI", () => {
+    expect(AUTOMATED_EXECUTION_BANNER).toContain("Phase 4.11");
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/GLOBAL BROKER EXECUTION DISABLED/i);
     const api = read("dev/server/forex-automated-trading-api.ts");
     expect(api).toContain("/api/forex/automated-trading/decision/status");
     expect(api).toContain("/api/forex/automated-trading/decision/evaluate");
@@ -417,7 +418,7 @@ describe("Phase 54 static contracts", () => {
 
     const page = read("desktop/forex/ForexAutomatedTradingPage.tsx");
     expect(page).toContain("data-fx-at-decision");
-    expect(page).toContain("PHASE 54");
+    expect(page).toContain("Phase 4.11");
     expect(page).toContain("Validate signal");
     expect(page).toContain("NOT CALIBRATED");
   });

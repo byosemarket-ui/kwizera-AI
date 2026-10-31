@@ -2,6 +2,7 @@ export * from "./types.js";
 export * from "./verification-types.js";
 export * from "./quote-freshness.js";
 export * from "./verification-gates.js";
+export * from "./pipeline-status.js";
 export * from "./analysis/index.js";
 export * from "./monitoring/index.js";
 export * from "./decision/index.js";

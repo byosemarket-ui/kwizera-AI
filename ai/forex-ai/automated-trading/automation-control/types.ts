@@ -30,6 +30,8 @@ export type AutomationBlockReasonCode =
   | "QUOTE_OUT_OF_ORDER"
   | "QUOTE_FUTURE_TIMESTAMP"
   | "FEED_DISCONNECTED"
+  /** Phase 4.11 — Offers inactive / session closed (not a TCP disconnect). */
+  | "MARKET_CLOSED"
   | "SUBSCRIPTION_NOT_CONFIRMED"
   | "PERSISTENCE_FAILED"
   | "STALE_STATE_VERSION"

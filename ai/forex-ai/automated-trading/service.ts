@@ -87,6 +87,7 @@ import {
   evaluateVerificationQuoteFreshness,
   withEvaluatedMarketReadiness,
 } from "./quote-freshness.js";
+import { deriveAtPipelineStatus } from "./pipeline-status.js";
 import {
   AUTOMATED_EXECUTION_BANNER,
   AUTOMATED_TRADING_PHASE,
@@ -1223,11 +1224,54 @@ export class AutomatedTradingService {
       emergencyEntryLock: selectedFresh.controls.emergencyEntryLock,
     });
 
+    const pipelineStatus = deriveAtPipelineStatus({
+      automationLifecycle: autoPersisted.lifecycle,
+      automationReasonCode: autoPersisted.reasonCode,
+      recoveryStatus: autoPersisted.recoveryStatus,
+      quoteFresh: freshnessEval.fresh,
+      quoteFreshnessReasonCode: freshnessEval.reasonCode,
+      feedStatus: liveOfferFreshness?.feedStatus
+        ?? verification?.market?.feedStatus
+        ?? null,
+      marketSession: verification?.market?.marketSession ?? null,
+      instrumentConfigured: Boolean(selectedFresh.selectedInstrument || inst?.symbol),
+      brokerConnected: connectionStatus === "CONNECTED",
+      placesOrders: false,
+      acceptsForExecution: false,
+      instrumentContract: inst
+        ? {
+          providerSymbol: inst.symbol,
+          displaySymbol: inst.displaySymbol,
+          baseUnitSize: inst.baseUnitSize,
+          minQuantity: inst.quantityMin ?? null,
+          lotStep: inst.quantityStep ?? null,
+          pointSize: inst.pointSize,
+          pipCost: inst.pipCostAccount,
+          mmrPerLot: inst.marginPerLotAccount ?? null,
+          evidenceSource: "live_broker",
+        }
+        : (selectedFresh.selectedInstrument
+          ? {
+            providerSymbol: selectedFresh.selectedInstrument,
+            evidenceSource: "inferred",
+          }
+          : null),
+      instrumentContractLive: Boolean(
+        inst?.baseUnitSize != null || inst?.marginPerLotAccount != null || inst?.quantityMin != null,
+      ),
+    });
+    if (pipelineStatus.quantityCompatibility && !pipelineStatus.quantityCompatibility.compatible001Lot) {
+      blockers.push(
+        `Owner 0.01-lot incompatible with selected instrument (${pipelineStatus.quantityCompatibility.blockers.slice(0, 3).join(", ")})`,
+      );
+    }
+
     return {
       schemaVersion: AUTOMATED_TRADING_SCHEMA,
       phase: AUTOMATED_TRADING_PHASE,
       moduleStatus,
       operationalStatus,
+      pipelineStatus,
       selectedEnvironment: fresh.selectedEnvironment,
       environmentEpoch: fresh.environmentEpoch,
       configVersion: fresh.configVersion,

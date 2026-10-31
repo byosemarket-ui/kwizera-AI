@@ -6,9 +6,10 @@ import type { AutomatedTradingVerificationResult } from "./verification-types.js
 export type { AutomatedTradingVerificationResult } from "./verification-types.js";
 
 export const AUTOMATED_TRADING_SCHEMA = "forex-automated-trading-v1";
-export const AUTOMATED_TRADING_PHASE = "54";
+/** Product surface phase label (monitoring + analysis OK; global broker submit still forbidden). */
+export const AUTOMATED_TRADING_PHASE = "4.11";
 export const AUTOMATED_EXECUTION_BANNER =
-  "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 54";
+  "GLOBAL BROKER EXECUTION DISABLED — START AUTO = monitoring/analysis only (Phase 4.11). DEMO submit requires separate grant path after 0.01-lot + margin gates pass.";
 
 export type AutomatedTradingEnvironment = "DEMO" | "LIVE";
 
@@ -108,6 +109,8 @@ export interface AutomatedTradingPublicStatus {
   environmentEpoch: number;
   configVersion: number;
   banner: typeof AUTOMATED_EXECUTION_BANNER;
+  /** Phase 4.11 — operator pipeline (monitoring vs execution blockers). */
+  pipelineStatus?: import("./pipeline-status.js").AtPipelineStatus;
   broker: {
     connectionStatus: AutomatedTradingBrokerConnectionStatus;
     activeSessionEnvironment: AutomatedTradingEnvironment | null;

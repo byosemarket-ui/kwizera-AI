@@ -26,6 +26,9 @@ export type AtQuoteFreshnessReasonCode =
   | "BID_ASK_MISSING"
   | "BID_ASK_INVALID"
   | "FEED_NOT_LIVE"
+  /** Phase 4.11 — Offers inactive / no price changes (often weekend). */
+  | "MARKET_INACTIVE"
+  | "MARKET_CLOSED"
   | "NO_QUOTE_UPDATES"
   | "PRICE_CHANGE_AGE_UNKNOWN"
   | "HEARTBEAT_ONLY_NO_PRICE_CHANGE"
@@ -191,6 +194,8 @@ export function evaluateVerificationQuoteFreshness(
     const feed = String(market?.feedStatus ?? "");
     let reason: AtQuoteFreshnessReasonCode = "FEED_NOT_LIVE";
     if (feed === "STALE") reason = "QUOTE_AGE_EXCEEDED";
+    else if (feed === "MARKET_INACTIVE") reason = "MARKET_INACTIVE";
+    else if (feed === "MARKET_CLOSED") reason = "MARKET_CLOSED";
     else if (feed === "NO_RECENT_MARKET_UPDATES") reason = "HEARTBEAT_ONLY_NO_PRICE_CHANGE";
     else if (feed === "SUBSCRIBING" || feed === "UNKNOWN_SESSION") reason = "NO_QUOTE_UPDATES";
     return emptyEval(nowMs, staleMs, reason, {
@@ -483,7 +488,14 @@ export function evaluateLiveOfferQuoteFreshness(
     return fail("QUOTE_AGE_EXCEEDED", "LIVE_PRICE_CHANGE_STALE");
   }
   if (String(feedStatus ?? "") !== "LIVE") {
-    return fail("FEED_NOT_LIVE", `LIVE_FEED_${String(feedStatus ?? "UNKNOWN")}`);
+    const feed = String(feedStatus ?? "UNKNOWN");
+    if (feed === "MARKET_INACTIVE") {
+      return fail("MARKET_INACTIVE", "LIVE_FEED_MARKET_INACTIVE");
+    }
+    if (feed === "MARKET_CLOSED") {
+      return fail("MARKET_CLOSED", "LIVE_FEED_MARKET_CLOSED");
+    }
+    return fail("FEED_NOT_LIVE", `LIVE_FEED_${feed}`);
   }
   if (!tradingEligibility.tradable) {
     return {

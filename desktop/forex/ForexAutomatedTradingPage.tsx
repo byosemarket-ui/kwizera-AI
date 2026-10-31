@@ -11,7 +11,8 @@ import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import { formatBrokerExecutionBadgeLabel } from "./broker-execution-label";
 import type { SelectedMarket } from "./market-data/selected-market";
 
-const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 54";
+const BANNER =
+  "GLOBAL BROKER EXECUTION DISABLED — START AUTO = monitoring/analysis only (Phase 4.11). DEMO submit requires separate grant path after 0.01-lot + margin gates pass.";
 
 type Env = "DEMO" | "LIVE";
 
@@ -86,6 +87,20 @@ type PublicStatus = {
   environmentEpoch: number;
   configVersion: number;
   banner: string;
+  /** Phase 4.11 — monitoring vs execution pipeline (never enables orders). */
+  pipelineStatus?: {
+    phase: string;
+    label: string;
+    monitoringAllowed: boolean;
+    executionAllowed: false;
+    ownerMaxLots: number;
+    quantityCompatibility?: {
+      compatible001Lot?: boolean;
+      providerSymbol?: string;
+      blockers?: string[];
+    } | null;
+    remediation?: string[];
+  };
   broker: {
     connectionStatus: string;
     activeSessionEnvironment: Env | null;
@@ -1264,6 +1279,47 @@ export function ForexAutomatedTradingPage(props: {
       <p className="fx-auto-trading-banner" role="status" data-fx-execution-banner="true">
         {status?.banner ?? BANNER}
       </p>
+
+      {status?.pipelineStatus ? (
+        <section
+          className="fx-auto-trading-panel"
+          data-fx-at-pipeline-status="true"
+          aria-label="Automated trading pipeline status"
+        >
+          <h2 className="fx-auto-trading-panel-title">Pipeline status (Phase 4.11)</h2>
+          <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+            <li data-fx-at-pipeline-phase="true">
+              Phase: <strong>{status.pipelineStatus.phase}</strong>
+              {" — "}
+              {status.pipelineStatus.label}
+            </li>
+            <li>
+              Monitoring allowed: <strong>{String(status.pipelineStatus.monitoringAllowed)}</strong>
+              {" · "}
+              Execution allowed: <strong>{String(status.pipelineStatus.executionAllowed)}</strong>
+              {" · "}
+              Owner max lots: <strong>{status.pipelineStatus.ownerMaxLots}</strong>
+            </li>
+            {status.pipelineStatus.quantityCompatibility ? (
+              <li data-fx-at-quantity-compatibility="true">
+                0.01-lot contract:{" "}
+                <strong>
+                  {status.pipelineStatus.quantityCompatibility.compatible001Lot ? "COMPATIBLE" : "INCOMPATIBLE"}
+                </strong>
+                {status.pipelineStatus.quantityCompatibility.providerSymbol
+                  ? ` · ${status.pipelineStatus.quantityCompatibility.providerSymbol}`
+                  : ""}
+                {status.pipelineStatus.quantityCompatibility.blockers?.length
+                  ? ` · ${status.pipelineStatus.quantityCompatibility.blockers.slice(0, 4).join(", ")}`
+                  : ""}
+              </li>
+            ) : null}
+            {(status.pipelineStatus.remediation ?? []).slice(0, 3).map((r: string) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section
         className="fx-auto-trading-panel"

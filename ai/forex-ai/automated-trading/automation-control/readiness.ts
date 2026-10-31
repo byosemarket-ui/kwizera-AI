@@ -50,6 +50,10 @@ export function mapQuoteFreshnessReasonToAutomationCode(
       return "QUOTE_FUTURE_TIMESTAMP";
     case "FEED_NOT_LIVE":
       return "FEED_DISCONNECTED";
+    case "MARKET_INACTIVE":
+    case "MARKET_CLOSED":
+    case "TRADING_STATUS_CLOSED":
+      return "MARKET_CLOSED";
     case "SUBSCRIBING":
       return "SUBSCRIPTION_NOT_CONFIRMED";
     case "HEARTBEAT_ONLY_NO_PRICE_CHANGE":
@@ -122,6 +126,17 @@ export function evaluateAutomationStartReadiness(
     const detail = input.quoteFreshnessReasonCode
       ? ` (${input.quoteFreshnessReasonCode})`
       : "";
+    // Phase 4.11 — market closed/inactive may still START monitoring in a wait state.
+    // Stale quotes remain non-fresh for entry generation (entryGenerationEnabled stays false).
+    if (mapped === "MARKET_CLOSED") {
+      return {
+        ...base,
+        ok: true,
+        reasonCode: "MARKET_CLOSED",
+        reasonMessage:
+          `Market appears closed/inactive${detail}. Monitoring may run in a wait state; quotes are not treated as LIVE and no entries will be generated.`,
+      };
+    }
     return {
       ...base,
       ok: false,

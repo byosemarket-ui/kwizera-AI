@@ -25,7 +25,7 @@ function read(rel: string): string {
 function baseDecision(over: Partial<AtDecisionResult> = {}): AtDecisionResult {
   return {
     schemaVersion: "at-trading-decision-v1",
-    phase: "54",
+    phase: "4.11",
     decisionId: "dec-59-buy-1",
     decisionStatus: "ACCEPTED_FOR_REVIEW",
     direction: "BUY",
