@@ -319,6 +319,7 @@ report.components.positionReconciliation = {
   enginePositionReconcileCode: eng.positionReconcileCode ?? null,
   rootCause: fcDisconnected ? "Stale data / broker session disconnected" : brokerCause?.kind ?? null,
 };
+// Updated again after dry-run below if tick reports POSITIONS_RECONCILED.
 
 const atStatus = await req("GET", "/api/forex/automated-trading/status");
 const atCause = rootCauseFromHttp(atStatus.status, atStatus.json);
@@ -327,12 +328,18 @@ const qty = st.quantitySemantics ?? null;
 const qEv = st.simulationDataReadiness?.quantityEvidence
   ?? st.simulationDataReadiness?.evidence?.quantityEvidence
   ?? null;
-const condEv = st.simulationDataReadiness?.condDistEvidence ?? null;
+const condEv = st.simulationDataReadiness?.condDistEvidence
+  ?? st.simulationDataReadiness?.evidence?.condDistEvidence
+  ?? null;
+const baseUnitSize = qEv?.baseUnitSize ?? qty?.baseUnitSize ?? null;
+const pointSize = qEv?.pointSize ?? qty?.pointSize ?? null;
+const minQuantity = qEv?.quantityMin ?? null;
+const quantityStep = qEv?.quantityStep ?? null;
 const hasSpecs = Boolean(
-  qEv?.baseUnitSize != null
-  || qEv?.quantityMin != null
-  || qEv?.quantityStep != null
-  || qEv?.pointSize != null
+  baseUnitSize != null
+  || minQuantity != null
+  || quantityStep != null
+  || pointSize != null
 );
 report.components.xauContractSpecs = {
   state: hasSpecs ? "ACTIVE" : (atCause ? "BLOCKED" : "NOT VERIFIED"),
@@ -340,21 +347,21 @@ report.components.xauContractSpecs = {
   quantitySemantics: qty,
   instrumentSpecs: {
     symbol: "XAU/USD",
-    baseUnitSize: qEv?.baseUnitSize ?? null,
-    minQuantity: qEv?.quantityMin ?? null,
-    quantityStep: qEv?.quantityStep ?? null,
+    baseUnitSize,
+    minQuantity,
+    quantityStep,
     constraintsStatus: qEv?.constraintsStatus ?? null,
     sizingBlocked: qEv?.sizingBlocked ?? null,
     blockCode: qEv?.blockCode ?? null,
-    pointSize: qEv?.pointSize ?? null,
-    contractMultiplier: qEv?.contractMultiplier ?? null,
-    pipCostAccount: qEv?.pipCostAccount ?? null,
-    unit: qEv?.unit ?? null,
+    pointSize,
+    contractMultiplier: qEv?.contractMultiplier ?? qty?.contractMultiplier ?? null,
+    pipCostAccount: qEv?.pipCostAccount ?? qty?.pipCostAccount ?? null,
+    unit: qEv?.unit ?? qty?.quantityUnitValue ?? null,
     mmrPerLot: st.instrument?.mmrPerLot ?? st.xauInstrument?.mmrPerLot ?? null,
     condDistAvailable: condEv?.available ?? null,
-    minStopDistanceVerified: condEv?.minStopDistanceVerified ?? null,
+    minStopDistanceVerified: condEv?.minStopDistanceVerified ?? qty?.minStopDistanceVerified ?? null,
   },
-  rootCause: atCause?.kind ?? null,
+  rootCause: atCause?.kind ?? (hasSpecs ? null : "Missing data — TradingSettings/Offers did not expose XAU size fields"),
 };
 
 const activation = await req("GET", "/api/forex/automated-trading/demo-lifecycle/activation-readiness");
@@ -426,6 +433,31 @@ report.components.productionDryRun = {
   dailyBlockers: teng.dailyRisk?.blockers ?? null,
   rootCause: tickCause?.kind ?? null,
 };
+
+if (teng.positionReconcileCode === "POSITIONS_RECONCILED") {
+  report.components.positionReconciliation = {
+    ...report.components.positionReconciliation,
+    state: "ACTIVE",
+    enginePositionReconcileCode: teng.positionReconcileCode,
+    rootCause: null,
+  };
+}
+if (teng.dailyRisk) {
+  report.components.dailyRiskTelemetry = {
+    ...report.components.dailyRiskTelemetry,
+    state: teng.dailyRisk.authoritative === true ? "ACTIVE" : report.components.dailyRiskTelemetry.state,
+    authoritative: teng.dailyRisk.authoritative ?? null,
+    tradingDayKey: teng.dailyRisk.tradingDayKey ?? report.components.dailyRiskTelemetry.tradingDayKey,
+    accountCurrency: teng.dailyRisk.accountCurrency ?? report.components.dailyRiskTelemetry.accountCurrency,
+    dayStartEquity: teng.dailyRisk.dayStartEquity ?? report.components.dailyRiskTelemetry.dayStartEquity,
+    currentEquity: teng.dailyRisk.currentEquity ?? report.components.dailyRiskTelemetry.currentEquity,
+    realizedPnlAccount: teng.dailyRisk.realizedPnlAccount ?? report.components.dailyRiskTelemetry.realizedPnlAccount,
+    unrealizedPnlAccount: teng.dailyRisk.unrealizedPnlAccount ?? report.components.dailyRiskTelemetry.unrealizedPnlAccount,
+    blockers: teng.dailyRisk.blockers ?? report.components.dailyRiskTelemetry.blockers,
+    updatedAtUtc: teng.dailyRisk.updatedAtUtc ?? report.components.dailyRiskTelemetry.updatedAtUtc,
+    accountsFetchedAtUtc: teng.dailyRisk.accountsFetchedAtUtc ?? report.components.dailyRiskTelemetry.accountsFetchedAtUtc,
+  };
+}
 
 const bus = report.components.xauContractSpecs.instrumentSpecs?.baseUnitSize ?? null;
 const minQ = report.components.xauContractSpecs.instrumentSpecs?.minQuantity ?? null;

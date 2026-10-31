@@ -92,17 +92,18 @@ export function createProductionAutoEngineDeps(
     },
     async loadPointSize(instrument) {
       // Phase 4.7 — never throw on disconnect; dry-run must fail closed.
+      // Match ForexConnectInstrument provider/display/canonical symbols (not legacy `symbol`).
       try {
         const bridge = getForexConnectBridge();
         const listed = await bridge.listInstruments();
         if (!listed.ok || !Array.isArray(listed.instruments)) return null;
-        const want = instrument.replace(/\s+/g, "").toUpperCase();
+        const want = normalizeGrantInstrument(instrument);
+        if (!want) return null;
         for (const row of listed.instruments) {
           const r = row as Record<string, unknown>;
-          const sym = String(r.symbol ?? r.instrument ?? r.Instrument ?? "")
-            .replace(/\s+/g, "")
-            .toUpperCase();
-          if (sym !== want) continue;
+          const keys = [r.providerSymbol, r.displaySymbol, r.canonicalSymbol, r.symbol, r.instrument]
+            .map((s) => normalizeGrantInstrument(String(s ?? "")));
+          if (!keys.includes(want)) continue;
           const ps = Number(r.pointSize ?? r.PointSize);
           return Number.isFinite(ps) && ps > 0 ? ps : null;
         }
