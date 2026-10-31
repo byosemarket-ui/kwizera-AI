@@ -12,7 +12,7 @@ import { evaluateDemoActivationReadiness } from "../../../../ai/forex-ai/automat
 function verifiedSpecs() {
   return {
     providerSymbol: "XAU/USD",
-    baseUnitSize: 1,
+    baseUnitSize: 100,
     pointSize: 0.01,
     pipCostAccount: 0.01,
     mmrPerLot: 100,
@@ -28,12 +28,12 @@ function baseInput(over: Partial<DemoOpenMarketRiskInput> = {}): DemoOpenMarketR
   return {
     instrument: "XAU/USD",
     direction: "BUY",
-    lots: 1,
+    lots: 0.01,
     stopLoss: 4000,
     takeProfit: 4100,
     entryPrice: 4020,
     requireProtective: true,
-    grantMaxLots: 1,
+    grantMaxLots: 0.01,
     requestedAccountId: null,
     account: {
       accountId: "demo-1",

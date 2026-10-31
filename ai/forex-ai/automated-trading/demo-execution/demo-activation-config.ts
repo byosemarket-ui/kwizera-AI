@@ -17,7 +17,7 @@ export const PROPOSED_BOUNDED_DEMO_ACTIVATION = {
   /** Explicit instrument allowlist for first controlled DEMO runs. */
   permittedInstruments: ["XAU/USD"] as readonly string[],
   maxLotsPerOrder: DEMO_OPEN_RISK_DEFAULTS.maxLotsPerOrder,
-  maxTotalExposureLots: 1,
+  maxTotalExposureLots: DEMO_OPEN_RISK_DEFAULTS.maxTotalExposureLots,
   maxOpenPositions: 1,
   maxDailyLossAccount: 25,
   maxDrawdownFractionOfDayStartEquity: 0.03,

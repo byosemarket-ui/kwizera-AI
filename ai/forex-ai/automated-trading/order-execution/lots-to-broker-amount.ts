@@ -1,15 +1,18 @@
 /**
- * Phase 59.0.6 — Convert DEMO lots → ForexConnect broker amount (offline).
+ * Phase 59.0.6 / 4.8 — Convert DEMO lots → ForexConnect broker amount (offline).
  * Contract (Gehtsoft OpenPosition + this repo's mutation_demo):
  *   amount = base_unit_size * lots
  * Never invents baseUnitSize. Never silently upsizes. Never calls the broker.
+ *
+ * Phase 4.8: fractional lots (e.g. 0.01) are allowed only when the computed
+ * amount is a positive integer (ForexConnect AMOUNT is integer).
  */
 export interface LotsToBrokerAmountInput {
   lots: number;
   baseUnitSize: number | null | undefined;
   /** Optional SDK min order amount (contracts). When unknown, omit. */
   minQuantity?: number | null;
-  /** Hard DEMO clamp used by sidecar mutation_demo (1..50). */
+  /** Hard DEMO clamp used by sidecar mutation_demo. */
   maxLots?: number;
 }
 
@@ -25,7 +28,8 @@ export interface LotsToBrokerAmountResult {
     | "BASE_UNIT_SIZE_UNKNOWN"
     | "BASE_UNIT_SIZE_INVALID"
     | "AMOUNT_INVALID"
-    | "AMOUNT_BELOW_MIN_QUANTITY";
+    | "AMOUNT_BELOW_MIN_QUANTITY"
+    | "AMOUNT_NOT_INTEGER";
   message: string;
   /** True only when conversion used explicit broker baseUnitSize (no invented default). */
   usedBrokerBaseUnitSize: boolean;
@@ -45,14 +49,14 @@ function finitePositive(n: unknown): n is number {
 export function lotsToBrokerAmount(input: LotsToBrokerAmountInput): LotsToBrokerAmountResult {
   const maxLots = input.maxLots ?? 50;
 
-  if (!finitePositiveInt(input.lots)) {
+  if (!finitePositive(input.lots)) {
     return {
       ok: false,
       amount: null,
       lots: null,
       baseUnitSize: null,
       code: "LOTS_INVALID",
-      message: "lots must be a positive integer.",
+      message: "lots must be a finite number > 0.",
       usedBrokerBaseUnitSize: false,
     };
   }
@@ -91,15 +95,29 @@ export function lotsToBrokerAmount(input: LotsToBrokerAmountInput): LotsToBroker
     };
   }
 
-  const amount = input.baseUnitSize * input.lots;
-  if (!Number.isInteger(amount) || amount <= 0 || !Number.isFinite(amount)) {
+  const rawAmount = input.baseUnitSize * input.lots;
+  // ForexConnect AMOUNT is an integer number of base units.
+  const amount = Math.round(rawAmount);
+  if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
     return {
       ok: false,
       amount: null,
       lots: input.lots,
       baseUnitSize: input.baseUnitSize,
       code: "AMOUNT_INVALID",
-      message: "Computed broker amount is not a positive integer.",
+      message: "Computed broker amount is not a positive number.",
+      usedBrokerBaseUnitSize: true,
+    };
+  }
+  if (Math.abs(rawAmount - amount) > 1e-9 || !finitePositiveInt(amount)) {
+    return {
+      ok: false,
+      amount: null,
+      lots: input.lots,
+      baseUnitSize: input.baseUnitSize,
+      code: "AMOUNT_NOT_INTEGER",
+      message:
+        `baseUnitSize(${input.baseUnitSize}) * lots(${input.lots}) = ${rawAmount} is not an integer AMOUNT — refuse fractional-unit orders.`,
       usedBrokerBaseUnitSize: true,
     };
   }

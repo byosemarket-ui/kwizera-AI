@@ -20,6 +20,11 @@ export interface DemoActivationReadinessInput {
   sidecarReachable?: boolean | null;
   /** true when Node+sidecar mutation env is enabled (boolean only; never print secrets). */
   allowDemoMutationEnabled?: boolean | null;
+  /**
+   * Phase 4.8 — owner explicitly confirmed intentional bounded DEMO mutation state.
+   * When true and allowDemoMutationEnabled, MUTATION_FLAG passes instead of blocking.
+   */
+  ownerConfirmedBoundedDemoMutation?: boolean | null;
   placesOrders?: boolean | null;
   acceptsForExecution?: boolean | null;
   emergencyEntryLock?: boolean | null;
@@ -143,13 +148,23 @@ export function evaluateDemoActivationReadiness(
   }
 
   if (input.allowDemoMutationEnabled === true) {
-    push(
-      checks,
-      blockers,
-      "MUTATION_FLAG",
-      "BLOCKED",
-      "ALLOW_DEMO_MUTATION is already enabled — owner must confirm intentional state before further activation.",
-    );
+    if (input.ownerConfirmedBoundedDemoMutation === true) {
+      push(
+        checks,
+        blockers,
+        "MUTATION_FLAG",
+        "PASS",
+        "ALLOW_DEMO_MUTATION enabled and owner confirmed intentional bounded DEMO mutation (Phase 4.8).",
+      );
+    } else {
+      push(
+        checks,
+        blockers,
+        "MUTATION_FLAG",
+        "BLOCKED",
+        "ALLOW_DEMO_MUTATION is already enabled — set KWIZERA_DEMO_OWNER_CONFIRMED_BOUNDED_MUTATION=1 after owner confirmation, or disable the flag until activation.",
+      );
+    }
   } else if (input.allowDemoMutationEnabled == null) {
     push(checks, blockers, "MUTATION_FLAG", "NOT_VERIFIED", "Mutation flag state not supplied (admin/env read required).");
   } else {

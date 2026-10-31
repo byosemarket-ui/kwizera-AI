@@ -14,7 +14,8 @@ import { join } from "node:path";
 function verifiedSpecs(over: Record<string, unknown> = {}) {
   return {
     providerSymbol: "XAU/USD",
-    baseUnitSize: 1,
+    // Phase 4.8 — 100 base units × 0.01 lots = integer AMOUNT 1.
+    baseUnitSize: 100,
     pointSize: 0.01,
     pipCostAccount: 0.01,
     mmrPerLot: 100,
@@ -31,12 +32,12 @@ function baseInput(over: Partial<DemoOpenMarketRiskInput> = {}): DemoOpenMarketR
   return {
     instrument: "XAU/USD",
     direction: "BUY",
-    lots: 1,
+    lots: 0.01,
     stopLoss: 4000,
     takeProfit: 4100,
     entryPrice: 4020,
     requireProtective: true,
-    grantMaxLots: 1,
+    grantMaxLots: 0.01,
     requestedAccountId: null,
     account: {
       accountId: "demo-1",
@@ -72,8 +73,9 @@ describe("Phase 59.0.15 DEMO open-market risk", () => {
     expect(r.maySubmitDemoMutation).toBe(true);
     expect(r.placesOrdersGlobal).toBe(false);
     expect(r.mutatesBroker).toBe(false);
-    expect(r.details.estimatedSlLossAccount).toBeCloseTo(20, 5); // |4020-4000|/0.01 * 0.01 * 1
-    expect(r.details.estimatedMarginAccount).toBe(100);
+    // SL pips = |4020-4000|/0.01 = 2000; loss = 2000 * 0.01 pipCost * 0.01 lots = 0.2
+    expect(r.details.estimatedSlLossAccount).toBeCloseTo(0.2, 5);
+    expect(r.details.estimatedMarginAccount).toBeCloseTo(1, 5); // mmrPerLot 100 * 0.01 lots
     expect(r.details.exposureScope).toBe("instrument");
     expect(r.details.condDistUnit).toBe("pips");
   });
@@ -128,13 +130,14 @@ describe("Phase 59.0.15 DEMO open-market risk", () => {
   });
 
   it("rejects insufficient free margin and reserve violations", () => {
+    // 0.01 lots * mmrPerLot 100 = estimated margin 1 → usable 0.5 is insufficient.
     const r = evaluateDemoOpenMarketRisk(baseInput({
       account: {
         accountId: "demo-1",
         environment: "demo",
         accountCurrency: "USD",
         equity: 10_000,
-        usableMargin: 80,
+        usableMargin: 0.5,
         balance: 10_000,
         missingFields: [],
         fetchedAtUtc: new Date().toISOString(),
@@ -148,9 +151,10 @@ describe("Phase 59.0.15 DEMO open-market risk", () => {
   });
 
   it("rejects max-loss and exposure limit violations", () => {
+    // |4020-3900|/0.01 * 0.01 pipCost * 0.01 lots = 1.2 USD SL loss.
     const loss = evaluateDemoOpenMarketRisk(baseInput({
-      stopLoss: 3900, // 120 points * 0.01 pipCost * 1 lot = 120
-      limits: { ...DEMO_OPEN_RISK_DEFAULTS, maxSlLossAccount: 50, maxSlLossFractionOfEquity: 0.5 },
+      stopLoss: 3900,
+      limits: { ...DEMO_OPEN_RISK_DEFAULTS, maxSlLossAccount: 1, maxSlLossFractionOfEquity: 0.5 },
     }));
     expect(loss.blockers).toContain("MAX_SL_LOSS_ACCOUNT_EXCEEDED");
 
@@ -165,14 +169,14 @@ describe("Phase 59.0.15 DEMO open-market risk", () => {
         missingFields: [],
         fetchedAtUtc: new Date().toISOString(),
       },
-      stopLoss: 3900, // loss 120 > 2% of 1000
-      limits: { ...DEMO_OPEN_RISK_DEFAULTS, maxSlLossAccount: null, maxSlLossFractionOfEquity: 0.02 },
+      stopLoss: 3900, // 1.2 > 0.1% of 1000
+      limits: { ...DEMO_OPEN_RISK_DEFAULTS, maxSlLossAccount: null, maxSlLossFractionOfEquity: 0.001 },
     }));
     expect(frac.blockers).toContain("MAX_SL_LOSS_FRACTION_EXCEEDED");
 
     const exposure = evaluateDemoOpenMarketRisk(baseInput({
-      openExposureLots: 2,
-      limits: { ...DEMO_OPEN_RISK_DEFAULTS, maxTotalExposureLots: 2, maxSlLossAccount: 50 },
+      openExposureLots: 0.01,
+      limits: { ...DEMO_OPEN_RISK_DEFAULTS, maxTotalExposureLots: 0.01, maxSlLossAccount: 50 },
     }));
     expect(exposure.blockers).toContain("MAX_EXPOSURE_LOTS_EXCEEDED");
   });

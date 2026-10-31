@@ -31,10 +31,10 @@ import {
 import { lotsToBrokerAmount } from "../order-execution/lots-to-broker-amount.js";
 
 export const DEMO_OPEN_RISK_DEFAULTS = {
-  /** Hard per-order lot cap for DEMO open-market (grant may be tighter). */
-  maxLotsPerOrder: 1,
-  /** Max sum of open broker lots + proposed lots. */
-  maxTotalExposureLots: 2,
+  /** Hard per-order lot cap for DEMO open-market (grant may be tighter). Phase 4.8 bound. */
+  maxLotsPerOrder: 0.01,
+  /** Max sum of open broker lots + proposed lots. Phase 4.8 bound. */
+  maxTotalExposureLots: 0.01,
   /** Max simultaneous open broker positions for the scoped instrument (count). */
   maxOpenPositions: 1,
   /** Absolute floor for usable/free margin in account currency. */
@@ -170,16 +170,14 @@ export function loadDemoOpenMarketRiskLimitsDetailed(
   };
 
   const limits: DemoOpenMarketRiskLimits = {
-    maxLotsPerOrder: pickInt(
+    maxLotsPerOrder: pickFloat(
       "KWIZERA_DEMO_OPEN_MAX_LOTS",
-      1,
-      50,
+      (n) => n > 0 && n <= 50,
       DEMO_OPEN_RISK_DEFAULTS.maxLotsPerOrder,
     ),
-    maxTotalExposureLots: pickInt(
+    maxTotalExposureLots: pickFloat(
       "KWIZERA_DEMO_OPEN_MAX_EXPOSURE_LOTS",
-      1,
-      50,
+      (n) => n > 0 && n <= 50,
       DEMO_OPEN_RISK_DEFAULTS.maxTotalExposureLots,
     ),
     maxOpenPositions: pickInt(
@@ -392,7 +390,7 @@ export function estimateStopLossLossAccount(input: {
   pipCostAccount: number;
 }): number | null {
   if (!finitePositive(input.entryPrice) || !finitePositive(input.stopLoss)) return null;
-  if (!finitePositive(input.lots) || !Number.isInteger(input.lots)) return null;
+  if (!finitePositive(input.lots)) return null;
   if (!finitePositive(input.pointSize) || !finitePositive(input.pipCostAccount)) return null;
   const distance = Math.abs(input.entryPrice - input.stopLoss);
   if (!(distance > 0)) return null;
@@ -458,11 +456,11 @@ export function evaluateDemoOpenMarketRisk(
     else if (age > quoteMaxAgeMs) blockers.push("QUOTE_STALE");
   }
 
-  if (!Number.isInteger(input.lots) || input.lots < 1) {
+  if (!finitePositive(input.lots)) {
     blockers.push("LOTS_INVALID");
   } else {
-    if (input.lots > limits.maxLotsPerOrder) blockers.push("MAX_LOTS_PER_ORDER_EXCEEDED");
-    if (input.lots > input.grantMaxLots) blockers.push("LOTS_EXCEED_GRANT");
+    if (input.lots > limits.maxLotsPerOrder + 1e-12) blockers.push("MAX_LOTS_PER_ORDER_EXCEEDED");
+    if (input.lots > input.grantMaxLots + 1e-12) blockers.push("LOTS_EXCEED_GRANT");
   }
 
   if (!input.accountFetchOk || !input.account) {
@@ -530,7 +528,8 @@ export function evaluateDemoOpenMarketRisk(
     if (!finitePositive(specs.pipCostAccount)) blockers.push("PIP_COST_UNVERIFIED");
     if (!finitePositive(specs.mmrPerLot)) blockers.push("MMR_PER_LOT_UNVERIFIED");
 
-    if (finitePositive(specs.mmrPerLot) && Number.isInteger(input.lots) && input.lots >= 1) {
+    // Phase 4.8 — fractional lots (e.g. 0.01) use mmrPerLot * lots when mmr is verified.
+    if (finitePositive(specs.mmrPerLot) && finitePositive(input.lots)) {
       details.estimatedMarginAccount = specs.mmrPerLot * input.lots;
     }
   }
@@ -540,9 +539,8 @@ export function evaluateDemoOpenMarketRisk(
   } else if (input.openExposureLots < 0) {
     blockers.push("OPEN_EXPOSURE_INVALID");
   } else if (
-    Number.isInteger(input.lots)
-    && input.lots >= 1
-    && input.openExposureLots + input.lots > limits.maxTotalExposureLots
+    finitePositive(input.lots)
+    && input.openExposureLots + input.lots > limits.maxTotalExposureLots + 1e-12
   ) {
     blockers.push("MAX_EXPOSURE_LOTS_EXCEEDED");
   }
@@ -662,8 +660,7 @@ export function evaluateDemoOpenMarketRisk(
     && specs
     && finitePositive(specs.pointSize)
     && finitePositive(specs.pipCostAccount)
-    && Number.isInteger(input.lots)
-    && input.lots >= 1
+    && finitePositive(input.lots)
   ) {
     if (details.stopDistance == null) {
       details.stopDistance = Math.abs(entry - (input.stopLoss as number));

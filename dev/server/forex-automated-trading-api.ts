@@ -1773,6 +1773,9 @@ export async function handleForexAutomatedTradingApi(
         } = await import("../../ai/forex-ai/automated-trading/auto-engine/index.js");
         const allowRaw = String(process.env.KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION ?? "").trim();
         const allowDemoMutationEnabled = allowRaw === "1" || /^true$/i.test(allowRaw);
+        const ownerConfirmRaw = String(process.env.KWIZERA_DEMO_OWNER_CONFIRMED_BOUNDED_MUTATION ?? "").trim();
+        const ownerConfirmedBoundedDemoMutation =
+          ownerConfirmRaw === "1" || /^true$/i.test(ownerConfirmRaw);
         // Refresh daily-risk from broker RO (tick without submit).
         const probeWorker = new AutoEngineWorker(createProductionAutoEngineDeps({
           emergencyEntryLock: true,
@@ -1804,6 +1807,7 @@ export async function handleForexAutomatedTradingApi(
           liveProfileConfigured: liveConfigured,
           sidecarReachable: fcObj.sidecarReachable === true,
           allowDemoMutationEnabled,
+          ownerConfirmedBoundedDemoMutation,
           placesOrders: false,
           acceptsForExecution: false,
           emergencyEntryLock: true,

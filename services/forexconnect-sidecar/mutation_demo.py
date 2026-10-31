@@ -439,8 +439,13 @@ def open_true_market(
 
     if not instrument:
         return _reject("INVALID_INSTRUMENT", "instrument is required.")
-    if not isinstance(lots, int) or lots < 1 or lots > 50:
-        return _reject("INVALID_LOTS", "lots must be an integer between 1 and 50 for DEMO tests.")
+    # Phase 4.8 — allow fractional DEMO lots (e.g. 0.01) only when AMOUNT is a positive integer.
+    try:
+        lots_f = float(lots)
+    except (TypeError, ValueError):
+        return _reject("INVALID_LOTS", "lots must be a finite number > 0.")
+    if not (lots_f > 0 and lots_f <= 50):
+        return _reject("INVALID_LOTS", "lots must be between 0 (exclusive) and 50 for DEMO tests.")
 
     stop_f, err = _parse_rate(rate_stop, "rateStop")
     if err:
@@ -460,9 +465,13 @@ def open_true_market(
 
     trading_settings_provider = fx.login_rules.trading_settings_provider
     base_unit_size = int(trading_settings_provider.get_base_unit_size(instrument, account))
-    amount = int(base_unit_size) * int(lots)
-    if amount <= 0:
-        return _reject("INVALID_AMOUNT", "Computed amount must be positive.")
+    raw_amount = float(base_unit_size) * float(lots_f)
+    amount = int(round(raw_amount))
+    if amount <= 0 or abs(raw_amount - amount) > 1e-9:
+        return _reject(
+            "INVALID_AMOUNT",
+            f"baseUnitSize({base_unit_size}) * lots({lots_f}) must yield a positive integer AMOUNT (got {raw_amount}).",
+        )
 
     # Soft geometry check vs current bid/ask when protective rates provided.
     try:

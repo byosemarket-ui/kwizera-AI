@@ -472,16 +472,25 @@ if (sizingBlocked === true) {
   lotSupportDetail = String(report.components.xauContractSpecs.instrumentSpecs?.blockCode ?? "SIZING_BLOCKED");
 } else if (bus != null || minQ != null || step != null) {
   const lots = 0.01;
-  const amount = typeof bus === "number" ? bus * lots : null;
+  const rawAmount = typeof bus === "number" ? bus * lots : null;
+  const amountInt = rawAmount == null ? null : Math.round(rawAmount);
+  const amountOk = rawAmount != null
+    && amountInt != null
+    && amountInt > 0
+    && Math.abs(rawAmount - amountInt) <= 1e-9;
   const marginEst = typeof mmr === "number" ? mmr * lots : null;
-  const minOk = minQ == null ? null : lots + 1e-12 >= Number(minQ);
+  const minOk = minQ == null ? null : (amountInt == null ? null : amountInt + 1e-12 >= Number(minQ));
   const stepOk = step == null || Number(step) <= 0
     ? null
     : Math.abs(Math.round(lots / Number(step)) * Number(step) - lots) < 1e-9;
   const marginOk = marginEst == null || usable == null
     ? null
     : Number(usable) >= Number(marginEst);
-  if (minOk === false) {
+  if (rawAmount != null && !amountOk) {
+    lotSupportState = "FAIL";
+    lotSupportDetail =
+      `baseUnitSize(${bus}) * 0.01 lots = ${rawAmount} is not a positive integer ForexConnect AMOUNT`;
+  } else if (minOk === false) {
     lotSupportState = "FAIL";
     lotSupportDetail = "0.01 lots below broker minQuantity";
   } else if (stepOk === false) {
@@ -490,11 +499,12 @@ if (sizingBlocked === true) {
   } else if (marginOk === false) {
     lotSupportState = "FAIL";
     lotSupportDetail = "usable margin below estimated mmr for 0.01 lots";
-  } else if (minOk === true || stepOk === true || amount != null) {
+  } else if (mmr == null) {
+    lotSupportState = "NOT VERIFIED";
+    lotSupportDetail = "integer AMOUNT path OK but mmrPerLot missing — margin preflight fail-closed";
+  } else if (amountOk) {
     lotSupportState = "ACTIVE";
-    lotSupportDetail = marginOk == null
-      ? "0.01 lot size aligns with broker min/step; mmrPerLot not exposed for margin estimate"
-      : "0.01 lot sizing and margin estimate within usable margin";
+    lotSupportDetail = "0.01 lot sizing yields integer AMOUNT and margin estimate within usable margin";
   }
 }
 report.components.lot001Support = {
