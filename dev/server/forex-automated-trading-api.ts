@@ -1431,6 +1431,32 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 4.12 — strategy + isolated SIMULATED lifecycle (never broker mutation).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/strategy-dry-run")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.runPhase412StrategyDryRun({
+        instrument: body.instrument,
+        timeframe: body.timeframe,
+      });
+      sendJson(res, 200, {
+        ok: true,
+        dryRun: result.dryRun,
+        feedSnapshot: result.feedSnapshot,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        simulationOnly: true,
+        acknowledgementLabel: "SIMULATED",
+        note: "Strategy dry-run is simulation-only. Simulated fills are not DEMO_FILL_CONFIRMED.",
+      });
+      return true;
+    }
+
     if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });

@@ -10,6 +10,7 @@ import { useForexAdminToken } from "./admin-access/use-forex-admin-token";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import { formatBrokerExecutionBadgeLabel } from "./broker-execution-label";
 import type { SelectedMarket } from "./market-data/selected-market";
+import { describeMarketSelectionGap } from "../../ai/forex-ai/automated-trading/market-selection";
 
 const BANNER =
   "GLOBAL BROKER EXECUTION DISABLED — START AUTO = monitoring/analysis only (Phase 4.11). DEMO submit requires separate grant path after 0.01-lot + margin gates pass.";
@@ -244,6 +245,49 @@ function fcInstrumentFromMarket(market: SelectedMarket | null): string | null {
   return null;
 }
 
+type StrategyDryRunResult = {
+  dryRun?: {
+    banner?: string;
+    acknowledgementLabel?: string;
+    strategy?: {
+      code?: string;
+      direction?: string;
+      reasons?: string[];
+      closedCandleOpenSec?: number | null;
+      fastSma?: number | null;
+      slowSma?: number | null;
+      atr?: number | null;
+      entryPrice?: number | null;
+      stopLoss?: number | null;
+      takeProfit?: number | null;
+    };
+    candleDiagnostics?: {
+      count?: number;
+      closedCount?: number;
+      lastOpenSec?: number | null;
+      orderedAscending?: boolean;
+    };
+    steps?: Array<{ step?: string; ok?: boolean; code?: string; detail?: string }>;
+    simulatedPosition?: Record<string, unknown> | null;
+    brokerExecutionBlockers?: string[];
+    note?: string;
+    simulationOnly?: boolean;
+    mutatesBroker?: boolean;
+  };
+  feedSnapshot?: {
+    instrument?: string;
+    bid?: number | null;
+    ask?: number | null;
+    feedStatus?: string | null;
+    tradingStatus?: string | null;
+    quoteFresh?: boolean;
+    reasonCode?: string | null;
+    sourceTimestampMs?: number | null;
+    candleLastOpenSec?: number | null;
+    realDemoQuotesObserved?: boolean;
+  };
+};
+
 export function ForexAutomatedTradingPage(props: {
   selectedMarket?: SelectedMarket | null;
   timeframe?: string;
@@ -337,6 +381,12 @@ export function ForexAutomatedTradingPage(props: {
     note?: string;
   } | null>(null);
   const [simLifeBusy, setSimLifeBusy] = useState(false);
+  /** Phase 4.12 — Markets→AT instrument sync + strategy dry-run diagnostics. */
+  const [instrumentSyncNote, setInstrumentSyncNote] = useState<string | null>(null);
+  const [instrumentSyncBusy, setInstrumentSyncBusy] = useState(false);
+  const lastSyncedInstrumentRef = useRef<string | null>(null);
+  const [strategyDryRun, setStrategyDryRun] = useState<StrategyDryRunResult | null>(null);
+  const [strategyDryRunBusy, setStrategyDryRunBusy] = useState(false);
   /** Phase 57.1/57.2 — server-authoritative automation START/STOP (monitoring ≠ execution). */
   const [automation, setAutomation] = useState<{
     stateVersion?: number;
@@ -461,7 +511,7 @@ export function ForexAutomatedTradingPage(props: {
           `/api/forex/automated-trading/demo-lifecycle/readiness?${new URLSearchParams({
             instrument: shellInstrument
               || "XAU/USD",
-            lots: "1",
+            lots: "0.01",
           }).toString()}`,
           { headers: adminHeaders(token) },
         ),
@@ -605,11 +655,92 @@ export function ForexAutomatedTradingPage(props: {
     } finally {
       if (n === seq.current) setBusy(false);
     }
-  }, [token]);
+  }, [token, shellInstrument]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  /** Phase 4.12 — persist ForexConnect Markets selection into AT backend state. */
+  useEffect(() => {
+    if (!shellInstrument) {
+      lastSyncedInstrumentRef.current = null;
+      setInstrumentSyncNote(
+        props.selectedMarket
+          ? `Markets selection ${props.selectedMarket.displaySymbol} is not ForexConnect — AT instrument sync skipped.`
+          : "No market selected in Markets — choose a ForexConnect instrument.",
+      );
+      return;
+    }
+    if (!token.trim()) {
+      setInstrumentSyncNote(`Shell market ${shellInstrument} — admin token required to sync into AT.`);
+      return;
+    }
+    if (lastSyncedInstrumentRef.current === shellInstrument) {
+      setInstrumentSyncNote(`Synced Markets → Automated Trading: ${shellInstrument}`);
+      return;
+    }
+    let cancelled = false;
+    setInstrumentSyncBusy(true);
+    void (async () => {
+      try {
+        const stRes = await fetch("/api/forex/automated-trading/status", {
+          headers: adminHeaders(token),
+        });
+        const stJson = await stRes.json() as { ok?: boolean; status?: PublicStatus };
+        if (cancelled || !stRes.ok || !stJson.ok || !stJson.status) {
+          if (!cancelled) setInstrumentSyncNote("Cannot sync instrument — status unavailable.");
+          return;
+        }
+        const backend = stJson.status.selectedEnvState?.selectedInstrument ?? null;
+        const gap = describeMarketSelectionGap({
+          shellInstrument,
+          backendInstrument: backend,
+        });
+        if (gap.code === "SYNCED") {
+          lastSyncedInstrumentRef.current = shellInstrument;
+          if (!cancelled) {
+            setStatus(stJson.status);
+            setInstrumentSyncNote(gap.message);
+          }
+          return;
+        }
+        const res = await fetch("/api/forex/automated-trading/instrument", {
+          method: "POST",
+          headers: adminHeaders(token),
+          body: JSON.stringify({
+            environment: stJson.status.selectedEnvironment,
+            instrument: shellInstrument,
+            expectedEnvironmentEpoch: stJson.status.environmentEpoch,
+          }),
+        });
+        const data = await res.json() as {
+          ok?: boolean;
+          status?: PublicStatus;
+          error?: { message?: string; code?: string };
+        };
+        if (cancelled) return;
+        if (!res.ok || !data.ok) {
+          setInstrumentSyncNote(
+            data.error?.message || data.error?.code || `Instrument sync failed (${res.status})`,
+          );
+          return;
+        }
+        lastSyncedInstrumentRef.current = shellInstrument;
+        if (data.status) setStatus(data.status);
+        setInstrumentSyncNote(`Synced Markets → Automated Trading: ${shellInstrument}`);
+      } catch (err) {
+        if (!cancelled) {
+          setInstrumentSyncNote(err instanceof Error ? err.message : "Instrument sync failed");
+        }
+      } finally {
+        if (!cancelled) setInstrumentSyncBusy(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [shellInstrument, token, props.selectedMarket]);
 
   useEffect(() => {
     if (authGenRef.current === adminSnap.generation) return;
@@ -928,6 +1059,38 @@ export function ForexAutomatedTradingPage(props: {
       setError(err instanceof Error ? err.message : "Reopen draft failed");
     } finally {
       setSimRiskBusy(false);
+    }
+  };
+
+  const runStrategyDryRunUi = async () => {
+    setStrategyDryRunBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/strategy-dry-run", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          instrument: shellInstrument
+            ?? status?.selectedEnvState?.selectedInstrument
+            ?? "XAU/USD",
+          timeframe: props.timeframe ?? "1h",
+        }),
+      });
+      const data = await res.json() as StrategyDryRunResult & {
+        ok?: boolean;
+        error?: { message?: string; code?: string };
+        status?: PublicStatus;
+      };
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Strategy dry-run failed (${res.status})`);
+        return;
+      }
+      setStrategyDryRun({ dryRun: data.dryRun, feedSnapshot: data.feedSnapshot });
+      if (data.status) setStatus(data.status);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Strategy dry-run failed");
+    } finally {
+      setStrategyDryRunBusy(false);
     }
   };
 
@@ -1279,6 +1442,116 @@ export function ForexAutomatedTradingPage(props: {
       <p className="fx-auto-trading-banner" role="status" data-fx-execution-banner="true">
         {status?.banner ?? BANNER}
       </p>
+
+      <section
+        className="fx-auto-trading-panel"
+        data-fx-at-market-selection="true"
+        aria-label="Market selection and feed"
+      >
+        <div className="fx-auto-trading-panel-head">
+          <h2 className="fx-auto-trading-h2">Market selection &amp; feed (Phase 4.12)</h2>
+          <button
+            type="button"
+            className="fx-capture-button"
+            disabled={busy || strategyDryRunBusy || !token}
+            onClick={() => void runStrategyDryRunUi()}
+            data-fx-at-strategy-dry-run="true"
+          >
+            {strategyDryRunBusy ? "…" : "Strategy dry-run"}
+          </button>
+        </div>
+        <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+          <li data-fx-at-shell-instrument="true">
+            Shell Markets: <strong>{shellInstrument ?? "No market selected"}</strong>
+            {props.selectedMarket?.venue ? ` · venue ${props.selectedMarket.venue}` : ""}
+            {instrumentSyncBusy ? " · syncing…" : ""}
+          </li>
+          <li data-fx-at-backend-instrument="true">
+            AT backend:{" "}
+            <strong>{status?.selectedEnvState?.selectedInstrument ?? "—"}</strong>
+            {instrumentSyncNote ? ` · ${instrumentSyncNote}` : ""}
+          </li>
+          <li>
+            Provider: FOREXCONNECT DEMO
+            {" · "}
+            Connection: <strong>{status?.broker.connectionStatus ?? "—"}</strong>
+          </li>
+          {strategyDryRun?.feedSnapshot ? (
+            <>
+              <li data-fx-at-feed-bid-ask="true">
+                Latest bid/ask:{" "}
+                <strong>
+                  {strategyDryRun.feedSnapshot.bid ?? "—"} / {strategyDryRun.feedSnapshot.ask ?? "—"}
+                </strong>
+                {" · "}
+                feed <strong>{strategyDryRun.feedSnapshot.feedStatus ?? "—"}</strong>
+                {" · "}
+                tradingStatus <strong>{strategyDryRun.feedSnapshot.tradingStatus ?? "—"}</strong>
+              </li>
+              <li>
+                Quote freshness:{" "}
+                <strong>{strategyDryRun.feedSnapshot.quoteFresh ? "fresh" : "not fresh"}</strong>
+                {strategyDryRun.feedSnapshot.reasonCode
+                  ? ` · ${strategyDryRun.feedSnapshot.reasonCode}`
+                  : ""}
+                {" · "}
+                real DEMO quotes observed:{" "}
+                <strong>{String(Boolean(strategyDryRun.feedSnapshot.realDemoQuotesObserved))}</strong>
+              </li>
+              <li>
+                Candle last open (sec):{" "}
+                <strong>{strategyDryRun.feedSnapshot.candleLastOpenSec ?? "—"}</strong>
+              </li>
+            </>
+          ) : (
+            <li>Run Strategy dry-run to load live feed + candle diagnostics.</li>
+          )}
+          {strategyDryRun?.dryRun?.strategy ? (
+            <>
+              <li data-fx-at-strategy-signal="true">
+                Strategy {strategyDryRun.dryRun.strategy.code}:{" "}
+                <strong>{strategyDryRun.dryRun.strategy.direction}</strong>
+                {strategyDryRun.dryRun.strategy.reasons?.[0]
+                  ? ` — ${strategyDryRun.dryRun.strategy.reasons[0]}`
+                  : ""}
+              </li>
+              <li>
+                SMA/ATR: fast={String(strategyDryRun.dryRun.strategy.fastSma ?? "—")}
+                {" · "}
+                slow={String(strategyDryRun.dryRun.strategy.slowSma ?? "—")}
+                {" · "}
+                atr={String(strategyDryRun.dryRun.strategy.atr ?? "—")}
+                {" · "}
+                closedCandle={String(strategyDryRun.dryRun.strategy.closedCandleOpenSec ?? "—")}
+              </li>
+              <li data-fx-at-dry-run-banner="true">
+                {strategyDryRun.dryRun.banner ?? "SIMULATED"}
+                {" · "}
+                acknowledgement <strong>{strategyDryRun.dryRun.acknowledgementLabel ?? "SIMULATED"}</strong>
+                {" · "}
+                mutatesBroker={String(strategyDryRun.dryRun.mutatesBroker ?? false)}
+              </li>
+              {strategyDryRun.dryRun.simulatedPosition ? (
+                <li data-fx-at-simulated-position="true">
+                  SIMULATED position: {String(strategyDryRun.dryRun.simulatedPosition.state)}
+                  {" · "}
+                  {String(strategyDryRun.dryRun.simulatedPosition.direction)}
+                  {" @ "}
+                  {String(strategyDryRun.dryRun.simulatedPosition.entryPrice)}
+                  {" → exit "}
+                  {String(strategyDryRun.dryRun.simulatedPosition.exitReason)}
+                  {" @ "}
+                  {String(strategyDryRun.dryRun.simulatedPosition.exitPrice)}
+                  {" (not a broker trade)"}
+                </li>
+              ) : null}
+              {(strategyDryRun.dryRun.brokerExecutionBlockers ?? []).slice(0, 5).map((b) => (
+                <li key={b}>Broker execution blocker: {b}</li>
+              ))}
+            </>
+          ) : null}
+        </ul>
+      </section>
 
       {status?.pipelineStatus ? (
         <section

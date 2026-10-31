@@ -3111,6 +3111,194 @@ export class AutomatedTradingService {
       status: await this.buildStatus(),
     };
   }
+
+  /**
+   * Phase 4.12 — Strategy analysis + isolated SIMULATED lifecycle.
+   * Loads RO candles when available; never calls broker mutation.
+   */
+  async runPhase412StrategyDryRun(input: {
+    instrument?: unknown;
+    timeframe?: unknown;
+  }): Promise<{
+    ok: true;
+    dryRun: import("./strategy-dry-run/index.js").DryRunLifecycleResult;
+    feedSnapshot: {
+      instrument: string;
+      bid: number | null;
+      ask: number | null;
+      feedStatus: string | null;
+      tradingStatus: string | null;
+      quoteFresh: boolean;
+      reasonCode: string | null;
+      sourceTimestampMs: number | null;
+      receivedAtMs: number | null;
+      priceChangeAgeMs: number | null;
+      candleLastOpenSec: number | null;
+      realDemoQuotesObserved: boolean;
+    };
+    status: AutomatedTradingPublicStatus;
+    placesOrders: false;
+    acceptsForExecution: false;
+    mutatesBroker: false;
+  }> {
+    const { runIsolatedStrategyDryRunLifecycle } = await import("./strategy-dry-run/index.js");
+    const { evaluateLiveOfferQuoteFreshness } = await import("./quote-freshness.js");
+    const state = this.store.getState();
+    const env = state.selectedEnvironment;
+    const envState = state.environments[env];
+    const instrument = String(
+      input.instrument ?? envState.selectedInstrument ?? "",
+    ).trim() || "XAU/USD";
+    const timeframe = String(input.timeframe ?? "1h").trim() || "1h";
+
+    let candles: Array<{
+      time: number;
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+      closed?: boolean;
+    }> = [];
+    let pointSize: number | null = null;
+    try {
+      const bridge = getForexConnectBridge();
+      const hist = await bridge.getHistoricalCandles({
+        symbol: instrument,
+        timeframe: timeframe as never,
+        limit: 120,
+      });
+      const raw = Array.isArray(hist?.candles) ? hist.candles : [];
+      candles = raw.map((c: Record<string, unknown>) => ({
+        time: Number(c.time ?? c.timestamp ?? 0),
+        open: Number(c.open),
+        high: Number(c.high),
+        low: Number(c.low),
+        close: Number(c.close),
+        closed: c.closed === false ? false : true,
+      })).filter((c) =>
+        Number.isFinite(c.time)
+        && Number.isFinite(c.open)
+        && Number.isFinite(c.high)
+        && Number.isFinite(c.low)
+        && Number.isFinite(c.close)
+      );
+      const listed = await bridge.listInstruments();
+      if (listed.ok && Array.isArray(listed.instruments)) {
+        const want = instrument.replace(/\s+/g, "").toUpperCase();
+        for (const row of listed.instruments) {
+          const r = row as Record<string, unknown>;
+          const keys = [r.providerSymbol, r.displaySymbol, r.canonicalSymbol, r.symbol]
+            .map((s) => String(s ?? "").replace(/\s+/g, "").toUpperCase());
+          if (!keys.includes(want)) continue;
+          const ps = Number(r.pointSize ?? r.PointSize);
+          if (Number.isFinite(ps) && ps > 0) pointSize = ps;
+          break;
+        }
+      }
+    } catch {
+      candles = [];
+    }
+
+    let bid: number | null = null;
+    let ask: number | null = null;
+    let feedStatus: string | null = null;
+    let tradingStatus: string | null = null;
+    let sourceTimestampMs: number | null = null;
+    let receivedAtMs: number | null = null;
+    let priceChangeAgeMs: number | null = null;
+    let quoteFresh = false;
+    let reasonCode: string | null = null;
+    let realDemoQuotesObserved = false;
+    try {
+      const live = getForexConnectLiveCandleService();
+      const tf = resolveForexConnectLiveTimeframe(undefined, "1m");
+      await live.ensure(instrument, tf);
+      const latest = live.getLatestQuoteState(instrument);
+      if (latest?.quote) {
+        bid = latest.quote.bid;
+        ask = latest.quote.ask;
+        feedStatus = latest.streamState ?? null;
+        tradingStatus = latest.quote.tradingStatus ?? null;
+        sourceTimestampMs = latest.quote.sourceTimestampMs ?? null;
+        receivedAtMs = latest.quote.receivedAtMs ?? null;
+        const now = Date.now();
+        priceChangeAgeMs =
+          latest.lastPriceChangeAtMs != null
+            ? Math.max(0, now - latest.lastPriceChangeAtMs)
+            : null;
+        const receiptAgeMs =
+          latest.lastQuoteAtMs != null ? Math.max(0, now - latest.lastQuoteAtMs) : null;
+        const evalFresh = evaluateLiveOfferQuoteFreshness({
+          bid,
+          ask,
+          streamState: feedStatus,
+          priceChangeAgeMs,
+          receiptAgeMs,
+          updateCount: latest.updateCount ?? 0,
+          tradingStatus,
+          sourceTimestampMs,
+          receivedAtMs,
+          instrument,
+          nowMs: now,
+        });
+        quoteFresh = evalFresh.fresh;
+        reasonCode = evalFresh.reasonCode;
+        realDemoQuotesObserved =
+          typeof bid === "number"
+          && typeof ask === "number"
+          && bid > 0
+          && ask >= bid
+          && (latest.updateCount ?? 0) > 0;
+      }
+    } catch {
+      /* feed optional for strategy dry-run */
+    }
+
+    const dryRun = runIsolatedStrategyDryRunLifecycle({
+      instrument,
+      candles,
+      pointSize,
+      quantityContract: {
+        requestedLots: 0.01,
+        baseUnitSize: 1,
+        minQuantity: 1,
+        mmrPerLot: null,
+        maxLotsPerOrder: 0.01,
+      },
+      forceSimulatedTpExit: true,
+    });
+
+    await this.store.appendAudit({
+      action: "strategy_dry_run",
+      environment: env,
+      ok: true,
+      code: "SIMULATED_DRY_RUN",
+      detail: `${instrument} signal=${dryRun.strategy.code} steps=${dryRun.steps.length}`.slice(0, 160),
+    });
+
+    return {
+      ok: true,
+      dryRun,
+      feedSnapshot: {
+        instrument,
+        bid,
+        ask,
+        feedStatus,
+        tradingStatus,
+        quoteFresh,
+        reasonCode,
+        sourceTimestampMs,
+        receivedAtMs,
+        priceChangeAgeMs,
+        candleLastOpenSec: dryRun.candleDiagnostics.lastOpenSec,
+        realDemoQuotesObserved,
+      },
+      status: await this.buildStatus(),
+      placesOrders: false,
+      acceptsForExecution: false,
+      mutatesBroker: false,
+    };
+  }
 }
 
 function mapFeedFromDraft(

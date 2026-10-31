@@ -475,6 +475,12 @@ export function evaluateLiveOfferQuoteFreshness(
   if (!(bid > 0) || !(ask > 0) || ask < bid) {
     return fail("BID_ASK_INVALID", "LIVE_BID_ASK_INVALID");
   }
+  // Prefer MARKET_CLOSED over heartbeat/stale labels when broker TradingStatus is closed.
+  // Heartbeat receipts on a closed session are not market-data activity.
+  if (tradingEligibility.code === "TRADING_STATUS_CLOSED") {
+    return fail("MARKET_CLOSED", "LIVE_TRADING_STATUS_CLOSED");
+  }
+
   if (updateCount <= 0) {
     return fail("NO_QUOTE_UPDATES", "LIVE_NO_PRICE_CHANGES");
   }
@@ -495,9 +501,13 @@ export function evaluateLiveOfferQuoteFreshness(
     if (feed === "MARKET_CLOSED") {
       return fail("MARKET_CLOSED", "LIVE_FEED_MARKET_CLOSED");
     }
+    if (feed === "NO_RECENT_MARKET_UPDATES") {
+      return fail("HEARTBEAT_ONLY_NO_PRICE_CHANGE", "LIVE_HEARTBEAT_ONLY");
+    }
     return fail("FEED_NOT_LIVE", `LIVE_FEED_${feed}`);
   }
   if (!tradingEligibility.tradable) {
+    // Open-path still blocked; quotes may be price-fresh while status unknown.
     return {
       ...base,
       fresh: true,
