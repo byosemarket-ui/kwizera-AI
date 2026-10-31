@@ -227,6 +227,7 @@ export function ForexShell({
       <ForexAutomatedTradingPage
         selectedMarket={selectedMarket}
         timeframe={chartTimeframe}
+        onSelectMarket={selectMarket}
       />
     );
   } else if (route === "trade-monitor") {

@@ -3119,37 +3119,67 @@ export class AutomatedTradingService {
   async runPhase412StrategyDryRun(input: {
     instrument?: unknown;
     timeframe?: unknown;
-  }): Promise<{
-    ok: true;
-    dryRun: import("./strategy-dry-run/index.js").DryRunLifecycleResult;
-    feedSnapshot: {
-      instrument: string;
-      bid: number | null;
-      ask: number | null;
-      feedStatus: string | null;
-      tradingStatus: string | null;
-      quoteFresh: boolean;
-      reasonCode: string | null;
-      sourceTimestampMs: number | null;
-      receivedAtMs: number | null;
-      priceChangeAgeMs: number | null;
-      candleLastOpenSec: number | null;
-      realDemoQuotesObserved: boolean;
-    };
-    status: AutomatedTradingPublicStatus;
-    placesOrders: false;
-    acceptsForExecution: false;
-    mutatesBroker: false;
-  }> {
+    includeDeterministicFixtureLifecycle?: unknown;
+  }): Promise<
+    | {
+      ok: true;
+      dryRun: import("./strategy-dry-run/index.js").DryRunLifecycleResult;
+      feedSnapshot: {
+        instrument: string;
+        bid: number | null;
+        ask: number | null;
+        feedStatus: string | null;
+        tradingStatus: string | null;
+        quoteFresh: boolean;
+        reasonCode: string | null;
+        sourceTimestampMs: number | null;
+        receivedAtMs: number | null;
+        priceChangeAgeMs: number | null;
+        candleLastOpenSec: number | null;
+        realDemoQuotesObserved: boolean;
+        breakdown: import("./feed-status-breakdown.js").FeedStatusBreakdown;
+      };
+      status: AutomatedTradingPublicStatus;
+      placesOrders: false;
+      acceptsForExecution: false;
+      mutatesBroker: false;
+    }
+    | {
+      ok: false;
+      code: "NO_MARKET_SELECTED";
+      message: string;
+      status: AutomatedTradingPublicStatus;
+      placesOrders: false;
+      acceptsForExecution: false;
+      mutatesBroker: false;
+    }
+  > {
     const { runIsolatedStrategyDryRunLifecycle } = await import("./strategy-dry-run/index.js");
     const { evaluateLiveOfferQuoteFreshness } = await import("./quote-freshness.js");
+    const { buildFeedStatusBreakdown } = await import("./feed-status-breakdown.js");
+    const { resolveAtOperatingInstrument } = await import("./market-selection.js");
     const state = this.store.getState();
     const env = state.selectedEnvironment;
     const envState = state.environments[env];
-    const instrument = String(
-      input.instrument ?? envState.selectedInstrument ?? "",
-    ).trim() || "XAU/USD";
+    const resolved = resolveAtOperatingInstrument({
+      shellInstrument: input.instrument != null ? String(input.instrument).trim() || null : null,
+      backendInstrument: envState.selectedInstrument,
+      allowBackendFallback: true,
+    });
+    if (!resolved.instrument) {
+      return {
+        ok: false,
+        code: "NO_MARKET_SELECTED",
+        message: resolved.message,
+        status: await this.buildStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      };
+    }
+    const instrument = resolved.instrument;
     const timeframe = String(input.timeframe ?? "1h").trim() || "1h";
+    const includeFixture = input.includeDeterministicFixtureLifecycle !== false;
 
     let candles: Array<{
       time: number;
@@ -3206,9 +3236,39 @@ export class AutomatedTradingService {
     let sourceTimestampMs: number | null = null;
     let receivedAtMs: number | null = null;
     let priceChangeAgeMs: number | null = null;
+    let lastPriceChangeAtMs: number | null = null;
+    let lastReceiptAtMs: number | null = null;
+    let updateCount = 0;
     let quoteFresh = false;
     let reasonCode: string | null = null;
     let realDemoQuotesObserved = false;
+    let brokerConnected = false;
+    let offersListenerActive: boolean | null = null;
+    let subscriptionSymbols: string[] = [];
+    let streamStateGlobal: string | null = null;
+    try {
+      const bridge = getForexConnectBridge();
+      const stream = await bridge.getStreamStatus().catch(() => null);
+      if (stream && typeof stream === "object") {
+        const sessionStatus = String(stream.sessionStatus ?? "").toUpperCase();
+        brokerConnected = sessionStatus === "CONNECTED";
+        offersListenerActive = Boolean(stream.offersListenerActive);
+        if (Array.isArray(stream.subscriptions)) {
+          subscriptionSymbols = stream.subscriptions.map(String);
+        }
+        if (stream.streamState) streamStateGlobal = String(stream.streamState);
+      }
+      const profilesMgr = await getForexConnectProfilesManager();
+      const profiles = profilesMgr.publicState();
+      if (
+        profiles.activeSessionStatus === "CONNECTED"
+        || profiles.profiles.demo.lastAuthStatus === "CONNECTED"
+      ) {
+        brokerConnected = true;
+      }
+    } catch {
+      /* stream status optional */
+    }
     try {
       const live = getForexConnectLiveCandleService();
       const tf = resolveForexConnectLiveTimeframe(undefined, "1m");
@@ -3217,24 +3277,25 @@ export class AutomatedTradingService {
       if (latest?.quote) {
         bid = latest.quote.bid;
         ask = latest.quote.ask;
-        feedStatus = latest.streamState ?? null;
+        feedStatus = latest.streamState ?? streamStateGlobal;
         tradingStatus = latest.quote.tradingStatus ?? null;
         sourceTimestampMs = latest.quote.sourceTimestampMs ?? null;
         receivedAtMs = latest.quote.receivedAtMs ?? null;
+        updateCount = latest.updateCount ?? 0;
+        lastPriceChangeAtMs = latest.lastPriceChangeAtMs ?? null;
+        lastReceiptAtMs = latest.lastQuoteAtMs ?? null;
         const now = Date.now();
         priceChangeAgeMs =
-          latest.lastPriceChangeAtMs != null
-            ? Math.max(0, now - latest.lastPriceChangeAtMs)
-            : null;
+          lastPriceChangeAtMs != null ? Math.max(0, now - lastPriceChangeAtMs) : null;
         const receiptAgeMs =
-          latest.lastQuoteAtMs != null ? Math.max(0, now - latest.lastQuoteAtMs) : null;
+          lastReceiptAtMs != null ? Math.max(0, now - lastReceiptAtMs) : null;
         const evalFresh = evaluateLiveOfferQuoteFreshness({
           bid,
           ask,
           streamState: feedStatus,
           priceChangeAgeMs,
           receiptAgeMs,
-          updateCount: latest.updateCount ?? 0,
+          updateCount,
           tradingStatus,
           sourceTimestampMs,
           receivedAtMs,
@@ -3248,11 +3309,29 @@ export class AutomatedTradingService {
           && typeof ask === "number"
           && bid > 0
           && ask >= bid
-          && (latest.updateCount ?? 0) > 0;
+          && updateCount > 0;
       }
     } catch {
       /* feed optional for strategy dry-run */
     }
+    if (!feedStatus && streamStateGlobal) feedStatus = streamStateGlobal;
+
+    const breakdown = buildFeedStatusBreakdown({
+      brokerConnected,
+      offersListenerActive,
+      instrumentSubscribed: null,
+      subscriptionSymbols,
+      instrument,
+      updateCount,
+      lastQuoteAtMs: lastPriceChangeAtMs,
+      lastPriceChangeAtMs,
+      lastReceiptAtMs,
+      bid,
+      ask,
+      streamState: feedStatus,
+      tradingStatus,
+      quoteFreshReasonCode: reasonCode,
+    });
 
     const dryRun = runIsolatedStrategyDryRunLifecycle({
       instrument,
@@ -3266,13 +3345,14 @@ export class AutomatedTradingService {
         maxLotsPerOrder: 0.01,
       },
       forceSimulatedTpExit: true,
+      includeDeterministicFixtureLifecycle: includeFixture,
     });
 
     await this.store.appendAudit({
       action: "strategy_dry_run",
       environment: env,
       ok: true,
-      code: "SIMULATED_DRY_RUN",
+      code: dryRun.usedDeterministicFixture ? "SIMULATED_FIXTURE_DRY_RUN" : "SIMULATED_DRY_RUN",
       detail: `${instrument} signal=${dryRun.strategy.code} steps=${dryRun.steps.length}`.slice(0, 160),
     });
 
@@ -3292,6 +3372,7 @@ export class AutomatedTradingService {
         priceChangeAgeMs,
         candleLastOpenSec: dryRun.candleDiagnostics.lastOpenSec,
         realDemoQuotesObserved,
+        breakdown,
       },
       status: await this.buildStatus(),
       placesOrders: false,

@@ -54,7 +54,7 @@ describe("Phase 4.12 market selection", () => {
     expect(describeMarketSelectionGap({
       shellInstrument: null,
       backendInstrument: null,
-    }).code).toBe("NONE");
+    }).code).toBe("NO_MARKET_SELECTED");
     expect(describeMarketSelectionGap({
       shellInstrument: "EUR/USD",
       backendInstrument: null,

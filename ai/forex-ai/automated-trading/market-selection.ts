@@ -1,6 +1,7 @@
 /**
- * Phase 4.12 — Shell Markets → Automated Trading instrument mapping.
+ * Phase 4.12 / 4.13 — Shell Markets ↔ Automated Trading instrument mapping.
  * Only ForexConnect venues sync into AT backend state.
+ * Never silently assumes XAU/USD when no valid selection exists.
  */
 
 export interface ShellMarketLike {
@@ -9,6 +10,14 @@ export interface ShellMarketLike {
   symbol?: string | null;
   displaySymbol?: string | null;
 }
+
+export type MarketSelectionGapCode =
+  | "SYNCED"
+  | "SHELL_ONLY"
+  | "BACKEND_ONLY"
+  | "MISMATCH"
+  | "NONE"
+  | "NO_MARKET_SELECTED";
 
 /**
  * Resolve a ForexConnect provider symbol from the shell SelectedMarket.
@@ -30,15 +39,15 @@ export function describeMarketSelectionGap(input: {
   shellInstrument: string | null;
   backendInstrument: string | null;
 }): {
-  code: "SYNCED" | "SHELL_ONLY" | "BACKEND_ONLY" | "MISMATCH" | "NONE";
+  code: MarketSelectionGapCode;
   message: string;
 } {
-  const shell = input.shellInstrument;
-  const backend = input.backendInstrument;
+  const shell = input.shellInstrument ? String(input.shellInstrument).trim() || null : null;
+  const backend = input.backendInstrument ? String(input.backendInstrument).trim() || null : null;
   if (!shell && !backend) {
     return {
-      code: "NONE",
-      message: "No market selected in Markets and no instrument stored in Automated Trading.",
+      code: "NO_MARKET_SELECTED",
+      message: "NO_MARKET_SELECTED — choose a ForexConnect instrument in Markets.",
     };
   }
   if (shell && !backend) {
@@ -50,7 +59,8 @@ export function describeMarketSelectionGap(input: {
   if (!shell && backend) {
     return {
       code: "BACKEND_ONLY",
-      message: `Automated Trading has ${backend}; Markets shell has no ForexConnect selection.`,
+      message:
+        `AT backend has persisted ${backend} but Markets shell has no ForexConnect selection — hydrate shell or clear backend.`,
     };
   }
   if (shell && backend && shell !== backend) {
@@ -62,5 +72,55 @@ export function describeMarketSelectionGap(input: {
   return {
     code: "SYNCED",
     message: `Shell and Automated Trading agree on ${shell}.`,
+  };
+}
+
+/**
+ * Operating instrument for AT actions.
+ * Prefer shell FC selection when present; else backend only when shell is empty
+ * and allowBackendFallback is true. Never invents a default symbol.
+ */
+export function resolveAtOperatingInstrument(input: {
+  shellInstrument: string | null | undefined;
+  backendInstrument: string | null | undefined;
+  /** When true, allow persisted backend instrument if shell has no FC selection. */
+  allowBackendFallback?: boolean;
+}): {
+  instrument: string | null;
+  code: MarketSelectionGapCode;
+  message: string;
+} {
+  const shell = input.shellInstrument ? String(input.shellInstrument).trim() || null : null;
+  const backend = input.backendInstrument ? String(input.backendInstrument).trim() || null : null;
+  const gap = describeMarketSelectionGap({ shellInstrument: shell, backendInstrument: backend });
+  if (gap.code === "SYNCED" || gap.code === "SHELL_ONLY") {
+    return { instrument: shell, code: gap.code, message: gap.message };
+  }
+  if (gap.code === "MISMATCH") {
+    // Shell wins for display/ops until backend is overwritten by sync.
+    return { instrument: shell, code: gap.code, message: gap.message };
+  }
+  if (gap.code === "BACKEND_ONLY" && input.allowBackendFallback !== false) {
+    return {
+      instrument: backend,
+      code: "BACKEND_ONLY",
+      message: `${gap.message} Using persisted backend instrument until Markets selection is restored.`,
+    };
+  }
+  return {
+    instrument: null,
+    code: "NO_MARKET_SELECTED",
+    message: "NO_MARKET_SELECTED — refuse silent XAU/USD default.",
+  };
+}
+
+/** Build a shell SelectedMarket-compatible object for ForexConnect hydrate. */
+export function forexConnectShellMarketFromSymbol(symbol: string): ShellMarketLike {
+  const s = String(symbol ?? "").trim();
+  return {
+    venue: "forexconnect",
+    provider: "FOREXCONNECT",
+    symbol: s,
+    displaySymbol: s,
   };
 }

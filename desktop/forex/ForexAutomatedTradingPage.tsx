@@ -10,7 +10,11 @@ import { useForexAdminToken } from "./admin-access/use-forex-admin-token";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import { formatBrokerExecutionBadgeLabel } from "./broker-execution-label";
 import type { SelectedMarket } from "./market-data/selected-market";
-import { describeMarketSelectionGap } from "../../ai/forex-ai/automated-trading/market-selection";
+import {
+  describeMarketSelectionGap,
+  forexConnectShellMarketFromSymbol,
+  resolveAtOperatingInstrument,
+} from "../../ai/forex-ai/automated-trading/market-selection";
 
 const BANNER =
   "GLOBAL BROKER EXECUTION DISABLED — START AUTO = monitoring/analysis only (Phase 4.11). DEMO submit requires separate grant path after 0.01-lot + margin gates pass.";
@@ -285,12 +289,23 @@ type StrategyDryRunResult = {
     sourceTimestampMs?: number | null;
     candleLastOpenSec?: number | null;
     realDemoQuotesObserved?: boolean;
+    breakdown?: {
+      brokerConnected?: boolean;
+      offersListenerActive?: boolean | null;
+      instrumentSubscribed?: boolean | null;
+      firstQuoteReceived?: boolean;
+      freshPriceChangeReceived?: boolean;
+      marketOpen?: boolean | null;
+      marketClosed?: boolean | null;
+      primaryGap?: string;
+    };
   };
 };
 
 export function ForexAutomatedTradingPage(props: {
   selectedMarket?: SelectedMarket | null;
   timeframe?: string;
+  onSelectMarket?: (market: SelectedMarket) => void;
 }) {
   const { token, snapshot: adminSnap } = useForexAdminToken();
   const authGenRef = useRef(adminSnap.generation);
@@ -495,7 +510,7 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, demoRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
@@ -507,20 +522,32 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/simulation-lifecycle/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/broker-intent/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/automation/status", { headers: adminHeaders(token) }),
-        fetch(
-          `/api/forex/automated-trading/demo-lifecycle/readiness?${new URLSearchParams({
-            instrument: shellInstrument
-              || "XAU/USD",
-            lots: "0.01",
-          }).toString()}`,
-          { headers: adminHeaders(token) },
-        ),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
         status?: PublicStatus;
         error?: { message?: string; code?: string };
       };
+      const operating = resolveAtOperatingInstrument({
+        shellInstrument,
+        backendInstrument: stJson.status?.selectedEnvState?.selectedInstrument ?? null,
+        allowBackendFallback: true,
+      });
+      const demoRes = operating.instrument
+        ? await fetch(
+          `/api/forex/automated-trading/demo-lifecycle/readiness?${new URLSearchParams({
+            instrument: operating.instrument,
+            lots: "0.01",
+          }).toString()}`,
+          { headers: adminHeaders(token) },
+        )
+        : new Response(JSON.stringify({
+          ok: false,
+          mayAttemptDemoMutation: false,
+          blockers: ["NO_MARKET_SELECTED"],
+          primaryBlocker: "NO_MARKET_SELECTED",
+          ownerActionChecklist: ["Select a ForexConnect instrument in Markets."],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
       const auJson = await auRes.json() as { ok?: boolean; events?: AuditEvent[] };
       const oaJson = await oaRes.json() as { ok?: boolean; openai?: typeof openaiStatus };
       const histJson = await histRes.json() as { ok?: boolean; history?: Array<Record<string, unknown>> };
@@ -661,23 +688,19 @@ export function ForexAutomatedTradingPage(props: {
     void load();
   }, [load]);
 
-  /** Phase 4.12 — persist ForexConnect Markets selection into AT backend state. */
+  /** Phase 4.13 — bi-directional shell ↔ AT instrument consistency (no silent XAU/USD). */
   useEffect(() => {
-    if (!shellInstrument) {
-      lastSyncedInstrumentRef.current = null;
-      setInstrumentSyncNote(
-        props.selectedMarket
-          ? `Markets selection ${props.selectedMarket.displaySymbol} is not ForexConnect — AT instrument sync skipped.`
-          : "No market selected in Markets — choose a ForexConnect instrument.",
-      );
-      return;
-    }
     if (!token.trim()) {
-      setInstrumentSyncNote(`Shell market ${shellInstrument} — admin token required to sync into AT.`);
-      return;
-    }
-    if (lastSyncedInstrumentRef.current === shellInstrument) {
-      setInstrumentSyncNote(`Synced Markets → Automated Trading: ${shellInstrument}`);
+      if (!shellInstrument) {
+        lastSyncedInstrumentRef.current = null;
+        setInstrumentSyncNote(
+          props.selectedMarket
+            ? `Markets selection ${props.selectedMarket.displaySymbol} is not ForexConnect — AT instrument sync skipped.`
+            : "NO_MARKET_SELECTED — choose a ForexConnect instrument (admin token required to sync).",
+        );
+      } else {
+        setInstrumentSyncNote(`Shell market ${shellInstrument} — admin token required to sync into AT.`);
+      }
       return;
     }
     let cancelled = false;
@@ -697,38 +720,66 @@ export function ForexAutomatedTradingPage(props: {
           shellInstrument,
           backendInstrument: backend,
         });
-        if (gap.code === "SYNCED") {
-          lastSyncedInstrumentRef.current = shellInstrument;
-          if (!cancelled) {
-            setStatus(stJson.status);
+
+        // Persist shell → backend when shell has FC instrument.
+        if (shellInstrument && (gap.code === "SHELL_ONLY" || gap.code === "MISMATCH")) {
+          if (lastSyncedInstrumentRef.current === shellInstrument && gap.code !== "MISMATCH") {
             setInstrumentSyncNote(gap.message);
+            return;
           }
+          const res = await fetch("/api/forex/automated-trading/instrument", {
+            method: "POST",
+            headers: adminHeaders(token),
+            body: JSON.stringify({
+              environment: stJson.status.selectedEnvironment,
+              instrument: shellInstrument,
+              expectedEnvironmentEpoch: stJson.status.environmentEpoch,
+            }),
+          });
+          const data = await res.json() as {
+            ok?: boolean;
+            status?: PublicStatus;
+            error?: { message?: string; code?: string };
+          };
+          if (cancelled) return;
+          if (!res.ok || !data.ok) {
+            setInstrumentSyncNote(
+              data.error?.message || data.error?.code || `Instrument sync failed (${res.status})`,
+            );
+            return;
+          }
+          lastSyncedInstrumentRef.current = shellInstrument;
+          if (data.status) setStatus(data.status);
+          setInstrumentSyncNote(`Synced Markets → Automated Trading: ${shellInstrument}`);
           return;
         }
-        const res = await fetch("/api/forex/automated-trading/instrument", {
-          method: "POST",
-          headers: adminHeaders(token),
-          body: JSON.stringify({
-            environment: stJson.status.selectedEnvironment,
-            instrument: shellInstrument,
-            expectedEnvironmentEpoch: stJson.status.environmentEpoch,
-          }),
-        });
-        const data = await res.json() as {
-          ok?: boolean;
-          status?: PublicStatus;
-          error?: { message?: string; code?: string };
-        };
-        if (cancelled) return;
-        if (!res.ok || !data.ok) {
-          setInstrumentSyncNote(
-            data.error?.message || data.error?.code || `Instrument sync failed (${res.status})`,
-          );
+
+        // Hydrate shell from persisted backend so header/panel/backend agree.
+        if (gap.code === "BACKEND_ONLY" && backend && props.onSelectMarket) {
+          const hydrated = forexConnectShellMarketFromSymbol(backend) as SelectedMarket;
+          props.onSelectMarket(hydrated);
+          lastSyncedInstrumentRef.current = backend;
+          setStatus(stJson.status);
+          setInstrumentSyncNote(`Hydrated Markets shell from AT backend: ${backend}`);
           return;
         }
-        lastSyncedInstrumentRef.current = shellInstrument;
-        if (data.status) setStatus(data.status);
-        setInstrumentSyncNote(`Synced Markets → Automated Trading: ${shellInstrument}`);
+
+        if (gap.code === "SYNCED" && shellInstrument) {
+          lastSyncedInstrumentRef.current = shellInstrument;
+          setStatus(stJson.status);
+          setInstrumentSyncNote(gap.message);
+          return;
+        }
+
+        if (gap.code === "NO_MARKET_SELECTED" || gap.code === "NONE") {
+          lastSyncedInstrumentRef.current = null;
+          setStatus(stJson.status);
+          setInstrumentSyncNote(gap.message);
+          return;
+        }
+
+        setStatus(stJson.status);
+        setInstrumentSyncNote(gap.message);
       } catch (err) {
         if (!cancelled) {
           setInstrumentSyncNote(err instanceof Error ? err.message : "Instrument sync failed");
@@ -740,7 +791,7 @@ export function ForexAutomatedTradingPage(props: {
     return () => {
       cancelled = true;
     };
-  }, [shellInstrument, token, props.selectedMarket]);
+  }, [shellInstrument, token, props.selectedMarket, props.onSelectMarket]);
 
   useEffect(() => {
     if (authGenRef.current === adminSnap.generation) return;
@@ -978,8 +1029,16 @@ export function ForexAutomatedTradingPage(props: {
       } | null;
       const instrument =
         latestDecision?.instrument
-        || status.selectedEnvState?.selectedInstrument
-        || "XAU/USD";
+        || resolveAtOperatingInstrument({
+          shellInstrument,
+          backendInstrument: status.selectedEnvState?.selectedInstrument ?? null,
+          allowBackendFallback: true,
+        }).instrument;
+      if (!instrument) {
+        setError("NO_MARKET_SELECTED — select a ForexConnect instrument before simulation draft.");
+        setSimRiskBusy(false);
+        return;
+      }
       // Simplified workflow: only order allocation is user-supplied.
       // Entry / SL / TP / quantity are derived server-side from quote + analysis levels.
       const res = await fetch("/api/forex/automated-trading/simulation-risk/validate", {
@@ -1066,14 +1125,22 @@ export function ForexAutomatedTradingPage(props: {
     setStrategyDryRunBusy(true);
     setError(null);
     try {
+      const op = resolveAtOperatingInstrument({
+        shellInstrument,
+        backendInstrument: status?.selectedEnvState?.selectedInstrument ?? null,
+        allowBackendFallback: true,
+      });
+      if (!op.instrument) {
+        setError("NO_MARKET_SELECTED — select a ForexConnect instrument before strategy dry-run.");
+        return;
+      }
       const res = await fetch("/api/forex/automated-trading/strategy-dry-run", {
         method: "POST",
         headers: adminHeaders(token),
         body: JSON.stringify({
-          instrument: shellInstrument
-            ?? status?.selectedEnvState?.selectedInstrument
-            ?? "XAU/USD",
+          instrument: op.instrument,
           timeframe: props.timeframe ?? "1h",
+          includeDeterministicFixtureLifecycle: true,
         }),
       });
       const data = await res.json() as StrategyDryRunResult & {
@@ -1396,9 +1463,16 @@ export function ForexAutomatedTradingPage(props: {
   const verification = status?.verification ?? null;
   const readiness = status?.readiness ?? verification?.readiness ?? null;
   const authState = token ? "Token configured (this browser)" : "Not authorized";
-  const selectedInstrument =
-    shellInstrument
-    ?? status?.selectedEnvState?.selectedInstrument
+  const selectionAgreement = describeMarketSelectionGap({
+    shellInstrument,
+    backendInstrument: status?.selectedEnvState?.selectedInstrument ?? null,
+  });
+  const operatingSelection = resolveAtOperatingInstrument({
+    shellInstrument,
+    backendInstrument: status?.selectedEnvState?.selectedInstrument ?? null,
+    allowBackendFallback: true,
+  });
+  const selectedInstrument = operatingSelection.instrument
     ?? verification?.instrument.symbol
     ?? null;
 
@@ -1461,15 +1535,24 @@ export function ForexAutomatedTradingPage(props: {
           </button>
         </div>
         <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
-          <li data-fx-at-shell-instrument="true">
-            Shell Markets: <strong>{shellInstrument ?? "No market selected"}</strong>
-            {props.selectedMarket?.venue ? ` · venue ${props.selectedMarket.venue}` : ""}
+          <li data-fx-at-selection-agreement="true">
+            Selection agreement: <strong>{selectionAgreement.code}</strong>
+            {" — "}
+            {instrumentSyncNote ?? selectionAgreement.message}
             {instrumentSyncBusy ? " · syncing…" : ""}
+          </li>
+          <li data-fx-at-shell-instrument="true">
+            Shell Markets:{" "}
+            <strong>{shellInstrument ?? "NO_MARKET_SELECTED"}</strong>
+            {props.selectedMarket?.venue ? ` · venue ${props.selectedMarket.venue}` : ""}
           </li>
           <li data-fx-at-backend-instrument="true">
             AT backend:{" "}
-            <strong>{status?.selectedEnvState?.selectedInstrument ?? "—"}</strong>
-            {instrumentSyncNote ? ` · ${instrumentSyncNote}` : ""}
+            <strong>{status?.selectedEnvState?.selectedInstrument ?? "NO_MARKET_SELECTED"}</strong>
+          </li>
+          <li data-fx-at-operating-instrument="true">
+            Operating instrument:{" "}
+            <strong>{selectedInstrument ?? "NO_MARKET_SELECTED"}</strong>
           </li>
           <li>
             Provider: FOREXCONNECT DEMO
@@ -1488,6 +1571,28 @@ export function ForexAutomatedTradingPage(props: {
                 {" · "}
                 tradingStatus <strong>{strategyDryRun.feedSnapshot.tradingStatus ?? "—"}</strong>
               </li>
+              <li data-fx-at-feed-breakdown="true">
+                Feed pipeline: connected=
+                {String(strategyDryRun.feedSnapshot.breakdown?.brokerConnected ?? "—")}
+                {" · "}
+                listener=
+                {String(strategyDryRun.feedSnapshot.breakdown?.offersListenerActive ?? "—")}
+                {" · "}
+                subscribed=
+                {String(strategyDryRun.feedSnapshot.breakdown?.instrumentSubscribed ?? "—")}
+                {" · "}
+                firstQuote=
+                {String(strategyDryRun.feedSnapshot.breakdown?.firstQuoteReceived ?? "—")}
+                {" · "}
+                freshPriceChange=
+                {String(strategyDryRun.feedSnapshot.breakdown?.freshPriceChangeReceived ?? "—")}
+                {" · "}
+                marketClosed=
+                {String(strategyDryRun.feedSnapshot.breakdown?.marketClosed ?? "—")}
+                {" · "}
+                gap=
+                <strong>{strategyDryRun.feedSnapshot.breakdown?.primaryGap ?? "—"}</strong>
+              </li>
               <li>
                 Quote freshness:{" "}
                 <strong>{strategyDryRun.feedSnapshot.quoteFresh ? "fresh" : "not fresh"}</strong>
@@ -1495,7 +1600,7 @@ export function ForexAutomatedTradingPage(props: {
                   ? ` · ${strategyDryRun.feedSnapshot.reasonCode}`
                   : ""}
                 {" · "}
-                real DEMO quotes observed:{" "}
+                genuine price-change events observed:{" "}
                 <strong>{String(Boolean(strategyDryRun.feedSnapshot.realDemoQuotesObserved))}</strong>
               </li>
               <li>
@@ -1952,11 +2057,15 @@ export function ForexAutomatedTradingPage(props: {
                 if (!token) return;
                 setDemoGrantBusy(true);
                 try {
-                  // Prefer AT-selected / verified instrument — never default to an unrelated pair.
-                  const instrument =
-                    shellInstrument
-                    || status?.selectedEnvState?.selectedInstrument
-                    || "XAU/USD";
+                  const instrument = resolveAtOperatingInstrument({
+                    shellInstrument,
+                    backendInstrument: status?.selectedEnvState?.selectedInstrument ?? null,
+                    allowBackendFallback: true,
+                  }).instrument;
+                  if (!instrument) {
+                    setDemoQuoteProbe("NO_MARKET_SELECTED — select a ForexConnect instrument first.");
+                    return;
+                  }
                   const res = await fetch("/api/forex/automated-trading/demo-lifecycle/grant", {
                     method: "POST",
                     headers: adminHeaders(token),
@@ -1992,10 +2101,15 @@ export function ForexAutomatedTradingPage(props: {
                 if (!token) return;
                 setDemoGrantBusy(true);
                 try {
-                  const instrument =
-                    shellInstrument
-                    || status?.selectedEnvState?.selectedInstrument
-                    || "XAU/USD";
+                  const instrument = resolveAtOperatingInstrument({
+                    shellInstrument,
+                    backendInstrument: status?.selectedEnvState?.selectedInstrument ?? null,
+                    allowBackendFallback: true,
+                  }).instrument;
+                  if (!instrument) {
+                    setDemoQuoteProbe("NO_MARKET_SELECTED — select a ForexConnect instrument first.");
+                    return;
+                  }
                   const res = await fetch("/api/forex/automated-trading/demo-lifecycle/quote-probe", {
                     method: "POST",
                     headers: adminHeaders(token),

@@ -1441,7 +1441,20 @@ export async function handleForexAutomatedTradingApi(
       const result = await service.runPhase412StrategyDryRun({
         instrument: body.instrument,
         timeframe: body.timeframe,
+        includeDeterministicFixtureLifecycle: body.includeDeterministicFixtureLifecycle,
       });
+      if (!result.ok) {
+        sendJson(res, 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+          simulationOnly: true,
+        });
+        return true;
+      }
       sendJson(res, 200, {
         ok: true,
         dryRun: result.dryRun,
