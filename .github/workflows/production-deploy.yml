@@ -53,6 +53,7 @@ jobs:
           tests/unit/ai/forex-ai/phase47-production-deps-failclosed.test.ts
           tests/unit/ai/forex-ai/phase48-fractional-lots-and-mutation-confirm.test.ts
           tests/unit/ai/forex-ai/phase49-broker-quantity-contract.test.ts
+          tests/unit/ai/forex-ai/phase410-discover-001-lot-instruments.test.ts
           tests/unit/scripts/load-operator-env.test.ts
 
       - name: Production build (server + Vite studio)
