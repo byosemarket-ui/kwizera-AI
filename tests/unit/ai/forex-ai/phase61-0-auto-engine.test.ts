@@ -445,6 +445,41 @@ describe("Phase 61.0 auto-engine worker dry-run tick", () => {
   });
 });
 
+describe("Phase 4.5 HTTP tick forced dry_run", () => {
+  it("never submits when config is forced to dry_run even if env was armed", async () => {
+    let openMarketCalls = 0;
+    const deps = makeWorkerDeps();
+    deps.config = {
+      ...deps.config!,
+      mode: "dry_run",
+      submitAuthorized: false,
+      continuousEnabled: false,
+    };
+    deps.getOrchestrator = () => ({
+      openMarket: async () => {
+        openMarketCalls += 1;
+        throw new Error("openMarket must not be called from forced dry_run tick");
+      },
+    });
+    // Even with mutation flag / unlocked emergency in context, dry_run must not submit.
+    const baseCtx = await deps.loadAccountRiskContext();
+    deps.loadAccountRiskContext = async () => ({
+      ...baseCtx,
+      allowDemoMutationEnabled: true,
+      emergencyEntryLock: false,
+      activeGrantId: "grant-should-not-matter",
+    });
+    const worker = new AutoEngineWorker(deps);
+    const status = await worker.tick();
+    expect(status.mode).toBe("dry_run");
+    expect(status.submitAuthorized).toBe(false);
+    expect(status.placesOrders).toBe(false);
+    expect(status.mutatesBroker).toBe(false);
+    expect(status.lastSubmitCode).toBeNull();
+    expect(openMarketCalls).toBe(0);
+  });
+});
+
 describe("Phase 4.3 worker lock + submit gates", () => {
   it("acquires exclusive file lock and rejects second owner", async () => {
     const { tryAcquireAutoEngineWorkerLock } = await import(

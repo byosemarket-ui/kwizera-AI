@@ -1,0 +1,71 @@
+# Phase 4.5 — Non-deploying validation for DEMO auto-engine / daily-risk / reconcile / locks.
+# Does NOT deploy, restart services, enable mutation, or use broker mutation secrets.
+name: Phase 45 auto-engine validate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "ai/forex-ai/automated-trading/auto-engine/**"
+      - "ai/forex-ai/automated-trading/demo-execution/**"
+      - "dev/server/forex-automated-trading-api.ts"
+      - "desktop/forex/ForexAutomatedTradingPage.tsx"
+      - "tests/unit/ai/forex-ai/phase61-0-auto-engine.test.ts"
+      - "tests/unit/ai/forex-ai/phase59-0-15-demo-open-market-risk.test.ts"
+      - "tests/unit/ai/forex-ai/phase59-0-18-demo-activation-readiness.test.ts"
+      - "tests/unit/ai/forex-ai/phase58-1-demo-execution-engine.test.ts"
+      - "tests/unit/ai/forex-ai/phase59-0-14-lifecycle-persistence-idempotency.test.ts"
+      - ".github/workflows/phase45-auto-engine-validate.yml"
+
+concurrency:
+  group: phase45-auto-engine-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  validate:
+    name: Phase 4.x auto-engine offline tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Phase 4.x / 3.x AT regression suites
+        run: >
+          npx vitest run
+          tests/unit/ai/forex-ai/phase61-0-auto-engine.test.ts
+          tests/unit/ai/forex-ai/phase59-0-15-demo-open-market-risk.test.ts
+          tests/unit/ai/forex-ai/phase59-0-18-demo-activation-readiness.test.ts
+          tests/unit/ai/forex-ai/phase58-1-demo-execution-engine.test.ts
+          tests/unit/ai/forex-ai/phase59-0-14-lifecycle-persistence-idempotency.test.ts
+
+      - name: Safety invariant source gate
+        run: |
+          set -e
+          grep -n "DisabledBrokerMutationAdapter" ai/forex-ai/automated-trading/service.ts
+          grep -n "tickInFlight" ai/forex-ai/automated-trading/auto-engine/worker.ts
+          grep -n "MISSING_BROKER_POSITION" ai/forex-ai/automated-trading/auto-engine/position-monitor/reconcile.ts
+          grep -n "tryAcquireAutoEngineWorkerLock" ai/forex-ai/automated-trading/auto-engine/worker-lock.ts
+          grep -n 'mode: "dry_run"' dev/server/forex-automated-trading-api.ts
+          grep -n "submitAuthorized: false" dev/server/forex-automated-trading-api.ts
+          # Assemble forbidden tokens so this step cannot self-match its own source line.
+          FORBIDDEN="$(printf '%s|%s|%s' 'VPS_SSH_''KEY' 'KWIZERA_FOREXCONNECT_DEMO_MUTATION_''SECRET' 'production-''deploy')"
+          if grep -nE "$FORBIDDEN" .github/workflows/phase45-auto-engine-validate.yml; then
+            echo "Non-deploy workflow must not reference deploy/mutation secrets" >&2
+            exit 1
+          fi

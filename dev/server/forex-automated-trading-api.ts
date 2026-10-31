@@ -566,7 +566,8 @@ export async function handleForexAutomatedTradingApi(
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
         return true;
       }
-      // Dry-run tick only — never submits broker orders.
+      // Phase 4.5 — HTTP tick is always prepare-only / dry_run.
+      // Even if process env is armed_execute + SUBMIT_AUTHORIZED, this endpoint must not submit.
       const {
         AutoEngineWorker,
         setAutoEngineWorkerForTests,
@@ -586,11 +587,20 @@ export async function handleForexAutomatedTradingApi(
         });
         return true;
       }
-      const worker = new AutoEngineWorker(createProductionAutoEngineDeps({
-        // Tick endpoint stays prepare-safe unless env already authorizes armed_execute.
-        emergencyEntryLock: cfg.mode === "armed_execute" && cfg.submitAuthorized ? false : true,
+      const deps = createProductionAutoEngineDeps({
+        emergencyEntryLock: true,
         masterEnable: false,
-      }));
+      });
+      deps.config = {
+        ...cfg,
+        mode: "dry_run",
+        submitAuthorized: false,
+        continuousEnabled: false,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      };
+      const worker = new AutoEngineWorker(deps);
       setAutoEngineWorkerForTests(worker);
       const status = await worker.tick();
       sendJson(res, 200, {
@@ -600,9 +610,7 @@ export async function handleForexAutomatedTradingApi(
         acceptsForExecution: false,
         mutatesBroker: false,
         liveUnauthorized: true,
-        note: cfg.mode === "armed_execute" && cfg.submitAuthorized
-          ? "Tick completed under armed_execute. Submit only occurs when grant + mutation + daily-risk + reconcile gates all pass."
-          : "Tick completed in prepare-only mode. No broker mutation was attempted.",
+        note: "Tick completed in forced dry_run prepare-only mode. HTTP tick never submits broker orders.",
       });
       return true;
     }
