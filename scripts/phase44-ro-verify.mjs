@@ -1,7 +1,11 @@
 /**
- * Phase 4.4 — production read-only verification.
- * Uses KWIZERA_ADMIN_API_TOKEN from env. Never prints the token or raw account IDs.
+ * Phase 4.4 / 4.7 — production read-only verification.
+ * Uses KWIZERA_ADMIN_API_TOKEN from env or %USERPROFILE%\.kwizera\operator.env.
+ * Never prints the token or raw account IDs.
  */
+import { loadOperatorEnv } from "./lib/load-operator-env.mjs";
+
+const operatorLoad = loadOperatorEnv();
 const base = process.env.KWIZERA_PROD_BASE ?? "http://162.35.114.19:5173";
 const token = String(process.env.KWIZERA_ADMIN_API_TOKEN ?? "").trim();
 
@@ -49,6 +53,9 @@ function pickAccount(a) {
 
 const out = {
   adminTokenPresent: Boolean(token),
+  operatorEnvLoadedFrom: operatorLoad.loadedFrom
+    ? String(operatorLoad.loadedFrom).replace(/\\/g, "/").replace(/.*\//, "~/.…/")
+    : null,
   checks: {},
 };
 

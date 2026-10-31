@@ -1,0 +1,140 @@
+# Phase 4.7 — VPS-side DEMO read-only + dry-run verification.
+# Uses existing VPS SSH secrets. Reads KWIZERA_ADMIN_API_TOKEN from the VPS .env
+# inside the remote process only — never prints the token.
+# Does NOT deploy, enable mutation, create grants, arm execution, or place orders.
+name: Phase 47 DEMO RO verify
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Production deploy"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: phase47-demo-ro-verify
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify:
+    name: VPS DEMO read-only + dry-run
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout verification scripts
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Require SSH secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "$VPS_HOST" ] || [ -z "$VPS_USER" ] || [ -z "$VPS_SSH_KEY" ]; then
+            echo "Missing GitHub Actions secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY" >&2
+            exit 1
+          fi
+
+      - name: Run sanitized RO verify on VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          EXPECT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          umask 077
+          python3 - <<'PY'
+          import os, pathlib
+          home = pathlib.Path.home() / ".ssh"
+          def write(name, raw, unescape_if_single_line=True):
+              text = (raw or "").replace("\r\n", "\n").replace("\r", "\n")
+              if unescape_if_single_line and "BEGIN" in text and text.count("\n") < 2:
+                  text = text.replace("\\n", "\n")
+              if text and not text.endswith("\n"):
+                  text += "\n"
+              (home / name).write_text(text, encoding="utf-8")
+          write("deploy_key", os.environ["VPS_SSH_KEY"])
+          known = os.environ.get("VPS_KNOWN_HOSTS", "")
+          if known.strip():
+              hosts = known.replace("\r\n", "\n").replace("\r", "\n")
+              if hosts.count("\n") < 1:
+                  hosts = hosts.replace("\\n", "\n")
+              if hosts and not hosts.endswith("\n"):
+                  hosts += "\n"
+              (home / "known_hosts").write_text(hosts, encoding="utf-8")
+          PY
+          chmod 600 "$HOME/.ssh/deploy_key"
+          PORT_CANDIDATES=(2222 22)
+          USER_CANDIDATES=("root")
+          if [ -n "${VPS_USER:-}" ] && [ "$VPS_USER" != "root" ]; then
+            USER_CANDIDATES+=("$VPS_USER")
+          fi
+          SSH_BASE=(
+            -i "$HOME/.ssh/deploy_key"
+            -o IdentitiesOnly=yes
+            -o BatchMode=yes
+            -o NumberOfPasswordPrompts=0
+            -o ConnectTimeout=12
+            -o ConnectionAttempts=1
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=60
+            -o StrictHostKeyChecking=accept-new
+          )
+          SSH_PORT=""
+          SSH_LOGIN=""
+          for candidate in "${PORT_CANDIDATES[@]}"; do
+            ssh-keyscan -p "$candidate" -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
+            chmod 644 "$HOME/.ssh/known_hosts"
+            for login in "${USER_CANDIDATES[@]}"; do
+              if ssh "${SSH_BASE[@]}" -p "$candidate" "$login@$VPS_HOST" "echo SSH_OK" >/dev/null 2>&1; then
+                SSH_PORT="$candidate"
+                SSH_LOGIN="$login"
+                break 2
+              fi
+            done
+          done
+          if [ -z "$SSH_PORT" ]; then
+            echo "SSH authentication failed" >&2
+            exit 1
+          fi
+          REMOTE_DIR="/tmp/kwizera-phase47-$$"
+          ssh "${SSH_BASE[@]}" -p "$SSH_PORT" "$SSH_LOGIN@$VPS_HOST" "mkdir -p '$REMOTE_DIR/lib'"
+          scp -P "$SSH_PORT" -i "$HOME/.ssh/deploy_key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            scripts/lib/load-operator-env.mjs \
+            "$SSH_LOGIN@$VPS_HOST:$REMOTE_DIR/lib/load-operator-env.mjs"
+          scp -P "$SSH_PORT" -i "$HOME/.ssh/deploy_key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            scripts/phase47-vps-ro-verify.mjs \
+            "$SSH_LOGIN@$VPS_HOST:$REMOTE_DIR/phase47-vps-ro-verify.mjs"
+          set +e
+          OUT="$(ssh "${SSH_BASE[@]}" -p "$SSH_PORT" "$SSH_LOGIN@$VPS_HOST" \
+            "cd '$REMOTE_DIR' && \
+             export KWIZERA_PROD_BASE=http://127.0.0.1:5173 && \
+             export KWIZERA_VPS_ENV_FILE=/opt/kwizera-ai/.env && \
+             export KWIZERA_EXPECT_SHA='${EXPECT_SHA}' && \
+             node phase47-vps-ro-verify.mjs; \
+             rc=\$?; rm -rf '$REMOTE_DIR'; exit \$rc")"
+          rc=$?
+          set -e
+          SAFE_OUT="$(printf '%s\n' "$OUT" | python3 -c "import sys,re; t=sys.stdin.read(); t=re.sub(r'(?i)KWIZERA_ADMIN_API_TOKEN\\s*=\\s*\\S+','KWIZERA_ADMIN_API_TOKEN=***REDACTED***',t); t=re.sub(r'(?i)x-kwizera-admin-token','x-kwizera-admin-token',t); print(t)")"
+          printf '%s\n' "$SAFE_OUT"
+          {
+            echo "## Phase 4.7 DEMO RO verify"
+            echo "expectSha=\`${EXPECT_SHA}\`"
+            echo '```json'
+            printf '%s\n' "$SAFE_OUT" | tail -n 400
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"

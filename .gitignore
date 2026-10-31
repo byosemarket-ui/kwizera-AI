@@ -8,6 +8,9 @@
 .env
 .env.*
 !.env.example
+operator.env
+**/operator.env
+*.operator.env
 *.pem
 *.p12
 *.pfx
