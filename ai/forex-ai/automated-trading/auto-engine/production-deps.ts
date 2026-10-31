@@ -91,51 +91,67 @@ export function createProductionAutoEngineDeps(
       }
     },
     async loadPointSize(instrument) {
-      const bridge = getForexConnectBridge();
-      const listed = await bridge.listInstruments();
-      if (!listed.ok || !Array.isArray(listed.instruments)) return null;
-      const want = instrument.replace(/\s+/g, "").toUpperCase();
-      for (const row of listed.instruments) {
-        const r = row as Record<string, unknown>;
-        const sym = String(r.symbol ?? r.instrument ?? r.Instrument ?? "")
-          .replace(/\s+/g, "")
-          .toUpperCase();
-        if (sym !== want) continue;
-        const ps = Number(r.pointSize ?? r.PointSize);
-        return Number.isFinite(ps) && ps > 0 ? ps : null;
+      // Phase 4.7 — never throw on disconnect; dry-run must fail closed.
+      try {
+        const bridge = getForexConnectBridge();
+        const listed = await bridge.listInstruments();
+        if (!listed.ok || !Array.isArray(listed.instruments)) return null;
+        const want = instrument.replace(/\s+/g, "").toUpperCase();
+        for (const row of listed.instruments) {
+          const r = row as Record<string, unknown>;
+          const sym = String(r.symbol ?? r.instrument ?? r.Instrument ?? "")
+            .replace(/\s+/g, "")
+            .toUpperCase();
+          if (sym !== want) continue;
+          const ps = Number(r.pointSize ?? r.PointSize);
+          return Number.isFinite(ps) && ps > 0 ? ps : null;
+        }
+        return null;
+      } catch {
+        return null;
       }
-      return null;
     },
     async loadQuoteMeta(instrument) {
-      const bridge = getForexConnectBridge();
-      const quotes = await bridge.pollQuotes();
-      const want = instrument.replace(/\s+/g, "").toUpperCase();
-      const list = Array.isArray((quotes as { quotes?: unknown }).quotes)
-        ? (quotes as { quotes: Array<Record<string, unknown>> }).quotes
-        : [];
-      const hit = list.find((q) =>
-        String(q.providerSymbol ?? q.displaySymbol ?? q.symbol ?? "")
-          .replace(/\s+/g, "")
-          .toUpperCase() === want
-      );
-      if (!hit) return { ageMs: null, spread: null };
-      const received = Number(hit.receivedAtMs ?? hit.sourceTimestampMs);
-      const ageMs = Number.isFinite(received) ? Date.now() - received : null;
-      const bid = Number(hit.bid);
-      const ask = Number(hit.ask);
-      const spread =
-        Number.isFinite(bid) && Number.isFinite(ask) && ask >= bid ? ask - bid : null;
-      return { ageMs, spread };
+      try {
+        const bridge = getForexConnectBridge();
+        const quotes = await bridge.pollQuotes();
+        const want = instrument.replace(/\s+/g, "").toUpperCase();
+        const list = Array.isArray((quotes as { quotes?: unknown }).quotes)
+          ? (quotes as { quotes: Array<Record<string, unknown>> }).quotes
+          : Array.isArray(quotes)
+            ? (quotes as Array<Record<string, unknown>>)
+            : [];
+        const hit = list.find((q) =>
+          String(q.providerSymbol ?? q.displaySymbol ?? q.symbol ?? "")
+            .replace(/\s+/g, "")
+            .toUpperCase() === want
+        );
+        if (!hit) return { ageMs: null, spread: null };
+        const received = Number(hit.receivedAtMs ?? hit.sourceTimestampMs);
+        const ageMs = Number.isFinite(received) ? Date.now() - received : null;
+        const bid = Number(hit.bid);
+        const ask = Number(hit.ask);
+        const spread =
+          Number.isFinite(bid) && Number.isFinite(ask) && ask >= bid ? ask - bid : null;
+        return { ageMs, spread };
+      } catch {
+        return { ageMs: null, spread: null };
+      }
     },
     async loadAccountRiskContext() {
       const bridge = getForexConnectBridge();
       const primaryInstrument = config.instruments[0] ?? "XAU/USD";
+      const emptyAccounts = { ok: false, accounts: [] as never[], fetchedAt: null as string | null };
+      const emptyTrades = { ok: false, trades: [] as never[], fetchedAt: null as string | null };
+      const emptyClosed = { ok: false, closedTrades: [] as never[], fetchedAt: null as string | null };
+      const emptyStatus = { status: "DISCONNECTED" };
+      const emptyListed = { ok: false, instruments: [] as never[] };
       const [accounts, trades, closed, status, listed] = await Promise.all([
-        bridge.listAccounts(),
-        bridge.listTrades(),
-        bridge.listClosedTrades(),
-        bridge.getStatus(),
-        bridge.listInstruments(),
+        bridge.listAccounts().catch(() => emptyAccounts),
+        bridge.listTrades().catch(() => emptyTrades),
+        bridge.listClosedTrades().catch(() => emptyClosed),
+        bridge.getStatus().catch(() => emptyStatus),
+        bridge.listInstruments().catch(() => emptyListed),
       ]);
       const acctRow = accounts.ok && Array.isArray(accounts.accounts) && accounts.accounts[0]
         ? accounts.accounts[0]

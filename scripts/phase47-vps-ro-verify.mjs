@@ -203,8 +203,14 @@ const brokerCause = rootCauseFromHttp(brokerRo.status, brokerRo.json);
 const accounts = Array.isArray(brokerRo.json?.accounts?.accounts)
   ? brokerRo.json.accounts.accounts.map(pickAccount)
   : null;
+const fcStatusNow = String(report.forexConnect.status ?? "").toUpperCase();
+const accountsOk = brokerRo.json?.accounts?.ok === true
+  && Array.isArray(accounts)
+  && accounts.length > 0;
 report.components.brokerRoTables = {
-  state: brokerRo.status === 200 && brokerRo.json?.ok === true ? "ACTIVE" : brokerCause ? "BLOCKED" : "FAIL",
+  state: brokerRo.status === 200 && brokerRo.json?.ok === true && accountsOk
+    ? "ACTIVE"
+    : (brokerCause || fcStatusNow !== "CONNECTED" ? "BLOCKED" : "FAIL"),
   http: brokerRo.status,
   ok: brokerRo.json?.ok ?? null,
   placesOrders: brokerRo.json?.placesOrders ?? null,
@@ -213,6 +219,9 @@ report.components.brokerRoTables = {
   accountCount: brokerRo.json?.accounts?.count ?? null,
   accountsFetchedAt: brokerRo.json?.accounts?.fetchedAt ?? null,
   accounts,
+  rootCause: !accountsOk && fcStatusNow !== "CONNECTED"
+    ? "Broker session disconnected"
+    : (!accountsOk ? "Missing data" : brokerCause?.kind ?? null),
   openPositionsCount: Array.isArray(brokerRo.json?.openPositions?.trades)
     ? brokerRo.json.openPositions.trades.length
     : null,
@@ -226,32 +235,35 @@ report.components.brokerRoTables = {
       code: brokerRo.json.reconciliation.code ?? null,
     }
     : null,
-  rootCause: brokerCause?.kind ?? null,
   evidence: brokerCause?.detail ?? null,
 };
 
 const primary = accounts?.[0] ?? null;
+const accountBlocked = Boolean(brokerCause) || fcStatusNow !== "CONNECTED" || !accountsOk;
 report.components.demoAccountIdentity = {
-  state: primary?.accountIdMasked ? "ACTIVE" : (brokerCause ? "BLOCKED" : "NOT VERIFIED"),
+  state: primary?.accountIdMasked ? "ACTIVE" : (accountBlocked ? "BLOCKED" : "NOT VERIFIED"),
   accountIdMasked: primary?.accountIdMasked ?? null,
   environment: primary?.environment ?? report.forexConnect.environment ?? null,
+  rootCause: accountBlocked ? "Broker session disconnected or account rows empty" : null,
 };
 report.components.accountCurrencyEquityBalance = {
   state: primary && primary.accountCurrency != null && primary.equity != null && primary.balance != null
     ? "ACTIVE"
-    : (brokerCause ? "BLOCKED" : "NOT VERIFIED"),
+    : (accountBlocked ? "BLOCKED" : "NOT VERIFIED"),
   accountCurrency: primary?.accountCurrency ?? null,
   equity: primary?.equity ?? null,
   balance: primary?.balance ?? null,
+  rootCause: accountBlocked ? "Broker session disconnected or account rows empty" : null,
 };
 report.components.usableMarginFreshness = {
   state: primary && primary.usableMargin != null && report.components.brokerRoTables.accountsFetchedAt
     ? "ACTIVE"
-    : (brokerCause ? "BLOCKED" : "NOT VERIFIED"),
+    : (accountBlocked ? "BLOCKED" : "NOT VERIFIED"),
   usableMargin: primary?.usableMargin ?? null,
   usedMargin: primary?.usedMargin ?? null,
   accountsFetchedAt: report.components.brokerRoTables.accountsFetchedAt,
   missingFields: primary?.missingFields ?? null,
+  rootCause: accountBlocked ? "Broker session disconnected or account rows empty" : null,
 };
 
 const engineStatus = await req("GET", "/api/forex/automated-trading/auto-engine/status");
@@ -296,12 +308,16 @@ report.components.dailyRiskTelemetry = {
   accountsFetchedAtUtc: daily?.accountsFetchedAtUtc ?? null,
 };
 
+const fcDisconnected = String(report.forexConnect.status ?? "").toUpperCase() !== "CONNECTED";
 report.components.positionReconciliation = {
   state: report.components.brokerRoTables.reconciliation?.ok === true
     ? "ACTIVE"
-    : (brokerCause ? "BLOCKED" : (report.components.brokerRoTables.reconciliation ? "FAIL" : "NOT VERIFIED")),
+    : (brokerCause || fcDisconnected
+      ? "BLOCKED"
+      : (report.components.brokerRoTables.reconciliation?.ok === false ? "FAIL" : "NOT VERIFIED")),
   reconcile: report.components.brokerRoTables.reconciliation,
   enginePositionReconcileCode: eng.positionReconcileCode ?? null,
+  rootCause: fcDisconnected ? "Stale data / broker session disconnected" : brokerCause?.kind ?? null,
 };
 
 const atStatus = await req("GET", "/api/forex/automated-trading/status");
@@ -312,7 +328,12 @@ const qEv = st.simulationDataReadiness?.quantityEvidence
   ?? st.simulationDataReadiness?.evidence?.quantityEvidence
   ?? null;
 const condEv = st.simulationDataReadiness?.condDistEvidence ?? null;
-const hasSpecs = Boolean(qty || qEv?.baseUnitSize != null || qEv?.quantityMin != null);
+const hasSpecs = Boolean(
+  qEv?.baseUnitSize != null
+  || qEv?.quantityMin != null
+  || qEv?.quantityStep != null
+  || qEv?.pointSize != null
+);
 report.components.xauContractSpecs = {
   state: hasSpecs ? "ACTIVE" : (atCause ? "BLOCKED" : "NOT VERIFIED"),
   http: atStatus.status,
@@ -339,8 +360,12 @@ report.components.xauContractSpecs = {
 const activation = await req("GET", "/api/forex/automated-trading/demo-lifecycle/activation-readiness");
 const actCause = rootCauseFromHttp(activation.status, activation.json);
 report.components.activationReadiness = {
-  state: activation.status === 200 && activation.json?.ok === true ? "ACTIVE" : actCause ? "BLOCKED" : "FAIL",
+  state: activation.status === 200 && activation.json?.ok === true
+    ? "ACTIVE"
+    : (activation.status >= 500 ? "FAIL" : actCause ? "BLOCKED" : "FAIL"),
   http: activation.status,
+  errorCode: activation.json?.error?.code ?? null,
+  errorMessage: activation.json?.error?.message ?? null,
   readyForOwnerActivationApproval: activation.json?.readyForOwnerActivationApproval ?? null,
   blockers: activation.json?.blockers ?? null,
   checks: Array.isArray(activation.json?.checks)
@@ -372,14 +397,16 @@ const tickCause = rootCauseFromHttp(tick.status, tick.json);
 const teng = tick.json?.engine ?? {};
 const dryOk = tick.status === 200
   && tick.json?.ok === true
-  && (teng.mode === "dry_run" || tick.json?.note?.includes("dry_run"))
+  && (teng.mode === "dry_run" || String(tick.json?.note ?? "").includes("dry_run"))
   && tick.json?.placesOrders === false
   && tick.json?.mutatesBroker === false
   && (teng.submitAuthorized === false || teng.submitAuthorized == null);
 report.components.productionDryRun = {
-  state: dryOk ? "ACTIVE" : tickCause ? "BLOCKED" : "FAIL",
+  state: dryOk ? "ACTIVE" : (tick.status >= 500 ? "FAIL" : tickCause ? "BLOCKED" : "FAIL"),
   http: tick.status,
   ok: tick.json?.ok ?? null,
+  errorCode: tick.json?.error?.code ?? tick.json?.code ?? null,
+  errorMessage: tick.json?.error?.message ?? tick.json?.message ?? null,
   note: tick.json?.note ?? null,
   mode: teng.mode ?? null,
   placesOrders: tick.json?.placesOrders ?? teng.placesOrders ?? null,

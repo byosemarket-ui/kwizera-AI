@@ -50,6 +50,8 @@ jobs:
           tests/unit/ai/forex-ai/phase59-0-18-demo-activation-readiness.test.ts
           tests/unit/ai/forex-ai/phase58-1-demo-execution-engine.test.ts
           tests/unit/ai/forex-ai/phase59-0-14-lifecycle-persistence-idempotency.test.ts
+          tests/unit/ai/forex-ai/phase47-production-deps-failclosed.test.ts
+          tests/unit/scripts/load-operator-env.test.ts
 
       - name: Production build (server + Vite studio)
         run: npm run build:production
