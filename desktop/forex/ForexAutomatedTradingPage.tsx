@@ -329,6 +329,43 @@ type StrategyDryRunResult = {
       pipelineState?: string;
     };
   };
+  /** Phase 4.18D additive canonical analysis (read-only). */
+  canonicalAnalysis?: {
+    result?: Record<string, unknown>;
+    view?: CanonicalAnalysisView;
+    placesOrders?: false;
+    acceptsForExecution?: false;
+    simulationOnly?: true;
+  } | null;
+};
+
+type CanonicalAnalysisView = {
+  available?: boolean;
+  displayFreshness?: "CURRENT" | "STALE" | "BLOCKED" | "NOT_AVAILABLE";
+  analysisId?: string | null;
+  instrument?: string | null;
+  primaryTimeframe?: string | null;
+  direction?: "BUY" | "SELL" | null;
+  marketInterpretation?: "BULLISH" | "BEARISH" | null;
+  finalOutcome?: string | null;
+  confidencePct?: number | null;
+  confidenceType?: string;
+  confidenceModelVersion?: string;
+  availableConfidenceFactorCount?: number;
+  reconciliationCode?: string | null;
+  analyzedAtUtc?: string | null;
+  fastSma?: number | null;
+  slowSma?: number | null;
+  atr?: number | null;
+  atrMethod?: string | null;
+  htfAgreement?: string | null;
+  aiAgreement?: string;
+  dataQuality?: string | null;
+  quoteFresh?: boolean | null;
+  explanation?: string[];
+  placesOrders?: false;
+  acceptsForExecution?: false;
+  analysisIsNotExecution?: true;
 };
 
 export function ForexAutomatedTradingPage(props: {
@@ -431,6 +468,9 @@ export function ForexAutomatedTradingPage(props: {
   const lastSyncedInstrumentRef = useRef<string | null>(null);
   const [strategyDryRun, setStrategyDryRun] = useState<StrategyDryRunResult | null>(null);
   const [strategyDryRunBusy, setStrategyDryRunBusy] = useState(false);
+  /** Phase 4.18D — canonical BUY/SELL analysis (read-only). */
+  const [canonicalView, setCanonicalView] = useState<CanonicalAnalysisView | null>(null);
+  const [canonicalBusy, setCanonicalBusy] = useState(false);
   /** Phase 57.1/57.2 — server-authoritative automation START/STOP (monitoring ≠ execution). */
   const [automation, setAutomation] = useState<{
     stateVersion?: number;
@@ -539,7 +579,7 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, canonRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
@@ -551,6 +591,7 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/simulation-lifecycle/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/broker-intent/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/automation/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/canonical-analysis/status", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -598,6 +639,10 @@ export function ForexAutomatedTradingPage(props: {
       const autoJson = await autoRes.json() as {
         ok?: boolean;
         automation?: typeof automation;
+      };
+      const canonJson = await canonRes.json() as {
+        ok?: boolean;
+        canonical?: { view?: CanonicalAnalysisView };
       };
       const demoJson = await demoRes.json() as {
         ok?: boolean;
@@ -649,6 +694,9 @@ export function ForexAutomatedTradingPage(props: {
       if (lifeRes.ok && lifeJson.ok && lifeJson.lifecycle) setSimLifecycle(lifeJson.lifecycle);
       if (biRes.ok && biJson.ok && biJson.brokerIntent) setBrokerIntent(biJson.brokerIntent);
       if (autoRes.ok && autoJson.ok && autoJson.automation) setAutomation(autoJson.automation);
+      if (canonRes.ok && canonJson.ok && canonJson.canonical?.view) {
+        setCanonicalView(canonJson.canonical.view);
+      }
       if (demoRes.ok && demoJson) {
         const cats = demoJson.blockerCategories && typeof demoJson.blockerCategories === "object"
           ? Object.fromEntries(
@@ -1186,12 +1234,62 @@ export function ForexAutomatedTradingPage(props: {
         setError(data.error?.message || data.error?.code || `Strategy dry-run failed (${res.status})`);
         return;
       }
-      setStrategyDryRun({ dryRun: data.dryRun, feedSnapshot: data.feedSnapshot });
+      setStrategyDryRun({
+        dryRun: data.dryRun,
+        feedSnapshot: data.feedSnapshot,
+        candleQuality: data.candleQuality,
+        canonicalAnalysis: data.canonicalAnalysis,
+      });
+      if (data.canonicalAnalysis?.view) setCanonicalView(data.canonicalAnalysis.view);
       if (data.status) setStatus(data.status);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Strategy dry-run failed");
     } finally {
       setStrategyDryRunBusy(false);
+    }
+  };
+
+  const runCanonicalAnalysisUi = async () => {
+    if (!token || canonicalBusy) return;
+    setCanonicalBusy(true);
+    setError(null);
+    try {
+      const op = resolveAtOperatingInstrument({
+        shellInstrument,
+        backendInstrument: status?.selectedEnvState?.selectedInstrument ?? null,
+        allowBackendFallback: true,
+      });
+      if (!op.instrument) {
+        setError("NO_MARKET_SELECTED — select a ForexConnect instrument before canonical analysis.");
+        return;
+      }
+      const res = await fetch("/api/forex/automated-trading/canonical-analysis/run", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          instrument: op.instrument,
+          timeframe: props.timeframe ?? "15m",
+          includeOpenAi: true,
+          persist: true,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        view?: CanonicalAnalysisView;
+        error?: { message?: string; code?: string };
+        status?: PublicStatus;
+      };
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Canonical analysis failed (${res.status})`);
+        if (data.view) setCanonicalView(data.view);
+        return;
+      }
+      if (data.view) setCanonicalView(data.view);
+      if (data.status) setStatus(data.status);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Canonical analysis failed");
+    } finally {
+      setCanonicalBusy(false);
     }
   };
 
@@ -1713,6 +1811,105 @@ export function ForexAutomatedTradingPage(props: {
               ))}
             </>
           ) : null}
+        </ul>
+      </section>
+
+      <section
+        className="fx-auto-trading-panel"
+        data-fx-at-canonical-analysis="true"
+        aria-label="Canonical market analysis"
+      >
+        <div className="fx-auto-trading-panel-head">
+          <h2 className="fx-auto-trading-h2">Canonical market analysis (Phase 4.18D)</h2>
+          <button
+            type="button"
+            className="fx-capture-button"
+            disabled={busy || canonicalBusy || !token}
+            onClick={() => void runCanonicalAnalysisUi()}
+            data-fx-at-canonical-run="true"
+          >
+            {canonicalBusy ? "…" : "Run analysis"}
+          </button>
+        </div>
+        <p className="fx-auto-trading-hint" style={{ marginTop: 0 }}>
+          Read-only BUY/SELL analysis with ANALYSIS_CONFIDENCE — never execution authorization.
+          {" "}
+          Execution remains <strong>DISABLED</strong>.
+        </p>
+        <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+          <li data-fx-at-canonical-freshness="true">
+            Result status:{" "}
+            <strong>{canonicalView?.displayFreshness ?? "NOT_AVAILABLE"}</strong>
+            {canonicalView?.finalOutcome ? ` · outcome ${canonicalView.finalOutcome}` : ""}
+          </li>
+          <li data-fx-at-canonical-instrument="true">
+            Instrument: <strong>{canonicalView?.instrument ?? selectedInstrument ?? "NO_MARKET_SELECTED"}</strong>
+            {" · "}
+            TF: <strong>{canonicalView?.primaryTimeframe ?? props.timeframe ?? "—"}</strong>
+          </li>
+          <li data-fx-at-canonical-direction="true">
+            Direction:{" "}
+            <strong>
+              {canonicalView?.direction
+                ?? (canonicalView?.finalOutcome === "INSUFFICIENT_DATA"
+                  ? "INSUFFICIENT DATA"
+                  : canonicalView?.finalOutcome === "STALE_DATA"
+                    ? "STALE DATA"
+                    : canonicalView?.finalOutcome === "CONFLICT"
+                      ? "CONFLICT"
+                      : canonicalView?.finalOutcome === "NO_TRADE"
+                        ? "NO TRADE"
+                        : "—")}
+            </strong>
+            {canonicalView?.marketInterpretation
+              ? ` · ${canonicalView.marketInterpretation}`
+              : ""}
+          </li>
+          <li data-fx-at-canonical-confidence="true">
+            Analysis Confidence:{" "}
+            <strong>
+              {canonicalView?.confidencePct != null ? `${canonicalView.confidencePct}%` : "—"}
+            </strong>
+            {" · "}
+            type {canonicalView?.confidenceType ?? "ANALYSIS_CONFIDENCE"}
+            {" · "}
+            model {canonicalView?.confidenceModelVersion ?? "analysis-confidence.v1"}
+            {canonicalView?.availableConfidenceFactorCount != null
+              ? ` · factors ${canonicalView.availableConfidenceFactorCount}`
+              : ""}
+          </li>
+          <li>
+            SMA(9)/SMA(21):{" "}
+            <strong>{canonicalView?.fastSma ?? "—"}</strong>
+            {" / "}
+            <strong>{canonicalView?.slowSma ?? "—"}</strong>
+            {" · "}
+            ATR(14): <strong>{canonicalView?.atr ?? "—"}</strong>
+            {canonicalView?.atrMethod ? ` (${canonicalView.atrMethod})` : ""}
+          </li>
+          <li>
+            HTF: <strong>{canonicalView?.htfAgreement ?? "—"}</strong>
+            {" · "}
+            AI agreement: <strong>{canonicalView?.aiAgreement ?? "—"}</strong>
+            {" · "}
+            data: <strong>{canonicalView?.dataQuality ?? "—"}</strong>
+            {" · "}
+            quoteFresh: <strong>{String(canonicalView?.quoteFresh ?? "—")}</strong>
+          </li>
+          <li data-fx-at-canonical-recon="true">
+            Reconciliation: <strong>{canonicalView?.reconciliationCode ?? "—"}</strong>
+            {canonicalView?.analyzedAtUtc ? ` · ${canonicalView.analyzedAtUtc}` : ""}
+          </li>
+          {(canonicalView?.explanation ?? []).slice(0, 3).map((line) => (
+            <li key={line.slice(0, 48)}>{line}</li>
+          ))}
+          <li>
+            placesOrders=<strong>false</strong>
+            {" · "}
+            acceptsForExecution=<strong>false</strong>
+            {" · "}
+            analysisIsNotExecution=<strong>true</strong>
+          </li>
         </ul>
       </section>
 

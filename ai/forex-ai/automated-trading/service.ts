@@ -2200,6 +2200,193 @@ export class AutomatedTradingService {
     };
   }
 
+  /**
+   * Phase 4.18D — read-only canonical BUY/SELL analysis (no broker mutation).
+   */
+  async runCanonicalAnalysis(input: {
+    environment?: unknown;
+    instrument?: unknown;
+    timeframe?: unknown;
+    includeOpenAi?: unknown;
+    persist?: unknown;
+  }): Promise<{
+    ok: boolean;
+    code?: string;
+    message?: string;
+    result: import("./analysis/canonical-analysis.types.js").CanonicalAnalysisResult | null;
+    view: import("./analysis/canonical-analysis.service.js").CanonicalAnalysisPublicView;
+    candleQuality: import("./candle-quality.js").CandleQualityReport | null;
+    history: { saved: boolean; duplicate: boolean; writeError: string | null };
+    status: AutomatedTradingPublicStatus;
+    placesOrders: false;
+    acceptsForExecution: false;
+    mutatesBroker: false;
+  }> {
+    const {
+      runCanonicalAnalysis,
+      toCanonicalPublicView,
+      createCanonicalAnalysisProductionDeps,
+      normalizeCanonicalTimeframe,
+    } = await import("./analysis/index.js");
+    const { resolveAtOperatingInstrument } = await import("./market-selection.js");
+    const state = this.store.getState();
+    const env =
+      parseAutomatedTradingEnvironment(input.environment) ?? state.selectedEnvironment;
+    const envState = state.environments[env];
+    const resolved = resolveAtOperatingInstrument({
+      shellInstrument: input.instrument != null ? String(input.instrument).trim() || null : null,
+      backendInstrument: envState.selectedInstrument,
+      allowBackendFallback: true,
+    });
+    if (!resolved.instrument) {
+      const emptyView = toCanonicalPublicView(null);
+      return {
+        ok: false,
+        code: "NO_MARKET_SELECTED",
+        message: resolved.message,
+        result: null,
+        view: emptyView,
+        candleQuality: null,
+        history: { saved: false, duplicate: false, writeError: null },
+        status: await this.buildStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      };
+    }
+    const timeframeRaw = input.timeframe != null ? String(input.timeframe).trim() : "15m";
+    if (!normalizeCanonicalTimeframe(timeframeRaw)) {
+      return {
+        ok: false,
+        code: "TIMEFRAME_UNSUPPORTED",
+        message: `Unsupported timeframe "${timeframeRaw}".`,
+        result: null,
+        view: toCanonicalPublicView(null),
+        candleQuality: null,
+        history: { saved: false, duplicate: false, writeError: null },
+        status: await this.buildStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      };
+    }
+    const out = await runCanonicalAnalysis(
+      {
+        environment: env,
+        instrument: resolved.instrument,
+        timeframe: timeframeRaw,
+        includeOpenAi: input.includeOpenAi !== false,
+        persist: input.persist !== false,
+        trigger: "manual",
+      },
+      createCanonicalAnalysisProductionDeps(),
+    );
+    await this.store.appendAudit({
+      action: "canonical_analysis_run",
+      environment: env,
+      ok: out.ok,
+      code: out.result.reconciliationCode,
+      detail: `${out.result.instrument} ${out.result.primaryTimeframe} ${out.result.finalOutcome} dir=${out.result.direction ?? "null"} conf=${out.result.confidencePct ?? "null"}`.slice(0, 160),
+    });
+    return {
+      ok: out.ok,
+      result: out.result,
+      view: toCanonicalPublicView(out.result),
+      candleQuality: out.candleQuality,
+      history: out.history,
+      status: await this.buildStatus(),
+      placesOrders: false,
+      acceptsForExecution: false,
+      mutatesBroker: false,
+    };
+  }
+
+  async getCanonicalAnalysisStatus(): Promise<{
+    latest: import("./analysis/canonical-analysis-history.store.js").CanonicalAnalysisHistoryRecord | null;
+    historyCount: number;
+    view: import("./analysis/canonical-analysis.service.js").CanonicalAnalysisPublicView;
+    placesOrders: false;
+    acceptsForExecution: false;
+  }> {
+    const {
+      getCanonicalAnalysisHistoryStore,
+      toCanonicalPublicView,
+      ANALYSIS_CONFIDENCE_TYPE,
+      ANALYSIS_CONFIDENCE_MODEL_VERSION,
+      CANONICAL_ANALYSIS_SCHEMA,
+      CANONICAL_ANALYSIS_VERSION,
+    } = await import("./analysis/index.js");
+    const store = getCanonicalAnalysisHistoryStore();
+    const latest = store.latest();
+    if (!latest) {
+      return {
+        latest: null,
+        historyCount: 0,
+        view: toCanonicalPublicView(null),
+        placesOrders: false,
+        acceptsForExecution: false,
+      };
+    }
+    return {
+      latest,
+      historyCount: store.count(),
+      view: {
+        schemaVersion: CANONICAL_ANALYSIS_SCHEMA,
+        analysisVersion: CANONICAL_ANALYSIS_VERSION,
+        available: true,
+        displayFreshness:
+          latest.finalOutcome === "STALE_DATA"
+            ? "STALE"
+            : latest.direction
+              ? "CURRENT"
+              : "BLOCKED",
+        analysisId: latest.analysisId,
+        instrument: latest.instrument,
+        primaryTimeframe: latest.primaryTimeframe,
+        direction: latest.direction,
+        marketInterpretation:
+          latest.direction === "BUY"
+            ? "BULLISH"
+            : latest.direction === "SELL"
+              ? "BEARISH"
+              : null,
+        finalOutcome: latest.finalOutcome,
+        confidencePct: latest.confidencePct,
+        confidenceType: ANALYSIS_CONFIDENCE_TYPE,
+        confidenceModelVersion: ANALYSIS_CONFIDENCE_MODEL_VERSION,
+        confidenceBreakdown: null,
+        confidenceLimitations: [
+          "History compact view — full confidence breakdown available on /run responses.",
+        ],
+        isCalibratedWinProbability: false,
+        availableConfidenceFactorCount: 0,
+        reconciliationCode: latest.reconciliationCode,
+        analyzedAtUtc: latest.analyzedAtUtc,
+        quote: null,
+        fastSma: latest.fastSma,
+        slowSma: latest.slowSma,
+        atr: latest.atrValue,
+        atrMethod: latest.atrMethod,
+        htfAgreement: null,
+        aiAgreement: latest.aiAnalysisId ? "N_A" : "UNAVAILABLE",
+        dataQuality: null,
+        quoteFresh: latest.quoteFresh,
+        explanation: latest.explanation,
+        validationErrors: latest.validationErrors,
+        placesOrders: false,
+        acceptsForExecution: false,
+        analysisIsNotExecution: true,
+      },
+      placesOrders: false,
+      acceptsForExecution: false,
+    };
+  }
+
+  async listCanonicalAnalyses(limit = 12) {
+    const { getCanonicalAnalysisHistoryStore } = await import("./analysis/index.js");
+    return getCanonicalAnalysisHistoryStore().list(limit);
+  }
+
   getAudit(limit = 40): AutomatedTradingAuditEvent[] {
     return this.store.getAudit(limit);
   }
@@ -3258,6 +3445,14 @@ export class AutomatedTradingService {
       ok: true;
       dryRun: import("./strategy-dry-run/index.js").DryRunLifecycleResult;
       candleQuality: import("./candle-quality.js").CandleQualityReport;
+      /** Phase 4.18D — additive canonical BUY/SELL analysis (read-only). */
+      canonicalAnalysis: {
+        result: import("./analysis/canonical-analysis.types.js").CanonicalAnalysisResult;
+        view: import("./analysis/canonical-analysis.service.js").CanonicalAnalysisPublicView;
+        placesOrders: false;
+        acceptsForExecution: false;
+        simulationOnly: true;
+      } | null;
       feedSnapshot: {
         instrument: string;
         bid: number | null;
@@ -3500,10 +3695,88 @@ export class AutomatedTradingService {
       detail: `${instrument} signal=${dryRun.strategy.code} steps=${dryRun.steps.length}`.slice(0, 160),
     });
 
+    // Phase 4.18D — additive canonical analysis using the same candles/quote (no broker mutation).
+    let canonicalAnalysis: {
+      result: import("./analysis/canonical-analysis.types.js").CanonicalAnalysisResult;
+      view: import("./analysis/canonical-analysis.service.js").CanonicalAnalysisPublicView;
+      placesOrders: false;
+      acceptsForExecution: false;
+      simulationOnly: true;
+    } | null = null;
+    try {
+      const {
+        runCanonicalAnalysis,
+        toCanonicalPublicView,
+        normalizeCanonicalTimeframe,
+      } = await import("./analysis/index.js");
+      const tfNorm = normalizeCanonicalTimeframe(timeframe);
+      if (tfNorm) {
+        const nowMs = Date.now();
+        const nowIso = new Date(nowMs).toISOString();
+        const receiptAgeMs =
+          lastReceiptAtMs != null ? Math.max(0, nowMs - lastReceiptAtMs) : null;
+        const evalFresh = evaluateLiveOfferQuoteFreshness({
+          bid,
+          ask,
+          streamState: feedStatus,
+          priceChangeAgeMs,
+          receiptAgeMs,
+          updateCount,
+          tradingStatus,
+          sourceTimestampMs,
+          receivedAtMs,
+          instrument,
+          nowMs,
+        });
+        const canon = await runCanonicalAnalysis(
+          {
+            environment: env,
+            instrument,
+            timeframe: tfNorm,
+            trigger: "manual",
+            persist: true,
+            includeOpenAi: true,
+            nowMs,
+          },
+          {
+            loadCandles: async () => candles,
+            getQuoteSnapshot: async () => ({
+              instrument: instrument.replace(/\s+/g, "").toUpperCase(),
+              bid,
+              ask,
+              quoteFresh: evalFresh.fresh,
+              freshnessReasonCode: evalFresh.reasonCode,
+              effectivePriceChangeAgeMs: evalFresh.effectivePriceChangeAgeMs,
+              snapshotFingerprint: evalFresh.snapshotFingerprint,
+              evaluatedAtUtc: evalFresh.evaluatedAtUtc ?? nowIso,
+            }),
+            getPointSize: async () => pointSize,
+            getLatestOpenAi: (sym) => {
+              const latest = this.getLatestOpenAiAnalysis();
+              if (!latest) return null;
+              const a = String(latest.instrument ?? "").replace(/\s+/g, "").toUpperCase();
+              const b = String(sym ?? "").replace(/\s+/g, "").toUpperCase();
+              return a === b ? latest : null;
+            },
+          },
+        );
+        canonicalAnalysis = {
+          result: canon.result,
+          view: toCanonicalPublicView(canon.result, { nowMs }),
+          placesOrders: false,
+          acceptsForExecution: false,
+          simulationOnly: true,
+        };
+      }
+    } catch {
+      canonicalAnalysis = null;
+    }
+
     return {
       ok: true,
       dryRun,
       candleQuality,
+      canonicalAnalysis,
       feedSnapshot: {
         instrument,
         bid,

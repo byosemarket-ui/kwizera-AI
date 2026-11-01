@@ -1218,6 +1218,93 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 4.18D — read-only canonical BUY/SELL analysis (never broker mutation).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/canonical-analysis/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const canonical = await service.getCanonicalAnalysisStatus();
+      sendJson(res, 200, {
+        ok: true,
+        canonical,
+        placesOrders: false,
+        acceptsForExecution: false,
+        analysisIsNotExecution: true,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/canonical-analysis/history")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limit = Number(url.searchParams.get("limit") ?? 12);
+      const history = await service.listCanonicalAnalyses(Number.isFinite(limit) ? limit : 12);
+      sendJson(res, 200, {
+        ok: true,
+        history,
+        placesOrders: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/canonical-analysis/run")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.runCanonicalAnalysis({
+        environment: body.environment,
+        instrument: body.instrument,
+        timeframe: body.timeframe,
+        includeOpenAi: body.includeOpenAi,
+        persist: body.persist,
+      });
+      if (!result.result && result.code === "NO_MARKET_SELECTED") {
+        sendJson(res, 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          view: result.view,
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        });
+        return true;
+      }
+      if (result.code === "TIMEFRAME_UNSUPPORTED") {
+        sendJson(res, 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          view: result.view,
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        analysisOk: result.ok,
+        result: result.result,
+        view: result.view,
+        candleQuality: result.candleQuality,
+        history: result.history,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        analysisIsNotExecution: true,
+        note: "Canonical analysis is read-only. BUY/SELL are analysis outcomes — not execution authorization.",
+      });
+      return true;
+    }
+
     {
       const match = url.pathname.match(/^\/api\/forex\/automated-trading\/openai\/([A-Za-z0-9_-]+)$/);
       if (match && match[1] && !["status", "analyze", "latest", "history"].includes(match[1])) {
@@ -1469,6 +1556,7 @@ export async function handleForexAutomatedTradingApi(
         ok: true,
         dryRun: result.dryRun,
         candleQuality: result.candleQuality,
+        canonicalAnalysis: result.canonicalAnalysis,
         feedSnapshot: result.feedSnapshot,
         status: result.status,
         placesOrders: false,
@@ -1476,7 +1564,7 @@ export async function handleForexAutomatedTradingApi(
         mutatesBroker: false,
         simulationOnly: true,
         acknowledgementLabel: "SIMULATED",
-        note: "Strategy dry-run is simulation-only. Simulated fills are not DEMO_FILL_CONFIRMED.",
+        note: "Strategy dry-run is simulation-only. Simulated fills are not DEMO_FILL_CONFIRMED. Canonical analysis (if present) is additive and never authorizes execution.",
       });
       return true;
     }
