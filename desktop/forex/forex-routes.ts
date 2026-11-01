@@ -440,7 +440,10 @@ export function isForexMarketStateRoute(route: ForexViewId): boolean {
     route === "charts" ||
     route === "technical-analysis" ||
     route === "ai-analysis" ||
-    route === "signals"
+    route === "signals" ||
+    // Phase 4.14B — keep symbol/provider/timeframe when entering AT / Trade Monitor.
+    route === "automated-trading" ||
+    route === "trade-monitor"
   );
 }
 

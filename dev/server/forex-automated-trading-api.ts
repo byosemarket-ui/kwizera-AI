@@ -882,6 +882,7 @@ export async function handleForexAutomatedTradingApi(
         environment: body.environment,
         instrument: body.instrument,
         expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+        timeframe: body.timeframe,
       });
       if (!result.ok) {
         sendJson(res, 409, {
@@ -892,7 +893,16 @@ export async function handleForexAutomatedTradingApi(
         });
         return true;
       }
-      sendJson(res, 200, { ok: true, status: result.status, placesOrders: false });
+      sendJson(res, 200, {
+        ok: true,
+        status: result.status,
+        subscription: result.subscription,
+        placesOrders: false,
+        acceptsForExecution: false,
+        note: result.subscription.confirmed
+          ? "Instrument persisted and Offers ensure reported success (not LIVE proof)."
+          : "Instrument persisted; Offers subscription not confirmed — see subscription.code.",
+      });
       return true;
     }
 
@@ -1458,6 +1468,7 @@ export async function handleForexAutomatedTradingApi(
       sendJson(res, 200, {
         ok: true,
         dryRun: result.dryRun,
+        candleQuality: result.candleQuality,
         feedSnapshot: result.feedSnapshot,
         status: result.status,
         placesOrders: false,
@@ -1514,7 +1525,7 @@ export async function handleForexAutomatedTradingApi(
         environmentVerified: body.environmentVerified === true,
         accountIdMasked: body.accountIdMasked != null ? String(body.accountIdMasked).slice(0, 32) : null,
         accountStateVerified: body.accountStateVerified === true,
-        instrument: String(body.instrument ?? "XAU/USD"),
+        instrument: String(body.instrument ?? "").trim(),
         direction: body.direction === "SELL" ? "SELL" : body.direction === "BUY" ? "BUY" : null,
         quantity: typeof body.quantity === "number" ? body.quantity : null,
         quantityUnit: body.quantityUnit != null ? String(body.quantityUnit) : null,
@@ -1836,7 +1847,7 @@ export async function handleForexAutomatedTradingApi(
           : {};
         const liveConfigured = profileMap.live?.configured === true;
         const cfg = loadAutoEngineConfig();
-        // Phase 4.9 — RO instrument contract for XAU/USD (never invent fields).
+        // Phase 4.9 / 4.14B — RO instrument contract for configured auto-engine symbol only (never invent XAU).
         let brokerContract: {
           providerSymbol: string | null;
           baseUnitSize: number | null;
@@ -1846,11 +1857,14 @@ export async function handleForexAutomatedTradingApi(
           pipCostAccount: number | null;
         } | null = null;
         try {
+          const want = String(cfg.instruments[0] ?? "").trim();
+          if (!want) {
+            throw new Error("NO_INSTRUMENT_CONFIGURED");
+          }
           const listed = await (await import("../../ai/market-data/forexconnect/client.js"))
             .getForexConnectBridge()
             .listInstruments();
           const instruments = Array.isArray(listed?.instruments) ? listed.instruments : [];
-          const want = "XAU/USD";
           const norm = (s: string) => s.replace(/\s+/g, "").toUpperCase();
           const row = instruments.find((i: {
             providerSymbol?: string;

@@ -38,8 +38,8 @@ function catalogXau(): ForexConnectInstrument[] {
   ];
 }
 
-describe("Phase 59.0.3 validateAtQuoteInstrumentForSubscribe", () => {
-  it("accepts allowlisted catalog instrument and rejects others", () => {
+describe("Phase 59.0.3 / 4.14B validateAtQuoteInstrumentForSubscribe", () => {
+  it("accepts any catalog-verified FC instrument for quotes (not XAU-only)", () => {
     const ok = validateAtQuoteInstrumentForSubscribe({
       symbol: "XAU/USD",
       catalogOk: true,
@@ -56,7 +56,8 @@ describe("Phase 59.0.3 validateAtQuoteInstrumentForSubscribe", () => {
     expect(missing.ok).toBe(false);
     if (!missing.ok) expect(missing.code).toBe("INSTRUMENT_MISSING");
 
-    const disallowed = validateAtQuoteInstrumentForSubscribe({
+    // Phase 4.14B — EUR/USD in catalog is quote-eligible (execution remain gated elsewhere).
+    const eurOk = validateAtQuoteInstrumentForSubscribe({
       symbol: "EUR/USD",
       catalogOk: true,
       instruments: [
@@ -64,8 +65,8 @@ describe("Phase 59.0.3 validateAtQuoteInstrumentForSubscribe", () => {
         { providerSymbol: "EUR/USD", canonicalSymbol: "EURUSD", displaySymbol: "EUR/USD" } as ForexConnectInstrument,
       ],
     });
-    expect(disallowed.ok).toBe(false);
-    if (!disallowed.ok) expect(disallowed.code).toBe("INSTRUMENT_NOT_PERMITTED");
+    expect(eurOk.ok).toBe(true);
+    if (eurOk.ok) expect(eurOk.providerSymbol).toBe("EUR/USD");
 
     const unknown = validateAtQuoteInstrumentForSubscribe({
       symbol: "XAU/USD",
@@ -434,18 +435,24 @@ describe("Phase 59.0.3 live.ensure seeding + idle keepIntended", () => {
     expect(svc.listIntendedSubscriptions().length).toBe(1);
   });
 
-  it("ensureValidatedAtInstrument rejects disallowed symbols before subscribe", async () => {
+  it("ensureValidatedAtInstrument accepts catalog FC symbols; rejects unknown (Phase 4.14B)", async () => {
     const bridge = mockBridge();
     const svc = new ForexConnectLiveCandleService({ bridge });
     services.push(svc);
-    const rejected = await svc.ensureValidatedAtInstrument("EUR/USD", "1m");
+    // Not in mock catalog → refuse before subscribe.
+    const rejected = await svc.ensureValidatedAtInstrument("BTC/USD", "1m");
     expect(rejected.ok).toBe(false);
-    expect(rejected.code).toBe("INSTRUMENT_NOT_PERMITTED");
+    expect(rejected.code).toBe("INSTRUMENT_NOT_IN_CATALOG");
     expect(svc.listIntendedSubscriptions().length).toBe(0);
+
+    // Catalog-verified EUR/USD is quote-eligible (execution gated elsewhere).
+    const eur = await svc.ensureValidatedAtInstrument("EUR/USD", "1m");
+    expect(eur.ok).toBe(true);
+    expect(svc.listIntendedSubscriptions().length).toBe(1);
 
     const accepted = await svc.ensureValidatedAtInstrument("XAU/USD", "1m");
     expect(accepted.ok).toBe(true);
-    expect(svc.listIntendedSubscriptions().length).toBe(1);
+    expect(svc.listIntendedSubscriptions().length).toBeGreaterThanOrEqual(1);
   });
 
   it("wiring: probe/open use validated ensure; readiness consumes quote evidence", () => {

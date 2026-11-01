@@ -159,7 +159,7 @@ export function createProductionAutoEngineDeps(
     },
     async loadAccountRiskContext() {
       const bridge = getForexConnectBridge();
-      const primaryInstrument = config.instruments[0] ?? "XAU/USD";
+      const primaryInstrument = config.instruments[0] ?? "";
       const emptyAccounts = { ok: false, accounts: [] as never[], fetchedAt: null as string | null };
       const emptyTrades = { ok: false, trades: [] as never[], fetchedAt: null as string | null };
       const emptyClosed = { ok: false, closedTrades: [] as never[], fetchedAt: null as string | null };

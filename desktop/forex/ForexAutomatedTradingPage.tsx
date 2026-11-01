@@ -106,6 +106,23 @@ type PublicStatus = {
     } | null;
     remediation?: string[];
   };
+  /** Phase 4.14B — Offers feed classification (CONNECTED ≠ LIVE). */
+  feedStatusBreakdown?: {
+    pipelineState?: string;
+    primaryGap?: string;
+    updateCount?: number;
+    freshPriceChangeReceived?: boolean;
+    marketClosed?: boolean | null;
+    note?: string;
+  };
+  /** Phase 4.14B — staged diagnostics. */
+  pipelineStages?: Array<{
+    id: string;
+    label: string;
+    verdict: string;
+    reason: string;
+    code: string;
+  }>;
   broker: {
     connectionStatus: string;
     activeSessionEnvironment: Env | null;
@@ -278,6 +295,17 @@ type StrategyDryRunResult = {
     simulationOnly?: boolean;
     mutatesBroker?: boolean;
   };
+  candleQuality?: {
+    returnedBars?: number;
+    closedBars?: number;
+    formingBars?: number;
+    duplicateCount?: number;
+    outOfOrderCount?: number;
+    invalidOhlcCount?: number;
+    strategyReady?: boolean;
+    blockers?: string[];
+    source?: string;
+  };
   feedSnapshot?: {
     instrument?: string;
     bid?: number | null;
@@ -298,6 +326,7 @@ type StrategyDryRunResult = {
       marketOpen?: boolean | null;
       marketClosed?: boolean | null;
       primaryGap?: string;
+      pipelineState?: string;
     };
   };
 };
@@ -730,27 +759,32 @@ export function ForexAutomatedTradingPage(props: {
           const res = await fetch("/api/forex/automated-trading/instrument", {
             method: "POST",
             headers: adminHeaders(token),
-            body: JSON.stringify({
-              environment: stJson.status.selectedEnvironment,
-              instrument: shellInstrument,
-              expectedEnvironmentEpoch: stJson.status.environmentEpoch,
-            }),
-          });
-          const data = await res.json() as {
-            ok?: boolean;
-            status?: PublicStatus;
-            error?: { message?: string; code?: string };
-          };
-          if (cancelled) return;
-          if (!res.ok || !data.ok) {
-            setInstrumentSyncNote(
-              data.error?.message || data.error?.code || `Instrument sync failed (${res.status})`,
-            );
-            return;
-          }
-          lastSyncedInstrumentRef.current = shellInstrument;
-          if (data.status) setStatus(data.status);
-          setInstrumentSyncNote(`Synced Markets → Automated Trading: ${shellInstrument}`);
+          body: JSON.stringify({
+            environment: stJson.status.selectedEnvironment,
+            instrument: shellInstrument,
+            expectedEnvironmentEpoch: stJson.status.environmentEpoch,
+            timeframe: props.timeframe ?? "1m",
+          }),
+        });
+        const data = await res.json() as {
+          ok?: boolean;
+          status?: PublicStatus;
+          subscription?: { confirmed?: boolean; code?: string; message?: string };
+          error?: { message?: string; code?: string };
+        };
+        if (cancelled) return;
+        if (!res.ok || !data.ok) {
+          setInstrumentSyncNote(
+            data.error?.message || data.error?.code || `Instrument sync failed (${res.status})`,
+          );
+          return;
+        }
+        lastSyncedInstrumentRef.current = shellInstrument;
+        if (data.status) setStatus(data.status);
+        const subNote = data.subscription
+          ? ` · Offers subscribe confirmed=${String(Boolean(data.subscription.confirmed))} (${data.subscription.code ?? "—"})`
+          : "";
+        setInstrumentSyncNote(`Synced Markets → Automated Trading: ${shellInstrument}${subNote}`);
           return;
         }
 
@@ -1592,6 +1626,9 @@ export function ForexAutomatedTradingPage(props: {
                 {" · "}
                 gap=
                 <strong>{strategyDryRun.feedSnapshot.breakdown?.primaryGap ?? "—"}</strong>
+                {strategyDryRun.feedSnapshot.breakdown?.pipelineState
+                  ? ` · state ${strategyDryRun.feedSnapshot.breakdown.pipelineState}`
+                  : ""}
               </li>
               <li>
                 Quote freshness:{" "}
@@ -1607,6 +1644,27 @@ export function ForexAutomatedTradingPage(props: {
                 Candle last open (sec):{" "}
                 <strong>{strategyDryRun.feedSnapshot.candleLastOpenSec ?? "—"}</strong>
               </li>
+              {strategyDryRun.candleQuality ? (
+                <li data-fx-at-candle-quality="true">
+                  Candle quality: returned={strategyDryRun.candleQuality.returnedBars ?? "—"}
+                  {" · "}
+                  closed={strategyDryRun.candleQuality.closedBars ?? "—"}
+                  {" · "}
+                  forming={strategyDryRun.candleQuality.formingBars ?? "—"}
+                  {" · "}
+                  dup={strategyDryRun.candleQuality.duplicateCount ?? 0}
+                  {" · "}
+                  ooo={strategyDryRun.candleQuality.outOfOrderCount ?? 0}
+                  {" · "}
+                  invalidOhlc={strategyDryRun.candleQuality.invalidOhlcCount ?? 0}
+                  {" · "}
+                  strategyReady=
+                  <strong>{String(Boolean(strategyDryRun.candleQuality.strategyReady))}</strong>
+                  {strategyDryRun.candleQuality.blockers?.length
+                    ? ` · ${strategyDryRun.candleQuality.blockers.slice(0, 3).join(", ")}`
+                    : ""}
+                </li>
+              ) : null}
             </>
           ) : (
             <li>Run Strategy dry-run to load live feed + candle diagnostics.</li>
@@ -1658,44 +1716,81 @@ export function ForexAutomatedTradingPage(props: {
         </ul>
       </section>
 
-      {status?.pipelineStatus ? (
+      {status?.pipelineStatus || status?.pipelineStages?.length || status?.feedStatusBreakdown ? (
         <section
           className="fx-auto-trading-panel"
           data-fx-at-pipeline-status="true"
           aria-label="Automated trading pipeline status"
         >
-          <h2 className="fx-auto-trading-panel-title">Pipeline status (Phase 4.11)</h2>
+          <h2 className="fx-auto-trading-panel-title">Pipeline status (Phase 4.14B)</h2>
           <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
-            <li data-fx-at-pipeline-phase="true">
-              Phase: <strong>{status.pipelineStatus.phase}</strong>
-              {" — "}
-              {status.pipelineStatus.label}
-            </li>
-            <li>
-              Monitoring allowed: <strong>{String(status.pipelineStatus.monitoringAllowed)}</strong>
-              {" · "}
-              Execution allowed: <strong>{String(status.pipelineStatus.executionAllowed)}</strong>
-              {" · "}
-              Owner max lots: <strong>{status.pipelineStatus.ownerMaxLots}</strong>
-            </li>
-            {status.pipelineStatus.quantityCompatibility ? (
-              <li data-fx-at-quantity-compatibility="true">
-                0.01-lot contract:{" "}
-                <strong>
-                  {status.pipelineStatus.quantityCompatibility.compatible001Lot ? "COMPATIBLE" : "INCOMPATIBLE"}
-                </strong>
-                {status.pipelineStatus.quantityCompatibility.providerSymbol
-                  ? ` · ${status.pipelineStatus.quantityCompatibility.providerSymbol}`
+            {status?.pipelineStatus ? (
+              <>
+                <li data-fx-at-pipeline-phase="true">
+                  Phase: <strong>{status.pipelineStatus.phase}</strong>
+                  {" — "}
+                  {status.pipelineStatus.label}
+                </li>
+                <li>
+                  Monitoring allowed: <strong>{String(status.pipelineStatus.monitoringAllowed)}</strong>
+                  {" · "}
+                  Execution allowed: <strong>{String(status.pipelineStatus.executionAllowed)}</strong>
+                  {" · "}
+                  Owner max lots: <strong>{status.pipelineStatus.ownerMaxLots}</strong>
+                </li>
+                {status.pipelineStatus.quantityCompatibility ? (
+                  <li data-fx-at-quantity-compatibility="true">
+                    0.01-lot contract:{" "}
+                    <strong>
+                      {status.pipelineStatus.quantityCompatibility.compatible001Lot ? "COMPATIBLE" : "INCOMPATIBLE"}
+                    </strong>
+                    {status.pipelineStatus.quantityCompatibility.providerSymbol
+                      ? ` · ${status.pipelineStatus.quantityCompatibility.providerSymbol}`
+                      : ""}
+                    {status.pipelineStatus.quantityCompatibility.blockers?.length
+                      ? ` · ${status.pipelineStatus.quantityCompatibility.blockers.slice(0, 4).join(", ")}`
+                      : ""}
+                  </li>
+                ) : null}
+                {(status.pipelineStatus.remediation ?? []).slice(0, 3).map((r: string) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </>
+            ) : null}
+            {status?.feedStatusBreakdown ? (
+              <li data-fx-at-feed-pipeline="true">
+                Feed pipeline: <strong>{status.feedStatusBreakdown.pipelineState ?? "—"}</strong>
+                {status.feedStatusBreakdown.primaryGap
+                  ? ` · gap ${status.feedStatusBreakdown.primaryGap}`
                   : ""}
-                {status.pipelineStatus.quantityCompatibility.blockers?.length
-                  ? ` · ${status.pipelineStatus.quantityCompatibility.blockers.slice(0, 4).join(", ")}`
+                {typeof status.feedStatusBreakdown.updateCount === "number"
+                  ? ` · updates ${status.feedStatusBreakdown.updateCount}`
                   : ""}
+                {status.feedStatusBreakdown.freshPriceChangeReceived
+                  ? " · genuine price change"
+                  : " · no genuine price change yet"}
               </li>
             ) : null}
-            {(status.pipelineStatus.remediation ?? []).slice(0, 3).map((r: string) => (
-              <li key={r}>{r}</li>
-            ))}
           </ul>
+          {status?.pipelineStages?.length ? (
+            <ul
+              className="fx-auto-trading-hint"
+              data-fx-at-pipeline-stages="true"
+              style={{ margin: "0.75rem 0 0", paddingLeft: "1.1rem" }}
+            >
+              {status.pipelineStages.map((row) => (
+                <li key={row.id} data-fx-at-pipeline-stage={row.id} data-verdict={row.verdict}>
+                  <strong>{row.label}</strong>
+                  {": "}
+                  <span>{row.verdict}</span>
+                  {" — "}
+                  <span>{row.code}</span>
+                  {" · "}
+                  {row.reason}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
       ) : null}
 

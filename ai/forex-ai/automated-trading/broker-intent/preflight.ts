@@ -113,10 +113,16 @@ export function evaluateBrokerIntentPreflight(
       message: "Account equity/state is not verified for risk preflight.",
     });
   }
-  if (!isInstrumentAllowlisted(input.instrument)) {
+  // Phase 4.14B — empty instrument is NO_MARKET_SELECTED (never invent XAU/USD).
+  if (!String(input.instrument ?? "").trim()) {
+    rejections.push({
+      code: "NO_MARKET_SELECTED",
+      message: "NO_MARKET_SELECTED — instrument is required; refuse silent XAU/USD default.",
+    });
+  } else if (!isInstrumentAllowlisted(input.instrument)) {
     rejections.push({
       code: "INSTRUMENT_NOT_ALLOWED",
-      message: `Instrument ${input.instrument || "(empty)"} is outside the XAU/USD allowlist.`,
+      message: `Instrument ${input.instrument} is outside the XAU/USD execution-draft allowlist.`,
     });
   }
   if (!input.contractSizeVerified) {

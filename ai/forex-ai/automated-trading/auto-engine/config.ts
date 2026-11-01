@@ -45,7 +45,8 @@ export function loadAutoEngineConfig(env: NodeJS.ProcessEnv = process.env): Auto
       ? modeRaw
       : "dry_run";
   const enabled = mode !== "off";
-  const instrumentsRaw = String(env.KWIZERA_AUTO_ENGINE_INSTRUMENTS ?? "XAU/USD").trim();
+  // Phase 4.14B — do not invent XAU/USD when env unset; require explicit instruments.
+  const instrumentsRaw = String(env.KWIZERA_AUTO_ENGINE_INSTRUMENTS ?? "").trim();
   const instruments = instrumentsRaw
     .split(",")
     .map((s) => s.trim())
@@ -69,7 +70,8 @@ export function loadAutoEngineConfig(env: NodeJS.ProcessEnv = process.env): Auto
   return {
     enabled,
     mode,
-    instruments: instruments.length > 0 ? instruments : [...PROPOSED_BOUNDED_DEMO_ACTIVATION.permittedInstruments],
+    // Empty when unset — refuse silent XAU/USD; operator must set KWIZERA_AUTO_ENGINE_INSTRUMENTS or select via AT.
+    instruments,
     timeframe,
     lots,
     pollIntervalMs: poll,

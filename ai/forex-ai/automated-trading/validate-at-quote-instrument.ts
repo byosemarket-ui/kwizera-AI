@@ -1,10 +1,11 @@
 /**
- * Phase 59.0.3 — Validate AT-configured instruments before Offers intended / subscribeQuotes.
- * Fail closed: missing, invalid, disallowed, unknown-to-catalog, or unavailable catalog.
+ * Phase 59.0.3 / 4.14B — Validate AT instruments before Offers intended / subscribeQuotes.
+ * Quote path: catalog-verified ForexConnect symbols (not XAU-only).
+ * Execution remains gated separately (allowlist + quantity/margin/auth).
  * Never invents symbols. Does not enable trading.
  */
 import { findInstrument } from "./verification-engine.js";
-import { isInstrumentAllowlisted } from "./simulation-risk/allowlist.js";
+import { assessForexConnectInstrumentSupport } from "./instrument-support-registry.js";
 import type { ForexConnectInstrument } from "../../market-data/forexconnect/types.js";
 
 export type AtQuoteInstrumentValidationCode =
@@ -75,15 +76,6 @@ export function validateAtQuoteInstrumentForSubscribe(input: {
       symbol: raw,
     };
   }
-  if (!isInstrumentAllowlisted(raw)) {
-    return {
-      ...base,
-      ok: false,
-      code: "INSTRUMENT_NOT_PERMITTED",
-      message: `Instrument "${raw}" is not on the Automated Trading allowlist.`,
-      symbol: raw,
-    };
-  }
   if (input.catalogOk !== true || !Array.isArray(input.instruments)) {
     return {
       ...base,
@@ -94,12 +86,17 @@ export function validateAtQuoteInstrumentForSubscribe(input: {
     };
   }
   const hit = findInstrument(input.instruments as ForexConnectInstrument[], raw);
-  if (!hit) {
+  const support = assessForexConnectInstrumentSupport({
+    symbol: raw,
+    catalogOk: true,
+    catalogHasSymbol: Boolean(hit),
+  });
+  if (!hit || !support.quoteSupported) {
     return {
       ...base,
       ok: false,
       code: "INSTRUMENT_NOT_IN_CATALOG",
-      message: `Instrument "${raw}" is not in the ForexConnect catalog.`,
+      message: `Instrument "${raw}" is not in the ForexConnect catalog — quotes/history not authorized.`,
       symbol: raw,
     };
   }

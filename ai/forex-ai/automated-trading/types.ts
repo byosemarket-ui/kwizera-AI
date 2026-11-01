@@ -111,6 +111,10 @@ export interface AutomatedTradingPublicStatus {
   banner: typeof AUTOMATED_EXECUTION_BANNER;
   /** Phase 4.11 — operator pipeline (monitoring vs execution blockers). */
   pipelineStatus?: import("./pipeline-status.js").AtPipelineStatus;
+  /** Phase 4.14B — discrete Offers/feed pipeline classification. */
+  feedStatusBreakdown?: import("./feed-status-breakdown.js").FeedStatusBreakdown;
+  /** Phase 4.14B — staged PASS/WAITING/BLOCKED diagnostics for the AT dashboard. */
+  pipelineStages?: import("./pipeline-stages.js").PipelineStageRow[];
   broker: {
     connectionStatus: AutomatedTradingBrokerConnectionStatus;
     activeSessionEnvironment: AutomatedTradingEnvironment | null;

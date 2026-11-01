@@ -88,6 +88,9 @@ import {
   withEvaluatedMarketReadiness,
 } from "./quote-freshness.js";
 import { deriveAtPipelineStatus } from "./pipeline-status.js";
+import { buildFeedStatusBreakdown } from "./feed-status-breakdown.js";
+import { buildAtPipelineStages } from "./pipeline-stages.js";
+import { describeMarketSelectionGap } from "./market-selection.js";
 import {
   AUTOMATED_EXECUTION_BANNER,
   AUTOMATED_TRADING_PHASE,
@@ -1077,8 +1080,10 @@ export class AutomatedTradingService {
           bridge.listOrders(),
           bridge.listTrades(),
         ]);
+        const exposureInstrument = String(inst?.symbol ?? selectedFresh.selectedInstrument ?? "").trim();
+        if (exposureInstrument) {
         const rec = reconcileBrokerExposure({
-          instrument: String(inst?.symbol ?? selectedFresh.selectedInstrument ?? "XAU/USD"),
+          instrument: exposureInstrument,
           environment: fresh.selectedEnvironment,
           openWorkingOrders: openOrders as Record<string, unknown>,
           openPositions: {
@@ -1098,6 +1103,7 @@ export class AutomatedTradingService {
         };
         if (rec.authoritative && typeof rec.openPositionsCount === "number") {
           openPositionsCount = rec.openPositionsCount;
+        }
         }
       }
     } catch {
@@ -1266,12 +1272,70 @@ export class AutomatedTradingService {
       );
     }
 
+    const feedStatusBreakdown = buildFeedStatusBreakdown({
+      brokerConnected: connectionStatus === "CONNECTED",
+      offersListenerActive: liveOfferFreshness != null ? true : null,
+      instrumentSubscribed: selectedFresh.selectedInstrument
+        ? (liveOfferFreshness != null ? true : null)
+        : false,
+      instrument: selectedFresh.selectedInstrument,
+      subscriptionSymbols: selectedFresh.selectedInstrument
+        ? [selectedFresh.selectedInstrument]
+        : [],
+      updateCount: liveOfferFreshness?.updateCount ?? null,
+      lastQuoteAtMs: liveOfferFreshness?.sourceTimestampMs ?? null,
+      lastPriceChangeAtMs:
+        liveOfferFreshness?.updateCount && liveOfferFreshness.updateCount > 0
+          ? liveOfferFreshness.sourceTimestampMs
+          : null,
+      lastReceiptAtMs: liveOfferFreshness?.receivedAtMs ?? null,
+      bid: liveOfferFreshness?.bid ?? verification?.market?.bid ?? null,
+      ask: liveOfferFreshness?.ask ?? verification?.market?.ask ?? null,
+      streamState: liveOfferFreshness?.feedStatus ?? verification?.market?.feedStatus ?? null,
+      tradingStatus: liveOfferFreshness?.tradingStatus ?? null,
+      quoteFreshReasonCode: liveOfferFreshness?.reasonCode ?? freshnessEval.reasonCode ?? null,
+      hasSnapshot:
+        (liveOfferFreshness?.bid != null && liveOfferFreshness?.ask != null)
+        || (verification?.market?.bid != null && verification?.market?.ask != null),
+    });
+
+    const selectionGap = describeMarketSelectionGap({
+      shellInstrument: null,
+      backendInstrument: selectedFresh.selectedInstrument,
+    });
+    const pipelineStages = buildAtPipelineStages({
+      selectionGapCode: selectedFresh.selectedInstrument ? "BACKEND_ONLY" : selectionGap.code,
+      provider: selectedFresh.selectedInstrument ? "FOREXCONNECT" : null,
+      shellInstrument: null,
+      backendInstrument: selectedFresh.selectedInstrument,
+      brokerConnected: connectionStatus === "CONNECTED",
+      environment: selected,
+      feedPipelineState: feedStatusBreakdown.pipelineState,
+      subscriptionConfirmed: feedStatusBreakdown.instrumentSubscribed,
+      hasSnapshot: feedStatusBreakdown.firstQuoteReceived,
+      updateCount: feedStatusBreakdown.updateCount,
+      candleStrategyReady: null,
+      closedCandleCount: null,
+      strategySignal: null,
+      strategyReady: null,
+      strategyRejection: null,
+      quantityCompatible001: pipelineStatus.quantityCompatibility?.compatible001Lot ?? null,
+      marginVerified: null,
+      accountPermissionVerified: null,
+      executionAuthorized: false,
+      placesOrders: false,
+      acceptsForExecution: false,
+      marketClosed: feedStatusBreakdown.marketClosed,
+    });
+
     return {
       schemaVersion: AUTOMATED_TRADING_SCHEMA,
       phase: AUTOMATED_TRADING_PHASE,
       moduleStatus,
       operationalStatus,
       pipelineStatus,
+      feedStatusBreakdown,
+      pipelineStages,
       selectedEnvironment: fresh.selectedEnvironment,
       environmentEpoch: fresh.environmentEpoch,
       configVersion: fresh.configVersion,
@@ -1694,8 +1758,22 @@ export class AutomatedTradingService {
     environment: unknown;
     instrument: unknown;
     expectedEnvironmentEpoch?: unknown;
+    timeframe?: unknown;
   }): Promise<
-    | { ok: true; status: AutomatedTradingPublicStatus }
+    | {
+      ok: true;
+      status: AutomatedTradingPublicStatus;
+      subscription: {
+        requested: true;
+        confirmed: boolean;
+        code: string;
+        message: string;
+        providerSymbol: string | null;
+        timeframe: string;
+        placesOrders: false;
+        acceptsForExecution: false;
+      };
+    }
     | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus }
   > {
     const env = parseAutomatedTradingEnvironment(input.environment);
@@ -1733,10 +1811,11 @@ export class AutomatedTradingService {
       return {
         ok: false,
         code: "INVALID_INSTRUMENT",
-        message: "instrument symbol is required",
+        message: "instrument symbol is required — NO_MARKET_SELECTED / refuse silent XAU/USD default.",
         status: await this.buildStatus(),
       };
     }
+    const timeframeRaw = String(input.timeframe ?? "1m").trim() || "1m";
     await this.store.updateState((s) => {
       s.environments[env].selectedInstrument = instrument;
       s.environments[env].lastVerification = null;
@@ -1744,14 +1823,63 @@ export class AutomatedTradingService {
       s.configVersion += 1;
       return s;
     });
+
+    // Phase 4.14B — persist then attempt Offers subscription (never claim confirmed until ensure ok).
+    let subscription: {
+      requested: true;
+      confirmed: boolean;
+      code: string;
+      message: string;
+      providerSymbol: string | null;
+      timeframe: string;
+      placesOrders: false;
+      acceptsForExecution: false;
+    } = {
+      requested: true,
+      confirmed: false,
+      code: "SUBSCRIPTION_NOT_ATTEMPTED",
+      message: "Subscription not attempted.",
+      providerSymbol: null,
+      timeframe: timeframeRaw,
+      placesOrders: false,
+      acceptsForExecution: false,
+    };
+    try {
+      const live = getForexConnectLiveCandleService();
+      const tf = resolveForexConnectLiveTimeframe(undefined, timeframeRaw) ?? "1m";
+      subscription.timeframe = tf;
+      const ensured = await live.ensureValidatedAtInstrument(instrument, tf);
+      subscription = {
+        requested: true,
+        confirmed: Boolean(ensured.ok),
+        code: ensured.code,
+        message: ensured.message,
+        providerSymbol: ensured.ok ? instrument : null,
+        timeframe: tf,
+        placesOrders: false,
+        acceptsForExecution: false,
+      };
+    } catch (err) {
+      subscription = {
+        requested: true,
+        confirmed: false,
+        code: "SUBSCRIPTION_ENSURE_FAILED",
+        message: err instanceof Error ? err.message.slice(0, 200) : "Offers ensure failed.",
+        providerSymbol: null,
+        timeframe: timeframeRaw,
+        placesOrders: false,
+        acceptsForExecution: false,
+      };
+    }
+
     await this.store.appendAudit({
       action: "instrument_selected",
       environment: env,
       ok: true,
-      code: null,
-      detail: `Selected instrument ${instrument} for ${env}.`,
+      code: subscription.confirmed ? "SUBSCRIBED" : subscription.code,
+      detail: `Selected ${instrument}; offersSubscribe confirmed=${subscription.confirmed}`.slice(0, 160),
     });
-    return { ok: true, status: await this.buildStatus() };
+    return { ok: true, status: await this.buildStatus(), subscription };
   }
 
   /**
@@ -2272,13 +2400,24 @@ export class AutomatedTradingService {
       }
     }
 
-    // Phase 56.2.4 — authoritative Orders/Trades RO for exposure (never mutates broker).
+    // Phase 56.2.4 / 4.14B — authoritative Orders/Trades RO for exposure (never mutates broker).
+    // Never invent XAU/USD when no instrument is selected.
     const instrumentForExposure = String(
       input.instrument
         ?? decision?.instrument
+        ?? envState.selectedInstrument
         ?? envState.lastVerification?.instrument?.symbol
-        ?? "XAU/USD",
+        ?? "",
     ).trim();
+    if (!instrumentForExposure) {
+      return {
+        ok: false,
+        code: "NO_MARKET_SELECTED",
+        message: "Select a ForexConnect instrument before simulation draft validation.",
+        draft: null,
+        status: publicStatus,
+      };
+    }
     let exposureReconciliation = null;
     // Phase 56.4.0 — CondDist from verification instrument (never hardcode unverified unit).
     const instMeta = envState.lastVerification?.instrument;
@@ -2325,13 +2464,7 @@ export class AutomatedTradingService {
           ? decision.direction
           : this.analysisEngine.getLatest()?.direction ?? null;
     const analysis = this.analysisEngine.getLatest();
-    const instrumentSymbol = String(
-      input.instrument
-        ?? decision?.instrument
-        ?? envState.selectedInstrument
-        ?? envState.lastVerification?.instrument?.symbol
-        ?? "XAU/USD",
-    ).trim();
+    const instrumentSymbol = instrumentForExposure;
 
     let draftQuote: DraftQuoteSnapshot | null = null;
     let quoteFresh: boolean | null = null;
@@ -3124,6 +3257,7 @@ export class AutomatedTradingService {
     | {
       ok: true;
       dryRun: import("./strategy-dry-run/index.js").DryRunLifecycleResult;
+      candleQuality: import("./candle-quality.js").CandleQualityReport;
       feedSnapshot: {
         instrument: string;
         bid: number | null;
@@ -3348,6 +3482,16 @@ export class AutomatedTradingService {
       includeDeterministicFixtureLifecycle: includeFixture,
     });
 
+    const { auditCandleQuality } = await import("./candle-quality.js");
+    const candleQuality = auditCandleQuality({
+      candles,
+      instrument,
+      timeframe,
+      source: candles.length ? "forexconnect_get_history" : "unavailable",
+      requestedBars: 120,
+      strategyClosedBarsRequired: 23,
+    });
+
     await this.store.appendAudit({
       action: "strategy_dry_run",
       environment: env,
@@ -3359,6 +3503,7 @@ export class AutomatedTradingService {
     return {
       ok: true,
       dryRun,
+      candleQuality,
       feedSnapshot: {
         instrument,
         bid,

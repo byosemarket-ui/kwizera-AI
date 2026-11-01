@@ -238,12 +238,15 @@ export function findInstrument(
 ): ForexConnectInstrument | null {
   const raw = symbol.trim();
   const compact = raw.replace(/[/_-]/g, "").toUpperCase();
+  const norm = (s: unknown) => String(s ?? "").replace(/[/_-]/g, "").toUpperCase();
   return (
-    instruments.find((i) => i.providerSymbol === raw || i.canonicalSymbol === raw || i.displaySymbol === raw)
-    ?? instruments.find(
-      (i) =>
-        i.providerSymbol.replace(/[/_-]/g, "").toUpperCase() === compact
-        || i.canonicalSymbol.replace(/[/_-]/g, "").toUpperCase() === compact,
+    instruments.find((i) =>
+      i.providerSymbol === raw || i.canonicalSymbol === raw || i.displaySymbol === raw
+    )
+    ?? instruments.find((i) =>
+      norm(i.providerSymbol) === compact
+      || (i.canonicalSymbol != null && norm(i.canonicalSymbol) === compact)
+      || (i.displaySymbol != null && norm(i.displaySymbol) === compact)
     )
     ?? null
   );
