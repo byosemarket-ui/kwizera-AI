@@ -117,6 +117,7 @@ describe("Phase 42 instrument-specific freshness", () => {
       eventSource: null,
     };
     let eurRecv = now - 1_000;
+    let eurBid = 1.1156;
     const bridge = mockBridge({
       streamUpdateCount: () => streamUpd,
       quotes: () => [
@@ -126,10 +127,10 @@ describe("Phase 42 instrument-specific freshness", () => {
           providerSymbol: "EUR/USD",
           canonicalSymbol: "EURUSD",
           displaySymbol: "EUR/USD",
-          bid: 1.1156,
-          ask: 1.1157,
-          mid: 1.11565,
-          candlePrice: 1.1156,
+          bid: eurBid,
+          ask: eurBid + 0.0001,
+          mid: eurBid + 0.00005,
+          candlePrice: eurBid,
           priceBasis: "bid",
           sourceTimestampMs: eurRecv,
           receivedAtMs: eurRecv,
@@ -143,10 +144,13 @@ describe("Phase 42 instrument-specific freshness", () => {
 
     await svc.ensure("AUD/CNH", "1m");
     await svc.ensure("EUR/USD", "1m");
+    // Phase 4.15 — first Offers row is a snapshot seed, not a genuine tick.
+    expect(svc.getSeries("EUR/USD", "1m")!.updateCount).toBe(0);
 
     for (let i = 0; i < 4; i += 1) {
       streamUpd += 1;
       eurRecv += 200;
+      eurBid += 0.0001; // genuine bid changes only for EUR
       await svc.ensure("AUD/CNH", "1m");
       await svc.ensure("EUR/USD", "1m");
     }
@@ -189,6 +193,14 @@ describe("Phase 42 instrument-specific freshness", () => {
     });
     const svc = new ForexConnectLiveCandleService({ bridge });
     services.push(svc);
+    await svc.ensure("EUR/USD", "1m");
+    // Snapshot seed only.
+    expect(svc.getSeries("EUR/USD", "1m")!.updateCount).toBe(0);
+    expect(svc.getSeries("EUR/USD", "1m")!.streamState).not.toBe("LIVE");
+
+    // First genuine bid/ask change after seed → LIVE + updateCount=1.
+    bid = 1.11565;
+    recv += 200;
     await svc.ensure("EUR/USD", "1m");
     expect(svc.getSeries("EUR/USD", "1m")!.streamState).toBe("LIVE");
     expect(svc.getSeries("EUR/USD", "1m")!.updateCount).toBe(1);
