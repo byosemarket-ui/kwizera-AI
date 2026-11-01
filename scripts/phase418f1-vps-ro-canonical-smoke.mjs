@@ -1,0 +1,380 @@
+/**
+ * Phase 4.18F.1-CLOSE — VPS READ-ONLY canonical analysis + dashboard smoke.
+ *
+ * - Loads KWIZERA_ADMIN_API_TOKEN via load-operator-env / VPS .env (never prints it).
+ * - Never places orders, creates grants, enables armed_execute, or mutates broker.
+ * - Never bypasses requireForexAdmin.
+ */
+import { existsSync, readFileSync } from "node:fs";
+import { loadOperatorEnv } from "./lib/load-operator-env.mjs";
+
+const base = String(process.env.KWIZERA_PROD_BASE || "http://127.0.0.1:5173").replace(/\/$/, "");
+const sidecarBase = String(process.env.KWIZERA_FC_SIDECAR_BASE || "http://127.0.0.1:5179").replace(/\/$/, "");
+const expectSha = String(process.env.KWIZERA_EXPECT_SHA || "").trim() || null;
+const approvedBaseline = "090e7e7c9b8a9a31f447c0d51ce657855c4e391e";
+
+loadOperatorEnv();
+let token = String(process.env.KWIZERA_ADMIN_API_TOKEN || "").trim();
+for (const p of [process.env.KWIZERA_VPS_ENV_FILE, "/opt/kwizera-ai/.env"].filter(Boolean)) {
+  if (token || !p || !existsSync(p)) continue;
+  try {
+    for (const line of readFileSync(p, "utf8").split(/\r?\n/)) {
+      const m = line.match(/^\s*KWIZERA_ADMIN_API_TOKEN\s*=\s*(.*)$/);
+      if (!m) continue;
+      let v = m[1].trim();
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+        v = v.slice(1, -1);
+      }
+      if (v) token = v;
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function redact(obj) {
+  return JSON.parse(JSON.stringify(obj, (k, v) => {
+    if (/token|password|secret|authorization/i.test(String(k))) return "[REDACTED]";
+    return v;
+  }));
+}
+
+async function getJson(path, init = {}) {
+  const res = await fetch(`${base}${path}`, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      ...(init.headers || {}),
+    },
+  });
+  const text = await res.text();
+  let body = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = { parseError: true, textLength: text.length };
+  }
+  return { status: res.status, body };
+}
+
+async function getText(url) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const text = await res.text();
+    return { status: res.status, text, ok: res.ok };
+  } catch (err) {
+    return {
+      status: 0,
+      text: "",
+      ok: false,
+      error: err instanceof Error ? err.message.slice(0, 120) : "fetch_failed",
+    };
+  }
+}
+
+function shaMatches(actual, expected) {
+  if (!actual || !expected) return false;
+  const a = String(actual).toLowerCase();
+  const e = String(expected).toLowerCase();
+  return a === e || a.startsWith(e.slice(0, 7)) || e.startsWith(a.slice(0, 7));
+}
+
+async function main() {
+  const report = {
+    phase: "4.18F.1-CLOSE",
+    base,
+    sidecarBase,
+    expectSha,
+    approvedBaseline,
+    tokenPresent: Boolean(token),
+    tokenLength: token ? token.length : 0,
+    checks: {},
+    blockers: [],
+    labels: {},
+    placesOrders: false,
+    acceptsForExecution: false,
+    mutatesBroker: false,
+  };
+
+  const health = await getJson("/api/health");
+  report.checks.health = {
+    http: health.status,
+    ok: health.body?.ok ?? null,
+    status: health.body?.status ?? null,
+    runtimeReady: health.body?.runtimeReady ?? null,
+    gateway: health.body?.gateway ?? null,
+  };
+  if (
+    health.status !== 200
+    || health.body?.ok !== true
+    || (health.body?.status !== "healthy" && health.body?.gateway !== true)
+  ) {
+    report.blockers.push("NODE_GATEWAY_UNHEALTHY");
+  }
+
+  const dep = await getJson("/api/deployment");
+  const deployedCommit = dep.body?.deployedCommit ?? null;
+  report.checks.deployment = {
+    http: dep.status,
+    status: dep.body?.status ?? null,
+    result: dep.body?.result ?? null,
+    deployedCommit,
+    requestedCommit: dep.body?.requestedCommit ?? null,
+    verifiedLive: dep.body?.verifiedLive ?? null,
+  };
+  if (expectSha && deployedCommit && !shaMatches(deployedCommit, expectSha)) {
+    report.blockers.push(`SHA_MISMATCH expected ${expectSha} got ${deployedCommit}`);
+  }
+  if (!deployedCommit) {
+    report.blockers.push("DEPLOYED_COMMIT_MISSING");
+  }
+
+  const fc = await getJson("/api/forex/providers/forexconnect/status");
+  report.checks.forexconnect = {
+    http: fc.status,
+    status: fc.body?.status ?? null,
+    environment: fc.body?.environment ?? null,
+    trading: fc.body?.trading ?? null,
+    sidecarReachable: fc.body?.sidecarReachable ?? null,
+    liveConfigured: fc.body?.profiles?.profiles?.live?.configured ?? null,
+  };
+  if (fc.body?.profiles?.profiles?.live?.configured) {
+    report.blockers.push("LIVE_CREDENTIALS_CONFIGURED_UNEXPECTED");
+  }
+  if (fc.body?.trading && String(fc.body.trading).toUpperCase() !== "DISABLED") {
+    report.blockers.push("TRADING_NOT_DISABLED");
+  }
+
+  const sidecarHealth = await getText(`${sidecarBase}/health`);
+  const sidecarAlt = sidecarHealth.ok ? null : await getText(`${sidecarBase}/`);
+  report.checks.forexconnectSidecar = {
+    healthHttp: sidecarHealth.status,
+    healthOk: sidecarHealth.ok,
+    rootHttp: sidecarAlt?.status ?? null,
+    reachableDirect: sidecarHealth.ok || Boolean(sidecarAlt?.ok),
+    viaGateway: fc.body?.sidecarReachable === true,
+  };
+  if (!report.checks.forexconnectSidecar.reachableDirect && fc.body?.sidecarReachable !== true) {
+    report.blockers.push("FOREXCONNECT_SIDECAR_UNHEALTHY");
+  }
+
+  // Dashboard shell + bundle markers (SPA; markers live in built assets).
+  const dashRoutes = ["/forex", "/forex/automated-trading", "/desktop/", "/"];
+  const dashEvidence = {};
+  let studioShellOk = false;
+  let bundleHasCanonical = false;
+  let bundleHasMarketIntel = false;
+  for (const route of dashRoutes) {
+    const page = await getText(`${base}${route}`);
+    dashEvidence[route] = {
+      http: page.status,
+      studioTitle: /KWIZERA AI STUDIO/i.test(page.text),
+      notDevDashboard: !/Dev Dashboard/i.test(page.text),
+    };
+    if (page.status === 200 && dashEvidence[route].studioTitle && dashEvidence[route].notDevDashboard) {
+      studioShellOk = true;
+    }
+    const scriptSrcs = [...page.text.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map((m) => m[1]);
+    for (const src of scriptSrcs.slice(0, 8)) {
+      const abs = src.startsWith("http") ? src : `${base}${src.startsWith("/") ? "" : "/"}${src}`;
+      const asset = await getText(abs);
+      if (!asset.ok) continue;
+      if (/data-fx-at-canonical-analysis|canonical-analysis\/status|canonical-analysis\/run/i.test(asset.text)) {
+        bundleHasCanonical = true;
+      }
+      if (/data-fx-at-market-evidence|Market data intelligence|Evidence completeness/i.test(asset.text)) {
+        bundleHasMarketIntel = true;
+      }
+    }
+  }
+  report.checks.dashboard = {
+    studioShellOk,
+    bundleHasCanonical,
+    bundleHasMarketIntel,
+    routes: dashEvidence,
+  };
+  if (!studioShellOk) report.blockers.push("DASHBOARD_SHELL_FAILED");
+  if (!bundleHasCanonical) report.blockers.push("DASHBOARD_CANONICAL_MARKERS_MISSING");
+  if (!bundleHasMarketIntel) report.blockers.push("DASHBOARD_MARKET_INTEL_MARKERS_MISSING");
+
+  if (!token) {
+    report.blockers.push("BLOCKED_AUTHENTICATION");
+    report.labels.canonicalAnalysis = "BLOCKED_AUTHENTICATION";
+    report.labels.productionAnalysis = "BLOCKED_AUTHENTICATION";
+    report.labels.adminAccess = "BLOCKED";
+    console.log(JSON.stringify(redact(report), null, 2));
+    process.exit(2);
+  }
+
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+
+  const atStatus = await getJson("/api/forex/automated-trading/status", { headers });
+  if (atStatus.status === 403) {
+    report.blockers.push("ADMIN_FORBIDDEN");
+    report.labels.adminAccess = "FORBIDDEN";
+    console.log(JSON.stringify(redact(report), null, 2));
+    process.exit(3);
+  }
+  report.labels.adminAccess = "PASS";
+  const selectedInstrument =
+    atStatus.body?.status?.selectedEnvState?.selectedInstrument
+    ?? atStatus.body?.selectedInstrument
+    ?? null;
+  report.checks.atStatus = {
+    http: atStatus.status,
+    selectedInstrument,
+    placesOrders: atStatus.body?.status?.placesOrders ?? atStatus.body?.placesOrders ?? null,
+    selectedEnvironment: atStatus.body?.status?.selectedEnvironment ?? null,
+  };
+
+  const canStatus = await getJson("/api/forex/automated-trading/canonical-analysis/status", { headers });
+  report.checks.canonicalStatus = {
+    http: canStatus.status,
+    ok: canStatus.body?.ok ?? null,
+    placesOrders: canStatus.body?.placesOrders ?? null,
+    acceptsForExecution: canStatus.body?.acceptsForExecution ?? null,
+    hasCanonical: Boolean(canStatus.body?.canonical),
+    confidenceSchema: canStatus.body?.canonical?.confidence?.schemaVersion
+      ?? canStatus.body?.canonical?.latest?.confidence?.schemaVersion
+      ?? null,
+  };
+  if (canStatus.status !== 200 || canStatus.body?.ok !== true) {
+    report.blockers.push("CANONICAL_STATUS_FAILED");
+  }
+  if (canStatus.body?.placesOrders === true || canStatus.body?.acceptsForExecution === true) {
+    report.blockers.push("CANONICAL_STATUS_UNSAFE_FLAGS");
+  }
+
+  const canHistory = await getJson("/api/forex/automated-trading/canonical-analysis/history?limit=5", { headers });
+  report.checks.canonicalHistory = {
+    http: canHistory.status,
+    ok: canHistory.body?.ok ?? null,
+    placesOrders: canHistory.body?.placesOrders ?? null,
+    acceptsForExecution: canHistory.body?.acceptsForExecution ?? null,
+    entryCount: Array.isArray(canHistory.body?.history) ? canHistory.body.history.length : null,
+  };
+  if (canHistory.status !== 200 || canHistory.body?.ok !== true) {
+    report.blockers.push("CANONICAL_HISTORY_FAILED");
+  }
+
+  if (!selectedInstrument) {
+    report.blockers.push("NO_MARKET_SELECTED");
+    report.labels.productionAnalysis = "BLOCKED_NO_MARKET_SELECTED";
+  } else {
+    const run = await getJson("/api/forex/automated-trading/canonical-analysis/run", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        instrument: selectedInstrument,
+        timeframe: "1h",
+        includeOpenAi: false,
+        persist: true,
+      }),
+    });
+    const result = run.body?.result ?? null;
+    const view = run.body?.view ?? null;
+    const evidence = run.body?.marketEvidence ?? null;
+    const confidenceSchema =
+      result?.confidence?.schemaVersion
+      ?? view?.confidence?.schemaVersion
+      ?? null;
+    const identityInstrument =
+      evidence?.identity?.instrument
+      ?? result?.instrument
+      ?? view?.instrument
+      ?? null;
+    const identityTf =
+      evidence?.identity?.timeframe
+      ?? evidence?.primary?.timeframe
+      ?? result?.timeframe
+      ?? null;
+
+    report.checks.canonicalRun = {
+      http: run.status,
+      ok: run.body?.ok ?? null,
+      analysisOk: run.body?.analysisOk ?? null,
+      placesOrders: run.body?.placesOrders ?? null,
+      acceptsForExecution: run.body?.acceptsForExecution ?? null,
+      mutatesBroker: run.body?.mutatesBroker ?? null,
+      direction: result?.direction ?? view?.direction ?? null,
+      validity: result?.validity ?? view?.validity ?? null,
+      confidenceSchema,
+      evidenceCompleteness: evidence?.quality?.completeness ?? null,
+      identityInstrument,
+      identityTimeframe: identityTf,
+      atrMethod: evidence?.primary?.indicators?.atrMethod ?? null,
+      volumeUnavailable: evidence?.instrumentMeta?.volume?.available === false
+        || evidence?.quality?.missing?.includes?.("volume")
+        || null,
+      liveTicksNotFromHistory: evidence?.liveQuote != null,
+    };
+
+    if (run.status !== 200 || run.body?.ok !== true) {
+      report.blockers.push(`CANONICAL_RUN_FAILED http=${run.status} code=${run.body?.error?.code ?? "unknown"}`);
+    }
+    if (run.body?.placesOrders === true || run.body?.acceptsForExecution === true || run.body?.mutatesBroker === true) {
+      report.blockers.push("CANONICAL_RUN_UNSAFE_FLAGS");
+    }
+    if (identityInstrument && String(identityInstrument) !== String(selectedInstrument)) {
+      report.blockers.push("INSTRUMENT_FALLBACK_OR_MISMATCH");
+    }
+    if (confidenceSchema && confidenceSchema !== "analysis-confidence.v1") {
+      report.blockers.push(`UNEXPECTED_CONFIDENCE_SCHEMA ${confidenceSchema}`);
+    }
+    if (evidence?.primary?.indicators?.atrMethod && evidence.primary.indicators.atrMethod !== "SMA_OF_TR") {
+      report.blockers.push("ATR_METHOD_NOT_SMA_OF_TR");
+    }
+
+    report.labels.productionAnalysis =
+      report.blockers.some((b) => String(b).startsWith("CANONICAL_RUN"))
+        ? "FAILED"
+        : "VERIFIED_DETERMINISTIC_RO";
+  }
+
+  report.labels.canonicalEndpoints =
+    report.blockers.some((b) => String(b).includes("CANONICAL_"))
+      ? "FAILED"
+      : "VERIFIED";
+  report.labels.dashboard =
+    studioShellOk && bundleHasCanonical && bundleHasMarketIntel ? "VERIFIED" : "FAILED";
+  report.labels.nodeGateway = report.blockers.includes("NODE_GATEWAY_UNHEALTHY") ? "UNHEALTHY" : "HEALTHY";
+  report.labels.forexconnectSidecar = report.blockers.includes("FOREXCONNECT_SIDECAR_UNHEALTHY")
+    ? "UNHEALTHY"
+    : "HEALTHY";
+  report.labels.deployedSha = deployedCommit && expectSha && shaMatches(deployedCommit, expectSha)
+    ? "VERIFIED"
+    : (deployedCommit ? "PRESENT" : "MISSING");
+
+  const hardFail = report.blockers.filter((b) =>
+    b === "BLOCKED_AUTHENTICATION"
+    || b === "ADMIN_FORBIDDEN"
+    || b === "NODE_GATEWAY_UNHEALTHY"
+    || b === "FOREXCONNECT_SIDECAR_UNHEALTHY"
+    || b === "LIVE_CREDENTIALS_CONFIGURED_UNEXPECTED"
+    || b === "TRADING_NOT_DISABLED"
+    || b === "CANONICAL_STATUS_UNSAFE_FLAGS"
+    || b === "CANONICAL_RUN_UNSAFE_FLAGS"
+    || String(b).startsWith("SHA_MISMATCH")
+    || String(b).startsWith("CANONICAL_")
+    || String(b).startsWith("DASHBOARD_")
+    || b === "NO_MARKET_SELECTED"
+    || b === "INSTRUMENT_FALLBACK_OR_MISMATCH"
+    || b === "DEPLOYED_COMMIT_MISSING"
+  );
+
+  console.log(JSON.stringify(redact(report), null, 2));
+  process.exit(hardFail.length ? 1 : 0);
+}
+
+main().catch((err) => {
+  console.error(JSON.stringify({
+    phase: "4.18F.1-CLOSE",
+    ok: false,
+    error: err instanceof Error ? err.message.slice(0, 200) : "unknown",
+  }));
+  process.exit(1);
+});
