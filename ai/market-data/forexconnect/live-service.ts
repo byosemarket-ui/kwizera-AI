@@ -469,12 +469,12 @@ export class ForexConnectLiveCandleService {
     this.lastRestoreAtMs = Date.now();
     const failures = lastBatch.filter((r) => !r.ok);
     this.lastRestoreError = failures[0]?.error ?? null;
-    const anyLive = lastBatch.some((r) => r.streamState === "LIVE");
-    this.providerLifecycle = failures.length === lastBatch.length && lastBatch.length > 0
-      ? "ERROR"
-      : anyLive
-        ? "LIVE"
-        : "CONNECTED";
+    if (failures.length === lastBatch.length && lastBatch.length > 0) {
+      this.providerLifecycle = "ERROR";
+    } else {
+      // Prefer session evidence (updateCount + lastPriceChange) over transient series labels.
+      this.refreshProviderLifecycleFromSessions();
+    }
 
     return {
       ok: failures.length === 0,
@@ -506,7 +506,14 @@ export class ForexConnectLiveCandleService {
     let anyLive = false;
     let anyError = false;
     for (const session of this.sessions.values()) {
-      if (session.streamState === "LIVE") anyLive = true;
+      // LIVE lifecycle requires genuine price-change evidence, not snapshot/heartbeat alone.
+      if (
+        session.streamState === "LIVE"
+        && session.updateCount > 0
+        && session.lastPriceChangeAtMs != null
+      ) {
+        anyLive = true;
+      }
       if (session.streamState === "ERROR") anyError = true;
     }
     if (anyLive) {
@@ -514,8 +521,10 @@ export class ForexConnectLiveCandleService {
       return;
     }
     if (anyError && this.providerLifecycle === "ERROR") return;
+    // Demote false LIVE and clear SUBSCRIBING after ensure completes.
     if (
-      this.providerLifecycle === "SUBSCRIBING"
+      this.providerLifecycle === "LIVE"
+      || this.providerLifecycle === "SUBSCRIBING"
       || this.providerLifecycle === "RESTORING"
       || this.providerLifecycle === "DISCONNECTED"
       || this.providerLifecycle === "ERROR"
@@ -1095,21 +1104,22 @@ export class ForexConnectLiveCandleService {
         }
 
         const prevQuote = session.lastQuote;
-        if (session.lastQuote == null) session.lastQuote = match;
-
         const genuineEvent = isGenuineFcOfferEventSource(match.eventSource);
         const quoteAdvanced = session.lastQuoteAtMs == null
           || match.receivedAtMs > session.lastQuoteAtMs;
         const quoteFresh = Number.isFinite(match.receivedAtMs)
           && (now - match.receivedAtMs) <= FOREXCONNECT_STALE_MS;
-        const priceChanged = prevQuote == null
-          || prevQuote.bid !== match.bid
-          || prevQuote.ask !== match.ask
-          || prevQuote.candlePrice !== match.candlePrice;
+        // Phase 4.15 — first snapshot (prevQuote==null) is NOT a genuine price change.
+        const priceChanged = prevQuote != null
+          && (
+            prevQuote.bid !== match.bid
+            || prevQuote.ask !== match.ask
+            || prevQuote.candlePrice !== match.candlePrice
+          );
 
         // Instrument-specific LIVE: genuine Offers bid/ask change for THIS symbol with a newer receipt.
         // Peer global updateCount must not promote a seeded AUD/CNH snapshot to LIVE.
-        // LIVE requires a recent bid/ask change — same-price heartbeats are not LIVE.
+        // LIVE requires a recent bid/ask change — same-price heartbeats / initial snapshots are not LIVE.
         if (genuineEvent && quoteAdvanced && match.candlePrice != null) {
           const eventTimeMs = match.sourceTimestampMs ?? match.receivedAtMs;
           if (priceChanged) {
@@ -1147,6 +1157,7 @@ export class ForexConnectLiveCandleService {
           session.errorMessage = null;
           continue;
         }
+        if (session.lastQuote == null) session.lastQuote = match;
 
         if (genuineEvent && session.lastQuoteAtMs != null && quoteFresh) {
           session.lastQuote = match;
