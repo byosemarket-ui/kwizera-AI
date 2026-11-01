@@ -488,9 +488,40 @@ export class ForexConnectLiveCandleService {
 
   /** Notify lifecycle when the provider session is confirmed CONNECTED (before restore). */
   notifyProviderConnected(): void {
-    if (this.providerLifecycle === "RESTORING" || this.providerLifecycle === "SUBSCRIBING") return;
-    this.providerLifecycle = this.sessions.size > 0 ? "CONNECTED" : "CONNECTED";
+    // Do not interrupt an in-flight restore batch; SUBSCRIBING may clear once ensure finishes.
+    if (this.providerLifecycle === "RESTORING") return;
     this.lastRestoreError = null;
+    this.refreshProviderLifecycleFromSessions();
+  }
+
+  /**
+   * Phase 4.15 — leave SUBSCRIBING after a successful ensure/poll.
+   * Persisted intent ≠ stuck lifecycle; CONNECTED/LIVE reflect actual session evidence.
+   */
+  private refreshProviderLifecycleFromSessions(): void {
+    if (this.sessions.size === 0) {
+      this.providerLifecycle = this.intendedSubscriptions.size > 0 ? "CONNECTED" : "DISCONNECTED";
+      return;
+    }
+    let anyLive = false;
+    let anyError = false;
+    for (const session of this.sessions.values()) {
+      if (session.streamState === "LIVE") anyLive = true;
+      if (session.streamState === "ERROR") anyError = true;
+    }
+    if (anyLive) {
+      this.providerLifecycle = "LIVE";
+      return;
+    }
+    if (anyError && this.providerLifecycle === "ERROR") return;
+    if (
+      this.providerLifecycle === "SUBSCRIBING"
+      || this.providerLifecycle === "RESTORING"
+      || this.providerLifecycle === "DISCONNECTED"
+      || this.providerLifecycle === "ERROR"
+    ) {
+      this.providerLifecycle = "CONNECTED";
+    }
   }
 
   private sessionKey(symbol: string, timeframe: string): string {
@@ -635,6 +666,7 @@ export class ForexConnectLiveCandleService {
     this.ensurePoller();
     this.ensureIdleSweeper();
     await this.pollOnce();
+    this.refreshProviderLifecycleFromSessions();
     return this.toSeries(session);
   }
 
@@ -1165,6 +1197,7 @@ export class ForexConnectLiveCandleService {
         session.errorMessage = message.slice(0, 300);
       }
     } finally {
+      this.refreshProviderLifecycleFromSessions();
       this.pollInFlight = false;
     }
   }

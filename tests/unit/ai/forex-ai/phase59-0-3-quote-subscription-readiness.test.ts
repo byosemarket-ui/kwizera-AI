@@ -455,6 +455,17 @@ describe("Phase 59.0.3 live.ensure seeding + idle keepIntended", () => {
     expect(svc.listIntendedSubscriptions().length).toBeGreaterThanOrEqual(1);
   });
 
+  it("Phase 4.15 — ensure leaves SUBSCRIBING after successful subscribe", async () => {
+    const bridge = mockBridge();
+    const svc = new ForexConnectLiveCandleService({ bridge });
+    services.push(svc);
+    const ok = await svc.ensureValidatedAtInstrument("EUR/USD", "1m");
+    expect(ok.ok).toBe(true);
+    const life = (svc as unknown as { providerLifecycle: string }).providerLifecycle;
+    expect(life).not.toBe("SUBSCRIBING");
+    expect(["CONNECTED", "LIVE"]).toContain(life);
+  });
+
   it("wiring: probe/open use validated ensure; readiness consumes quote evidence", () => {
     const orch = read("ai/forex-ai/automated-trading/demo-execution/orchestrator.ts");
     expect(orch).toContain("ensureValidatedAtInstrument");
