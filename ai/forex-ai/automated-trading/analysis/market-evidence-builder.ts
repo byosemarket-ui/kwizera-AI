@@ -1,0 +1,603 @@
+/**
+ * Phase 4.18E — Complete market evidence bundle for AI + canonical analysis.
+ * Separates broker-measured, deterministic-computed, and unavailable fields.
+ * Never invents prices, indicators, news, or volume.
+ */
+import { createHash } from "node:crypto";
+import { FOREXCONNECT_MAX_CANDLES } from "../../../market-data/forexconnect/timeframes.js";
+import { detectMarketStructure } from "../../../forex-structure/detect.js";
+import type { MarketStructureAnalysisResult } from "../../../forex-structure/types.js";
+import { auditCandleQuality, type CandleQualityReport } from "../candle-quality.js";
+import { evaluateSmaCrossoverStrategy } from "../auto-engine/strategy/evaluate.js";
+import { SMA_CROSSOVER_RULES, type StrategyCandle } from "../auto-engine/strategy/rules.js";
+import { atrAt } from "../auto-engine/strategy/evaluate.js";
+import { normalizeInstrumentId, normalizeCanonicalTimeframe } from "./adapters.js";
+import {
+  summarizeHistoricalMovement,
+  type HistoricalMovementSummary,
+} from "./historical-movement.js";
+import type { CanonicalQuoteSnapshot, CanonicalTimeframeId } from "./canonical-analysis.types.js";
+import type { AutomatedTradingEnvironment } from "../types.js";
+
+export const MARKET_EVIDENCE_SCHEMA = "kwizera.market-evidence.v1" as const;
+export const MARKET_EVIDENCE_VERSION = "4.18E" as const;
+
+/** Default history pull — FC SDK practical max (not unlimited). */
+export const AT_HISTORY_LOOKBACK_LIMIT = FOREXCONNECT_MAX_CANDLES;
+
+export const AT_MTF_EVIDENCE_TIMEFRAMES = [
+  "5m",
+  "15m",
+  "30m",
+  "1h",
+  "4h",
+  "1d",
+] as const satisfies readonly CanonicalTimeframeId[];
+
+export type EvidenceFieldStatus =
+  | "BROKER_MEASURED"
+  | "DETERMINISTIC_COMPUTED"
+  | "UNAVAILABLE"
+  | "STALE"
+  | "UNVERIFIED";
+
+export interface EvidenceField<T> {
+  value: T;
+  status: EvidenceFieldStatus;
+  asOfUtc: string | null;
+  note?: string;
+}
+
+export interface PerTimeframeEvidence {
+  timeframe: CanonicalTimeframeId | string;
+  instrument: string;
+  candleQuality: CandleQualityReport | null;
+  movement: HistoricalMovementSummary | null;
+  structure: {
+    trendState: string;
+    confirmedSwings: number;
+    supportZones: number;
+    resistanceZones: number;
+    events: number;
+    note: string;
+    provenance: "DETERMINISTIC_COMPUTED";
+  } | null;
+  indicators: {
+    fastSma: number | null;
+    slowSma: number | null;
+    atr: number | null;
+    atrMethod: "SMA_OF_TR";
+    strategyDirection: "BUY" | "SELL" | "NO_TRADE" | null;
+    strategyCode: string | null;
+    provenance: "DETERMINISTIC_COMPUTED";
+  } | null;
+  deterministicBias: "BULLISH" | "BEARISH" | "NEUTRAL" | "UNKNOWN";
+  available: boolean;
+  warnings: string[];
+}
+
+export interface MarketEvidenceBundle {
+  schemaVersion: typeof MARKET_EVIDENCE_SCHEMA;
+  evidenceVersion: typeof MARKET_EVIDENCE_VERSION;
+  identity: {
+    environment: AutomatedTradingEnvironment;
+    provider: "FOREXCONNECT";
+    instrument: string;
+    primaryTimeframe: string;
+    analyzedAtUtc: string;
+    evidenceFingerprint: string;
+  };
+  liveQuote: {
+    bid: EvidenceField<number | null>;
+    ask: EvidenceField<number | null>;
+    mid: EvidenceField<number | null>;
+    spread: EvidenceField<number | null>;
+    quoteFresh: EvidenceField<boolean>;
+    freshnessReasonCode: EvidenceField<string | null>;
+    effectivePriceChangeAgeMs: EvidenceField<number | null>;
+    feedNote: string;
+  };
+  historical: {
+    lookbackLimit: number;
+    primary: PerTimeframeEvidence | null;
+    byTimeframe: PerTimeframeEvidence[];
+  };
+  multiTimeframe: {
+    primaryTimeframe: string;
+    confirmationTimeframes: string[];
+    agreement: "AGREE_BULLISH" | "AGREE_BEARISH" | "CONFLICT" | "INSUFFICIENT" | "UNKNOWN";
+    notes: string[];
+  };
+  instrumentMeta: {
+    symbol: EvidenceField<string>;
+    pointSize: EvidenceField<number | null>;
+    digits: EvidenceField<number | null>;
+    baseUnitSize: EvidenceField<number | null>;
+    minQuantity: EvidenceField<number | null>;
+    tradingStatus: EvidenceField<string | null>;
+    session: EvidenceField<string | null>;
+    volume: EvidenceField<null>;
+    orderBook: EvidenceField<null>;
+    economicCalendar: EvidenceField<null>;
+  };
+  quality: {
+    missing: string[];
+    stale: string[];
+    invalid: string[];
+    warnings: string[];
+    completeness: "FULL" | "PARTIAL" | "INSUFFICIENT";
+  };
+  placesOrders: false;
+  acceptsForExecution: false;
+}
+
+function field<T>(
+  value: T,
+  status: EvidenceFieldStatus,
+  asOfUtc: string | null,
+  note?: string,
+): EvidenceField<T> {
+  return { value, status, asOfUtc, note };
+}
+
+function sma(values: number[], length: number): number | null {
+  if (values.length < length) return null;
+  let sum = 0;
+  for (let i = values.length - length; i < values.length; i++) {
+    const v = values[i];
+    if (v == null || !Number.isFinite(v)) return null;
+    sum += v;
+  }
+  return sum / length;
+}
+
+function closedStrategyCandles(candles: StrategyCandle[]): StrategyCandle[] {
+  let rows = candles.filter(
+    (c) =>
+      c
+      && Number.isFinite(c.time)
+      && Number.isFinite(c.open)
+      && Number.isFinite(c.high)
+      && Number.isFinite(c.low)
+      && Number.isFinite(c.close),
+  );
+  if (rows.length && rows[rows.length - 1]!.closed === false) {
+    rows = rows.slice(0, -1);
+  }
+  return rows.map((c) => ({ ...c, closed: true }));
+}
+
+function biasFromStrategy(dir: "BUY" | "SELL" | "NO_TRADE" | null): PerTimeframeEvidence["deterministicBias"] {
+  if (dir === "BUY") return "BULLISH";
+  if (dir === "SELL") return "BEARISH";
+  if (dir === "NO_TRADE") return "NEUTRAL";
+  return "UNKNOWN";
+}
+
+function compactStructure(result: MarketStructureAnalysisResult): PerTimeframeEvidence["structure"] {
+  const confirmed = result.swings.filter((s) => s.status === "CONFIRMED").length;
+  const support = result.zones.filter((z) => z.kind === "SUPPORT").length;
+  const resistance = result.zones.filter((z) => z.kind === "RESISTANCE").length;
+  return {
+    trendState: result.trendState,
+    confirmedSwings: confirmed,
+    supportZones: support,
+    resistanceZones: resistance,
+    events: result.events.length,
+    note: result.educationalNote,
+    provenance: "DETERMINISTIC_COMPUTED",
+  };
+}
+
+export function buildPerTimeframeEvidence(input: {
+  instrument: string;
+  timeframe: string;
+  candles: StrategyCandle[];
+  pointSize: number | null;
+  nowMs?: number;
+}): PerTimeframeEvidence {
+  const instrument = normalizeInstrumentId(input.instrument);
+  const tf = normalizeCanonicalTimeframe(input.timeframe) ?? String(input.timeframe);
+  const warnings: string[] = [];
+  const stepGuess =
+    tf === "1m"
+      ? 60
+      : tf === "5m"
+        ? 300
+        : tf === "15m"
+          ? 900
+          : tf === "30m"
+            ? 1800
+            : tf === "1h"
+              ? 3600
+              : tf === "4h"
+                ? 14400
+                : tf === "1d"
+                  ? 86400
+                  : tf === "1w"
+                    ? 604800
+                    : null;
+
+  const quality = auditCandleQuality({
+    candles: input.candles,
+    instrument,
+    timeframe: tf,
+    source: "forexconnect-history",
+    expectedStepSeconds: stepGuess,
+    strategyClosedBarsRequired: SMA_CROSSOVER_RULES.slowSmaLength + 2,
+    nowMs: input.nowMs,
+  });
+
+  const closed = closedStrategyCandles(input.candles);
+  const movement = summarizeHistoricalMovement({
+    instrument,
+    timeframe: tf,
+    candles: closed,
+  });
+
+  let structure: PerTimeframeEvidence["structure"] = null;
+  try {
+    const struct = detectMarketStructure({
+      provider: "FOREXCONNECT",
+      symbol: instrument,
+      timeframe: tf,
+      candles: closed.map((c) => ({
+        time: c.time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        closed: true,
+      })),
+      includeForming: false,
+    });
+    structure = compactStructure(struct);
+  } catch {
+    warnings.push("Structure detection failed.");
+  }
+
+  let indicators: PerTimeframeEvidence["indicators"] = null;
+  let deterministicBias: PerTimeframeEvidence["deterministicBias"] = "UNKNOWN";
+  if (closed.length >= SMA_CROSSOVER_RULES.slowSmaLength + 2) {
+    const closes = closed.map((c) => c.close);
+    const highs = closed.map((c) => c.high);
+    const lows = closed.map((c) => c.low);
+    const end = closed.length - 1;
+    const fastSma = sma(closes, SMA_CROSSOVER_RULES.fastSmaLength);
+    const slowSma = sma(closes, SMA_CROSSOVER_RULES.slowSmaLength);
+    const atr = atrAt(highs, lows, closes, SMA_CROSSOVER_RULES.atrLength, end);
+    const ev = evaluateSmaCrossoverStrategy({
+      candles: closed,
+      pointSize: input.pointSize,
+    });
+    indicators = {
+      fastSma,
+      slowSma,
+      atr,
+      atrMethod: "SMA_OF_TR",
+      strategyDirection: ev.direction,
+      strategyCode: ev.code,
+      provenance: "DETERMINISTIC_COMPUTED",
+    };
+    deterministicBias = biasFromStrategy(ev.ok ? ev.direction : null);
+  } else {
+    warnings.push("Insufficient closed candles for SMA/ATR indicators.");
+  }
+
+  return {
+    timeframe: tf,
+    instrument,
+    candleQuality: quality,
+    movement,
+    structure,
+    indicators,
+    deterministicBias,
+    available: quality.closedBars > 0,
+    warnings: [...warnings, ...quality.blockers.slice(0, 5)],
+  };
+}
+
+function mtfAgreement(
+  primary: PerTimeframeEvidence | null,
+  others: PerTimeframeEvidence[],
+): MarketEvidenceBundle["multiTimeframe"] {
+  const notes: string[] = [];
+  if (!primary) {
+    return {
+      primaryTimeframe: "unknown",
+      confirmationTimeframes: [],
+      agreement: "INSUFFICIENT",
+      notes: ["Primary timeframe evidence missing."],
+    };
+  }
+  const conf = others.filter(
+    (o) =>
+      o.timeframe !== primary.timeframe
+      && (o.deterministicBias === "BULLISH" || o.deterministicBias === "BEARISH"),
+  );
+  if (!conf.length) {
+    notes.push("No higher/other timeframe directional bias available — not treated as conflict.");
+    return {
+      primaryTimeframe: String(primary.timeframe),
+      confirmationTimeframes: [],
+      agreement: "INSUFFICIENT",
+      notes,
+    };
+  }
+  const primaryBias = primary.deterministicBias;
+  if (primaryBias !== "BULLISH" && primaryBias !== "BEARISH") {
+    notes.push("Primary bias NEUTRAL/UNKNOWN — MTF agreement UNKNOWN.");
+    return {
+      primaryTimeframe: String(primary.timeframe),
+      confirmationTimeframes: conf.map((c) => String(c.timeframe)),
+      agreement: "UNKNOWN",
+      notes,
+    };
+  }
+  const bulls = conf.filter((c) => c.deterministicBias === "BULLISH").length;
+  const bears = conf.filter((c) => c.deterministicBias === "BEARISH").length;
+  if (bulls > 0 && bears > 0) {
+    notes.push("Confirmation timeframes disagree with each other.");
+    return {
+      primaryTimeframe: String(primary.timeframe),
+      confirmationTimeframes: conf.map((c) => String(c.timeframe)),
+      agreement: "CONFLICT",
+      notes,
+    };
+  }
+  const peer = bulls > 0 ? "BULLISH" : "BEARISH";
+  if (peer === primaryBias) {
+    return {
+      primaryTimeframe: String(primary.timeframe),
+      confirmationTimeframes: conf.map((c) => String(c.timeframe)),
+      agreement: primaryBias === "BULLISH" ? "AGREE_BULLISH" : "AGREE_BEARISH",
+      notes,
+    };
+  }
+  notes.push(`Primary ${primaryBias} vs confirmation ${peer}.`);
+  return {
+    primaryTimeframe: String(primary.timeframe),
+    confirmationTimeframes: conf.map((c) => String(c.timeframe)),
+    agreement: "CONFLICT",
+    notes,
+  };
+}
+
+export function buildMarketEvidenceBundle(input: {
+  environment: AutomatedTradingEnvironment;
+  instrument: string;
+  primaryTimeframe: string;
+  candlesByTf: Record<string, StrategyCandle[]>;
+  quote: CanonicalQuoteSnapshot;
+  pointSize?: number | null;
+  digits?: number | null;
+  baseUnitSize?: number | null;
+  minQuantity?: number | null;
+  tradingStatus?: string | null;
+  nowMs?: number;
+}): MarketEvidenceBundle {
+  const nowMs = input.nowMs ?? Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const instrument = normalizeInstrumentId(input.instrument);
+  const primaryTf =
+    normalizeCanonicalTimeframe(input.primaryTimeframe) ?? String(input.primaryTimeframe);
+
+  const byTf: PerTimeframeEvidence[] = [];
+  for (const [tf, candles] of Object.entries(input.candlesByTf)) {
+    // Isolation: skip empty; never cross-stamp instruments
+    byTf.push(
+      buildPerTimeframeEvidence({
+        instrument,
+        timeframe: tf,
+        candles,
+        pointSize: input.pointSize ?? null,
+        nowMs,
+      }),
+    );
+  }
+
+  const primary =
+    byTf.find((x) => String(x.timeframe) === primaryTf)
+    ?? byTf[0]
+    ?? null;
+
+  const mtf = mtfAgreement(
+    primary,
+    byTf.filter((x) => String(x.timeframe) !== primaryTf),
+  );
+
+  const bid = input.quote.bid;
+  const ask = input.quote.ask;
+  const mid =
+    bid != null && ask != null && Number.isFinite(bid) && Number.isFinite(ask)
+      ? (bid + ask) / 2
+      : null;
+  const spread =
+    bid != null && ask != null && Number.isFinite(bid) && Number.isFinite(ask)
+      ? ask - bid
+      : null;
+
+  const missing: string[] = [];
+  const stale: string[] = [];
+  const invalid: string[] = [];
+  const warnings: string[] = [];
+
+  if (!input.quote.quoteFresh) stale.push(`quote:${input.quote.freshnessReasonCode ?? "not_fresh"}`);
+  if (bid == null || ask == null) missing.push("bid_ask");
+  if (!primary || !primary.available) missing.push("primary_history");
+  if (primary?.candleQuality && !primary.candleQuality.strategyReady) {
+    invalid.push(...primary.candleQuality.blockers.slice(0, 3));
+  }
+  for (const tf of byTf) {
+    warnings.push(...tf.warnings.map((w) => `${tf.timeframe}:${w}`));
+  }
+  missing.push("tick_volume", "order_book", "economic_calendar");
+  if (input.tradingStatus == null) missing.push("trading_status_detail");
+
+  let completeness: MarketEvidenceBundle["quality"]["completeness"] = "PARTIAL";
+  if (primary?.available && input.quote.quoteFresh && primary.indicators?.atr != null) {
+    completeness = byTf.length >= 2 ? "FULL" : "PARTIAL";
+  }
+  if (!primary?.available || (primary.candleQuality && primary.candleQuality.closedBars < 5)) {
+    completeness = "INSUFFICIENT";
+  }
+
+  const h = createHash("sha256");
+  h.update(instrument);
+  h.update("|");
+  h.update(primaryTf);
+  h.update("|");
+  h.update(input.quote.snapshotFingerprint ?? "");
+  for (const tf of byTf) {
+    h.update(`|${tf.timeframe}:${tf.movement?.lastOpenSec ?? 0}:${tf.candleQuality?.closedBars ?? 0}`);
+  }
+  const evidenceFingerprint = h.digest("hex").slice(0, 24);
+
+  return {
+    schemaVersion: MARKET_EVIDENCE_SCHEMA,
+    evidenceVersion: MARKET_EVIDENCE_VERSION,
+    identity: {
+      environment: input.environment,
+      provider: "FOREXCONNECT",
+      instrument,
+      primaryTimeframe: primaryTf,
+      analyzedAtUtc: nowIso,
+      evidenceFingerprint,
+    },
+    liveQuote: {
+      bid: field(bid, bid != null ? "BROKER_MEASURED" : "UNAVAILABLE", input.quote.evaluatedAtUtc),
+      ask: field(ask, ask != null ? "BROKER_MEASURED" : "UNAVAILABLE", input.quote.evaluatedAtUtc),
+      mid: field(mid, mid != null ? "DETERMINISTIC_COMPUTED" : "UNAVAILABLE", input.quote.evaluatedAtUtc),
+      spread: field(
+        spread,
+        spread != null ? "DETERMINISTIC_COMPUTED" : "UNAVAILABLE",
+        input.quote.evaluatedAtUtc,
+      ),
+      quoteFresh: field(
+        input.quote.quoteFresh,
+        input.quote.quoteFresh ? "BROKER_MEASURED" : "STALE",
+        input.quote.evaluatedAtUtc,
+      ),
+      freshnessReasonCode: field(
+        input.quote.freshnessReasonCode,
+        "BROKER_MEASURED",
+        input.quote.evaluatedAtUtc,
+      ),
+      effectivePriceChangeAgeMs: field(
+        input.quote.effectivePriceChangeAgeMs,
+        input.quote.effectivePriceChangeAgeMs != null ? "BROKER_MEASURED" : "UNAVAILABLE",
+        input.quote.evaluatedAtUtc,
+      ),
+      feedNote:
+        "Heartbeat and session CONNECTED alone never establish LIVE — use quote-freshness authority.",
+    },
+    historical: {
+      lookbackLimit: AT_HISTORY_LOOKBACK_LIMIT,
+      primary,
+      byTimeframe: byTf,
+    },
+    multiTimeframe: mtf,
+    instrumentMeta: {
+      symbol: field(instrument, "BROKER_MEASURED", nowIso),
+      pointSize: field(
+        input.pointSize ?? null,
+        input.pointSize != null ? "BROKER_MEASURED" : "UNAVAILABLE",
+        nowIso,
+      ),
+      digits: field(
+        input.digits ?? null,
+        input.digits != null ? "BROKER_MEASURED" : "UNAVAILABLE",
+        nowIso,
+      ),
+      baseUnitSize: field(
+        input.baseUnitSize ?? null,
+        input.baseUnitSize != null ? "BROKER_MEASURED" : "UNAVAILABLE",
+        nowIso,
+      ),
+      minQuantity: field(
+        input.minQuantity ?? null,
+        input.minQuantity != null ? "BROKER_MEASURED" : "UNAVAILABLE",
+        nowIso,
+      ),
+      tradingStatus: field(
+        input.tradingStatus ?? null,
+        input.tradingStatus != null ? "BROKER_MEASURED" : "UNAVAILABLE",
+        nowIso,
+      ),
+      session: field(null, "UNAVAILABLE", nowIso, "No separate session calendar wired."),
+      volume: field(null, "UNAVAILABLE", nowIso, "FX spot has no centralized exchange volume here."),
+      orderBook: field(null, "UNAVAILABLE", nowIso, "Order book not provided."),
+      economicCalendar: field(null, "UNAVAILABLE", nowIso, "No economic calendar integration."),
+    },
+    quality: {
+      missing,
+      stale,
+      invalid,
+      warnings: warnings.slice(0, 24),
+      completeness,
+    },
+    placesOrders: false,
+    acceptsForExecution: false,
+  };
+}
+
+/** Compact payload suitable for OpenAI prompts (bounded size). */
+export function marketEvidenceForModelPrompt(bundle: MarketEvidenceBundle): Record<string, unknown> {
+  return {
+    schemaVersion: bundle.schemaVersion,
+    evidenceVersion: bundle.evidenceVersion,
+    identity: bundle.identity,
+    liveQuote: {
+      bid: bundle.liveQuote.bid.value,
+      ask: bundle.liveQuote.ask.value,
+      mid: bundle.liveQuote.mid.value,
+      spread: bundle.liveQuote.spread.value,
+      quoteFresh: bundle.liveQuote.quoteFresh.value,
+      freshnessReasonCode: bundle.liveQuote.freshnessReasonCode.value,
+      priceChangeAgeMs: bundle.liveQuote.effectivePriceChangeAgeMs.value,
+      feedNote: bundle.liveQuote.feedNote,
+    },
+    primary: bundle.historical.primary
+      ? {
+        timeframe: bundle.historical.primary.timeframe,
+        closedBars: bundle.historical.primary.candleQuality?.closedBars ?? null,
+        strategyReady: bundle.historical.primary.candleQuality?.strategyReady ?? null,
+        movement: bundle.historical.primary.movement,
+        structure: bundle.historical.primary.structure,
+        indicators: bundle.historical.primary.indicators,
+        deterministicBias: bundle.historical.primary.deterministicBias,
+      }
+      : null,
+    multiTimeframe: bundle.multiTimeframe,
+    otherTimeframes: bundle.historical.byTimeframe
+      .filter((t) => t.timeframe !== bundle.identity.primaryTimeframe)
+      .map((t) => ({
+        timeframe: t.timeframe,
+        closedBars: t.candleQuality?.closedBars ?? null,
+        deterministicBias: t.deterministicBias,
+        trendState: t.structure?.trendState ?? null,
+        atr: t.indicators?.atr ?? null,
+        fastSma: t.indicators?.fastSma ?? null,
+        slowSma: t.indicators?.slowSma ?? null,
+        netReturnPct: t.movement?.netReturnPct ?? null,
+      })),
+    instrumentMeta: {
+      pointSize: bundle.instrumentMeta.pointSize.value,
+      tradingStatus: bundle.instrumentMeta.tradingStatus.value,
+      volume: null,
+      orderBook: null,
+      economicCalendar: null,
+      unavailable: [
+        "volume",
+        "orderBook",
+        "economicCalendar",
+        ...(bundle.instrumentMeta.session.status === "UNAVAILABLE" ? ["session"] : []),
+      ],
+    },
+    quality: bundle.quality,
+    analysisAuthorityNote:
+      "OpenAI is advisory. Canonical reconciler is the authority for BUY/SELL candidates. Never invent missing fields.",
+    placesOrders: false,
+    acceptsForExecution: false,
+  };
+}

@@ -2216,6 +2216,7 @@ export class AutomatedTradingService {
     result: import("./analysis/canonical-analysis.types.js").CanonicalAnalysisResult | null;
     view: import("./analysis/canonical-analysis.service.js").CanonicalAnalysisPublicView;
     candleQuality: import("./candle-quality.js").CandleQualityReport | null;
+    marketEvidence: import("./analysis/market-evidence-builder.js").MarketEvidenceBundle | null;
     history: { saved: boolean; duplicate: boolean; writeError: string | null };
     status: AutomatedTradingPublicStatus;
     placesOrders: false;
@@ -2247,6 +2248,7 @@ export class AutomatedTradingService {
         result: null,
         view: emptyView,
         candleQuality: null,
+        marketEvidence: null,
         history: { saved: false, duplicate: false, writeError: null },
         status: await this.buildStatus(),
         placesOrders: false,
@@ -2263,6 +2265,7 @@ export class AutomatedTradingService {
         result: null,
         view: toCanonicalPublicView(null),
         candleQuality: null,
+        marketEvidence: null,
         history: { saved: false, duplicate: false, writeError: null },
         status: await this.buildStatus(),
         placesOrders: false,
@@ -2293,6 +2296,7 @@ export class AutomatedTradingService {
       result: out.result,
       view: toCanonicalPublicView(out.result),
       candleQuality: out.candleQuality,
+      marketEvidence: out.marketEvidence,
       history: out.history,
       status: await this.buildStatus(),
       placesOrders: false,

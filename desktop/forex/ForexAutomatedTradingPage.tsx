@@ -471,6 +471,16 @@ export function ForexAutomatedTradingPage(props: {
   /** Phase 4.18D — canonical BUY/SELL analysis (read-only). */
   const [canonicalView, setCanonicalView] = useState<CanonicalAnalysisView | null>(null);
   const [canonicalBusy, setCanonicalBusy] = useState(false);
+  /** Phase 4.18E — market evidence snapshot from last canonical run. */
+  const [marketEvidenceSummary, setMarketEvidenceSummary] = useState<{
+    completeness?: string;
+    mtfAgreement?: string;
+    closedBars?: number | null;
+    netReturnPct?: number | null;
+    structureTrend?: string | null;
+    atrMethod?: string | null;
+    unavailable?: string[];
+  } | null>(null);
   /** Phase 57.1/57.2 — server-authoritative automation START/STOP (monitoring ≠ execution). */
   const [automation, setAutomation] = useState<{
     stateVersion?: number;
@@ -1276,6 +1286,16 @@ export function ForexAutomatedTradingPage(props: {
       const data = await res.json() as {
         ok?: boolean;
         view?: CanonicalAnalysisView;
+        marketEvidence?: {
+          quality?: { completeness?: string; missing?: string[] };
+          multiTimeframe?: { agreement?: string };
+          primary?: {
+            closedBars?: number | null;
+            movement?: { netReturnPct?: number | null };
+            structure?: { trendState?: string | null };
+            indicators?: { atrMethod?: string | null };
+          };
+        } | null;
         error?: { message?: string; code?: string };
         status?: PublicStatus;
       };
@@ -1285,6 +1305,17 @@ export function ForexAutomatedTradingPage(props: {
         return;
       }
       if (data.view) setCanonicalView(data.view);
+      if (data.marketEvidence) {
+        setMarketEvidenceSummary({
+          completeness: data.marketEvidence.quality?.completeness,
+          mtfAgreement: data.marketEvidence.multiTimeframe?.agreement,
+          closedBars: data.marketEvidence.primary?.closedBars ?? null,
+          netReturnPct: data.marketEvidence.primary?.movement?.netReturnPct ?? null,
+          structureTrend: data.marketEvidence.primary?.structure?.trendState ?? null,
+          atrMethod: data.marketEvidence.primary?.indicators?.atrMethod ?? null,
+          unavailable: data.marketEvidence.quality?.missing?.slice(0, 6),
+        });
+      }
       if (data.status) setStatus(data.status);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Canonical analysis failed");
@@ -1911,6 +1942,40 @@ export function ForexAutomatedTradingPage(props: {
             analysisIsNotExecution=<strong>true</strong>
           </li>
         </ul>
+        {marketEvidenceSummary ? (
+          <div data-fx-at-market-evidence="true" style={{ marginTop: "0.75rem" }}>
+            <h3 className="fx-auto-trading-h2" style={{ fontSize: "1rem" }}>
+              Market data intelligence (Phase 4.18E)
+            </h3>
+            <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+              <li>
+                Evidence completeness: <strong>{marketEvidenceSummary.completeness ?? "—"}</strong>
+                {" · "}
+                MTF: <strong>{marketEvidenceSummary.mtfAgreement ?? "—"}</strong>
+              </li>
+              <li>
+                Closed bars: <strong>{marketEvidenceSummary.closedBars ?? "—"}</strong>
+                {" · "}
+                net return %: <strong>{marketEvidenceSummary.netReturnPct ?? "—"}</strong>
+                {" · "}
+                structure: <strong>{marketEvidenceSummary.structureTrend ?? "—"}</strong>
+                {" · "}
+                ATR: <strong>{marketEvidenceSummary.atrMethod ?? "—"}</strong>
+              </li>
+              <li>
+                Explicitly unavailable (not shown as zero):{" "}
+                <strong>{(marketEvidenceSummary.unavailable ?? []).join(", ") || "—"}</strong>
+              </li>
+              <li>
+                LIVE quotes require genuine Offers price changes — heartbeats ≠ LIVE.
+              </li>
+            </ul>
+          </div>
+        ) : (
+          <p className="fx-auto-trading-hint">
+            Run analysis to load market evidence (historical movement, structure, MTF).
+          </p>
+        )}
       </section>
 
       {status?.pipelineStatus || status?.pipelineStages?.length || status?.feedStatusBreakdown ? (

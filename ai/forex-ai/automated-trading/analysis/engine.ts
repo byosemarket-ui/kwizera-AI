@@ -24,6 +24,11 @@ import {
   evidenceForModelPrompt,
   type AtRawCandle,
 } from "./evidence.js";
+import {
+  AT_HISTORY_LOOKBACK_LIMIT,
+  buildMarketEvidenceBundle,
+  marketEvidenceForModelPrompt,
+} from "./market-evidence-builder.js";
 import { resolveAtForecastHorizon } from "./direction.js";
 import { buildAtOpenAiSystemPrompt, buildAtOpenAiUserPrompt } from "./prompts.js";
 import {
@@ -232,7 +237,7 @@ export class AtOpenAiAnalysisEngine {
     const res = await bridge.getHistoricalCandles({
       symbol,
       timeframe: toProjectTimeframe(timeframe),
-      limit: 120,
+      limit: AT_HISTORY_LOOKBACK_LIMIT,
     });
     return mapCandles(res.candles);
   }
@@ -518,8 +523,39 @@ export class AtOpenAiAnalysisEngine {
       const gate = getOpenAiInferenceGate();
       const timeoutMs = clampTimeout(input.timeoutMs);
       const horizon = resolveAtForecastHorizon(primaryTimeframe);
+      // Phase 4.18E — structured market evidence (movement/structure/MTF/indicators).
+      const strategyCandlesByTf: Record<string, import("../auto-engine/strategy/rules.js").StrategyCandle[]> = {};
+      for (const [tf, rows] of Object.entries(candlesByTf)) {
+        strategyCandlesByTf[tf] = rows.map((c) => ({
+          time: typeof c.time === "number"
+            ? (c.time > 1e12 ? Math.floor(c.time / 1000) : c.time)
+            : Math.floor(Date.parse(String(c.time)) / 1000) || 0,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+          closed: true,
+        }));
+      }
+      const marketEvidence = buildMarketEvidenceBundle({
+        environment: input.environment,
+        instrument,
+        primaryTimeframe: primaryTimeframe ?? timeframes[0] ?? "15m",
+        candlesByTf: strategyCandlesByTf,
+        quote: {
+          instrument,
+          bid: evidence.bid,
+          ask: evidence.ask,
+          quoteFresh: evidence.quoteFresh,
+          freshnessReasonCode: evidence.quoteFresh ? "LIVE_FRESH" : "QUOTE_AGE_EXCEEDED",
+          effectivePriceChangeAgeMs: null,
+          snapshotFingerprint: evidence.fingerprint,
+          evaluatedAtUtc: evidence.builtAtUtc,
+        },
+      });
       const payload = {
         ...evidenceForModelPrompt(evidence, candlesByTf),
+        marketEvidence: marketEvidenceForModelPrompt(marketEvidence),
         primaryTimeframe,
         forecastHorizon: horizon.ok ? horizon.forecastHorizon : null,
         forecastHorizonPolicy: horizon.ok
@@ -539,7 +575,8 @@ export class AtOpenAiAnalysisEngine {
               evidenceWindowEndUtc: chartMeta.evidenceWindowEndUtc ?? null,
             }
           : null,
-        binaryDirectionRequirement: "Successful predictions must set direction to BUY or SELL only.",
+        binaryDirectionRequirement:
+          "Successful predictions must set direction to BUY or SELL only when evidence is sufficient; otherwise set dataQuality INSUFFICIENT and do not invent direction.",
       };
 
       // Multimodal only when real image bytes are present and the model is vision-eligible.

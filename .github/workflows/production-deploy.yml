@@ -58,6 +58,9 @@ jobs:
           tests/unit/ai/forex-ai/phase412-strategy-dry-run.test.ts
           tests/unit/ai/forex-ai/phase413-market-feed-selection.test.ts
           tests/unit/ai/forex-ai/phase414b-market-data-pipeline.test.ts
+          tests/unit/ai/forex-ai/phase418c-canonical-analysis.test.ts
+          tests/unit/ai/forex-ai/phase418d-canonical-service.test.ts
+          tests/unit/ai/forex-ai/phase418e-market-evidence.test.ts
           tests/unit/scripts/load-operator-env.test.ts
 
       - name: Production build (server + Vite studio)

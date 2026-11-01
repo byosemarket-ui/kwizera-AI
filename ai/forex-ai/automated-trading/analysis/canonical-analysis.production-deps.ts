@@ -39,10 +39,11 @@ export function createCanonicalAnalysisProductionDeps(): CanonicalAnalysisDeps {
   return {
     async loadCandles(instrument: string, timeframe: CanonicalTimeframeId) {
       const bridge = getForexConnectBridge();
+      const { AT_HISTORY_LOOKBACK_LIMIT } = await import("./market-evidence-builder.js");
       const hist = await bridge.getHistoricalCandles({
         symbol: instrument,
         timeframe: timeframe as never,
-        limit: 120,
+        limit: AT_HISTORY_LOOKBACK_LIMIT,
       });
       const raw = Array.isArray(hist?.candles) ? hist.candles : [];
       return mapCandles(raw as unknown[]);

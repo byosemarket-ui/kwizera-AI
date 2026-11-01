@@ -239,6 +239,7 @@ export async function runCanonicalAnalysis(
   ok: boolean;
   result: CanonicalAnalysisResult;
   candleQuality: CandleQualityReport | null;
+  marketEvidence: import("./market-evidence-builder.js").MarketEvidenceBundle | null;
   history: { saved: boolean; duplicate: boolean; writeError: string | null };
   placesOrders: false;
   acceptsForExecution: false;
@@ -256,6 +257,7 @@ export async function runCanonicalAnalysis(
     ok: boolean;
     result: CanonicalAnalysisResult;
     candleQuality: CandleQualityReport | null;
+    marketEvidence: null;
     history: { saved: boolean; duplicate: boolean; writeError: string | null };
     placesOrders: false;
     acceptsForExecution: false;
@@ -271,6 +273,7 @@ export async function runCanonicalAnalysis(
       ok: result.direction != null,
       result,
       candleQuality: null,
+      marketEvidence: null,
       history: hist,
       placesOrders: false,
       acceptsForExecution: false,
@@ -392,6 +395,34 @@ export async function runCanonicalAnalysis(
   }
 
   const pointSize = await deps.getPointSize(instrument).catch(() => null);
+
+  // Optional MTF evidence for HTF confirmation (non-fatal if load fails).
+  let marketEvidence: import("./market-evidence-builder.js").MarketEvidenceBundle | null = null;
+  try {
+    const { buildMarketEvidenceBundle, AT_MTF_EVIDENCE_TIMEFRAMES } = await import(
+      "./market-evidence-builder.js"
+    );
+    const candlesByTf: Record<string, StrategyCandle[]> = { [tf]: candles };
+    for (const other of AT_MTF_EVIDENCE_TIMEFRAMES) {
+      if (other === tf) continue;
+      try {
+        candlesByTf[other] = await deps.loadCandles(instrument, other);
+      } catch {
+        /* skip unavailable TF */
+      }
+    }
+    marketEvidence = buildMarketEvidenceBundle({
+      environment: input.environment,
+      instrument,
+      primaryTimeframe: tf,
+      candlesByTf,
+      quote,
+      pointSize,
+      nowMs,
+    });
+  } catch {
+    marketEvidence = null;
+  }
   const evaluation = evaluateSmaCrossoverStrategy({ candles, pointSize });
   const adapted = toCanonicalFromStrategy({
     evaluation,
@@ -446,6 +477,19 @@ export async function runCanonicalAnalysis(
 
   const evidenceFingerprint = fingerprintEvidence(instrument, tf, candles, quote);
 
+  const htf = marketEvidence
+    ? {
+      primaryTimeframe: tf,
+      confirmationTimeframes: marketEvidence.multiTimeframe.confirmationTimeframes as import("./canonical-analysis.types.js").CanonicalTimeframeId[],
+      perTf: marketEvidence.historical.byTimeframe.map((t) => ({
+        timeframe: t.timeframe as import("./canonical-analysis.types.js").CanonicalTimeframeId,
+        candleRef: null,
+        deterministicBias: t.deterministicBias,
+      })),
+      agreement: marketEvidence.multiTimeframe.agreement,
+    }
+    : null;
+
   const result = reconcileAnalysis({
     environment: input.environment,
     instrument,
@@ -465,6 +509,7 @@ export async function runCanonicalAnalysis(
     indicators,
     deterministic,
     ai,
+    htf,
     aiInstrument,
     strategyInstrument: instrument,
     expectedInstrument: instrument,
@@ -480,6 +525,7 @@ export async function runCanonicalAnalysis(
     ok: result.direction != null,
     result,
     candleQuality,
+    marketEvidence,
     history: hist,
     placesOrders: false,
     acceptsForExecution: false,

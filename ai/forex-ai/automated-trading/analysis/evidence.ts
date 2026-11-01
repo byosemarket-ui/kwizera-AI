@@ -7,8 +7,8 @@ import type { AutomatedTradingVerificationResult } from "../verification-types.j
 import { isVerificationMarketQuoteFresh } from "../verification-gates.js";
 import type { AtAnalysisEvidenceBundle, AtCandleSummary } from "./types.js";
 
-/** Project timeframe IDs accepted by ForexConnect bridge. */
-export const AT_DEFAULT_TIMEFRAMES = ["4h", "1h", "30m", "15m"] as const;
+/** Project timeframe IDs accepted by ForexConnect bridge (Phase 4.18E MTF set). */
+export const AT_DEFAULT_TIMEFRAMES = ["1d", "4h", "1h", "30m", "15m", "5m"] as const;
 export const AT_MIN_CANDLES_PER_TF = 20;
 
 export interface AtRawCandle {

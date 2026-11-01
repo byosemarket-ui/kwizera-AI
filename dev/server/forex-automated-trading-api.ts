@@ -1294,6 +1294,48 @@ export async function handleForexAutomatedTradingApi(
         result: result.result,
         view: result.view,
         candleQuality: result.candleQuality,
+        marketEvidence: result.marketEvidence
+          ? {
+            schemaVersion: result.marketEvidence.schemaVersion,
+            evidenceVersion: result.marketEvidence.evidenceVersion,
+            identity: result.marketEvidence.identity,
+            liveQuote: {
+              bid: result.marketEvidence.liveQuote.bid.value,
+              ask: result.marketEvidence.liveQuote.ask.value,
+              mid: result.marketEvidence.liveQuote.mid.value,
+              spread: result.marketEvidence.liveQuote.spread.value,
+              quoteFresh: result.marketEvidence.liveQuote.quoteFresh.value,
+              freshnessReasonCode: result.marketEvidence.liveQuote.freshnessReasonCode.value,
+            },
+            multiTimeframe: result.marketEvidence.multiTimeframe,
+            primary: result.marketEvidence.historical.primary
+              ? {
+                timeframe: result.marketEvidence.historical.primary.timeframe,
+                closedBars: result.marketEvidence.historical.primary.candleQuality?.closedBars ?? null,
+                deterministicBias: result.marketEvidence.historical.primary.deterministicBias,
+                movement: result.marketEvidence.historical.primary.movement,
+                structure: result.marketEvidence.historical.primary.structure,
+                indicators: result.marketEvidence.historical.primary.indicators,
+              }
+              : null,
+            timeframes: result.marketEvidence.historical.byTimeframe.map((t) => ({
+              timeframe: t.timeframe,
+              closedBars: t.candleQuality?.closedBars ?? null,
+              deterministicBias: t.deterministicBias,
+              available: t.available,
+            })),
+            quality: result.marketEvidence.quality,
+            instrumentMeta: {
+              pointSize: result.marketEvidence.instrumentMeta.pointSize,
+              tradingStatus: result.marketEvidence.instrumentMeta.tradingStatus,
+              volume: result.marketEvidence.instrumentMeta.volume,
+              orderBook: result.marketEvidence.instrumentMeta.orderBook,
+              economicCalendar: result.marketEvidence.instrumentMeta.economicCalendar,
+            },
+            placesOrders: false,
+            acceptsForExecution: false,
+          }
+          : null,
         history: result.history,
         status: result.status,
         placesOrders: false,

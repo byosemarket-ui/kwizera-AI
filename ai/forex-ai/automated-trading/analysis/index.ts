@@ -42,6 +42,23 @@ export {
 } from "./canonical-analysis-history.store.js";
 export { createCanonicalAnalysisProductionDeps } from "./canonical-analysis.production-deps.js";
 export {
+  summarizeHistoricalMovement,
+  classifyCandleGeometry,
+  selectClosedMovementCandles,
+  type HistoricalMovementSummary,
+} from "./historical-movement.js";
+export {
+  buildMarketEvidenceBundle,
+  buildPerTimeframeEvidence,
+  marketEvidenceForModelPrompt,
+  AT_HISTORY_LOOKBACK_LIMIT,
+  AT_MTF_EVIDENCE_TIMEFRAMES,
+  MARKET_EVIDENCE_SCHEMA,
+  MARKET_EVIDENCE_VERSION,
+  type MarketEvidenceBundle,
+  type PerTimeframeEvidence,
+} from "./market-evidence-builder.js";
+export {
   AtOpenAiAnalysisEngine,
   AT_OPENAI_DEFAULT_TIMEOUT_MS,
   AT_OPENAI_MAX_TIMEOUT_MS,
