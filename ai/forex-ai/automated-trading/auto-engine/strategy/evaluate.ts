@@ -15,7 +15,17 @@ function sma(values: number[], length: number, endIndex: number): number | null 
   return sum / length;
 }
 
-/** Wilder-style ATR from closed OHLC bars ending at endIndex inclusive. */
+/**
+ * ATR method for strategy v1 (`kwizera.sma-crossover.v1`): **SMA of True Range** (`SMA_OF_TR`).
+ *
+ * Computes the arithmetic mean of the last `length` True Range values ending at
+ * `endIndex` inclusive. This is **not** Wilder's recursive RMA ATR.
+ *
+ * Wilder ATR (if needed later) must ship as a separate strategy version
+ * (e.g. `kwizera.sma-crossover.v2`) — do not silently change v1 geometry here.
+ *
+ * Numerical behavior is intentionally preserved for Phase 4.18C compatibility.
+ */
 export function atrAt(
   highs: number[],
   lows: number[],
@@ -38,6 +48,9 @@ export function atrAt(
   const atr = sum / length;
   return Number.isFinite(atr) && atr > 0 ? atr : null;
 }
+
+/** Explicit method id for canonical analysis / adapters (strategy v1). */
+export const ATR_METHOD_V1 = "SMA_OF_TR" as const;
 
 export interface StrategyEvaluation {
   ok: boolean;

@@ -16,7 +16,8 @@
  *   - SELL when prior bar fast>=slow and current closed bar fast<slow (bearish cross)
  *   - Otherwise NO_TRADE
  * Protective geometry (absolute prices from last closed close):
- *   - stopDistance = max(ATR(14) * 1.5, pointSize * minStopPoints)
+ *   - ATR(14) here means SMA of True Range (SMA_OF_TR), not Wilder RMA
+ *   - stopDistance = max(ATR_SMA_OF_TR(14) * 1.5, pointSize * minStopPoints)
  *   - takeProfitDistance = stopDistance * 2 (fixed 2R; not trailing / not break-even)
  * Reject when:
  *   - fewer than slow+2 closed candles
@@ -42,10 +43,13 @@ export const SMA_CROSSOVER_RULES = {
   trailingStop: false,
   breakEven: false,
   profitabilityClaimed: false,
+  /** Phase 4.18C — atrAt implements SMA of TR, not Wilder. */
+  atrMethod: "SMA_OF_TR" as const,
   notes: [
     "Educational / plumbing strategy only — no profitability claim.",
     "Signals use fully closed candles only.",
-    "SL/TP are static ATR-based distances at entry; no trail or BE.",
+    "SL/TP are static ATR(SMA_OF_TR)-based distances at entry; no trail or BE.",
+    "Wilder ATR would require a new strategy version — not used in v1.",
   ],
 } as const;
 
