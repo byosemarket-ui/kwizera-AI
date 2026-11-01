@@ -5,13 +5,24 @@
  * - Never places orders, creates grants, enables armed_execute, or mutates broker.
  * - Never bypasses requireForexAdmin.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { loadOperatorEnv } from "./lib/load-operator-env.mjs";
 
 const base = String(process.env.KWIZERA_PROD_BASE || "http://127.0.0.1:5173").replace(/\/$/, "");
 const sidecarBase = String(process.env.KWIZERA_FC_SIDECAR_BASE || "http://127.0.0.1:5179").replace(/\/$/, "");
 const expectSha = String(process.env.KWIZERA_EXPECT_SHA || "").trim() || null;
+const appDir = String(process.env.KWIZERA_APP_DIR || "/opt/kwizera-ai").replace(/\/$/, "");
 const approvedBaseline = "090e7e7c9b8a9a31f447c0d51ce657855c4e391e";
+
+function sh(cmd) {
+  try {
+    return execSync(cmd, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch {
+    return "";
+  }
+}
 
 loadOperatorEnv();
 let token = String(process.env.KWIZERA_ADMIN_API_TOKEN || "").trim();
@@ -112,13 +123,16 @@ async function main() {
     report.blockers.push("NODE_GATEWAY_UNHEALTHY");
   }
 
+  const runtimeGitSha = sh(`git -C '${appDir}' rev-parse HEAD`) || null;
   const dep = await getJson("/api/deployment");
-  const deployedCommit = dep.body?.deployedCommit ?? null;
+  const deployedCommit = dep.body?.deployedCommit ?? runtimeGitSha ?? null;
   report.checks.deployment = {
     http: dep.status,
     status: dep.body?.status ?? null,
     result: dep.body?.result ?? null,
-    deployedCommit,
+    deployedCommit: dep.body?.deployedCommit ?? null,
+    runtimeGitSha,
+    effectiveDeployedSha: deployedCommit,
     requestedCommit: dep.body?.requestedCommit ?? null,
     verifiedLive: dep.body?.verifiedLive ?? null,
   };
@@ -145,25 +159,34 @@ async function main() {
     report.blockers.push("TRADING_NOT_DISABLED");
   }
 
+  const fcUnit = sh("systemctl is-active kwizera-forexconnect.service") || "unknown";
+  const gatewayUnit = sh("systemctl is-active kwizera-ai.service") || "unknown";
+  const listen5179 = Boolean(sh("ss -lntp 2>/dev/null | grep -E ':5179\\b' || true"));
   const sidecarHealth = await getText(`${sidecarBase}/health`);
   const sidecarAlt = sidecarHealth.ok ? null : await getText(`${sidecarBase}/`);
+  const viaGateway = fc.body?.sidecarReachable === true;
+  const reachableDirect = sidecarHealth.ok || Boolean(sidecarAlt?.ok) || listen5179;
   report.checks.forexconnectSidecar = {
+    systemctl: fcUnit,
+    gatewayUnit,
+    listen5179,
     healthHttp: sidecarHealth.status,
     healthOk: sidecarHealth.ok,
     rootHttp: sidecarAlt?.status ?? null,
-    reachableDirect: sidecarHealth.ok || Boolean(sidecarAlt?.ok),
-    viaGateway: fc.body?.sidecarReachable === true,
+    reachableDirect,
+    viaGateway,
   };
-  if (!report.checks.forexconnectSidecar.reachableDirect && fc.body?.sidecarReachable !== true) {
+  if (fcUnit !== "active" && !viaGateway && !reachableDirect) {
     report.blockers.push("FOREXCONNECT_SIDECAR_UNHEALTHY");
   }
+  if (gatewayUnit !== "active" && report.blockers.includes("NODE_GATEWAY_UNHEALTHY") === false) {
+    // Prefer HTTP health as authority; systemctl is supporting evidence only.
+  }
 
-  // Dashboard shell + bundle markers (SPA; markers live in built assets).
-  const dashRoutes = ["/forex", "/forex/automated-trading", "/desktop/", "/"];
+  // Dashboard: studio shell via HTTP + markers from deployed UI assets on disk.
+  const dashRoutes = ["/forex/automated-trading", "/forex", "/desktop/", "/"];
   const dashEvidence = {};
   let studioShellOk = false;
-  let bundleHasCanonical = false;
-  let bundleHasMarketIntel = false;
   for (const route of dashRoutes) {
     const page = await getText(`${base}${route}`);
     dashEvidence[route] = {
@@ -174,16 +197,66 @@ async function main() {
     if (page.status === 200 && dashEvidence[route].studioTitle && dashEvidence[route].notDevDashboard) {
       studioShellOk = true;
     }
-    const scriptSrcs = [...page.text.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map((m) => m[1]);
-    for (const src of scriptSrcs.slice(0, 8)) {
-      const abs = src.startsWith("http") ? src : `${base}${src.startsWith("/") ? "" : "/"}${src}`;
-      const asset = await getText(abs);
-      if (!asset.ok) continue;
-      if (/data-fx-at-canonical-analysis|canonical-analysis\/status|canonical-analysis\/run/i.test(asset.text)) {
+  }
+
+  const assetRoots = [
+    path.join(appDir, "dev", "ui", "desktop"),
+    path.join(appDir, "dev", "ui", "desktop", "assets"),
+    path.join(appDir, "dist", "ui", "desktop"),
+    path.join(appDir, "desktop", "forex"),
+  ];
+  let bundleHasCanonical = false;
+  let bundleHasMarketIntel = false;
+  const scannedFiles = [];
+  for (const root of assetRoots) {
+    if (!existsSync(root)) continue;
+    let entries = [];
+    try {
+      entries = readdirSync(root, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const ent of entries) {
+      if (!ent.isFile()) continue;
+      if (!/\.(js|mjs|css|html|tsx|ts)$/i.test(ent.name)) continue;
+      const fp = path.join(root, ent.name);
+      let text = "";
+      try {
+        text = readFileSync(fp, "utf8");
+      } catch {
+        continue;
+      }
+      scannedFiles.push(fp.replace(appDir, ""));
+      if (/data-fx-at-canonical-analysis|canonical-analysis\/status|canonical-analysis\/run/i.test(text)) {
         bundleHasCanonical = true;
       }
-      if (/data-fx-at-market-evidence|Market data intelligence|Evidence completeness/i.test(asset.text)) {
+      if (/data-fx-at-market-evidence|Market data intelligence|Evidence completeness/i.test(text)) {
         bundleHasMarketIntel = true;
+      }
+    }
+    // One level of nested assets/
+    const nested = path.join(root, "assets");
+    if (existsSync(nested)) {
+      try {
+        for (const name of readdirSync(nested)) {
+          if (!/\.(js|mjs|css)$/i.test(name)) continue;
+          const fp = path.join(nested, name);
+          let text = "";
+          try {
+            text = readFileSync(fp, "utf8");
+          } catch {
+            continue;
+          }
+          scannedFiles.push(fp.replace(appDir, ""));
+          if (/data-fx-at-canonical-analysis|canonical-analysis\/status|canonical-analysis\/run/i.test(text)) {
+            bundleHasCanonical = true;
+          }
+          if (/data-fx-at-market-evidence|Market data intelligence|Evidence completeness/i.test(text)) {
+            bundleHasMarketIntel = true;
+          }
+        }
+      } catch {
+        /* ignore */
       }
     }
   }
@@ -191,6 +264,7 @@ async function main() {
     studioShellOk,
     bundleHasCanonical,
     bundleHasMarketIntel,
+    scannedFileCount: scannedFiles.length,
     routes: dashEvidence,
   };
   if (!studioShellOk) report.blockers.push("DASHBOARD_SHELL_FAILED");

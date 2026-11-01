@@ -125,6 +125,7 @@ jobs:
             "cd '$REMOTE_DIR' && \
              export KWIZERA_PROD_BASE=http://127.0.0.1:5173 && \
              export KWIZERA_FC_SIDECAR_BASE=http://127.0.0.1:5179 && \
+             export KWIZERA_APP_DIR=/opt/kwizera-ai && \
              export KWIZERA_VPS_ENV_FILE=/opt/kwizera-ai/.env && \
              export KWIZERA_EXPECT_SHA='${EXPECT_SHA}' && \
              node phase418f1-vps-ro-canonical-smoke.mjs; \
