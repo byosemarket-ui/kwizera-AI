@@ -1,7 +1,8 @@
 /**
- * Phase 53.1 / 53.3 — Single-process AT monitoring worker (server-side).
+ * Phase 53.1 / 53.3 / 4.18F.7 — Single-process AT monitoring worker (server-side).
  * Does not depend on browser/React. Never places broker orders.
  * Analyses require validated FXCM OHLC + server-rendered chart image in OpenAI request.
+ * Image + evidence consume one immutable observation snapshot (no mid-path refetch).
  */
 import fs from "node:fs";
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
@@ -14,9 +15,18 @@ import {
 } from "../verification-gates.js";
 import {
   getAtOpenAiAnalysisEngine,
+  AT_MTF_EVIDENCE_TIMEFRAMES,
   type AtOpenAiAnalysisEngine,
 } from "../analysis/index.js";
-import { renderAtMarketChartPng } from "./chart-render.js";
+import {
+  buildAtObservationSnapshot,
+  createChartImageBinding,
+  validateImageEvidenceBinding,
+  AT_PLATFORM_SCREENSHOT_AVAILABLE,
+  AT_PLATFORM_SCREENSHOT_BLOCKER,
+} from "../analysis/observation-snapshot.js";
+import type { StrategyCandle } from "../auto-engine/strategy/rules.js";
+import { overlaysFromObservationSnapshot, renderAtMarketChartPng } from "./chart-render.js";
 import {
   AT_MONITOR_ANALYSIS_COOLDOWN_MS,
   AT_MONITOR_MAX_RETRIES,
@@ -276,12 +286,17 @@ export class AtMonitorWorker {
       unsupportedNote:
         "H2/2h is not available: ForexConnect project mappings support 5m/15m/30m/1h/4h/1d/1w only (no H2).",
       chartImageSource: "server-ohlc-render",
+      chartImageSourceLabel: "SERVER_OHLC_RENDER",
+      platformScreenshotAvailable: AT_PLATFORM_SCREENSHOT_AVAILABLE,
+      platformScreenshotBlocker: AT_PLATFORM_SCREENSHOT_BLOCKER,
       requiresBrowserOpen: false,
       persistsAcrossAppRestart: true,
       persistsAcrossVpsReboot: "NOT_CLAIMED",
       config: s.config,
       health,
       placesOrders: false,
+      acceptsForExecution: false,
+      mutatesBroker: false,
     };
   }
 
@@ -591,18 +606,126 @@ export class AtMonitorWorker {
     try {
       const tf = input.config.timeframe;
       const nowMs = Date.now();
-      const chartCandles = input.candles.map((c) => ({
-        ...c,
-        isClosed: Math.floor(nowMs / 1000) >= c.time + (
-          tf === "5m" ? 300 : tf === "15m" ? 900 : tf === "30m" ? 1800 : 3600
-        ),
+      const tfMs =
+        tf === "5m" ? 300_000
+          : tf === "15m" ? 900_000
+            : tf === "30m" ? 1_800_000
+              : 3_600_000;
+      const nowSec = Math.floor(nowMs / 1000);
+
+      const toStrategy = (
+        rows: ReturnType<typeof mapCandles>,
+        timeframeMs: number,
+      ): StrategyCandle[] =>
+        rows.map((c) => ({
+          time: c.time,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+          closed: nowSec >= c.time + Math.floor(timeframeMs / 1000),
+        }));
+
+      // Phase 4.18F.7 — load full MTF ladder once; primary + evidence share this immutable bag.
+      const candlesByTf: Record<string, StrategyCandle[]> = {
+        [tf]: toStrategy(input.candles, tfMs),
+      };
+      const mtfMs: Record<string, number> = {
+        "5m": 300_000,
+        "15m": 900_000,
+        "30m": 1_800_000,
+        "1h": 3_600_000,
+        "4h": 14_400_000,
+        "1d": 86_400_000,
+      };
+      for (const other of AT_MTF_EVIDENCE_TIMEFRAMES) {
+        if (other === tf) continue;
+        try {
+          const rows = await this.loadCandles(input.config.instrument, other);
+          candlesByTf[other] = toStrategy(rows, mtfMs[other] ?? 900_000);
+        } catch {
+          candlesByTf[other] = [];
+        }
+      }
+
+      if (this.store.getState().config?.configEpoch !== configEpoch) {
+        return { ok: false, code: "CONFIG_CHANGED", message: "Monitor configuration changed; analysis aborted." };
+      }
+
+      const freshness = evaluateVerificationMarketQuoteFreshness(input.verification, {
+        expectedInstrument: input.config.instrument,
+      });
+      let tickLastAcceptedAtMs: number | null = null;
+      let tickAccepted = 0;
+      let windowIds: string[] = [];
+      let freshWindowCount = 0;
+      let totalWindows = 0;
+      try {
+        const { getGenuineTickCaptureService } = await import(
+          "../../../market-data/forexconnect/genuine-tick-capture.js"
+        );
+        const capture = getGenuineTickCaptureService();
+        const counters = capture.getCounters();
+        tickLastAcceptedAtMs = counters.lastAcceptedAtMs ?? null;
+        tickAccepted = counters.accepted ?? 0;
+        const snap = capture.getSnapshot(input.config.instrument, { asOfMs: nowMs });
+        const windows = Array.isArray(snap.windows) ? snap.windows : [];
+        windowIds = windows.map((w) => String(w.windowId));
+        totalWindows = windows.length;
+        freshWindowCount = windows.filter((w) => w.freshness === "LIVE").length;
+      } catch {
+        /* tick store optional — freshness model records UNAVAILABLE */
+      }
+
+      const market = input.verification?.market;
+      const bid = market?.bid != null && Number.isFinite(market.bid) ? market.bid : null;
+      const ask = market?.ask != null && Number.isFinite(market.ask) ? market.ask : null;
+      const mid = bid != null && ask != null ? (bid + ask) / 2 : null;
+      const spread = market?.spread != null && Number.isFinite(market.spread)
+        ? market.spread
+        : (bid != null && ask != null ? ask - bid : null);
+
+      const snapshot = buildAtObservationSnapshot({
+        instrument: input.config.instrument,
+        primaryTimeframe: tf,
+        candlesByTf,
+        primaryTimeframeMs: tfMs,
+        nowMs,
+        quote: {
+          bid,
+          ask,
+          mid,
+          spread,
+          quoteFresh: freshness.fresh,
+          freshnessReasonCode: freshness.reasonCode,
+          sourceTimestampMs: freshness.sourceTimestampMs,
+          receivedAtMs: freshness.receivedAtMs,
+        },
+        ticks: {
+          lastAcceptedAtMs: tickLastAcceptedAtMs,
+          accepted: tickAccepted,
+          windowIds,
+          freshWindowCount,
+          totalWindows,
+        },
+      });
+
+      const primaryCandles = snapshot.primaryCandles;
+      const chartCandles = primaryCandles.map((c) => ({
+        time: c.time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        isClosed: c.closed !== false,
       }));
       const rendered = renderAtMarketChartPng({
-        instrument: input.config.instrument,
+        instrument: snapshot.instrument,
         timeframe: tf,
         timeframeLabel: AT_MONITOR_TIMEFRAME_LABELS[tf],
         candles: chartCandles,
-        observationUtc: nowIso(),
+        observationUtc: snapshot.observationUtc,
+        overlays: overlaysFromObservationSnapshot(snapshot),
       });
 
       if (!rendered.ok) {
@@ -611,27 +734,83 @@ export class AtMonitorWorker {
           workerState: "IMAGE_UNAVAILABLE",
           lastBlockerCode: "IMAGE_UNAVAILABLE",
           lastError: rendered.message,
+          lastObservationId: snapshot.observationId,
+          lastImageSourceLabel: "SERVER_OHLC_RENDER",
+          tickFresh: snapshot.freshness.genuineTicks === "FRESH",
+          candleFresh: snapshot.freshness.historicalCandles === "FRESH",
+          imageFresh: false,
           consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
         });
         return { ok: false, code: "IMAGE_UNAVAILABLE", message: rendered.message };
       }
 
+      const binding = createChartImageBinding({
+        snapshot,
+        imageHash: rendered.imageHash,
+        byteLength: rendered.byteLength,
+        width: rendered.width,
+        height: rendered.height,
+      });
+      const bindCheck = validateImageEvidenceBinding({
+        snapshot,
+        binding,
+        imageBytes: rendered.png,
+      });
+      if (!bindCheck.ok) {
+        this.runtimeState = "IMAGE_UNAVAILABLE";
+        await this.patchHealth({
+          workerState: "IMAGE_UNAVAILABLE",
+          lastBlockerCode: bindCheck.code,
+          lastError: bindCheck.message,
+          lastObservationId: snapshot.observationId,
+          lastImageId: binding.imageId,
+          lastImageSourceLabel: "SERVER_OHLC_RENDER",
+          tickFresh: snapshot.freshness.genuineTicks === "FRESH",
+          candleFresh: snapshot.freshness.historicalCandles === "FRESH",
+          imageFresh: false,
+          consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
+        });
+        return { ok: false, code: bindCheck.code, message: bindCheck.message };
+      }
+
+      const capturedAtUtc = binding.generatedAtUtc;
       const imageBase64 = rendered.png.toString("base64");
       const chartMeta = {
         available: true as const,
         imageHash: rendered.imageHash,
-        capturedAtUtc: nowIso(),
+        capturedAtUtc,
         source: rendered.source,
         note: rendered.note,
         blocker: null as string | null,
         width: rendered.width,
         height: rendered.height,
         byteLength: rendered.byteLength,
-        observationUtc: nowIso(),
+        observationUtc: snapshot.observationUtc,
+        // Engine binds marketDataFingerprint to evidence.fingerprint from the same candlesByTf.
+        marketDataFingerprint: null,
+        evidenceWindowStartUtc: snapshot.candleRange.firstOpenSec != null
+          ? new Date(snapshot.candleRange.firstOpenSec * 1000).toISOString()
+          : null,
+        evidenceWindowEndUtc: snapshot.candleRange.lastOpenSec != null
+          ? new Date(snapshot.candleRange.lastOpenSec * 1000).toISOString()
+          : null,
+        imageSourceLabel: "SERVER_OHLC_RENDER" as const,
+        observationId: snapshot.observationId,
+        imageId: binding.imageId,
+        overlaysDrawn: rendered.overlaysDrawn,
+        includedInOpenAiRequest: false,
       };
       await this.patchHealth({
-        lastScreenshotAtUtc: chartMeta.capturedAtUtc,
+        lastScreenshotAtUtc: capturedAtUtc,
         lastScreenshotImageHash: chartMeta.imageHash,
+        lastObservationId: snapshot.observationId,
+        lastImageId: binding.imageId,
+        lastImageSourceLabel: "SERVER_OHLC_RENDER",
+        tickFresh: snapshot.freshness.genuineTicks === "FRESH",
+        candleFresh: snapshot.freshness.historicalCandles === "FRESH",
+        imageFresh: true,
+        lastImageDeliveryLifecycle: "CAPTURE_CREATED",
+        storageHealth: "OK",
       });
 
       if (this.store.getState().config?.configEpoch !== configEpoch) {
@@ -639,21 +818,17 @@ export class AtMonitorWorker {
       }
 
       const envEpoch = this.deps.getEnvironmentEpoch?.() ?? 0;
-      // Same candle snapshot for chart PNG and OpenAI evidence — never re-fetch between them.
-      const evidenceCandles = input.candles.map((c) => ({
-        time: c.time,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      }));
+      const mtfTimeframes = [
+        tf,
+        ...AT_MTF_EVIDENCE_TIMEFRAMES.filter((t) => t !== tf),
+      ];
       const result = await this.engine.analyzeWithChart({
         environment: input.config.environment,
         environmentEpoch: envEpoch,
         instrument: input.config.instrument,
         primaryTimeframe: tf,
-        timeframes: [tf],
-        candlesByTf: { [tf]: evidenceCandles },
+        timeframes: mtfTimeframes,
+        candlesByTf,
         verification: input.verification,
         timeoutMs: input.timeoutMs,
         trigger: input.trigger,
@@ -677,21 +852,30 @@ export class AtMonitorWorker {
           workerState: this.runtimeState,
           lastBlockerCode: result.code,
           lastError: result.message,
+          lastImageDeliveryLifecycle:
+            result.analysis?.evidenceDelivery?.imageDeliveryLifecycle
+            ?? "DELIVERY_FAILED",
+          lastIncludedImageBytesInRequest:
+            result.analysis?.evidenceDelivery?.includedImageBytesInRequest ?? false,
           consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
         });
         return { ok: false, code: result.code, message: result.message };
       }
 
       // Persist chart bytes keyed by analysis id (if available).
-      if (rendered.ok && result.analysis.analysisId) {
+      let storageHealth: "OK" | "DEGRADED" = "OK";
+      try {
         const dir = chartImageDir(this.storageRoot);
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(chartImagePath(result.analysis.analysisId, this.storageRoot), rendered.png);
         pruneChartImages(this.storageRoot);
+      } catch {
+        storageHealth = "DEGRADED";
       }
 
       if (input.dedupeKey) await this.store.rememberDedupe(input.dedupeKey);
 
+      const delivery = result.analysis.evidenceDelivery;
       this.runtimeState = "ANALYSIS_SUCCESS";
       await this.patchHealth({
         workerState: "ANALYSIS_SUCCESS",
@@ -702,6 +886,16 @@ export class AtMonitorWorker {
         lastError: null,
         lastBlockerCode: null,
         nextScheduledAnalysisAtUtc: nextCandleCloseUtc(tf),
+        lastObservationId: snapshot.observationId,
+        lastImageId: binding.imageId,
+        lastImageSourceLabel: "SERVER_OHLC_RENDER",
+        lastMtfAlignment: delivery?.categoriesIncluded?.mtfAlignment
+          ? "INCLUDED"
+          : null,
+        lastImageDeliveryLifecycle: delivery?.imageDeliveryLifecycle ?? null,
+        lastIncludedImageBytesInRequest: delivery?.includedImageBytesInRequest ?? null,
+        imageFresh: true,
+        storageHealth,
       });
       return { ok: true, analysisId: result.analysis.analysisId };
     } catch (err) {

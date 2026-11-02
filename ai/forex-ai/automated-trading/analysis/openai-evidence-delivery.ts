@@ -6,7 +6,17 @@
 
 import type { MarketEvidenceBundle } from "./market-evidence-builder.js";
 
-export const OPENAI_EVIDENCE_DELIVERY_SCHEMA = "kwizera.openai-evidence-delivery.v1" as const;
+export const OPENAI_EVIDENCE_DELIVERY_SCHEMA = "kwizera.openai-evidence-delivery.v2" as const;
+
+export type OpenAiImageDeliveryLifecycle =
+  | "CAPTURE_CREATED"
+  | "IMAGE_VALIDATED"
+  | "REQUEST_QUEUED"
+  | "REQUEST_SENT"
+  | "RESPONSE_RECEIVED"
+  | "RESPONSE_VALIDATED"
+  | "DELIVERY_FAILED"
+  | "IMAGE_NOT_INCLUDED";
 
 export type OpenAiEvidenceRequestStatus =
   | "REQUEST_NOT_RUN"
@@ -31,7 +41,7 @@ export type OpenAiEvidenceValidationStatus =
 
 export interface OpenAiEvidenceDeliveryReport {
   schemaVersion: typeof OPENAI_EVIDENCE_DELIVERY_SCHEMA;
-  phase: "4.18F.5";
+  phase: "4.18F.5" | "4.18F.7";
   analysisId: string | null;
   instrument: string | null;
   builtAtUtc: string;
@@ -48,6 +58,7 @@ export interface OpenAiEvidenceDeliveryReport {
     mtfAlignment: boolean;
     signalValidation: boolean;
     strategyCandidate: boolean;
+    chartImageBytes: boolean;
   };
   timeframesIncluded: string[];
   movementWindowIds: string[];
@@ -58,6 +69,13 @@ export interface OpenAiEvidenceDeliveryReport {
   requestStatus: OpenAiEvidenceRequestStatus;
   responseStatus: OpenAiEvidenceResponseStatus;
   validationStatus: OpenAiEvidenceValidationStatus;
+  /** Phase 4.18F.7 multimodal image delivery. */
+  imageDeliveryLifecycle: OpenAiImageDeliveryLifecycle | null;
+  observationId: string | null;
+  imageId: string | null;
+  imageHash: string | null;
+  imageSource: "SERVER_OHLC_RENDER" | "PLATFORM_SCREENSHOT" | null;
+  includedImageBytesInRequest: boolean;
   modelRequested: string | null;
   modelUsed: string | null;
   latencyMs: number | null;
@@ -147,6 +165,7 @@ export function inspectMarketEvidencePrompt(prompt: Record<string, unknown>): {
       signalValidation: isRecord(ti?.signalValidation),
       strategyCandidate: indicators?.strategyDirection != null
         || isRecord(ti?.signalValidation),
+      chartImageBytes: false,
     },
     timeframesIncluded,
     movementWindowIds,
@@ -172,6 +191,13 @@ export function buildOpenAiEvidenceDeliveryReport(input: {
   lifecycle?: string | null;
   blockers?: string[];
   nowMs?: number;
+  imageDeliveryLifecycle?: OpenAiImageDeliveryLifecycle | null;
+  observationId?: string | null;
+  imageId?: string | null;
+  imageHash?: string | null;
+  imageSource?: "SERVER_OHLC_RENDER" | "PLATFORM_SCREENSHOT" | null;
+  includedImageBytesInRequest?: boolean;
+  phase?: "4.18F.5" | "4.18F.7";
 }): OpenAiEvidenceDeliveryReport {
   const inspected = inspectMarketEvidencePrompt(input.prompt);
   // Prefer live windows from bundle when prompt omitted empty arrays.
@@ -185,10 +211,11 @@ export function buildOpenAiEvidenceDeliveryReport(input: {
     categories.movementWindows = (input.bundle.liveTickMovement.windows?.length ?? 0) > 0
       || categories.movementWindows;
   }
+  categories.chartImageBytes = input.includedImageBytesInRequest === true;
 
   return {
     schemaVersion: OPENAI_EVIDENCE_DELIVERY_SCHEMA,
-    phase: "4.18F.5",
+    phase: input.phase ?? "4.18F.7",
     analysisId: input.analysisId ?? null,
     instrument: input.instrument ?? null,
     builtAtUtc: new Date(input.nowMs ?? Date.now()).toISOString(),
@@ -203,6 +230,12 @@ export function buildOpenAiEvidenceDeliveryReport(input: {
     requestStatus: input.requestStatus,
     responseStatus: input.responseStatus,
     validationStatus: input.validationStatus,
+    imageDeliveryLifecycle: input.imageDeliveryLifecycle ?? null,
+    observationId: input.observationId ?? null,
+    imageId: input.imageId ?? null,
+    imageHash: input.imageHash ?? null,
+    imageSource: input.imageSource ?? null,
+    includedImageBytesInRequest: input.includedImageBytesInRequest === true,
     modelRequested: input.modelRequested ?? null,
     modelUsed: input.modelUsed ?? null,
     latencyMs: input.latencyMs ?? null,

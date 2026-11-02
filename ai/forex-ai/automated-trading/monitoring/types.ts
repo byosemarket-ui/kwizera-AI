@@ -5,7 +5,8 @@ import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AtMonitorTimeframe } from "./timeframes.js";
 
 export const AT_MONITOR_SCHEMA = "at-live-monitor-v1";
-export const AT_MONITOR_PHASE = "53.3";
+/** Phase 4.18F.7 extends 53.3 monitor contracts (image provenance + freshness fields). */
+export const AT_MONITOR_PHASE = "4.18F.7";
 
 export type AtMonitorWorkerState =
   | "STOPPED"
@@ -64,6 +65,17 @@ export interface AtMonitorHealth {
   quoteReceivedAtMs: number | null;
   analysisInFlight: boolean;
   consecutiveFailures: number;
+  /** Phase 4.18F.7 — independent freshness + image provenance (dashboard observability). */
+  tickFresh: boolean | null;
+  candleFresh: boolean | null;
+  imageFresh: boolean | null;
+  lastObservationId: string | null;
+  lastImageId: string | null;
+  lastImageSourceLabel: "SERVER_OHLC_RENDER" | "PLATFORM_SCREENSHOT" | null;
+  lastMtfAlignment: string | null;
+  lastImageDeliveryLifecycle: string | null;
+  lastIncludedImageBytesInRequest: boolean | null;
+  storageHealth: "OK" | "DEGRADED" | "UNKNOWN" | null;
 }
 
 export interface AtMonitorPersistedState {
@@ -81,12 +93,18 @@ export interface AtMonitorPublicStatus {
   supportedTimeframes: AtMonitorTimeframe[];
   unsupportedNote: string;
   chartImageSource: "server-ohlc-render";
+  /** Explicit label — never claim Trading Station screenshot for server OHLC. */
+  chartImageSourceLabel: "SERVER_OHLC_RENDER";
+  platformScreenshotAvailable: false;
+  platformScreenshotBlocker: string;
   requiresBrowserOpen: false;
   persistsAcrossAppRestart: true;
   persistsAcrossVpsReboot: "NOT_CLAIMED";
   config: AtMonitorConfig | null;
   health: AtMonitorHealth;
   placesOrders: false;
+  acceptsForExecution: false;
+  mutatesBroker: false;
 }
 
 export function defaultMonitorHealth(): AtMonitorHealth {
@@ -117,6 +135,16 @@ export function defaultMonitorHealth(): AtMonitorHealth {
     quoteSnapshotFingerprint: null,
     quoteSourceTimestampMs: null,
     quoteReceivedAtMs: null,
+    tickFresh: null,
+    candleFresh: null,
+    imageFresh: null,
+    lastObservationId: null,
+    lastImageId: null,
+    lastImageSourceLabel: null,
+    lastMtfAlignment: null,
+    lastImageDeliveryLifecycle: null,
+    lastIncludedImageBytesInRequest: null,
+    storageHealth: "UNKNOWN",
     analysisInFlight: false,
     consecutiveFailures: 0,
   };

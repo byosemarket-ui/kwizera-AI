@@ -391,11 +391,30 @@ export class AtOpenAiAnalysisEngine {
         }
       }
 
+      // Phase 4.18F.7 — evaluate genuine tick freshness before historicalOnly classification.
+      let tickLastAcceptedAtMs: number | null = null;
+      let genuineTickFresh = false;
+      try {
+        const { getGenuineTickCaptureService } = await import(
+          "../../../market-data/forexconnect/genuine-tick-capture.js"
+        );
+        const capture = getGenuineTickCaptureService();
+        const counters = capture.getCounters();
+        tickLastAcceptedAtMs = counters.lastAcceptedAtMs ?? null;
+        if (typeof tickLastAcceptedAtMs === "number" && Number.isFinite(tickLastAcceptedAtMs)) {
+          genuineTickFresh = Date.now() - tickLastAcceptedAtMs <= 120_000;
+        }
+      } catch {
+        genuineTickFresh = false;
+      }
+
       const evidenceBuild = buildEvidenceBundle({
         environment: input.environment,
         instrument,
         candlesByTf,
         verification: input.verification,
+        genuineTickFresh,
+        tickLastAcceptedAtMs,
       });
 
       const chartMeta: AtChartImageMeta | null = input.chartImage
@@ -403,6 +422,7 @@ export class AtOpenAiAnalysisEngine {
             ...input.chartImage.meta,
             includedInOpenAiRequest: false,
             marketDataFingerprint: input.chartImage.meta.marketDataFingerprint ?? null,
+            imageSourceLabel: input.chartImage.meta.imageSourceLabel ?? "SERVER_OHLC_RENDER",
           }
         : {
             available: false,
@@ -413,6 +433,7 @@ export class AtOpenAiAnalysisEngine {
             blocker: input.requireImage ? "IMAGE_UNAVAILABLE" : null,
             includedInOpenAiRequest: false,
             marketDataFingerprint: null,
+            imageSourceLabel: undefined,
           };
 
       if (!evidenceBuild.ok || !evidenceBuild.evidence) {
@@ -674,6 +695,15 @@ export class AtOpenAiAnalysisEngine {
           lifecycle: failed.lifecycle,
           blockers: ["IMAGE_UNAVAILABLE"],
           latencyMs: failed.latencyMs,
+          imageDeliveryLifecycle: "DELIVERY_FAILED",
+          observationId: chartMeta?.observationId ?? null,
+          imageId: chartMeta?.imageId ?? null,
+          imageHash: chartMeta?.imageHash ?? null,
+          imageSource: chartMeta?.imageSourceLabel === "PLATFORM_SCREENSHOT"
+            ? "PLATFORM_SCREENSHOT"
+            : (hasImageBytes ? "SERVER_OHLC_RENDER" : null),
+          includedImageBytesInRequest: false,
+          phase: "4.18F.7",
         });
         await this.store().save(failed);
         return {
@@ -751,6 +781,15 @@ export class AtOpenAiAnalysisEngine {
           lifecycle: failed.lifecycle,
           blockers: [failCode],
           latencyMs: failed.latencyMs,
+          imageDeliveryLifecycle: hasImageBytes ? "DELIVERY_FAILED" : "IMAGE_NOT_INCLUDED",
+          observationId: chartMeta?.observationId ?? null,
+          imageId: chartMeta?.imageId ?? null,
+          imageHash: chartMeta?.imageHash ?? null,
+          imageSource: chartMeta?.imageSourceLabel === "PLATFORM_SCREENSHOT"
+            ? "PLATFORM_SCREENSHOT"
+            : (hasImageBytes ? "SERVER_OHLC_RENDER" : null),
+          includedImageBytesInRequest: false,
+          phase: "4.18F.7",
         });
         await this.store().save(failed);
         return {
@@ -805,6 +844,17 @@ export class AtOpenAiAnalysisEngine {
         lifecycle: result.lifecycle,
         blockers: result.blockers.map((b) => b.code).slice(0, 12),
         latencyMs: result.latencyMs,
+        imageDeliveryLifecycle: useMultimodal
+          ? (validationStatus === "VALIDATED" ? "RESPONSE_VALIDATED" : "RESPONSE_RECEIVED")
+          : (hasImageBytes ? "DELIVERY_FAILED" : "IMAGE_NOT_INCLUDED"),
+        observationId: chartMeta?.observationId ?? null,
+        imageId: chartMeta?.imageId ?? null,
+        imageHash: chartMeta?.imageHash ?? null,
+        imageSource: chartMeta?.imageSourceLabel === "PLATFORM_SCREENSHOT"
+          ? "PLATFORM_SCREENSHOT"
+          : (hasImageBytes || useMultimodal ? "SERVER_OHLC_RENDER" : null),
+        includedImageBytesInRequest: useMultimodal,
+        phase: "4.18F.7",
       });
 
       // Stale / out-of-order guard: do not let an older fingerprint become "latest"

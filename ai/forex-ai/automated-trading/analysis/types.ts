@@ -109,6 +109,11 @@ export interface AtChartImageMeta {
   evidenceWindowStartUtc?: string | null;
   evidenceWindowEndUtc?: string | null;
   observationUtc?: string | null;
+  /** Phase 4.18F.7 — explicit source label (never claim platform screenshot for server OHLC). */
+  imageSourceLabel?: "SERVER_OHLC_RENDER" | "PLATFORM_SCREENSHOT";
+  observationId?: string | null;
+  imageId?: string | null;
+  overlaysDrawn?: string[];
 }
 
 export interface AtOpenAiAnalysisResult {

@@ -104,6 +104,24 @@ function normalizeHealth(raw: unknown): AtMonitorHealth {
       typeof o.quoteReceivedAtMs === "number" && Number.isFinite(o.quoteReceivedAtMs)
         ? Math.floor(o.quoteReceivedAtMs)
         : null,
+    tickFresh: typeof o.tickFresh === "boolean" ? o.tickFresh : null,
+    candleFresh: typeof o.candleFresh === "boolean" ? o.candleFresh : null,
+    imageFresh: typeof o.imageFresh === "boolean" ? o.imageFresh : null,
+    lastObservationId: typeof o.lastObservationId === "string" ? o.lastObservationId.slice(0, 64) : null,
+    lastImageId: typeof o.lastImageId === "string" ? o.lastImageId.slice(0, 64) : null,
+    lastImageSourceLabel:
+      o.lastImageSourceLabel === "SERVER_OHLC_RENDER" || o.lastImageSourceLabel === "PLATFORM_SCREENSHOT"
+        ? o.lastImageSourceLabel
+        : null,
+    lastMtfAlignment: typeof o.lastMtfAlignment === "string" ? o.lastMtfAlignment.slice(0, 48) : null,
+    lastImageDeliveryLifecycle:
+      typeof o.lastImageDeliveryLifecycle === "string" ? o.lastImageDeliveryLifecycle.slice(0, 48) : null,
+    lastIncludedImageBytesInRequest:
+      typeof o.lastIncludedImageBytesInRequest === "boolean" ? o.lastIncludedImageBytesInRequest : null,
+    storageHealth:
+      o.storageHealth === "OK" || o.storageHealth === "DEGRADED" || o.storageHealth === "UNKNOWN"
+        ? o.storageHealth
+        : "UNKNOWN",
     analysisInFlight: false,
     consecutiveFailures:
       typeof o.consecutiveFailures === "number" && Number.isFinite(o.consecutiveFailures)

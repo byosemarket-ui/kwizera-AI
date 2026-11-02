@@ -395,6 +395,10 @@ export function ForexAutomatedTradingPage(props: {
     unsupportedNote?: string;
     requiresBrowserOpen?: boolean;
     persistsAcrossVpsReboot?: string;
+    chartImageSource?: string;
+    chartImageSourceLabel?: string;
+    platformScreenshotAvailable?: boolean;
+    platformScreenshotBlocker?: string;
     config?: {
       enabled?: boolean;
       instrument?: string;
@@ -413,6 +417,9 @@ export function ForexAutomatedTradingPage(props: {
       lastError?: string | null;
       lastBlockerCode?: string | null;
       quoteFresh?: boolean | null;
+      tickFresh?: boolean | null;
+      candleFresh?: boolean | null;
+      imageFresh?: boolean | null;
       freshnessReasonCode?: string | null;
       freshnessThresholdMs?: number | null;
       verificationAgeMs?: number | null;
@@ -420,6 +427,13 @@ export function ForexAutomatedTradingPage(props: {
       analysisInFlight?: boolean;
       lastAnalysisId?: string | null;
       lastScreenshotImageHash?: string | null;
+      lastObservationId?: string | null;
+      lastImageId?: string | null;
+      lastImageSourceLabel?: string | null;
+      lastMtfAlignment?: string | null;
+      lastImageDeliveryLifecycle?: string | null;
+      lastIncludedImageBytesInRequest?: boolean | null;
+      storageHealth?: string | null;
     };
   } | null>(null);
   const [monitorTf, setMonitorTf] = useState("15m");
@@ -514,7 +528,7 @@ export function ForexAutomatedTradingPage(props: {
       rejectionReasons?: string[];
       supportReasons?: string[];
     } | null;
-    /** Phase 4.18F.5 — redacted OpenAI evidence-delivery status (from OA result when present). */
+    /** Phase 4.18F.5/F.7 — redacted OpenAI evidence-delivery status (from OA result when present). */
     openaiDelivery?: {
       requestStatus?: string | null;
       responseStatus?: string | null;
@@ -527,6 +541,13 @@ export function ForexAutomatedTradingPage(props: {
       historicalLiveSeparated?: boolean | null;
       atrMethodLabel?: string | null;
       blockers?: string[];
+      imageDeliveryLifecycle?: string | null;
+      observationId?: string | null;
+      imageId?: string | null;
+      imageHash?: string | null;
+      imageSource?: string | null;
+      includedImageBytesInRequest?: boolean | null;
+      phase?: string | null;
     } | null;
     /** Phase 4.18F.4 — MTF alignment matrix. */
     mtf?: {
@@ -1502,6 +1523,13 @@ export function ForexAutomatedTradingPage(props: {
                 historicalLiveSeparated?: boolean;
                 atrMethodLabel?: string | null;
                 blockers?: string[];
+                imageDeliveryLifecycle?: string | null;
+                observationId?: string | null;
+                imageId?: string | null;
+                imageHash?: string | null;
+                imageSource?: string | null;
+                includedImageBytesInRequest?: boolean;
+                phase?: string | null;
               } | null;
             };
             const d = latest?.evidenceDelivery;
@@ -1518,6 +1546,13 @@ export function ForexAutomatedTradingPage(props: {
                 historicalLiveSeparated: null,
                 atrMethodLabel: data.marketEvidence.primary?.indicators?.atrMethod ?? "SMA_OF_TR",
                 blockers: ["OPENAI_RESULT_NOT_ATTACHED"],
+                imageDeliveryLifecycle: null,
+                observationId: null,
+                imageId: null,
+                imageHash: null,
+                imageSource: null,
+                includedImageBytesInRequest: null,
+                phase: null,
               };
             }
             return {
@@ -1532,6 +1567,13 @@ export function ForexAutomatedTradingPage(props: {
               historicalLiveSeparated: d.historicalLiveSeparated ?? null,
               atrMethodLabel: d.atrMethodLabel ?? null,
               blockers: d.blockers ?? [],
+              imageDeliveryLifecycle: d.imageDeliveryLifecycle ?? null,
+              observationId: d.observationId ?? null,
+              imageId: d.imageId ?? null,
+              imageHash: d.imageHash ?? null,
+              imageSource: d.imageSource ?? null,
+              includedImageBytesInRequest: d.includedImageBytesInRequest ?? null,
+              phase: d.phase ?? null,
             };
           })(),
         });
@@ -2306,13 +2348,23 @@ export function ForexAutomatedTradingPage(props: {
               </li>
               {marketEvidenceSummary.openaiDelivery ? (
                 <li data-fx-at-openai-evidence-delivery="true">
-                  OpenAI evidence delivery (F.5, redacted):
+                  OpenAI evidence delivery (F.7, redacted):
                   {" "}
                   request=<strong>{marketEvidenceSummary.openaiDelivery.requestStatus ?? "REQUEST_NOT_RUN"}</strong>
                   {" · "}
                   response=<strong>{marketEvidenceSummary.openaiDelivery.responseStatus ?? "RESPONSE_NOT_VERIFIED"}</strong>
                   {" · "}
                   validation=<strong>{marketEvidenceSummary.openaiDelivery.validationStatus ?? "REQUEST_NOT_RUN"}</strong>
+                  {" · "}
+                  image=<strong>{marketEvidenceSummary.openaiDelivery.imageDeliveryLifecycle ?? "—"}</strong>
+                  {" · "}
+                  imgBytes=<strong>
+                    {marketEvidenceSummary.openaiDelivery.includedImageBytesInRequest == null
+                      ? "—"
+                      : String(marketEvidenceSummary.openaiDelivery.includedImageBytesInRequest)}
+                  </strong>
+                  {" · "}
+                  src=<strong>{marketEvidenceSummary.openaiDelivery.imageSource ?? "—"}</strong>
                   <ul style={{ margin: "0.25rem 0 0", paddingLeft: "1.1rem" }}>
                     <li>
                       Size chars: <strong>{marketEvidenceSummary.openaiDelivery.evidenceSizeChars ?? "—"}</strong>
@@ -3138,7 +3190,15 @@ export function ForexAutomatedTradingPage(props: {
             </div>
             <p className="fx-auto-trading-hint">
               Server-side worker — continues after you leave this page. Not a browser screenshot session.
-              {" "}Chart image required for OpenAI. Confidence: NOT CALIBRATED. H2 unsupported on ForexConnect mappings.
+              {" "}Image source:{" "}
+              <strong data-fx-at-chart-source-label="true">
+                {monitor?.chartImageSourceLabel ?? "SERVER_OHLC_RENDER"}
+              </strong>
+              {" "}(not Trading Station). Chart image required for OpenAI. Confidence: NOT CALIBRATED.
+              {" "}H2 unsupported on ForexConnect mappings.
+              {monitor?.platformScreenshotAvailable
+                ? null
+                : ` Platform screenshot: unavailable.`}
             </p>
             <div className="fx-auto-monitor-controls">
               <label className="fx-auto-trading-hint" htmlFor="fx-at-monitor-tf">
@@ -3191,6 +3251,18 @@ export function ForexAutomatedTradingPage(props: {
                 <dd>{monitor?.health?.lastScreenshotAtUtc ?? "—"}</dd>
               </div>
               <div>
+                <dt>Image hash</dt>
+                <dd data-fx-at-image-hash="true">{monitor?.health?.lastScreenshotImageHash ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Observation ID</dt>
+                <dd data-fx-at-observation-id="true">{monitor?.health?.lastObservationId ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Image ID</dt>
+                <dd>{monitor?.health?.lastImageId ?? "—"}</dd>
+              </div>
+              <div>
                 <dt>Last OpenAI</dt>
                 <dd>{monitor?.health?.lastAnalysisAtUtc ?? "—"}</dd>
               </div>
@@ -3201,6 +3273,35 @@ export function ForexAutomatedTradingPage(props: {
               <div>
                 <dt>Quote fresh</dt>
                 <dd>{monitor?.health?.quoteFresh == null ? "—" : monitor.health.quoteFresh ? "yes" : "no"}</dd>
+              </div>
+              <div>
+                <dt>Tick fresh</dt>
+                <dd data-fx-at-tick-fresh="true">
+                  {monitor?.health?.tickFresh == null ? "—" : monitor.health.tickFresh ? "yes" : "no"}
+                </dd>
+              </div>
+              <div>
+                <dt>Candle fresh</dt>
+                <dd>{monitor?.health?.candleFresh == null ? "—" : monitor.health.candleFresh ? "yes" : "no"}</dd>
+              </div>
+              <div>
+                <dt>Image fresh</dt>
+                <dd>{monitor?.health?.imageFresh == null ? "—" : monitor.health.imageFresh ? "yes" : "no"}</dd>
+              </div>
+              <div>
+                <dt>Image delivery</dt>
+                <dd data-fx-at-image-delivery="true">
+                  {monitor?.health?.lastImageDeliveryLifecycle ?? "—"}
+                  {monitor?.health?.lastIncludedImageBytesInRequest == null
+                    ? ""
+                    : monitor.health.lastIncludedImageBytesInRequest
+                      ? " · bytes=yes"
+                      : " · bytes=no"}
+                </dd>
+              </div>
+              <div>
+                <dt>Storage</dt>
+                <dd>{monitor?.health?.storageHealth ?? "—"}</dd>
               </div>
               <div>
                 <dt>Freshness reason</dt>
@@ -3313,6 +3414,12 @@ export function ForexAutomatedTradingPage(props: {
                   indicatorGroupsIncluded?: string[];
                   historicalLiveSeparated?: boolean;
                   atrMethodLabel?: string | null;
+                  imageDeliveryLifecycle?: string | null;
+                  observationId?: string | null;
+                  imageId?: string | null;
+                  imageHash?: string | null;
+                  imageSource?: string | null;
+                  includedImageBytesInRequest?: boolean;
                   placesOrders?: false;
                   acceptsForExecution?: false;
                   mutatesBroker?: false;
@@ -3451,6 +3558,15 @@ export function ForexAutomatedTradingPage(props: {
                       : ""}
                     {latest.evidenceDelivery?.movementWindowIds?.length
                       ? ` · windows ${latest.evidenceDelivery.movementWindowIds.join(",")}`
+                      : ""}
+                    {latest.evidenceDelivery?.imageDeliveryLifecycle
+                      ? ` · imgLife ${latest.evidenceDelivery.imageDeliveryLifecycle}`
+                      : ""}
+                    {latest.evidenceDelivery?.observationId
+                      ? ` · obs ${latest.evidenceDelivery.observationId.slice(0, 8)}`
+                      : ""}
+                    {latest.evidenceDelivery?.includedImageBytesInRequest != null
+                      ? ` · imgBytes=${String(latest.evidenceDelivery.includedImageBytesInRequest)}`
                       : ""}
                     {" · "}placesOrders=<strong>false</strong>
                   </div>

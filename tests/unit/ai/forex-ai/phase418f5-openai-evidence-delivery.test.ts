@@ -137,7 +137,7 @@ describe("F.5 historical/live separation", () => {
       liveTickMovement,
     });
     expect(bundle.evidenceVersion).toBe(MARKET_EVIDENCE_VERSION);
-    expect(MARKET_EVIDENCE_VERSION).toBe("4.18F.5");
+    expect(MARKET_EVIDENCE_VERSION).toBe("4.18F.7");
     expect(bundle.historical.primary?.movement).toBeTruthy();
     expect(bundle.liveTickMovement.windows.length).toBeGreaterThan(0);
     expect(bundle.liveTickMovement.latestTick.value?.bid).toBe(1.085);
@@ -203,7 +203,7 @@ describe("F.5 evidence assembly + redacted diagnostics", () => {
       lifecycle: "ANALYSIS_VALID",
     });
     expect(report.schemaVersion).toBe(OPENAI_EVIDENCE_DELIVERY_SCHEMA);
-    expect(report.phase).toBe("4.18F.5");
+    expect(report.phase).toBe("4.18F.7");
     expect(report.categoriesIncluded.historicalCandles).toBe(true);
     expect(report.categoriesIncluded.liveTickMovement).toBe(true);
     expect(report.categoriesIncluded.movementWindows).toBe(true);

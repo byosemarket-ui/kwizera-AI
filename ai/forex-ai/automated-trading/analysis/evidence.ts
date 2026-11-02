@@ -71,6 +71,9 @@ export function buildEvidenceBundle(input: {
   candlesByTf: Record<string, AtRawCandle[]>;
   verification: AutomatedTradingVerificationResult | null;
   nowMs?: number;
+  /** Phase 4.18F.7 — genuine tick freshness (independent of Phase 52 quote). */
+  genuineTickFresh?: boolean | null;
+  tickLastAcceptedAtMs?: number | null;
 }): { ok: true; evidence: AtAnalysisEvidenceBundle } | { ok: false; code: string; message: string; evidence: AtAnalysisEvidenceBundle | null } {
   const nowMs = input.nowMs ?? Date.now();
   const instrument = String(input.instrument ?? "").trim();
@@ -123,10 +126,15 @@ export function buildEvidenceBundle(input: {
     nowMs: input.nowMs,
     expectedInstrument: instrument,
   });
-  if (!quoteFresh) {
-    warnings.push("Current Bid/Ask not verified fresh — analysis uses historical OHLC only.");
+  const tickFresh = input.genuineTickFresh === true;
+  if (!quoteFresh && !tickFresh) {
+    warnings.push("No fresh verified quote and no fresh genuine ticks — historical OHLC only.");
+  } else if (!quoteFresh && tickFresh) {
+    warnings.push("Verified quote stale/unavailable but genuine tick store is fresh — not HISTORICAL_ONLY.");
+  } else if (quoteFresh && !tickFresh) {
+    warnings.push("Verified quote fresh; genuine tick store not fresh or empty.");
   }
-  warnings.push("Candles are historical ForexConnect get_history OHLC (bid basis) — not live quotes.");
+  warnings.push("Candles are historical ForexConnect get_history OHLC (bid basis) — not live ticks.");
 
   const fp = createHash("sha256");
   fp.update(input.environment);
@@ -142,6 +150,12 @@ export function buildEvidenceBundle(input: {
   if (quoteFresh && market) {
     fp.update(`q:${market.bid}:${market.ask}`);
   }
+  if (tickFresh && input.tickLastAcceptedAtMs != null) {
+    fp.update(`t:${input.tickLastAcceptedAtMs}`);
+  }
+
+  // Phase 4.18F.7 — HISTORICAL_ONLY only when neither live quote nor genuine ticks are fresh.
+  const historicalOnly = !quoteFresh && !tickFresh;
 
   const evidence: AtAnalysisEvidenceBundle = {
     fingerprint: fp.digest("hex").slice(0, 32),
@@ -153,7 +167,7 @@ export function buildEvidenceBundle(input: {
     ask: quoteFresh ? market!.ask : null,
     quoteFresh,
     feedStatus: market?.feedStatus ?? null,
-    historicalOnly: !quoteFresh,
+    historicalOnly,
     verificationIdentityStatus: input.verification?.identityStatus ?? null,
     warnings,
     builtAtUtc: new Date(nowMs).toISOString(),

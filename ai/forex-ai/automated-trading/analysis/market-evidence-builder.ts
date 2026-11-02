@@ -27,7 +27,7 @@ import {
 
 export const MARKET_EVIDENCE_SCHEMA = "kwizera.market-evidence.v1" as const;
 /** Phase 4.18F.5 — OpenAI evidence-delivery proof + F.4 MTF + F.3 tech intel. */
-export const MARKET_EVIDENCE_VERSION = "4.18F.5" as const;
+export const MARKET_EVIDENCE_VERSION = "4.18F.7" as const;
 
 /** Default history pull — FC SDK practical max (not unlimited). */
 export const AT_HISTORY_LOOKBACK_LIMIT = FOREXCONNECT_MAX_CANDLES;
