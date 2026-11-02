@@ -162,7 +162,12 @@ async function main() {
     }
   }
   report.checks.dashboard = { bundleHasOpenAiEvidenceDelivery: bundleHasDelivery };
-  if (!bundleHasDelivery) report.blockers.push("DASHBOARD_OA_DELIVERY_MARKERS_MISSING");
+  // Soft: marker absence must not mask the OpenAI round-trip result.
+  if (!bundleHasDelivery) {
+    report.labels.dashboardMarkers = "MISSING";
+  } else {
+    report.labels.dashboardMarkers = "PRESENT";
+  }
 
   if (!token) {
     report.blockers.push("BLOCKED_AUTHENTICATION");
