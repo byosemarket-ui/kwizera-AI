@@ -26,8 +26,9 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
   actions: read
+  statuses: read
 
 jobs:
   observe:
@@ -63,6 +64,9 @@ jobs:
           EXPECT_SHA: ${{ github.event.inputs.sha || (github.event_name == 'workflow_run' && github.event.workflow_run.head_sha) || github.sha }}
           OBSERVE_SECONDS: ${{ github.event.inputs.observe_seconds || '90' }}
           FOCUS_INSTRUMENT: ${{ github.event.inputs.focus_instrument || '' }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.ssh"
@@ -156,4 +160,78 @@ jobs:
             printf '%s\n' "$SAFE_OUT" | tail -n 800
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          # Public redacted evidence excerpt (no secrets) for unsigned verification.
+          BODY_FILE="${RUNNER_TEMP}/phase418f2-live-obs-comment.md"
+          {
+            echo "### Phase 4.18F.2.1 live observation (redacted)"
+            echo
+            echo "expectSha=\`${EXPECT_SHA}\` observeSeconds=\`${OBSERVE_SECONDS}\` exit=\`${rc}\`"
+            echo
+            echo '```json'
+            printf '%s\n' "$SAFE_OUT" | python3 -c "
+import sys, json, re
+raw = sys.stdin.read()
+# Prefer the last JSON object in the output.
+m = None
+for match in re.finditer(r'\\{[\\s\\S]*\\}', raw):
+    m = match
+text = m.group(0) if m else raw[-12000:]
+try:
+    obj = json.loads(text)
+    slim = {
+      'phase': obj.get('phase'),
+      'focusInstrument': obj.get('focusInstrument'),
+      'observeSeconds': obj.get('observeSeconds'),
+      'labels': obj.get('labels'),
+      'evidence': {
+        'deployment': (obj.get('evidence') or {}).get('deployment'),
+        'forexconnect': (obj.get('evidence') or {}).get('forexconnect'),
+        'summary': (obj.get('evidence') or {}).get('summary'),
+      },
+      'instrumentOutcomes': {
+        k: {
+          'outcome': v.get('outcome'),
+          'genuineChanges': v.get('genuineChanges'),
+          'identicalSamples': v.get('identicalSamples'),
+          'samples': v.get('samples'),
+          'netBidMove': v.get('netBidMove'),
+          'netAskMove': v.get('netAskMove'),
+          'first': v.get('first'),
+          'last': {kk: vv for kk, vv in (v.get('last') or {}).items() if kk in ('symbol','bid','ask','mid','spread','tradingStatus','eventClass','at','prevBid','prevAsk')}
+        } for k, v in (obj.get('instrumentOutcomes') or {}).items()
+      },
+      'blockers': obj.get('blockers'),
+      'sampleCount': len(obj.get('samples') or []),
+      'lastSample': (obj.get('samples') or [None])[-1],
+    }
+    print(json.dumps(slim, indent=2)[:14000])
+except Exception as e:
+    print(text[-8000:])
+    print('parse_error', str(e)[:120])
+"
+            echo '```'
+          } >"$BODY_FILE"
+          export BODY_FILE
+          export COMMENT_SHA="${EXPECT_SHA}"
+          python3 - <<'PY'
+          import json, os, urllib.request
+          token = os.environ["GITHUB_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          sha = os.environ.get("COMMENT_SHA") or os.environ["GITHUB_SHA"]
+          body = open(os.environ["BODY_FILE"], encoding="utf-8").read()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/commits/{sha}/comments",
+              data=json.dumps({"body": body}).encode("utf-8"),
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Accept": "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "Content-Type": "application/json",
+                  "User-Agent": "kwizera-phase418f2-live-obs",
+              },
+              method="POST",
+          )
+          with urllib.request.urlopen(req) as resp:
+              print("commit_comment_status", resp.status)
+          PY
           exit "$rc"
