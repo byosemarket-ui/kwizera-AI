@@ -613,25 +613,7 @@ describe("Phase 4.18F.7 multimodal delivery + worker autonomy", () => {
     expect(status.placesOrders).toBe(false);
     expect(status.mutatesBroker).toBe(false);
 
-    // Persist matching config epoch so mid-analysis CONFIG_CHANGED guards pass.
-    const store = worker["store"] as { save: (s: unknown) => Promise<void>; getState: () => { health: unknown; completedDedupeKeys: string[] } };
-    await store.save({
-      schemaVersion: "at-live-monitor-v1",
-      phase: "4.18F.7",
-      config: {
-        enabled: true,
-        environment: "DEMO",
-        instrument: "XAU/USD",
-        timeframe: "15m",
-        configEpoch: 1,
-        createdAtUtc: new Date().toISOString(),
-        updatedAtUtc: new Date().toISOString(),
-        pollIntervalMs: 20_000,
-      },
-      health: store.getState().health,
-      completedDedupeKeys: [],
-    });
-
+    // Ephemeral manual analysis (no persisted monitor config) must not trip CONFIG_CHANGED.
     const result = await worker.runAnalysis({
       trigger: "manual",
       dedupeKey: null,

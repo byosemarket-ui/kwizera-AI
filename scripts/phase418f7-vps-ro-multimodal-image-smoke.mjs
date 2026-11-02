@@ -39,7 +39,9 @@ for (const p of [process.env.KWIZERA_VPS_ENV_FILE, "/opt/kwizera-ai/.env"].filte
 
 function redact(obj) {
   return JSON.parse(JSON.stringify(obj, (k, v) => {
-    if (/token|password|secret|authorization|api[_-]?key|base64|png|imageBytes/i.test(String(k))) {
+    const key = String(k);
+    // Keep boolean/diagnostic image-delivery flags; redact only payload-ish keys.
+    if (/token|password|secret|authorization|api[_-]?key|^base64$|pngBytes|imagePayload/i.test(key)) {
       return "[REDACTED]";
     }
     if (typeof v === "string" && /sk-[A-Za-z0-9]{10,}/.test(v)) return "[REDACTED]";

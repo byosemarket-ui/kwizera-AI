@@ -230,6 +230,16 @@ export class AtMonitorWorker {
     }));
   }
 
+  /**
+   * True when a persisted monitor config epoch advanced mid-flight.
+   * Ephemeral manual analyses (no persisted config) must not trip CONFIG_CHANGED.
+   */
+  private configEpochInvalidated(expectedEpoch: number): boolean {
+    const persisted = this.store.getState().config;
+    if (!persisted) return false;
+    return persisted.configEpoch !== expectedEpoch;
+  }
+
   getPublicStatus(): AtMonitorPublicStatus {
     const s = this.store.getState();
     const workerActive = this.runtimeActive && Boolean(s.config?.enabled);
@@ -648,7 +658,7 @@ export class AtMonitorWorker {
         }
       }
 
-      if (this.store.getState().config?.configEpoch !== configEpoch) {
+      if (this.configEpochInvalidated(configEpoch)) {
         return { ok: false, code: "CONFIG_CHANGED", message: "Monitor configuration changed; analysis aborted." };
       }
 
@@ -813,7 +823,7 @@ export class AtMonitorWorker {
         storageHealth: "OK",
       });
 
-      if (this.store.getState().config?.configEpoch !== configEpoch) {
+      if (this.configEpochInvalidated(configEpoch)) {
         return { ok: false, code: "CONFIG_CHANGED", message: "Monitor configuration changed; analysis aborted." };
       }
 
@@ -842,7 +852,7 @@ export class AtMonitorWorker {
         requireImage: true,
       });
 
-      if (this.store.getState().config?.configEpoch !== configEpoch) {
+      if (this.configEpochInvalidated(configEpoch)) {
         return { ok: false, code: "CONFIG_CHANGED", message: "Monitor configuration changed; discarding stale result." };
       }
 
