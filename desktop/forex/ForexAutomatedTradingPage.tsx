@@ -514,6 +514,25 @@ export function ForexAutomatedTradingPage(props: {
       rejectionReasons?: string[];
       supportReasons?: string[];
     } | null;
+    /** Phase 4.18F.4 — MTF alignment matrix. */
+    mtf?: {
+      classification?: string | null;
+      agreement?: string | null;
+      higherBias?: string | null;
+      lowerBias?: string | null;
+      disagreeing?: string[];
+      unavailable?: string[];
+      matrix?: Array<{
+        timeframe: string;
+        trend: string;
+        sma9: number | null;
+        sma21: number | null;
+        atr: number | null;
+        structure: string | null;
+        freshness: string;
+        quality: string;
+      }>;
+    } | null;
   } | null>(null);
   /** Phase 57.1/57.2 — server-authoritative automation START/STOP (monitoring ≠ execution). */
   const [automation, setAutomation] = useState<{
@@ -1369,6 +1388,36 @@ export function ForexAutomatedTradingPage(props: {
               maCrossover?: string | null;
             };
           } | null;
+          multiTimeframe?: {
+            agreement?: string;
+            alignment?: {
+              classification?: string;
+              higherTimeframeBias?: string;
+              lowerTimeframeBias?: string;
+              disagreeingTimeframes?: string[];
+              unavailableTimeframes?: string[];
+              matrix?: Array<{
+                timeframe: string;
+                trend: string;
+                sma9: number | null;
+                sma21: number | null;
+                atr: number | null;
+                structure: string | null;
+                freshness: string;
+                quality: string;
+              }>;
+            } | null;
+          };
+          timeframeMatrix?: Array<{
+            timeframe: string;
+            trend: string;
+            sma9: number | null;
+            sma21: number | null;
+            atr: number | null;
+            structure: string | null;
+            freshness: string;
+            quality: string;
+          }>;
         } | null;
         error?: { message?: string; code?: string };
         status?: PublicStatus;
@@ -1410,6 +1459,19 @@ export function ForexAutomatedTradingPage(props: {
                 : null,
               rejectionReasons: data.marketEvidence.technicalIntelligence.signalValidation?.rejectionReasons?.slice(0, 6) ?? [],
               supportReasons: data.marketEvidence.technicalIntelligence.signalValidation?.supportReasons?.slice(0, 6) ?? [],
+            }
+            : null,
+          mtf: data.marketEvidence.multiTimeframe
+            ? {
+              classification: data.marketEvidence.multiTimeframe.alignment?.classification ?? null,
+              agreement: data.marketEvidence.multiTimeframe.agreement ?? null,
+              higherBias: data.marketEvidence.multiTimeframe.alignment?.higherTimeframeBias ?? null,
+              lowerBias: data.marketEvidence.multiTimeframe.alignment?.lowerTimeframeBias ?? null,
+              disagreeing: data.marketEvidence.multiTimeframe.alignment?.disagreeingTimeframes ?? [],
+              unavailable: data.marketEvidence.multiTimeframe.alignment?.unavailableTimeframes ?? [],
+              matrix: data.marketEvidence.timeframeMatrix
+                ?? data.marketEvidence.multiTimeframe.alignment?.matrix
+                ?? [],
             }
             : null,
         });
@@ -2043,7 +2105,7 @@ export function ForexAutomatedTradingPage(props: {
         {marketEvidenceSummary ? (
           <div data-fx-at-market-evidence="true" style={{ marginTop: "0.75rem" }}>
             <h3 className="fx-auto-trading-h2" style={{ fontSize: "1rem" }}>
-              Market data intelligence (Phase 4.18E / F.2.2 / F.3)
+              Market data intelligence (Phase 4.18E / F.2.2 / F.3 / F.4)
             </h3>
             <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
               <li>
@@ -2117,6 +2179,38 @@ export function ForexAutomatedTradingPage(props: {
                 Explicitly unavailable (not shown as zero):{" "}
                 <strong>{(marketEvidenceSummary.unavailable ?? []).join(", ") || "—"}</strong>
               </li>
+              {marketEvidenceSummary.mtf ? (
+                <li data-fx-at-mtf-alignment="true">
+                  Multi-timeframe alignment (F.4):
+                  {" "}
+                  <strong>{marketEvidenceSummary.mtf.classification ?? "—"}</strong>
+                  {" · "}legacy=<strong>{marketEvidenceSummary.mtf.agreement ?? "—"}</strong>
+                  {" · "}HTF=<strong>{marketEvidenceSummary.mtf.higherBias ?? "—"}</strong>
+                  {" · "}LTF=<strong>{marketEvidenceSummary.mtf.lowerBias ?? "—"}</strong>
+                  <ul style={{ margin: "0.25rem 0 0", paddingLeft: "1.1rem" }}>
+                    <li>
+                      Conflict TFs:{" "}
+                      <strong>{(marketEvidenceSummary.mtf.disagreeing ?? []).join(", ") || "—"}</strong>
+                      {" · "}Unavailable:{" "}
+                      <strong>{(marketEvidenceSummary.mtf.unavailable ?? []).join(", ") || "—"}</strong>
+                    </li>
+                    {(marketEvidenceSummary.mtf.matrix ?? []).length === 0 ? (
+                      <li>Timeframe matrix: UNAVAILABLE</li>
+                    ) : (
+                      (marketEvidenceSummary.mtf.matrix ?? []).map((row) => (
+                        <li key={row.timeframe}>
+                          {row.timeframe}: trend=<strong>{row.trend}</strong>
+                          {" · "}SMA9/21=<strong>{row.sma9 ?? "—"}/{row.sma21 ?? "—"}</strong>
+                          {" · "}ATR=<strong>{row.atr ?? "—"}</strong>
+                          {" · "}structure=<strong>{row.structure ?? "—"}</strong>
+                          {" · "}fresh=<strong>{row.freshness}</strong>
+                          {" · "}quality=<strong>{row.quality}</strong>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </li>
+              ) : null}
               {marketEvidenceSummary.tech ? (
                 <li data-fx-at-tech-intel="true">
                   Technical intelligence (F.3, analysis only):

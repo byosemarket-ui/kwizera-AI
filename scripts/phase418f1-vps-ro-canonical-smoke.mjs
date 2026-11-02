@@ -385,6 +385,19 @@ async function main() {
         || evidence?.quality?.missing?.includes?.("volume")
         || null,
       liveTicksNotFromHistory: evidence?.liveQuote != null,
+      // Phase 4.18F.4 — MTF alignment present in production evidence (analysis-only).
+      mtfAgreement: evidence?.multiTimeframe?.agreement ?? null,
+      mtfAlignment: evidence?.multiTimeframe?.alignment?.classification ?? null,
+      mtfMatrixCount: Array.isArray(evidence?.timeframeMatrix)
+        ? evidence.timeframeMatrix.length
+        : (Array.isArray(evidence?.multiTimeframe?.alignment?.matrix)
+          ? evidence.multiTimeframe.alignment.matrix.length
+          : null),
+      mtfHtfBias: evidence?.multiTimeframe?.alignment?.higherTimeframeBias ?? null,
+      mtfLtfBias: evidence?.multiTimeframe?.alignment?.lowerTimeframeBias ?? null,
+      openaiEvidenceDelivery: evidence?.openaiEvidenceDelivery
+        ?? null,
+      techSignalOutcome: evidence?.technicalIntelligence?.signalValidation?.outcome ?? null,
     };
 
     if (run.status !== 200 || run.body?.ok !== true) {

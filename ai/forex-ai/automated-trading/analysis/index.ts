@@ -67,9 +67,13 @@ export {
   TECH_INTEL_SCHEMA,
   INDICATOR_ENGINE_VERSION,
   SIGNAL_VALIDATION_VERSION,
+  computeMtfAlignment,
+  MTF_ALIGNMENT_LADDER,
+  MTF_ALIGNMENT_SCHEMA,
   type TechnicalIntelligenceBundle,
   type IndicatorSuite,
   type SignalValidationRecord,
+  type MtfAlignmentResult,
 } from "../technical-intelligence/index.js";
 export {
   AtOpenAiAnalysisEngine,

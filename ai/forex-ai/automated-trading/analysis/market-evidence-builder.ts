@@ -20,12 +20,14 @@ import type { CanonicalQuoteSnapshot, CanonicalTimeframeId } from "./canonical-a
 import type { AutomatedTradingEnvironment } from "../types.js";
 import {
   buildTechnicalIntelligence,
+  computeMtfAlignment,
+  type MtfAlignmentResult,
   type TechnicalIntelligenceBundle,
 } from "../technical-intelligence/index.js";
 
 export const MARKET_EVIDENCE_SCHEMA = "kwizera.market-evidence.v1" as const;
-/** Phase 4.18F.3 — adds technical intelligence (indicators/structure/signal validation). */
-export const MARKET_EVIDENCE_VERSION = "4.18F.3" as const;
+/** Phase 4.18F.4 — MTF alignment matrix + F.3 technical intelligence. */
+export const MARKET_EVIDENCE_VERSION = "4.18F.4" as const;
 
 /** Default history pull — FC SDK practical max (not unlimited). */
 export const AT_HISTORY_LOOKBACK_LIMIT = FOREXCONNECT_MAX_CANDLES;
@@ -175,6 +177,8 @@ export interface MarketEvidenceBundle {
     confirmationTimeframes: string[];
     agreement: "AGREE_BULLISH" | "AGREE_BEARISH" | "CONFLICT" | "INSUFFICIENT" | "UNKNOWN";
     notes: string[];
+    /** Phase 4.18F.4 — full ladder alignment (authoritative detail). */
+    alignment: MtfAlignmentResult | null;
   };
   /**
    * Phase 4.18F.3 — primary-TF technical intelligence (indicators, structure, signal validation).
@@ -418,69 +422,84 @@ export function buildPerTimeframeEvidence(input: {
   };
 }
 
+function biasFromTf(tf: PerTimeframeEvidence): string {
+  const cond = tf.technicalIntelligence?.condition.trend;
+  if (cond === "BULLISH" || cond === "BEARISH" || cond === "RANGING" || cond === "MIXED") {
+    return cond;
+  }
+  if (tf.deterministicBias === "BULLISH" || tf.deterministicBias === "BEARISH") {
+    return tf.deterministicBias;
+  }
+  if (tf.deterministicBias === "NEUTRAL") return "NEUTRAL";
+  return tf.structure?.trendState === "RANGE" ? "RANGING" : (tf.structure?.trendState ?? "UNKNOWN");
+}
+
 function mtfAgreement(
   primary: PerTimeframeEvidence | null,
-  others: PerTimeframeEvidence[],
+  all: PerTimeframeEvidence[],
+  instrument: string,
+  nowMs: number,
 ): MarketEvidenceBundle["multiTimeframe"] {
-  const notes: string[] = [];
   if (!primary) {
     return {
       primaryTimeframe: "unknown",
       confirmationTimeframes: [],
       agreement: "INSUFFICIENT",
       notes: ["Primary timeframe evidence missing."],
+      alignment: null,
     };
   }
-  const conf = others.filter(
+
+  const alignment = computeMtfAlignment({
+    instrument,
+    primaryTimeframe: String(primary.timeframe),
+    nowMs,
+    timeframes: all.map((tf) => {
+      const ti = tf.technicalIntelligence;
+      const stale =
+        ti?.condition.stale === true
+        || tf.warnings.some((w) => /stale/i.test(w));
+      const insufficient =
+        ti?.condition.insufficient === true
+        || (tf.candleQuality?.closedBars != null && tf.candleQuality.closedBars < 21)
+        || !tf.indicators;
+      return {
+        timeframe: String(tf.timeframe),
+        bias: biasFromTf(tf),
+        sma9: ti?.indicators.movingAverages.sma9.value ?? tf.indicators?.fastSma ?? null,
+        sma21: ti?.indicators.movingAverages.sma21.value ?? tf.indicators?.slowSma ?? null,
+        atr: ti?.indicators.atr.atr.value ?? tf.indicators?.atr ?? null,
+        atrMethod: "SMA_OF_TR",
+        structureTrend: ti?.structure.trendState ?? tf.structure?.trendState ?? null,
+        closedBars: tf.candleQuality?.closedBars ?? null,
+        lastCandleSec: tf.movement?.lastOpenSec ?? null,
+        available: tf.available,
+        stale,
+        insufficient,
+        qualityNote: tf.warnings[0] ?? null,
+      };
+    }),
+  });
+
+  const conf = all.filter(
     (o) =>
       o.timeframe !== primary.timeframe
-      && (o.deterministicBias === "BULLISH" || o.deterministicBias === "BEARISH"),
+      && (o.deterministicBias === "BULLISH" || o.deterministicBias === "BEARISH"
+        || o.technicalIntelligence?.condition.trend === "BULLISH"
+        || o.technicalIntelligence?.condition.trend === "BEARISH"),
   );
-  if (!conf.length) {
-    notes.push("No higher/other timeframe directional bias available — not treated as conflict.");
-    return {
-      primaryTimeframe: String(primary.timeframe),
-      confirmationTimeframes: [],
-      agreement: "INSUFFICIENT",
-      notes,
-    };
-  }
-  const primaryBias = primary.deterministicBias;
-  if (primaryBias !== "BULLISH" && primaryBias !== "BEARISH") {
-    notes.push("Primary bias NEUTRAL/UNKNOWN — MTF agreement UNKNOWN.");
-    return {
-      primaryTimeframe: String(primary.timeframe),
-      confirmationTimeframes: conf.map((c) => String(c.timeframe)),
-      agreement: "UNKNOWN",
-      notes,
-    };
-  }
-  const bulls = conf.filter((c) => c.deterministicBias === "BULLISH").length;
-  const bears = conf.filter((c) => c.deterministicBias === "BEARISH").length;
-  if (bulls > 0 && bears > 0) {
-    notes.push("Confirmation timeframes disagree with each other.");
-    return {
-      primaryTimeframe: String(primary.timeframe),
-      confirmationTimeframes: conf.map((c) => String(c.timeframe)),
-      agreement: "CONFLICT",
-      notes,
-    };
-  }
-  const peer = bulls > 0 ? "BULLISH" : "BEARISH";
-  if (peer === primaryBias) {
-    return {
-      primaryTimeframe: String(primary.timeframe),
-      confirmationTimeframes: conf.map((c) => String(c.timeframe)),
-      agreement: primaryBias === "BULLISH" ? "AGREE_BULLISH" : "AGREE_BEARISH",
-      notes,
-    };
-  }
-  notes.push(`Primary ${primaryBias} vs confirmation ${peer}.`);
+
   return {
     primaryTimeframe: String(primary.timeframe),
     confirmationTimeframes: conf.map((c) => String(c.timeframe)),
-    agreement: "CONFLICT",
-    notes,
+    agreement: alignment.legacyAgreement,
+    notes: [
+      `F.4 alignment=${alignment.classification}`,
+      `HTF bias=${alignment.higherTimeframeBias}`,
+      `LTF bias=${alignment.lowerTimeframeBias}`,
+      ...alignment.explanations.slice(0, 8),
+    ],
+    alignment,
   };
 }
 
@@ -559,10 +578,7 @@ export function buildMarketEvidenceBundle(input: {
     ?? byTf[0]
     ?? null;
 
-  const mtf = mtfAgreement(
-    primary,
-    byTf.filter((x) => String(x.timeframe) !== primaryTf),
-  );
+  const mtf = mtfAgreement(primary, byTf, instrument, nowMs);
 
   const bid = input.quote.bid;
   const ask = input.quote.ask;
@@ -786,7 +802,29 @@ export function marketEvidenceForModelPrompt(bundle: MarketEvidenceBundle): Reco
         deterministicBias: bundle.historical.primary.deterministicBias,
       }
       : null,
-    multiTimeframe: bundle.multiTimeframe,
+    multiTimeframe: {
+      primaryTimeframe: bundle.multiTimeframe.primaryTimeframe,
+      confirmationTimeframes: bundle.multiTimeframe.confirmationTimeframes,
+      agreement: bundle.multiTimeframe.agreement,
+      notes: bundle.multiTimeframe.notes,
+      alignment: bundle.multiTimeframe.alignment
+        ? {
+          classification: bundle.multiTimeframe.alignment.classification,
+          legacyAgreement: bundle.multiTimeframe.alignment.legacyAgreement,
+          higherTimeframeBias: bundle.multiTimeframe.alignment.higherTimeframeBias,
+          lowerTimeframeBias: bundle.multiTimeframe.alignment.lowerTimeframeBias,
+          agreeingTimeframes: bundle.multiTimeframe.alignment.agreeingTimeframes,
+          disagreeingTimeframes: bundle.multiTimeframe.alignment.disagreeingTimeframes,
+          unavailableTimeframes: bundle.multiTimeframe.alignment.unavailableTimeframes,
+          staleTimeframes: bundle.multiTimeframe.alignment.staleTimeframes,
+          insufficientTimeframes: bundle.multiTimeframe.alignment.insufficientTimeframes,
+          pairwise: bundle.multiTimeframe.alignment.pairwise,
+          matrix: bundle.multiTimeframe.alignment.matrix,
+          explanations: bundle.multiTimeframe.alignment.explanations,
+        }
+        : null,
+    },
+    timeframeMatrix: bundle.multiTimeframe.alignment?.matrix ?? [],
     otherTimeframes: bundle.historical.byTimeframe
       .filter((t) => t.timeframe !== bundle.identity.primaryTimeframe)
       .map((t) => ({
@@ -893,8 +931,19 @@ export function marketEvidenceForModelPrompt(bundle: MarketEvidenceBundle): Reco
       ],
     },
     quality: bundle.quality,
+    openaiEvidenceDelivery: {
+      schemaPresent: true,
+      evidenceVersion: bundle.evidenceVersion,
+      mtfMatrixIncluded: Array.isArray(bundle.multiTimeframe.alignment?.matrix)
+        && (bundle.multiTimeframe.alignment?.matrix.length ?? 0) > 0,
+      alignmentClassification: bundle.multiTimeframe.alignment?.classification ?? null,
+      timeframeKeysInRequest: (bundle.multiTimeframe.alignment?.matrix ?? []).map((r) => r.timeframe),
+      atrMethodLabel: "SMA_OF_TR",
+      technicalIntelligenceIncluded: bundle.technicalIntelligence != null,
+      note: "Serialized for OpenAI request path via marketEvidenceForModelPrompt. Redacted — no secrets.",
+    },
     analysisAuthorityNote:
-      "OpenAI is advisory. Canonical reconciler is the authority for BUY/SELL candidates. Technical indicators validate — they never override deterministic NO_TRADE. Never invent missing fields.",
+      "OpenAI is advisory. Canonical reconciler is the authority for BUY/SELL candidates. Technical indicators validate — they never override deterministic NO_TRADE. Never invent missing fields. MTF TIMEFRAME_CONFLICT maps to HTF CONFLICT; missing HTF is not a conflict.",
     placesOrders: false,
     acceptsForExecution: false,
     mutatesBroker: false,

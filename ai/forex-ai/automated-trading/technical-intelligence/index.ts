@@ -7,6 +7,17 @@ export { computeIndicatorSuite, __indicatorTestUtils } from "./indicator-engine.
 export { classifyMarketCondition } from "./market-condition.js";
 export { validateStrategySignal } from "./signal-validation.js";
 export { buildStructureIntel } from "./structure-intel.js";
+export {
+  computeMtfAlignment,
+  toLegacyAgreement,
+  MTF_ALIGNMENT_LADDER,
+  MTF_ALIGNMENT_SCHEMA,
+  MTF_ALIGNMENT_VERSION,
+  type MtfAlignmentResult,
+  type MtfAlignmentClass,
+  type MtfTimeframeInput,
+  type TimeframeMatrixRow,
+} from "./mtf-alignment.js";
 
 import { computeIndicatorSuite } from "./indicator-engine.js";
 import { classifyMarketCondition } from "./market-condition.js";

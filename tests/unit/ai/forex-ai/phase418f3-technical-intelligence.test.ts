@@ -303,7 +303,8 @@ describe("F.3 market evidence + OpenAI serialization", () => {
       },
       pointSize: 0.0001,
     });
-    expect(bundle.evidenceVersion).toBe("4.18F.3");
+    expect(bundle.evidenceVersion).toMatch(/^4\.18F\./);
+
     expect(bundle.technicalIntelligence).not.toBeNull();
     expect(bundle.technicalIntelligence!.indicators.atr.method).toBe("SMA_OF_TR");
     expect(bundle.technicalIntelligence!.signalValidation.placesOrders).toBe(false);

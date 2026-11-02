@@ -1314,7 +1314,32 @@ export async function handleForexAutomatedTradingApi(
               captureHealth: result.marketEvidence.liveTickMovement.captureHealth,
               note: result.marketEvidence.liveTickMovement.note,
             },
-            multiTimeframe: result.marketEvidence.multiTimeframe,
+            multiTimeframe: {
+              primaryTimeframe: result.marketEvidence.multiTimeframe.primaryTimeframe,
+              confirmationTimeframes: result.marketEvidence.multiTimeframe.confirmationTimeframes,
+              agreement: result.marketEvidence.multiTimeframe.agreement,
+              notes: result.marketEvidence.multiTimeframe.notes,
+              alignment: result.marketEvidence.multiTimeframe.alignment
+                ? {
+                  classification: result.marketEvidence.multiTimeframe.alignment.classification,
+                  legacyAgreement: result.marketEvidence.multiTimeframe.alignment.legacyAgreement,
+                  higherTimeframeBias: result.marketEvidence.multiTimeframe.alignment.higherTimeframeBias,
+                  lowerTimeframeBias: result.marketEvidence.multiTimeframe.alignment.lowerTimeframeBias,
+                  agreeingTimeframes: result.marketEvidence.multiTimeframe.alignment.agreeingTimeframes,
+                  disagreeingTimeframes: result.marketEvidence.multiTimeframe.alignment.disagreeingTimeframes,
+                  unavailableTimeframes: result.marketEvidence.multiTimeframe.alignment.unavailableTimeframes,
+                  staleTimeframes: result.marketEvidence.multiTimeframe.alignment.staleTimeframes,
+                  insufficientTimeframes: result.marketEvidence.multiTimeframe.alignment.insufficientTimeframes,
+                  matrix: result.marketEvidence.multiTimeframe.alignment.matrix,
+                  pairwise: result.marketEvidence.multiTimeframe.alignment.pairwise,
+                  explanations: result.marketEvidence.multiTimeframe.alignment.explanations,
+                  placesOrders: false,
+                  acceptsForExecution: false,
+                  mutatesBroker: false,
+                }
+                : null,
+            },
+            timeframeMatrix: result.marketEvidence.multiTimeframe.alignment?.matrix ?? [],
             primary: result.marketEvidence.historical.primary
               ? {
                 timeframe: result.marketEvidence.historical.primary.timeframe,
