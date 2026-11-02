@@ -79,6 +79,13 @@ node_modules/
 /stage-out.txt
 
 # ---------------------------------------------------------------------------
+# Local ForexConnect genuine-tick capture store (runtime; rebuilt on capture)
+# ---------------------------------------------------------------------------
+/data/forexconnect/genuine-ticks.json
+/data/forexconnect/genuine-ticks.json.tmp
+/data/forexconnect/genuine-ticks.json.bak
+
+# ---------------------------------------------------------------------------
 # OS, editor scratch, caches
 # ---------------------------------------------------------------------------
 Thumbs.db

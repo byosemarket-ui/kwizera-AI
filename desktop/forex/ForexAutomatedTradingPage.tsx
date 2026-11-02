@@ -480,6 +480,25 @@ export function ForexAutomatedTradingPage(props: {
     structureTrend?: string | null;
     atrMethod?: string | null;
     unavailable?: string[];
+    liveBid?: number | null;
+    liveAsk?: number | null;
+    lastGenuineTickAtMs?: number | null;
+    tickWindows?: Array<{
+      windowId: string;
+      genuineTickCount: number;
+      direction: string;
+      midPriceMovement: number | null;
+      currentSpread: number | null;
+      freshness: string;
+      status: string;
+    }>;
+    captureHealth?: {
+      accepted?: number;
+      filtered?: number;
+      persisted?: number;
+      duplicates?: number;
+      lastAcceptedAtMs?: number | null;
+    } | null;
   } | null>(null);
   /** Phase 57.1/57.2 — server-authoritative automation START/STOP (monitoring ≠ execution). */
   const [automation, setAutomation] = useState<{
@@ -1289,6 +1308,30 @@ export function ForexAutomatedTradingPage(props: {
         marketEvidence?: {
           quality?: { completeness?: string; missing?: string[] };
           multiTimeframe?: { agreement?: string };
+          liveQuote?: { bid?: number | null; ask?: number | null };
+          liveTickMovement?: {
+            latestTick?: {
+              bid?: number;
+              ask?: number;
+              receiptTimestampMs?: number;
+            } | null;
+            windows?: Array<{
+              windowId: string;
+              genuineTickCount: number;
+              direction: string;
+              midPriceMovement: number | null;
+              currentSpread: number | null;
+              freshness: string;
+              status: string;
+            }>;
+            captureHealth?: {
+              accepted?: number;
+              filtered?: number;
+              persisted?: number;
+              duplicates?: number;
+              lastAcceptedAtMs?: number | null;
+            } | null;
+          };
           primary?: {
             closedBars?: number | null;
             movement?: { netReturnPct?: number | null };
@@ -1306,6 +1349,7 @@ export function ForexAutomatedTradingPage(props: {
       }
       if (data.view) setCanonicalView(data.view);
       if (data.marketEvidence) {
+        const tick = data.marketEvidence.liveTickMovement;
         setMarketEvidenceSummary({
           completeness: data.marketEvidence.quality?.completeness,
           mtfAgreement: data.marketEvidence.multiTimeframe?.agreement,
@@ -1314,6 +1358,11 @@ export function ForexAutomatedTradingPage(props: {
           structureTrend: data.marketEvidence.primary?.structure?.trendState ?? null,
           atrMethod: data.marketEvidence.primary?.indicators?.atrMethod ?? null,
           unavailable: data.marketEvidence.quality?.missing?.slice(0, 6),
+          liveBid: tick?.latestTick?.bid ?? data.marketEvidence.liveQuote?.bid ?? null,
+          liveAsk: tick?.latestTick?.ask ?? data.marketEvidence.liveQuote?.ask ?? null,
+          lastGenuineTickAtMs: tick?.latestTick?.receiptTimestampMs ?? null,
+          tickWindows: tick?.windows ?? [],
+          captureHealth: tick?.captureHealth ?? null,
         });
       }
       if (data.status) setStatus(data.status);
@@ -1945,7 +1994,7 @@ export function ForexAutomatedTradingPage(props: {
         {marketEvidenceSummary ? (
           <div data-fx-at-market-evidence="true" style={{ marginTop: "0.75rem" }}>
             <h3 className="fx-auto-trading-h2" style={{ fontSize: "1rem" }}>
-              Market data intelligence (Phase 4.18E)
+              Market data intelligence (Phase 4.18E / F.2.2)
             </h3>
             <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
               <li>
@@ -1962,18 +2011,72 @@ export function ForexAutomatedTradingPage(props: {
                 {" · "}
                 ATR: <strong>{marketEvidenceSummary.atrMethod ?? "—"}</strong>
               </li>
+              <li data-fx-at-live-tick="true">
+                Live bid/ask:{" "}
+                <strong>
+                  {marketEvidenceSummary.liveBid != null && marketEvidenceSummary.liveAsk != null
+                    ? `${marketEvidenceSummary.liveBid} / ${marketEvidenceSummary.liveAsk}`
+                    : "NO_GENUINE_TICKS"}
+                </strong>
+                {" · "}
+                last genuine tick:{" "}
+                <strong>
+                  {marketEvidenceSummary.lastGenuineTickAtMs != null
+                    ? new Date(marketEvidenceSummary.lastGenuineTickAtMs).toISOString()
+                    : "—"}
+                </strong>
+              </li>
+              <li data-fx-at-tick-windows="true">
+                Movement windows (genuine ticks only):
+                <ul style={{ margin: "0.25rem 0 0", paddingLeft: "1.1rem" }}>
+                  {(marketEvidenceSummary.tickWindows ?? []).length === 0 ? (
+                    <li>NO_GENUINE_TICKS</li>
+                  ) : (
+                    (marketEvidenceSummary.tickWindows ?? []).map((w) => (
+                      <li key={w.windowId}>
+                        {w.windowId}: ticks=<strong>{w.genuineTickCount}</strong>
+                        {" · "}
+                        {w.status === "NO_GENUINE_TICKS" || w.genuineTickCount === 0 ? (
+                          <strong>NO_GENUINE_TICKS</strong>
+                        ) : (
+                          <>
+                            dir=<strong>{w.direction}</strong>
+                            {" · "}
+                            midΔ=<strong>{w.midPriceMovement ?? "—"}</strong>
+                            {" · "}
+                            spread=<strong>{w.currentSpread ?? "—"}</strong>
+                          </>
+                        )}
+                        {" · "}
+                        freshness=<strong>{w.freshness}</strong>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </li>
+              <li data-fx-at-tick-capture-health="true">
+                Capture/store: accepted=
+                <strong>{marketEvidenceSummary.captureHealth?.accepted ?? 0}</strong>
+                {" · "}
+                filtered=<strong>{marketEvidenceSummary.captureHealth?.filtered ?? 0}</strong>
+                {" · "}
+                persisted=<strong>{marketEvidenceSummary.captureHealth?.persisted ?? 0}</strong>
+                {" · "}
+                duplicates=<strong>{marketEvidenceSummary.captureHealth?.duplicates ?? 0}</strong>
+              </li>
               <li>
                 Explicitly unavailable (not shown as zero):{" "}
                 <strong>{(marketEvidenceSummary.unavailable ?? []).join(", ") || "—"}</strong>
               </li>
               <li>
                 LIVE quotes require genuine Offers price changes — heartbeats ≠ LIVE.
+                Historical candle movement stays separate from live tick windows.
               </li>
             </ul>
           </div>
         ) : (
           <p className="fx-auto-trading-hint">
-            Run analysis to load market evidence (historical movement, structure, MTF).
+            Run analysis to load market evidence (historical movement, structure, MTF, live tick windows).
           </p>
         )}
       </section>

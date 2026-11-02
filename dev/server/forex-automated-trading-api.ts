@@ -1307,6 +1307,13 @@ export async function handleForexAutomatedTradingApi(
               quoteFresh: result.marketEvidence.liveQuote.quoteFresh.value,
               freshnessReasonCode: result.marketEvidence.liveQuote.freshnessReasonCode.value,
             },
+            liveTickMovement: {
+              source: result.marketEvidence.liveTickMovement.source,
+              latestTick: result.marketEvidence.liveTickMovement.latestTick.value,
+              windows: result.marketEvidence.liveTickMovement.windows,
+              captureHealth: result.marketEvidence.liveTickMovement.captureHealth,
+              note: result.marketEvidence.liveTickMovement.note,
+            },
             multiTimeframe: result.marketEvidence.multiTimeframe,
             primary: result.marketEvidence.historical.primary
               ? {

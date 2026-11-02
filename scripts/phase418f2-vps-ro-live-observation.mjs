@@ -80,7 +80,7 @@ function classifyInstrument(sample, prev, subscribed, sessionConnected) {
 
 async function main() {
   const report = {
-    phase: "4.18F.2.1",
+    phase: "4.18F.2.2",
     base,
     expectSha,
     observeSeconds,
@@ -372,6 +372,62 @@ async function main() {
   report.labels.STREAM_COUNTERS_MOVED = streamGrew ? "YES" : "NO";
   report.labels.OPENAI = "NOT_RUN_IN_F2_1";
 
+  // Phase 4.18F.2.2 — probe genuine tick store + movement windows (read-only).
+  const tickHealth = await getJson("/api/forex/providers/forexconnect/genuine-ticks/health");
+  const tickLatest = await getJson(
+    `/api/forex/providers/forexconnect/genuine-ticks/latest?symbol=${encodeURIComponent(focusInstrument)}`,
+  );
+  const tickWindows = await getJson(
+    `/api/forex/providers/forexconnect/genuine-ticks/windows?symbol=${encodeURIComponent(focusInstrument)}`,
+  );
+  report.evidence.tickCapture = {
+    healthHttp: tickHealth.status,
+    healthOk: tickHealth.body?.ok ?? false,
+    counters: tickHealth.body?.counters ?? null,
+    instrumentCount: tickHealth.body?.instrumentCount ?? null,
+    placesOrders: tickHealth.body?.placesOrders ?? null,
+    mutatesBroker: tickHealth.body?.mutatesBroker ?? null,
+    latestHttp: tickLatest.status,
+    latest: tickLatest.body?.latest
+      ? {
+        bid: tickLatest.body.latest.bid,
+        ask: tickLatest.body.latest.ask,
+        mid: tickLatest.body.latest.mid,
+        spread: tickLatest.body.latest.spread,
+        eventClass: tickLatest.body.latest.eventClass,
+        source: tickLatest.body.latest.source,
+        receiptTimestampMs: tickLatest.body.latest.receiptTimestampMs,
+        eventTimestampMs: tickLatest.body.latest.eventTimestampMs,
+      }
+      : null,
+    windowsHttp: tickWindows.status,
+    windows: Array.isArray(tickWindows.body?.windows)
+      ? tickWindows.body.windows.map((w) => ({
+        windowId: w.windowId,
+        genuineTickCount: w.genuineTickCount,
+        direction: w.direction,
+        midPriceMovement: w.midPriceMovement,
+        status: w.status,
+        freshness: w.freshness,
+        currentSpread: w.currentSpread,
+      }))
+      : [],
+  };
+  const persisted = Number(tickHealth.body?.counters?.accepted ?? 0);
+  const windowTicks = (report.evidence.tickCapture.windows || [])
+    .reduce((n, w) => n + Number(w.genuineTickCount || 0), 0);
+  if (tickHealth.status === 404) {
+    report.blockers.push("TICK_CAPTURE_API_MISSING");
+  } else if (anyGenuine && persisted <= 0 && windowTicks <= 0) {
+    report.blockers.push("GENUINE_QUOTES_SEEN_BUT_TICK_STORE_EMPTY");
+  }
+  report.labels.TICK_CAPTURE = persisted > 0 || windowTicks > 0
+    ? "GENUINE_TICKS_PERSISTED"
+    : (anyGenuine ? "WAITING_FOR_TICK_PERSISTENCE" : "WAITING_FOR_GENUINE_MARKET_UPDATES");
+  report.labels.MOVEMENT_WINDOWS = windowTicks > 0
+    ? "WINDOWS_FROM_GENUINE_TICKS"
+    : "NO_GENUINE_TICKS";
+
   report.evidence.summary = {
     sampleCount: report.samples.length,
     instrumentsTracked: Object.keys(report.instrumentOutcomes).length,
@@ -379,7 +435,13 @@ async function main() {
     focusGenuinePriceChanges: focusGenuine,
     focusOutcome: focusOutcome?.outcome ?? null,
     focusGenuineChanges: focusOutcome?.genuineChanges ?? 0,
+    tickAccepted: tickHealth.body?.counters?.accepted ?? null,
+    tickFiltered: tickHealth.body?.counters?.filtered ?? null,
+    tickPersisted: tickHealth.body?.counters?.persisted ?? null,
+    tickDuplicates: tickHealth.body?.counters?.duplicates ?? null,
   };
+
+  report.phase = "4.18F.2.2";
 
   if (!anyGenuine && !streamGrew) {
     report.blockers.push("NO_GENUINE_PRICE_CHANGES_DURING_OBSERVATION");
@@ -403,7 +465,7 @@ async function main() {
 
 main().catch((err) => {
   console.error(JSON.stringify({
-    phase: "4.18F.2.1",
+    phase: "4.18F.2.2",
     ok: false,
     error: err instanceof Error ? err.message.slice(0, 200) : "unknown",
   }));

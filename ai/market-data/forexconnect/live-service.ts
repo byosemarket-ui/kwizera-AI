@@ -39,6 +39,7 @@ import {
   type ForexConnectPersistedEnvironment,
   type ForexConnectPersistedIntendedEntry,
 } from "./intended-subscriptions-store.js";
+import { getGenuineTickCaptureService } from "./genuine-tick-capture.js";
 
 export {
   resolveFcFeedStreamState,
@@ -1116,6 +1117,32 @@ export class ForexConnectLiveCandleService {
             || prevQuote.ask !== match.ask
             || prevQuote.candlePrice !== match.candlePrice
           );
+
+        // Phase 4.18F.2.2 — classify every Offers sample; only genuine bid/ask changes persist.
+        // Provider event time stays distinct from receipt; never fabricate from candles/history.
+        if (
+          match.bid != null
+          && match.ask != null
+          && Number.isFinite(match.bid)
+          && Number.isFinite(match.ask)
+        ) {
+          try {
+            getGenuineTickCaptureService().captureOfferQuote({
+              instrument: session.providerSymbol,
+              bid: match.bid,
+              ask: match.ask,
+              previousBid: prevQuote?.bid ?? null,
+              previousAsk: prevQuote?.ask ?? null,
+              eventSource: match.eventSource,
+              eventTimestampMs: match.sourceTimestampMs ?? null,
+              receiptTimestampMs: match.receivedAtMs,
+              sessionConnected: true,
+              nowMs: now,
+            });
+          } catch {
+            /* tick capture must not break the live candle path */
+          }
+        }
 
         // Instrument-specific LIVE: genuine Offers bid/ask change for THIS symbol with a newer receipt.
         // Peer global updateCount must not promote a seeded AUD/CNH snapshot to LIVE.

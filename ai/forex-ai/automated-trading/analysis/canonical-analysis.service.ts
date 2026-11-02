@@ -411,6 +411,54 @@ export async function runCanonicalAnalysis(
         /* skip unavailable TF */
       }
     }
+    let liveTickMovement: Parameters<typeof buildMarketEvidenceBundle>[0]["liveTickMovement"] = null;
+    try {
+      const { getGenuineTickCaptureService } = await import(
+        "../../../market-data/forexconnect/genuine-tick-capture.js"
+      );
+      const capture = getGenuineTickCaptureService();
+      const snap = capture.getSnapshot(instrument, { asOfMs: nowMs, sessionConnected: true });
+      const counters = capture.getCounters();
+      liveTickMovement = {
+        latest: snap.latest
+          ? {
+            bid: snap.latest.bid,
+            ask: snap.latest.ask,
+            mid: snap.latest.mid,
+            spread: snap.latest.spread,
+            receiptTimestampMs: snap.latest.receiptTimestampMs,
+            eventTimestampMs: snap.latest.eventTimestampMs,
+            eventClass: snap.latest.eventClass,
+            source: snap.latest.source,
+          }
+          : null,
+        windows: snap.windows.map((w) => ({
+          windowId: w.windowId,
+          genuineTickCount: w.genuineTickCount,
+          direction: w.direction,
+          netBidMovement: w.netBidMovement,
+          netAskMovement: w.netAskMovement,
+          midPriceMovement: w.midPriceMovement,
+          percentageMovement: w.percentageMovement,
+          currentSpread: w.currentSpread,
+          averageSpread: w.averageSpread,
+          freshness: w.freshness,
+          status: w.status,
+          coverage: w.coverage,
+          firstReceiptTimestampMs: w.firstReceiptTimestampMs,
+          latestReceiptTimestampMs: w.latestReceiptTimestampMs,
+        })),
+        counters: {
+          accepted: counters.accepted,
+          filtered: counters.filtered,
+          persisted: counters.persisted,
+          duplicates: counters.duplicates,
+          lastAcceptedAtMs: counters.lastAcceptedAtMs,
+        },
+      };
+    } catch {
+      liveTickMovement = null;
+    }
     marketEvidence = buildMarketEvidenceBundle({
       environment: input.environment,
       instrument,
@@ -419,6 +467,7 @@ export async function runCanonicalAnalysis(
       quote,
       pointSize,
       nowMs,
+      liveTickMovement,
     });
   } catch {
     marketEvidence = null;

@@ -9,6 +9,9 @@
  * POST /api/forex/providers/forexconnect/unsubscribe
  * GET  /api/forex/providers/forexconnect/stream/status
  * GET  /api/forex/providers/forexconnect/quotes
+ * GET  /api/forex/providers/forexconnect/genuine-ticks/health
+ * GET  /api/forex/providers/forexconnect/genuine-ticks/latest?symbol=
+ * GET  /api/forex/providers/forexconnect/genuine-ticks/windows?symbol=
  * GET  /api/forex/providers/forexconnect/profiles
  * POST /api/forex/providers/forexconnect/profiles/credentials
  * POST /api/forex/providers/forexconnect/profiles/test
@@ -391,6 +394,86 @@ export async function handleForexConnectApi(
         }
         throw error;
       }
+      return true;
+    }
+
+    // Phase 4.18F.2.2 — read-only genuine tick capture + movement windows.
+    if (url.pathname === "/api/forex/providers/forexconnect/genuine-ticks/health") {
+      const { getGenuineTickCaptureService } = await import(
+        "../../ai/market-data/forexconnect/genuine-tick-capture.js"
+      );
+      const health = getGenuineTickCaptureService().getHealth();
+      assertNoSecretsInForexConnectPayload(health);
+      sendJson(res, 200, {
+        ...health,
+        ok: true,
+        note: "Bounded genuine Offers tick store health. Read-only; never places orders.",
+      });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/genuine-ticks/latest") {
+      const symbol = String(url.searchParams.get("symbol") ?? "").trim();
+      if (!symbol) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "SYMBOL_REQUIRED", message: "Query param symbol is required." },
+          placesOrders: false,
+        });
+        return true;
+      }
+      const { getGenuineTickCaptureService } = await import(
+        "../../ai/market-data/forexconnect/genuine-tick-capture.js"
+      );
+      const capture = getGenuineTickCaptureService();
+      const latest = capture.getLatestTick(symbol);
+      const payload = {
+        ok: true,
+        instrument: symbol,
+        latest,
+        counters: capture.getCounters(),
+        placesOrders: false as const,
+        acceptsForExecution: false as const,
+        mutatesBroker: false as const,
+        note: latest
+          ? "Latest accepted genuine Offers bid/ask change."
+          : "NO_GENUINE_TICKS — not fabricated zero movement.",
+      };
+      assertNoSecretsInForexConnectPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/genuine-ticks/windows") {
+      const symbol = String(url.searchParams.get("symbol") ?? "").trim();
+      if (!symbol) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "SYMBOL_REQUIRED", message: "Query param symbol is required." },
+          placesOrders: false,
+        });
+        return true;
+      }
+      const { getGenuineTickCaptureService } = await import(
+        "../../ai/market-data/forexconnect/genuine-tick-capture.js"
+      );
+      const capture = getGenuineTickCaptureService();
+      const windows = capture.getMovementWindows(symbol, { sessionConnected: true });
+      const latest = capture.getLatestTick(symbol);
+      const payload = {
+        ok: true,
+        instrument: symbol,
+        latest,
+        windows,
+        health: capture.getHealth(),
+        placesOrders: false as const,
+        acceptsForExecution: false as const,
+        mutatesBroker: false as const,
+        note:
+          "Rolling 1/5/15/30/60m windows from genuine Offers ticks only. Empty ⇒ NO_GENUINE_TICKS.",
+      };
+      assertNoSecretsInForexConnectPayload(payload);
+      sendJson(res, 200, payload);
       return true;
     }
 

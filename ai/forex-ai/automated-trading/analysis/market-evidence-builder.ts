@@ -97,6 +97,47 @@ export interface MarketEvidenceBundle {
     effectivePriceChangeAgeMs: EvidenceField<number | null>;
     feedNote: string;
   };
+  /**
+   * Phase 4.18F.2.2 — rolling genuine-tick movement windows (separate from historical candles).
+   * Never overrides deterministic strategy / NO_TRADE. Null windows ⇒ NO_GENUINE_TICKS.
+   */
+  liveTickMovement: {
+    source: "FOREXCONNECT_OFFERS_GENUINE_TICKS";
+    latestTick: EvidenceField<{
+      bid: number;
+      ask: number;
+      mid: number;
+      spread: number;
+      receiptTimestampMs: number;
+      eventTimestampMs: number | null;
+      eventClass: string;
+      source: string;
+    } | null>;
+    windows: Array<{
+      windowId: string;
+      genuineTickCount: number;
+      direction: string;
+      netBidMovement: number | null;
+      netAskMovement: number | null;
+      midPriceMovement: number | null;
+      percentageMovement: number | null;
+      currentSpread: number | null;
+      averageSpread: number | null;
+      freshness: string;
+      status: string;
+      coverage: string;
+      firstReceiptTimestampMs: number | null;
+      latestReceiptTimestampMs: number | null;
+    }>;
+    captureHealth: {
+      accepted: number;
+      filtered: number;
+      persisted: number;
+      duplicates: number;
+      lastAcceptedAtMs: number | null;
+    } | null;
+    note: string;
+  };
   historical: {
     lookbackLimit: number;
     primary: PerTimeframeEvidence | null;
@@ -184,7 +225,7 @@ function compactStructure(result: MarketStructureAnalysisResult): PerTimeframeEv
     supportZones: support,
     resistanceZones: resistance,
     events: result.events.length,
-    note: result.educationalNote,
+    note: result.note,
     provenance: "DETERMINISTIC_COMPUTED",
   };
 }
@@ -375,6 +416,42 @@ export function buildMarketEvidenceBundle(input: {
   minQuantity?: number | null;
   tradingStatus?: string | null;
   nowMs?: number;
+  /** Optional precomputed F.2.2 tick movement (keeps historical candles separate). */
+  liveTickMovement?: {
+    latest: {
+      bid: number;
+      ask: number;
+      mid: number;
+      spread: number;
+      receiptTimestampMs: number;
+      eventTimestampMs: number | null;
+      eventClass: string;
+      source: string;
+    } | null;
+    windows: Array<{
+      windowId: string;
+      genuineTickCount: number;
+      direction: string;
+      netBidMovement: number | null;
+      netAskMovement: number | null;
+      midPriceMovement: number | null;
+      percentageMovement: number | null;
+      currentSpread: number | null;
+      averageSpread: number | null;
+      freshness: string;
+      status: string;
+      coverage: string;
+      firstReceiptTimestampMs: number | null;
+      latestReceiptTimestampMs: number | null;
+    }>;
+    counters?: {
+      accepted: number;
+      filtered: number;
+      persisted: number;
+      duplicates: number;
+      lastAcceptedAtMs: number | null;
+    } | null;
+  } | null;
 }): MarketEvidenceBundle {
   const nowMs = input.nowMs ?? Date.now();
   const nowIso = new Date(nowMs).toISOString();
@@ -434,6 +511,13 @@ export function buildMarketEvidenceBundle(input: {
   missing.push("tick_volume", "order_book", "economic_calendar");
   if (input.tradingStatus == null) missing.push("trading_status_detail");
 
+  const liveTick = input.liveTickMovement ?? null;
+  if (!liveTick?.latest) {
+    missing.push("genuine_live_ticks");
+  } else if (liveTick.windows.every((w) => w.genuineTickCount === 0)) {
+    warnings.push("live_tick_windows:NO_GENUINE_TICKS");
+  }
+
   let completeness: MarketEvidenceBundle["quality"]["completeness"] = "PARTIAL";
   if (primary?.available && input.quote.quoteFresh && primary.indicators?.atr != null) {
     completeness = byTf.length >= 2 ? "FULL" : "PARTIAL";
@@ -451,7 +535,14 @@ export function buildMarketEvidenceBundle(input: {
   for (const tf of byTf) {
     h.update(`|${tf.timeframe}:${tf.movement?.lastOpenSec ?? 0}:${tf.candleQuality?.closedBars ?? 0}`);
   }
+  if (liveTick?.latest) {
+    h.update(`|tick:${liveTick.latest.receiptTimestampMs}:${liveTick.latest.bid}:${liveTick.latest.ask}`);
+  }
   const evidenceFingerprint = h.digest("hex").slice(0, 24);
+
+  const latestTickAsOf = liveTick?.latest
+    ? new Date(liveTick.latest.receiptTimestampMs).toISOString()
+    : null;
 
   return {
     schemaVersion: MARKET_EVIDENCE_SCHEMA,
@@ -490,6 +581,44 @@ export function buildMarketEvidenceBundle(input: {
       ),
       feedNote:
         "Heartbeat and session CONNECTED alone never establish LIVE — use quote-freshness authority.",
+    },
+    liveTickMovement: {
+      source: "FOREXCONNECT_OFFERS_GENUINE_TICKS",
+      latestTick: field(
+        liveTick?.latest ?? null,
+        liveTick?.latest ? "BROKER_MEASURED" : "UNAVAILABLE",
+        latestTickAsOf,
+        liveTick?.latest
+          ? "Latest accepted genuine Offers bid/ask change."
+          : "No genuine ticks captured yet — not zero market movement.",
+      ),
+      windows: (liveTick?.windows ?? []).map((w) => ({
+        windowId: w.windowId,
+        genuineTickCount: w.genuineTickCount,
+        direction: w.direction,
+        netBidMovement: w.netBidMovement,
+        netAskMovement: w.netAskMovement,
+        midPriceMovement: w.midPriceMovement,
+        percentageMovement: w.percentageMovement,
+        currentSpread: w.currentSpread,
+        averageSpread: w.averageSpread,
+        freshness: w.freshness,
+        status: w.status,
+        coverage: w.coverage,
+        firstReceiptTimestampMs: w.firstReceiptTimestampMs,
+        latestReceiptTimestampMs: w.latestReceiptTimestampMs,
+      })),
+      captureHealth: liveTick?.counters
+        ? {
+          accepted: liveTick.counters.accepted,
+          filtered: liveTick.counters.filtered,
+          persisted: liveTick.counters.persisted,
+          duplicates: liveTick.counters.duplicates,
+          lastAcceptedAtMs: liveTick.counters.lastAcceptedAtMs,
+        }
+        : null,
+      note:
+        "Live tick windows are independent of historical candle movement. Zero genuine ticks ⇒ NO_GENUINE_TICKS, never fabricated zero movement. Does not override deterministic NO_TRADE.",
     },
     historical: {
       lookbackLimit: AT_HISTORY_LOOKBACK_LIMIT,
@@ -556,6 +685,13 @@ export function marketEvidenceForModelPrompt(bundle: MarketEvidenceBundle): Reco
       freshnessReasonCode: bundle.liveQuote.freshnessReasonCode.value,
       priceChangeAgeMs: bundle.liveQuote.effectivePriceChangeAgeMs.value,
       feedNote: bundle.liveQuote.feedNote,
+    },
+    liveTickMovement: {
+      source: bundle.liveTickMovement.source,
+      latest: bundle.liveTickMovement.latestTick.value,
+      windows: bundle.liveTickMovement.windows.slice(0, 5),
+      captureHealth: bundle.liveTickMovement.captureHealth,
+      note: bundle.liveTickMovement.note,
     },
     primary: bundle.historical.primary
       ? {
