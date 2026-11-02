@@ -59,6 +59,19 @@ export {
   type PerTimeframeEvidence,
 } from "./market-evidence-builder.js";
 export {
+  buildTechnicalIntelligence,
+  computeIndicatorSuite,
+  classifyMarketCondition,
+  validateStrategySignal,
+  buildStructureIntel,
+  TECH_INTEL_SCHEMA,
+  INDICATOR_ENGINE_VERSION,
+  SIGNAL_VALIDATION_VERSION,
+  type TechnicalIntelligenceBundle,
+  type IndicatorSuite,
+  type SignalValidationRecord,
+} from "../technical-intelligence/index.js";
+export {
   AtOpenAiAnalysisEngine,
   AT_OPENAI_DEFAULT_TIMEOUT_MS,
   AT_OPENAI_MAX_TIMEOUT_MS,

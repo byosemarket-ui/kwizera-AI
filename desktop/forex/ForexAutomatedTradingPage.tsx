@@ -499,6 +499,21 @@ export function ForexAutomatedTradingPage(props: {
       duplicates?: number;
       lastAcceptedAtMs?: number | null;
     } | null;
+    /** Phase 4.18F.3 — technical intelligence (analysis only). */
+    tech?: {
+      signalOutcome?: string | null;
+      trend?: string | null;
+      momentum?: string | null;
+      volatility?: string | null;
+      rsi14?: number | null;
+      macdCross?: string | null;
+      atr?: number | null;
+      adx?: number | null;
+      maCrossover?: string | null;
+      structureEvents?: number | null;
+      rejectionReasons?: string[];
+      supportReasons?: string[];
+    } | null;
   } | null>(null);
   /** Phase 57.1/57.2 — server-authoritative automation START/STOP (monitoring ≠ execution). */
   const [automation, setAutomation] = useState<{
@@ -1338,6 +1353,22 @@ export function ForexAutomatedTradingPage(props: {
             structure?: { trendState?: string | null };
             indicators?: { atrMethod?: string | null };
           };
+          technicalIntelligence?: {
+            condition?: { trend?: string; momentum?: string; volatility?: string };
+            signalValidation?: {
+              outcome?: string;
+              rejectionReasons?: string[];
+              supportReasons?: string[];
+            };
+            structure?: { events?: unknown[]; confirmedSwings?: number };
+            indicators?: {
+              rsi14?: number | null;
+              macdCross?: string | null;
+              atr?: number | null;
+              adx?: number | null;
+              maCrossover?: string | null;
+            };
+          } | null;
         } | null;
         error?: { message?: string; code?: string };
         status?: PublicStatus;
@@ -1363,6 +1394,24 @@ export function ForexAutomatedTradingPage(props: {
           lastGenuineTickAtMs: tick?.latestTick?.receiptTimestampMs ?? null,
           tickWindows: tick?.windows ?? [],
           captureHealth: tick?.captureHealth ?? null,
+          tech: data.marketEvidence.technicalIntelligence
+            ? {
+              signalOutcome: data.marketEvidence.technicalIntelligence.signalValidation?.outcome ?? null,
+              trend: data.marketEvidence.technicalIntelligence.condition?.trend ?? null,
+              momentum: data.marketEvidence.technicalIntelligence.condition?.momentum ?? null,
+              volatility: data.marketEvidence.technicalIntelligence.condition?.volatility ?? null,
+              rsi14: data.marketEvidence.technicalIntelligence.indicators?.rsi14 ?? null,
+              macdCross: data.marketEvidence.technicalIntelligence.indicators?.macdCross ?? null,
+              atr: data.marketEvidence.technicalIntelligence.indicators?.atr ?? null,
+              adx: data.marketEvidence.technicalIntelligence.indicators?.adx ?? null,
+              maCrossover: data.marketEvidence.technicalIntelligence.indicators?.maCrossover ?? null,
+              structureEvents: Array.isArray(data.marketEvidence.technicalIntelligence.structure?.events)
+                ? data.marketEvidence.technicalIntelligence.structure!.events!.length
+                : null,
+              rejectionReasons: data.marketEvidence.technicalIntelligence.signalValidation?.rejectionReasons?.slice(0, 6) ?? [],
+              supportReasons: data.marketEvidence.technicalIntelligence.signalValidation?.supportReasons?.slice(0, 6) ?? [],
+            }
+            : null,
         });
       }
       if (data.status) setStatus(data.status);
@@ -1994,7 +2043,7 @@ export function ForexAutomatedTradingPage(props: {
         {marketEvidenceSummary ? (
           <div data-fx-at-market-evidence="true" style={{ marginTop: "0.75rem" }}>
             <h3 className="fx-auto-trading-h2" style={{ fontSize: "1rem" }}>
-              Market data intelligence (Phase 4.18E / F.2.2)
+              Market data intelligence (Phase 4.18E / F.2.2 / F.3)
             </h3>
             <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
               <li>
@@ -2068,6 +2117,35 @@ export function ForexAutomatedTradingPage(props: {
                 Explicitly unavailable (not shown as zero):{" "}
                 <strong>{(marketEvidenceSummary.unavailable ?? []).join(", ") || "—"}</strong>
               </li>
+              {marketEvidenceSummary.tech ? (
+                <li data-fx-at-tech-intel="true">
+                  Technical intelligence (F.3, analysis only):
+                  <ul style={{ margin: "0.25rem 0 0", paddingLeft: "1.1rem" }}>
+                    <li>
+                      Signal: <strong>{marketEvidenceSummary.tech.signalOutcome ?? "—"}</strong>
+                      {" · "}Trend: <strong>{marketEvidenceSummary.tech.trend ?? "—"}</strong>
+                      {" · "}Momentum: <strong>{marketEvidenceSummary.tech.momentum ?? "—"}</strong>
+                      {" · "}Vol: <strong>{marketEvidenceSummary.tech.volatility ?? "—"}</strong>
+                    </li>
+                    <li>
+                      RSI14: <strong>{marketEvidenceSummary.tech.rsi14 ?? "—"}</strong>
+                      {" · "}MACD: <strong>{marketEvidenceSummary.tech.macdCross ?? "—"}</strong>
+                      {" · "}ATR(SMA_OF_TR): <strong>{marketEvidenceSummary.tech.atr ?? "—"}</strong>
+                      {" · "}ADX: <strong>{marketEvidenceSummary.tech.adx ?? "—"}</strong>
+                      {" · "}MA cross: <strong>{marketEvidenceSummary.tech.maCrossover ?? "—"}</strong>
+                    </li>
+                    <li>
+                      Structure events: <strong>{marketEvidenceSummary.tech.structureEvents ?? "—"}</strong>
+                    </li>
+                    <li>
+                      Support: <strong>{(marketEvidenceSummary.tech.supportReasons ?? []).join("; ") || "—"}</strong>
+                    </li>
+                    <li>
+                      Rejections: <strong>{(marketEvidenceSummary.tech.rejectionReasons ?? []).join("; ") || "—"}</strong>
+                    </li>
+                  </ul>
+                </li>
+              ) : null}
               <li>
                 LIVE quotes require genuine Offers price changes — heartbeats ≠ LIVE.
                 Historical candle movement stays separate from live tick windows.

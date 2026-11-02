@@ -6,7 +6,7 @@ export function buildAtOpenAiSystemPrompt(opts?: { withChartImage?: boolean }): 
     "You are a technical analyst for FXCM ForexConnect market data.",
     "Use ONLY the evidence JSON provided by the server (and the chart image when supplied).",
     "Do not invent OHLC values, timestamps, swings, support/resistance, patterns, news, quotes, volume, or order-book depth.",
-    "marketEvidence contains deterministic measurements (SMA/ATR SMA_OF_TR, movement, structure, MTF). Treat those as facts only when present; never invent missing indicator fields.",
+    "marketEvidence contains deterministic measurements (SMA/EMA/RSI/MACD/Bollinger/ATR SMA_OF_TR/ADX, movement, structure BOS/CHOCH, trend/momentum/volatility, signalValidation, MTF). Treat those as facts only when present; never invent missing indicator fields.",
     "Distinguish historical candle movement from live quote context. Heartbeats are not genuine price changes.",
     "Only discuss timeframes present in evidence.timeframes / marketEvidence.otherTimeframes.",
     "Compare primaryTimeframe bias with multiTimeframe.agreement when supplied; report conflicts explicitly.",

@@ -18,9 +18,14 @@ import {
 } from "./historical-movement.js";
 import type { CanonicalQuoteSnapshot, CanonicalTimeframeId } from "./canonical-analysis.types.js";
 import type { AutomatedTradingEnvironment } from "../types.js";
+import {
+  buildTechnicalIntelligence,
+  type TechnicalIntelligenceBundle,
+} from "../technical-intelligence/index.js";
 
 export const MARKET_EVIDENCE_SCHEMA = "kwizera.market-evidence.v1" as const;
-export const MARKET_EVIDENCE_VERSION = "4.18E" as const;
+/** Phase 4.18F.3 — adds technical intelligence (indicators/structure/signal validation). */
+export const MARKET_EVIDENCE_VERSION = "4.18F.3" as const;
 
 /** Default history pull — FC SDK practical max (not unlimited). */
 export const AT_HISTORY_LOOKBACK_LIMIT = FOREXCONNECT_MAX_CANDLES;
@@ -70,7 +75,29 @@ export interface PerTimeframeEvidence {
     strategyDirection: "BUY" | "SELL" | "NO_TRADE" | null;
     strategyCode: string | null;
     provenance: "DETERMINISTIC_COMPUTED";
+    /** Phase 4.18F.3 — expanded suite (null when insufficient). */
+    suiteSummary?: {
+      rsi14: number | null;
+      macd: number | null;
+      macdSignal: number | null;
+      macdHistogram: number | null;
+      bbUpper: number | null;
+      bbMiddle: number | null;
+      bbLower: number | null;
+      adx: number | null;
+      plusDi: number | null;
+      minusDi: number | null;
+      sma50: number | null;
+      sma200: number | null;
+      ema21: number | null;
+      ema50: number | null;
+      atrPct: number | null;
+      volatilityClass: string | null;
+      maCrossover: string | null;
+    } | null;
   } | null;
+  /** Phase 4.18F.3 — full structure + condition + signal validation for this TF. */
+  technicalIntelligence: TechnicalIntelligenceBundle | null;
   deterministicBias: "BULLISH" | "BEARISH" | "NEUTRAL" | "UNKNOWN";
   available: boolean;
   warnings: string[];
@@ -149,6 +176,11 @@ export interface MarketEvidenceBundle {
     agreement: "AGREE_BULLISH" | "AGREE_BEARISH" | "CONFLICT" | "INSUFFICIENT" | "UNKNOWN";
     notes: string[];
   };
+  /**
+   * Phase 4.18F.3 — primary-TF technical intelligence (indicators, structure, signal validation).
+   * Never forces broker execution; placesOrders remains false.
+   */
+  technicalIntelligence: TechnicalIntelligenceBundle | null;
   instrumentMeta: {
     symbol: EvidenceField<string>;
     pointSize: EvidenceField<number | null>;
@@ -236,6 +268,7 @@ export function buildPerTimeframeEvidence(input: {
   candles: StrategyCandle[];
   pointSize: number | null;
   nowMs?: number;
+  quoteFresh?: boolean | null;
 }): PerTimeframeEvidence {
   const instrument = normalizeInstrumentId(input.instrument);
   const tf = normalizeCanonicalTimeframe(input.timeframe) ?? String(input.timeframe);
@@ -299,6 +332,9 @@ export function buildPerTimeframeEvidence(input: {
 
   let indicators: PerTimeframeEvidence["indicators"] = null;
   let deterministicBias: PerTimeframeEvidence["deterministicBias"] = "UNKNOWN";
+  let technicalIntelligence: TechnicalIntelligenceBundle | null = null;
+  let strategyDirection: "BUY" | "SELL" | "NO_TRADE" | null = null;
+  let strategyCode: string | null = null;
   if (closed.length >= SMA_CROSSOVER_RULES.slowSmaLength + 2) {
     const closes = closed.map((c) => c.close);
     const highs = closed.map((c) => c.high);
@@ -311,6 +347,8 @@ export function buildPerTimeframeEvidence(input: {
       candles: closed,
       pointSize: input.pointSize,
     });
+    strategyDirection = ev.direction;
+    strategyCode = ev.code;
     indicators = {
       fastSma,
       slowSma,
@@ -319,10 +357,51 @@ export function buildPerTimeframeEvidence(input: {
       strategyDirection: ev.direction,
       strategyCode: ev.code,
       provenance: "DETERMINISTIC_COMPUTED",
+      suiteSummary: null,
     };
     deterministicBias = biasFromStrategy(ev.ok ? ev.direction : null);
   } else {
     warnings.push("Insufficient closed candles for SMA/ATR indicators.");
+  }
+
+  try {
+    technicalIntelligence = buildTechnicalIntelligence({
+      instrument,
+      timeframe: tf,
+      candles: closed,
+      strategyDirection,
+      strategyCode,
+      quoteFresh: input.quoteFresh ?? null,
+      nowMs: input.nowMs,
+    });
+    if (indicators && technicalIntelligence) {
+      const s = technicalIntelligence.indicators;
+      indicators = {
+        ...indicators,
+        suiteSummary: {
+          rsi14: s.rsi.rsi14.value,
+          macd: s.macd.macd.value,
+          macdSignal: s.macd.signal.value,
+          macdHistogram: s.macd.histogram.value,
+          bbUpper: s.bollinger.upper.value,
+          bbMiddle: s.bollinger.middle.value,
+          bbLower: s.bollinger.lower.value,
+          adx: s.adx.adx.value,
+          plusDi: s.adx.plusDi.value,
+          minusDi: s.adx.minusDi.value,
+          sma50: s.movingAverages.sma50.value,
+          sma200: s.movingAverages.sma200.value,
+          ema21: s.movingAverages.ema21.value,
+          ema50: s.movingAverages.ema50.value,
+          atrPct: s.atr.atrPctOfPrice.value,
+          volatilityClass: s.atr.volatilityClass,
+          maCrossover: s.movingAverages.crossover,
+        },
+      };
+    }
+  } catch {
+    warnings.push("Technical intelligence computation failed.");
+    technicalIntelligence = null;
   }
 
   return {
@@ -332,6 +411,7 @@ export function buildPerTimeframeEvidence(input: {
     movement,
     structure,
     indicators,
+    technicalIntelligence,
     deterministicBias,
     available: quality.closedBars > 0,
     warnings: [...warnings, ...quality.blockers.slice(0, 5)],
@@ -469,6 +549,7 @@ export function buildMarketEvidenceBundle(input: {
         candles,
         pointSize: input.pointSize ?? null,
         nowMs,
+        quoteFresh: input.quote.quoteFresh,
       }),
     );
   }
@@ -626,6 +707,7 @@ export function buildMarketEvidenceBundle(input: {
       byTimeframe: byTf,
     },
     multiTimeframe: mtf,
+    technicalIntelligence: primary?.technicalIntelligence ?? null,
     instrumentMeta: {
       symbol: field(instrument, "BROKER_MEASURED", nowIso),
       pointSize: field(
@@ -716,7 +798,87 @@ export function marketEvidenceForModelPrompt(bundle: MarketEvidenceBundle): Reco
         fastSma: t.indicators?.fastSma ?? null,
         slowSma: t.indicators?.slowSma ?? null,
         netReturnPct: t.movement?.netReturnPct ?? null,
+        signalOutcome: t.technicalIntelligence?.signalValidation.outcome ?? null,
+        trend: t.technicalIntelligence?.condition.trend ?? null,
+        momentum: t.technicalIntelligence?.condition.momentum ?? null,
+        volatility: t.technicalIntelligence?.condition.volatility ?? null,
       })),
+    technicalIntelligence: bundle.technicalIntelligence
+      ? {
+        engineVersion: bundle.technicalIntelligence.indicators.engineVersion,
+        movingAverages: {
+          sma9: bundle.technicalIntelligence.indicators.movingAverages.sma9.value,
+          sma21: bundle.technicalIntelligence.indicators.movingAverages.sma21.value,
+          sma50: bundle.technicalIntelligence.indicators.movingAverages.sma50.value,
+          sma200: bundle.technicalIntelligence.indicators.movingAverages.sma200.value,
+          ema9: bundle.technicalIntelligence.indicators.movingAverages.ema9.value,
+          ema21: bundle.technicalIntelligence.indicators.movingAverages.ema21.value,
+          ema50: bundle.technicalIntelligence.indicators.movingAverages.ema50.value,
+          ema200: bundle.technicalIntelligence.indicators.movingAverages.ema200.value,
+          crossover: bundle.technicalIntelligence.indicators.movingAverages.crossover,
+          priceVsSma21: bundle.technicalIntelligence.indicators.movingAverages.priceVsSma21,
+          quality: bundle.technicalIntelligence.indicators.movingAverages.sma21.quality,
+        },
+        rsi: {
+          value: bundle.technicalIntelligence.indicators.rsi.rsi14.value,
+          zone: bundle.technicalIntelligence.indicators.rsi.zone,
+          momentum: bundle.technicalIntelligence.indicators.rsi.momentum,
+          quality: bundle.technicalIntelligence.indicators.rsi.rsi14.quality,
+        },
+        macd: {
+          macd: bundle.technicalIntelligence.indicators.macd.macd.value,
+          signal: bundle.technicalIntelligence.indicators.macd.signal.value,
+          histogram: bundle.technicalIntelligence.indicators.macd.histogram.value,
+          cross: bundle.technicalIntelligence.indicators.macd.cross,
+          quality: bundle.technicalIntelligence.indicators.macd.macd.quality,
+        },
+        bollinger: {
+          upper: bundle.technicalIntelligence.indicators.bollinger.upper.value,
+          middle: bundle.technicalIntelligence.indicators.bollinger.middle.value,
+          lower: bundle.technicalIntelligence.indicators.bollinger.lower.value,
+          bandwidth: bundle.technicalIntelligence.indicators.bollinger.bandwidth.value,
+          pricePosition: bundle.technicalIntelligence.indicators.bollinger.pricePosition,
+          quality: bundle.technicalIntelligence.indicators.bollinger.middle.quality,
+        },
+        atr: {
+          value: bundle.technicalIntelligence.indicators.atr.atr.value,
+          atrPct: bundle.technicalIntelligence.indicators.atr.atrPctOfPrice.value,
+          method: "SMA_OF_TR",
+          volatilityClass: bundle.technicalIntelligence.indicators.atr.volatilityClass,
+          quality: bundle.technicalIntelligence.indicators.atr.atr.quality,
+        },
+        adx: {
+          adx: bundle.technicalIntelligence.indicators.adx.adx.value,
+          plusDi: bundle.technicalIntelligence.indicators.adx.plusDi.value,
+          minusDi: bundle.technicalIntelligence.indicators.adx.minusDi.value,
+          trendStrength: bundle.technicalIntelligence.indicators.adx.trendStrength,
+          quality: bundle.technicalIntelligence.indicators.adx.adx.quality,
+        },
+        structure: bundle.technicalIntelligence.structure,
+        condition: {
+          trend: bundle.technicalIntelligence.condition.trend,
+          momentum: bundle.technicalIntelligence.condition.momentum,
+          volatility: bundle.technicalIntelligence.condition.volatility,
+          trendEvidence: bundle.technicalIntelligence.condition.trendEvidence,
+          momentumEvidence: bundle.technicalIntelligence.condition.momentumEvidence,
+          volatilityEvidence: bundle.technicalIntelligence.condition.volatilityEvidence,
+          insufficient: bundle.technicalIntelligence.condition.insufficient,
+          stale: bundle.technicalIntelligence.condition.stale,
+        },
+        signalValidation: {
+          outcome: bundle.technicalIntelligence.signalValidation.outcome,
+          strategyDirection: bundle.technicalIntelligence.signalValidation.strategyDirection,
+          indicatorAgreement: bundle.technicalIntelligence.signalValidation.indicatorAgreement,
+          structureAgreement: bundle.technicalIntelligence.signalValidation.structureAgreement,
+          trendAlignment: bundle.technicalIntelligence.signalValidation.trendAlignment,
+          momentumConfirmation: bundle.technicalIntelligence.signalValidation.momentumConfirmation,
+          rejectionReasons: bundle.technicalIntelligence.signalValidation.rejectionReasons,
+          supportReasons: bundle.technicalIntelligence.signalValidation.supportReasons,
+          confidenceType: "ANALYSIS_CONFIDENCE",
+          isCalibratedWinProbability: false,
+        },
+      }
+      : null,
     instrumentMeta: {
       pointSize: bundle.instrumentMeta.pointSize.value,
       tradingStatus: bundle.instrumentMeta.tradingStatus.value,
@@ -732,8 +894,9 @@ export function marketEvidenceForModelPrompt(bundle: MarketEvidenceBundle): Reco
     },
     quality: bundle.quality,
     analysisAuthorityNote:
-      "OpenAI is advisory. Canonical reconciler is the authority for BUY/SELL candidates. Never invent missing fields.",
+      "OpenAI is advisory. Canonical reconciler is the authority for BUY/SELL candidates. Technical indicators validate — they never override deterministic NO_TRADE. Never invent missing fields.",
     placesOrders: false,
     acceptsForExecution: false,
+    mutatesBroker: false,
   };
 }
