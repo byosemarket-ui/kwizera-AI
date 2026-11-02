@@ -168,6 +168,11 @@ export interface AtOpenAiAnalysisResult {
   placesOrders: false;
   historicalOnly: boolean;
   liveLabeled: false;
+  /**
+   * Phase 4.18F.5 — redacted proof of what evidence was serialized into the OpenAI request.
+   * Absent on legacy analyses. Never contains secrets.
+   */
+  evidenceDelivery?: import("./openai-evidence-delivery.js").OpenAiEvidenceDeliveryReport | null;
 }
 
 export interface AtOpenAiAnalysisPublicStatus {

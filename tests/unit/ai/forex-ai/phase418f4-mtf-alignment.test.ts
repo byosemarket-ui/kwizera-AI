@@ -179,7 +179,7 @@ describe("F.4 evidence builder + OpenAI serialization", () => {
       pointSize: 0.0001,
     });
 
-    expect(bundle.evidenceVersion).toBe("4.18F.4");
+    expect(bundle.evidenceVersion).toMatch(/^4\.18F\./);
     expect(bundle.multiTimeframe.alignment).not.toBeNull();
     expect(bundle.multiTimeframe.alignment!.matrix).toHaveLength(6);
     expect(bundle.placesOrders).toBe(false);

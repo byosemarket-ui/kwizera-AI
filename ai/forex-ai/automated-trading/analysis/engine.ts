@@ -29,6 +29,7 @@ import {
   buildMarketEvidenceBundle,
   marketEvidenceForModelPrompt,
 } from "./market-evidence-builder.js";
+import { buildOpenAiEvidenceDeliveryReport } from "./openai-evidence-delivery.js";
 import { resolveAtForecastHorizon } from "./direction.js";
 import { buildAtOpenAiSystemPrompt, buildAtOpenAiUserPrompt } from "./prompts.js";
 import {
@@ -537,6 +538,59 @@ export class AtOpenAiAnalysisEngine {
           closed: true,
         }));
       }
+      // Phase 4.18F.5 / F.2.3 — attach genuine tick movement (separate from historical candles).
+      let liveTickMovement: Parameters<typeof buildMarketEvidenceBundle>[0]["liveTickMovement"] = null;
+      try {
+        const { getGenuineTickCaptureService } = await import(
+          "../../../market-data/forexconnect/genuine-tick-capture.js"
+        );
+        const capture = getGenuineTickCaptureService();
+        const snap = capture.getSnapshot(instrument, {
+          asOfMs: Date.now(),
+          sessionConnected: true,
+        });
+        const counters = capture.getCounters();
+        liveTickMovement = {
+          latest: snap.latest
+            ? {
+              bid: snap.latest.bid,
+              ask: snap.latest.ask,
+              mid: snap.latest.mid,
+              spread: snap.latest.spread,
+              receiptTimestampMs: snap.latest.receiptTimestampMs,
+              eventTimestampMs: snap.latest.eventTimestampMs,
+              eventClass: snap.latest.eventClass,
+              source: snap.latest.source,
+            }
+            : null,
+          windows: snap.windows.map((w) => ({
+            windowId: w.windowId,
+            genuineTickCount: w.genuineTickCount,
+            direction: w.direction,
+            netBidMovement: w.netBidMovement,
+            netAskMovement: w.netAskMovement,
+            midPriceMovement: w.midPriceMovement,
+            percentageMovement: w.percentageMovement,
+            currentSpread: w.currentSpread,
+            averageSpread: w.averageSpread,
+            freshness: w.freshness,
+            status: w.status,
+            coverage: w.coverage,
+            firstReceiptTimestampMs: w.firstReceiptTimestampMs,
+            latestReceiptTimestampMs: w.latestReceiptTimestampMs,
+          })),
+          counters: {
+            accepted: counters.accepted,
+            filtered: counters.filtered,
+            persisted: counters.persisted,
+            duplicates: counters.duplicates,
+            lastAcceptedAtMs: counters.lastAcceptedAtMs,
+          },
+        };
+      } catch {
+        liveTickMovement = null;
+      }
+
       const marketEvidence = buildMarketEvidenceBundle({
         environment: input.environment,
         instrument,
@@ -552,10 +606,12 @@ export class AtOpenAiAnalysisEngine {
           snapshotFingerprint: evidence.fingerprint,
           evaluatedAtUtc: evidence.builtAtUtc,
         },
+        liveTickMovement,
       });
+      const marketEvidencePrompt = marketEvidenceForModelPrompt(marketEvidence);
       const payload = {
         ...evidenceForModelPrompt(evidence, candlesByTf),
-        marketEvidence: marketEvidenceForModelPrompt(marketEvidence),
+        marketEvidence: marketEvidencePrompt,
         primaryTimeframe,
         forecastHorizon: horizon.ok ? horizon.forecastHorizon : null,
         forecastHorizonPolicy: horizon.ok
@@ -606,6 +662,19 @@ export class AtOpenAiAnalysisEngine {
           dataQuality: evidence.historicalOnly ? "HISTORICAL_ONLY" : "PARTIAL",
           started,
         });
+        failed.evidenceDelivery = buildOpenAiEvidenceDeliveryReport({
+          prompt: marketEvidencePrompt,
+          bundle: marketEvidence,
+          analysisId: failed.analysisId,
+          instrument,
+          requestStatus: "REQUEST_NOT_RUN",
+          responseStatus: "RESPONSE_NOT_VERIFIED",
+          validationStatus: "REQUEST_NOT_RUN",
+          modelRequested: model,
+          lifecycle: failed.lifecycle,
+          blockers: ["IMAGE_UNAVAILABLE"],
+          latencyMs: failed.latencyMs,
+        });
         await this.store().save(failed);
         return {
           ok: false,
@@ -639,6 +708,15 @@ export class AtOpenAiAnalysisEngine {
 
       if (!chatResult.ok || !chatResult.data) {
         if (chartMeta) chartMeta.includedInOpenAiRequest = false;
+        const failCode = String(chatResult.code ?? "ANALYSIS_FAILED");
+        const requestStatus =
+          /timeout/i.test(failCode) || /timeout/i.test(chatResult.error ?? "")
+            ? "OPENAI_TIMEOUT" as const
+            : /not.?config|missing.?key|NO_API/i.test(failCode)
+              ? "OPENAI_NOT_CONFIGURED" as const
+              : /unavailable|network|fetch|ECONN/i.test(failCode)
+                ? "OPENAI_UNAVAILABLE" as const
+                : "REQUEST_FAILED" as const;
         const failed = baseFailed({
           analysisId: randomUUID(),
           environment: input.environment,
@@ -659,6 +737,20 @@ export class AtOpenAiAnalysisEngine {
           historicalOnly: evidence.historicalOnly,
           dataQuality: evidence.historicalOnly ? "HISTORICAL_ONLY" : "PARTIAL",
           started,
+        });
+        failed.evidenceDelivery = buildOpenAiEvidenceDeliveryReport({
+          prompt: marketEvidencePrompt,
+          bundle: marketEvidence,
+          analysisId: failed.analysisId,
+          instrument,
+          requestStatus,
+          responseStatus: "RESPONSE_FAILED",
+          validationStatus: "VALIDATION_FAILED",
+          modelRequested: model,
+          modelUsed: chatResult.model ?? null,
+          lifecycle: failed.lifecycle,
+          blockers: [failCode],
+          latencyMs: failed.latencyMs,
         });
         await this.store().save(failed);
         return {
@@ -693,6 +785,28 @@ export class AtOpenAiAnalysisEngine {
         latencyMs: Date.now() - started,
       });
 
+      const validationStatus =
+        result.lifecycle === "ANALYSIS_VALID"
+          ? "VALIDATED" as const
+          : result.lifecycle === "ANALYSIS_INVALID" || result.lifecycle === "DATA_INSUFFICIENT"
+            ? "VALIDATION_FAILED" as const
+            : "RESPONSE_NOT_VERIFIED" as const;
+
+      result.evidenceDelivery = buildOpenAiEvidenceDeliveryReport({
+        prompt: marketEvidencePrompt,
+        bundle: marketEvidence,
+        analysisId: result.analysisId,
+        instrument,
+        requestStatus: "REQUEST_SENT",
+        responseStatus: "RESPONSE_RECEIVED",
+        validationStatus,
+        modelRequested: model,
+        modelUsed: chatResult.model ?? null,
+        lifecycle: result.lifecycle,
+        blockers: result.blockers.map((b) => b.code).slice(0, 12),
+        latencyMs: result.latencyMs,
+      });
+
       // Stale / out-of-order guard: do not let an older fingerprint become "latest"
       // if a newer successful analysis already landed.
       if (
@@ -711,6 +825,14 @@ export class AtOpenAiAnalysisEngine {
             },
           ],
         };
+        if (stale.evidenceDelivery) {
+          stale.evidenceDelivery = {
+            ...stale.evidenceDelivery,
+            lifecycle: "STALE_RESULT",
+            validationStatus: "RESPONSE_NOT_VERIFIED",
+            blockers: [...stale.evidenceDelivery.blockers, "OUT_OF_ORDER_RESULT"].slice(0, 12),
+          };
+        }
         await this.store().save(stale);
         return { ok: true, analysis: stale };
       }

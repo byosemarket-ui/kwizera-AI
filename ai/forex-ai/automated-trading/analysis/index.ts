@@ -83,3 +83,12 @@ export {
   getAtOpenAiAnalysisEngine,
   resetAtOpenAiAnalysisEngineForTests,
 } from "./engine.js";
+export {
+  OPENAI_EVIDENCE_DELIVERY_SCHEMA,
+  buildOpenAiEvidenceDeliveryReport,
+  inspectMarketEvidencePrompt,
+  type OpenAiEvidenceDeliveryReport,
+  type OpenAiEvidenceRequestStatus,
+  type OpenAiEvidenceResponseStatus,
+  type OpenAiEvidenceValidationStatus,
+} from "./openai-evidence-delivery.js";

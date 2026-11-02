@@ -26,8 +26,8 @@ import {
 } from "../technical-intelligence/index.js";
 
 export const MARKET_EVIDENCE_SCHEMA = "kwizera.market-evidence.v1" as const;
-/** Phase 4.18F.4 — MTF alignment matrix + F.3 technical intelligence. */
-export const MARKET_EVIDENCE_VERSION = "4.18F.4" as const;
+/** Phase 4.18F.5 — OpenAI evidence-delivery proof + F.4 MTF + F.3 tech intel. */
+export const MARKET_EVIDENCE_VERSION = "4.18F.5" as const;
 
 /** Default history pull — FC SDK practical max (not unlimited). */
 export const AT_HISTORY_LOOKBACK_LIMIT = FOREXCONNECT_MAX_CANDLES;
@@ -933,13 +933,20 @@ export function marketEvidenceForModelPrompt(bundle: MarketEvidenceBundle): Reco
     quality: bundle.quality,
     openaiEvidenceDelivery: {
       schemaPresent: true,
+      phase: "4.18F.5",
       evidenceVersion: bundle.evidenceVersion,
+      historicalLiveSeparated: true,
+      liveTickMovementIncluded: bundle.liveTickMovement?.latestTick?.value != null
+        || (bundle.liveTickMovement?.windows?.length ?? 0) > 0,
+      movementWindowIds: (bundle.liveTickMovement?.windows ?? []).map((w) => w.windowId),
       mtfMatrixIncluded: Array.isArray(bundle.multiTimeframe.alignment?.matrix)
         && (bundle.multiTimeframe.alignment?.matrix.length ?? 0) > 0,
       alignmentClassification: bundle.multiTimeframe.alignment?.classification ?? null,
       timeframeKeysInRequest: (bundle.multiTimeframe.alignment?.matrix ?? []).map((r) => r.timeframe),
       atrMethodLabel: "SMA_OF_TR",
       technicalIntelligenceIncluded: bundle.technicalIntelligence != null,
+      marketStructureIncluded: bundle.technicalIntelligence?.structure != null
+        || bundle.historical.primary?.structure != null,
       note: "Serialized for OpenAI request path via marketEvidenceForModelPrompt. Redacted — no secrets.",
     },
     analysisAuthorityNote:

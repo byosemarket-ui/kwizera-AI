@@ -514,6 +514,20 @@ export function ForexAutomatedTradingPage(props: {
       rejectionReasons?: string[];
       supportReasons?: string[];
     } | null;
+    /** Phase 4.18F.5 — redacted OpenAI evidence-delivery status (from OA result when present). */
+    openaiDelivery?: {
+      requestStatus?: string | null;
+      responseStatus?: string | null;
+      validationStatus?: string | null;
+      evidenceSizeChars?: number | null;
+      categoriesIncluded?: Record<string, boolean> | null;
+      timeframesIncluded?: string[];
+      movementWindowIds?: string[];
+      indicatorGroupsIncluded?: string[];
+      historicalLiveSeparated?: boolean | null;
+      atrMethodLabel?: string | null;
+      blockers?: string[];
+    } | null;
     /** Phase 4.18F.4 — MTF alignment matrix. */
     mtf?: {
       classification?: string | null;
@@ -1474,6 +1488,52 @@ export function ForexAutomatedTradingPage(props: {
                 ?? [],
             }
             : null,
+          openaiDelivery: (() => {
+            const latest = (openaiStatus?.latest ?? null) as null | {
+              evidenceDelivery?: {
+                requestStatus?: string;
+                responseStatus?: string;
+                validationStatus?: string;
+                evidenceSizeChars?: number;
+                categoriesIncluded?: Record<string, boolean>;
+                timeframesIncluded?: string[];
+                movementWindowIds?: string[];
+                indicatorGroupsIncluded?: string[];
+                historicalLiveSeparated?: boolean;
+                atrMethodLabel?: string | null;
+                blockers?: string[];
+              } | null;
+            };
+            const d = latest?.evidenceDelivery;
+            if (!d) {
+              return {
+                requestStatus: "REQUEST_NOT_RUN",
+                responseStatus: "RESPONSE_NOT_VERIFIED",
+                validationStatus: "REQUEST_NOT_RUN",
+                evidenceSizeChars: null,
+                categoriesIncluded: null,
+                timeframesIncluded: [],
+                movementWindowIds: [],
+                indicatorGroupsIncluded: [],
+                historicalLiveSeparated: null,
+                atrMethodLabel: data.marketEvidence.primary?.indicators?.atrMethod ?? "SMA_OF_TR",
+                blockers: ["OPENAI_RESULT_NOT_ATTACHED"],
+              };
+            }
+            return {
+              requestStatus: d.requestStatus ?? null,
+              responseStatus: d.responseStatus ?? null,
+              validationStatus: d.validationStatus ?? null,
+              evidenceSizeChars: d.evidenceSizeChars ?? null,
+              categoriesIncluded: d.categoriesIncluded ?? null,
+              timeframesIncluded: d.timeframesIncluded ?? [],
+              movementWindowIds: d.movementWindowIds ?? [],
+              indicatorGroupsIncluded: d.indicatorGroupsIncluded ?? [],
+              historicalLiveSeparated: d.historicalLiveSeparated ?? null,
+              atrMethodLabel: d.atrMethodLabel ?? null,
+              blockers: d.blockers ?? [],
+            };
+          })(),
         });
       }
       if (data.status) setStatus(data.status);
@@ -2105,7 +2165,7 @@ export function ForexAutomatedTradingPage(props: {
         {marketEvidenceSummary ? (
           <div data-fx-at-market-evidence="true" style={{ marginTop: "0.75rem" }}>
             <h3 className="fx-auto-trading-h2" style={{ fontSize: "1rem" }}>
-              Market data intelligence (Phase 4.18E / F.2.2 / F.3 / F.4)
+              Market data intelligence (Phase 4.18E / F.2.2 / F.3 / F.4 / F.5)
             </h3>
             <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
               <li>
@@ -2244,6 +2304,64 @@ export function ForexAutomatedTradingPage(props: {
                 LIVE quotes require genuine Offers price changes — heartbeats ≠ LIVE.
                 Historical candle movement stays separate from live tick windows.
               </li>
+              {marketEvidenceSummary.openaiDelivery ? (
+                <li data-fx-at-openai-evidence-delivery="true">
+                  OpenAI evidence delivery (F.5, redacted):
+                  {" "}
+                  request=<strong>{marketEvidenceSummary.openaiDelivery.requestStatus ?? "REQUEST_NOT_RUN"}</strong>
+                  {" · "}
+                  response=<strong>{marketEvidenceSummary.openaiDelivery.responseStatus ?? "RESPONSE_NOT_VERIFIED"}</strong>
+                  {" · "}
+                  validation=<strong>{marketEvidenceSummary.openaiDelivery.validationStatus ?? "REQUEST_NOT_RUN"}</strong>
+                  <ul style={{ margin: "0.25rem 0 0", paddingLeft: "1.1rem" }}>
+                    <li>
+                      Size chars: <strong>{marketEvidenceSummary.openaiDelivery.evidenceSizeChars ?? "—"}</strong>
+                      {" · "}hist/live separated:{" "}
+                      <strong>
+                        {marketEvidenceSummary.openaiDelivery.historicalLiveSeparated == null
+                          ? "—"
+                          : String(marketEvidenceSummary.openaiDelivery.historicalLiveSeparated)}
+                      </strong>
+                      {" · "}ATR: <strong>{marketEvidenceSummary.openaiDelivery.atrMethodLabel ?? "—"}</strong>
+                    </li>
+                    <li>
+                      Timeframes:{" "}
+                      <strong>
+                        {(marketEvidenceSummary.openaiDelivery.timeframesIncluded ?? []).join(", ") || "—"}
+                      </strong>
+                    </li>
+                    <li>
+                      Movement windows:{" "}
+                      <strong>
+                        {(marketEvidenceSummary.openaiDelivery.movementWindowIds ?? []).join(", ") || "—"}
+                      </strong>
+                    </li>
+                    <li>
+                      Indicator groups:{" "}
+                      <strong>
+                        {(marketEvidenceSummary.openaiDelivery.indicatorGroupsIncluded ?? []).join(", ") || "—"}
+                      </strong>
+                    </li>
+                    <li>
+                      Categories:{" "}
+                      <strong>
+                        {marketEvidenceSummary.openaiDelivery.categoriesIncluded
+                          ? Object.entries(marketEvidenceSummary.openaiDelivery.categoriesIncluded)
+                            .filter(([, v]) => v)
+                            .map(([k]) => k)
+                            .join(", ") || "none"
+                          : "—"}
+                      </strong>
+                    </li>
+                    <li>
+                      Blockers:{" "}
+                      <strong>
+                        {(marketEvidenceSummary.openaiDelivery.blockers ?? []).join("; ") || "—"}
+                      </strong>
+                    </li>
+                  </ul>
+                </li>
+              ) : null}
             </ul>
           </div>
         ) : (
@@ -3184,6 +3302,21 @@ export function ForexAutomatedTradingPage(props: {
                 blockers?: Array<{ code: string; message: string }>;
                 instrument?: string;
                 environment?: string;
+                evidenceDelivery?: {
+                  requestStatus?: string;
+                  responseStatus?: string;
+                  validationStatus?: string;
+                  evidenceSizeChars?: number;
+                  categoriesIncluded?: Record<string, boolean>;
+                  timeframesIncluded?: string[];
+                  movementWindowIds?: string[];
+                  indicatorGroupsIncluded?: string[];
+                  historicalLiveSeparated?: boolean;
+                  atrMethodLabel?: string | null;
+                  placesOrders?: false;
+                  acceptsForExecution?: false;
+                  mutatesBroker?: false;
+                } | null;
               };
               if (!latest) {
                 return <p className="fx-auto-trading-hint">No AT OpenAI analysis yet. Start monitoring or run analysis after Verify.</p>;
@@ -3297,6 +3430,30 @@ export function ForexAutomatedTradingPage(props: {
                     </div>
                   </div>
                   {latest.explanation ? <p className="fx-auto-trading-hint">{latest.explanation}</p> : null}
+                  <div data-fx-at-openai-evidence-delivery="true" className="fx-auto-trading-hint">
+                    Evidence delivery:{" "}
+                    <strong>
+                      {latest.evidenceDelivery?.requestStatus ?? "REQUEST_NOT_RUN"}
+                    </strong>
+                    {" / "}
+                    <strong>
+                      {latest.evidenceDelivery?.responseStatus ?? "RESPONSE_NOT_VERIFIED"}
+                    </strong>
+                    {" / "}
+                    <strong>
+                      {latest.evidenceDelivery?.validationStatus ?? "REQUEST_NOT_RUN"}
+                    </strong>
+                    {latest.evidenceDelivery?.evidenceSizeChars != null
+                      ? ` · ${latest.evidenceDelivery.evidenceSizeChars} chars`
+                      : ""}
+                    {latest.evidenceDelivery?.timeframesIncluded?.length
+                      ? ` · TFs ${latest.evidenceDelivery.timeframesIncluded.join(",")}`
+                      : ""}
+                    {latest.evidenceDelivery?.movementWindowIds?.length
+                      ? ` · windows ${latest.evidenceDelivery.movementWindowIds.join(",")}`
+                      : ""}
+                    {" · "}placesOrders=<strong>false</strong>
+                  </div>
                   {latest.keyEvidence && latest.keyEvidence.length > 0 ? (
                     <ul className="fx-auto-trading-blockers" aria-label="Key evidence">
                       {latest.keyEvidence.slice(0, 5).map((e) => <li key={e}>+ {e}</li>)}
