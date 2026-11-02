@@ -960,6 +960,10 @@ export class ForexConnectLiveCandleService {
   /**
    * Quote + per-session freshness. Seeds may populate quote without LIVE streamState.
    * Callers must not treat a non-null quote as LIVE without checking streamState.
+   *
+   * Phase 4.18F.7 remediation — when multiple TF sessions exist for one instrument,
+   * prefer the best live evidence (LIVE over MARKET_INACTIVE). Never return the first
+   * insertion-order match if a warmer session exists; never abort on a quote-less peer.
    */
   getLatestQuoteState(symbol: string): {
     quote: ForexConnectLiveQuote;
@@ -971,23 +975,73 @@ export class ForexConnectLiveCandleService {
     updateCount: number;
   } | null {
     const compact = normalizeCanonicalSymbol(symbol);
+    const upper = symbol.trim().toUpperCase();
+    let best: {
+      quote: ForexConnectLiveQuote;
+      streamState: ForexConnectLiveStreamState;
+      lastQuoteAtMs: number | null;
+      lastPriceChangeAtMs: number | null;
+      updateCount: number;
+      rank: number;
+    } | null = null;
+
+    const rankState = (state: ForexConnectLiveStreamState): number => {
+      if (state === "LIVE") return 100;
+      if (state === "NO_RECENT_MARKET_UPDATES") return 50;
+      if (state === "STALE") return 20;
+      if (state === "MARKET_INACTIVE") return 10;
+      if (state === "SUBSCRIBED_WAITING" || state === "SUBSCRIBING") return 5;
+      return 0;
+    };
+
     for (const session of this.sessions.values()) {
       if (
-        session.canonicalSymbol === compact
-        || session.providerSymbol.toUpperCase() === symbol.trim().toUpperCase()
+        session.canonicalSymbol !== compact
+        && session.providerSymbol.toUpperCase() !== upper
       ) {
-        if (!session.lastQuote) return null;
-        const series = this.toSeries(session);
-        return {
-          quote: session.lastQuote,
-          streamState: series.streamState,
-          lastQuoteAtMs: session.lastQuoteAtMs,
-          lastPriceChangeAtMs: session.lastPriceChangeAtMs,
-          updateCount: session.updateCount,
-        };
+        continue;
       }
+      if (!session.lastQuote) continue;
+      const series = this.toSeries(session);
+      const candidate = {
+        quote: session.lastQuote,
+        streamState: series.streamState,
+        lastQuoteAtMs: session.lastQuoteAtMs,
+        lastPriceChangeAtMs: session.lastPriceChangeAtMs,
+        updateCount: session.updateCount,
+        rank: rankState(series.streamState),
+      };
+      if (!best) {
+        best = candidate;
+        continue;
+      }
+      if (candidate.rank !== best.rank) {
+        if (candidate.rank > best.rank) best = candidate;
+        continue;
+      }
+      if (candidate.updateCount !== best.updateCount) {
+        if (candidate.updateCount > best.updateCount) best = candidate;
+        continue;
+      }
+      const candChange = candidate.lastPriceChangeAtMs ?? 0;
+      const bestChange = best.lastPriceChangeAtMs ?? 0;
+      if (candChange !== bestChange) {
+        if (candChange > bestChange) best = candidate;
+        continue;
+      }
+      const candReceipt = candidate.lastQuoteAtMs ?? 0;
+      const bestReceipt = best.lastQuoteAtMs ?? 0;
+      if (candReceipt > bestReceipt) best = candidate;
     }
-    return null;
+
+    if (!best) return null;
+    return {
+      quote: best.quote,
+      streamState: best.streamState,
+      lastQuoteAtMs: best.lastQuoteAtMs,
+      lastPriceChangeAtMs: best.lastPriceChangeAtMs,
+      updateCount: best.updateCount,
+    };
   }
 
   async getStreamStatus(): Promise<ForexConnectStreamStatus> {

@@ -248,62 +248,115 @@ async function main() {
     process.exit(2);
   }
 
-  // Refresh Phase 52 verification so monitor analyze-now is not blocked by a cold snapshot.
-  const verify = await getJson("/api/forex/automated-trading/verify", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      environment: "DEMO",
-      expectedEnvironmentEpoch: environmentEpoch,
-      instrument,
-    }),
-  });
-  report.checks.verify = {
-    http: verify.status,
-    ok: verify.body?.ok ?? null,
-    errorCode: verify.body?.error?.code ?? null,
-    identityStatus: verify.body?.verification?.identityStatus
-      ?? verify.body?.status?.environments?.DEMO?.lastVerification?.identityStatus
-      ?? null,
-    quoteFresh: verify.body?.verification?.market?.feedStatus
-      ?? verify.body?.quoteFreshness?.fresh
-      ?? null,
-  };
-  // Prefer epoch after verify if bumped.
-  const epochAfterVerify =
-    verify.body?.status?.environmentEpoch
-    ?? verify.body?.environmentEpoch
-    ?? environmentEpoch;
+  // Bounded wait for genuine LIVE market evidence (do not invent freshness).
+  // Retries address cold TF-session MARKET_INACTIVE during snapshot settle — not gate bypass.
+  const marketWaitMs = Math.max(30_000, Math.min(120_000, Number(process.env.KWIZERA_F7_MARKET_WAIT_MS || 90_000) || 90_000));
+  const marketWaitStarted = Date.now();
+  let epochAfterVerify = environmentEpoch;
+  let verify = null;
+  let analyze = null;
+  const verifyAttempts = [];
 
-  // Bounded monitor analyze-now (image-required path).
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  let analyze;
-  try {
-    analyze = await getJson("/api/forex/automated-trading/monitor/analyze-now", {
+  while (Date.now() - marketWaitStarted < marketWaitMs) {
+    const statusRefresh = await getJson("/api/forex/automated-trading/status", { headers });
+    epochAfterVerify =
+      statusRefresh.body?.status?.environmentEpoch
+      ?? statusRefresh.body?.environmentEpoch
+      ?? epochAfterVerify;
+
+    verify = await getJson("/api/forex/automated-trading/verify", {
       method: "POST",
       headers,
-      signal: controller.signal,
       body: JSON.stringify({
         environment: "DEMO",
         expectedEnvironmentEpoch: epochAfterVerify,
         instrument,
-        timeframe,
       }),
     });
-  } catch (err) {
+    const market = verify.body?.verification?.market ?? null;
+    const feedStatus = market?.feedStatus ?? null;
+    const attempt = {
+      atUtc: new Date().toISOString(),
+      http: verify.status,
+      ok: verify.body?.ok ?? null,
+      feedStatus,
+      marketSession: market?.marketSession ?? null,
+      priceChangeAgeMs: market?.priceChangeAgeMs ?? null,
+      receiptAgeMs: market?.receiptAgeMs ?? null,
+      updateCount: market?.updateCount ?? null,
+      identityStatus: verify.body?.verification?.identityStatus ?? null,
+    };
+    verifyAttempts.push(attempt);
+    epochAfterVerify =
+      verify.body?.status?.environmentEpoch
+      ?? verify.body?.environmentEpoch
+      ?? epochAfterVerify;
+
+    if (verify.body?.ok === true && String(feedStatus).toUpperCase() === "LIVE") {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        analyze = await getJson("/api/forex/automated-trading/monitor/analyze-now", {
+          method: "POST",
+          headers,
+          signal: controller.signal,
+          body: JSON.stringify({
+            environment: "DEMO",
+            expectedEnvironmentEpoch: epochAfterVerify,
+            instrument,
+            timeframe,
+          }),
+        });
+      } catch (err) {
+        analyze = {
+          status: 0,
+          body: {
+            ok: false,
+            error: {
+              code: "CLIENT_TIMEOUT",
+              message: err instanceof Error ? err.message.slice(0, 160) : "analyze_failed",
+            },
+          },
+        };
+      } finally {
+        clearTimeout(timer);
+      }
+      const failCode = String(analyze.body?.error?.code ?? analyze.body?.code ?? "");
+      if (analyze.body?.ok === true) break;
+      // Retry only cold-market / settle classes; other failures are terminal for this loop.
+      if (!/STALE_QUOTES|MARKET_INACTIVE|NO_RECENT|QUOTE_STALE|VERIFICATION_REQUIRED/i.test(failCode)) {
+        break;
+      }
+    }
+
+    await new Promise((r) => setTimeout(r, 5_000));
+  }
+
+  report.checks.verify = {
+    http: verify?.status ?? 0,
+    ok: verify?.body?.ok ?? null,
+    errorCode: verify?.body?.error?.code ?? null,
+    identityStatus: verify?.body?.verification?.identityStatus ?? null,
+    feedStatus: verify?.body?.verification?.market?.feedStatus ?? null,
+    marketSession: verify?.body?.verification?.market?.marketSession ?? null,
+    priceChangeAgeMs: verify?.body?.verification?.market?.priceChangeAgeMs ?? null,
+    receiptAgeMs: verify?.body?.verification?.market?.receiptAgeMs ?? null,
+    updateCount: verify?.body?.verification?.market?.updateCount ?? null,
+    attempts: verifyAttempts.slice(-6),
+    waitMs: Date.now() - marketWaitStarted,
+  };
+
+  if (!analyze) {
     analyze = {
-      status: 0,
+      status: 422,
       body: {
         ok: false,
         error: {
-          code: "CLIENT_TIMEOUT",
-          message: err instanceof Error ? err.message.slice(0, 160) : "analyze_failed",
+          code: "STALE_QUOTES",
+          message: `No LIVE verification within ${marketWaitMs}ms (last feed=${report.checks.verify.feedStatus}).`,
         },
       },
     };
-  } finally {
-    clearTimeout(timer);
   }
 
   const analysisId = analyze.body?.analysisId ?? analyze.body?.analysis?.analysisId ?? null;

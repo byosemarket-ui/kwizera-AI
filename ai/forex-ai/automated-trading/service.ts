@@ -2073,8 +2073,14 @@ export class AutomatedTradingService {
           // Phase 56.2.8 — normalize m1/5m aliases; never pass SDK period ids into ensure().
           const tf = resolveForexConnectLiveTimeframe(input.timeframe, "1m");
           let series = await live.ensure(instrumentSymbol, tf);
-          // Brief settle polls: wait for a genuine Offers change without inventing LIVE.
-          for (let i = 0; i < 3 && series.streamState !== "LIVE"; i += 1) {
+          // Phase 4.18F.7 remediation — settle up to ~14s for a genuine instrument LIVE label.
+          // Do not invent LIVE. getLatestQuoteState prefers LIVE across TF sessions.
+          const settleBudgetMs = 14_000;
+          const settleStarted = Date.now();
+          while (Date.now() - settleStarted < settleBudgetMs) {
+            const latestProbe = live.getLatestQuoteState(instrumentSymbol);
+            const probeState = latestProbe?.streamState ?? series.streamState;
+            if (probeState === "LIVE") break;
             await new Promise((r) => setTimeout(r, 400));
             series = await live.ensure(instrumentSymbol, tf);
           }

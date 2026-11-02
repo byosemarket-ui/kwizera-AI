@@ -33,6 +33,13 @@ try:
             "monitorStatus": (obj.get("checks") or {}).get("monitorStatus"),
             "monitorAnalyzeNow": (obj.get("checks") or {}).get("monitorAnalyzeNow"),
             "monitorAfterAnalyze": (obj.get("checks") or {}).get("monitorAfterAnalyze"),
+            "rootCauseHints": {
+                "feedStatus": ((obj.get("checks") or {}).get("verify") or {}).get("feedStatus"),
+                "updateCount": ((obj.get("checks") or {}).get("verify") or {}).get("updateCount"),
+                "priceChangeAgeMs": ((obj.get("checks") or {}).get("verify") or {}).get("priceChangeAgeMs"),
+                "receiptAgeMs": ((obj.get("checks") or {}).get("verify") or {}).get("receiptAgeMs"),
+                "waitMs": ((obj.get("checks") or {}).get("verify") or {}).get("waitMs"),
+            },
             "openaiStatus": (obj.get("checks") or {}).get("openaiStatus"),
             "atStatus": {
                 k: ((obj.get("checks") or {}).get("atStatus") or {}).get(k)
