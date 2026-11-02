@@ -1105,7 +1105,10 @@ export async function handleForexAutomatedTradingApi(
         analysisId: result.analysisId,
         status: result.status,
         monitor: result.monitor,
+        analysisProof: result.analysisProof,
         placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
       });
       return true;
     }

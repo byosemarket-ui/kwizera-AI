@@ -805,7 +805,33 @@ export class AutomatedTradingService {
     instrument?: unknown;
     timeframe?: unknown;
   }): Promise<
-    | { ok: true; analysisId: string; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
+    | {
+      ok: true;
+      analysisId: string;
+      status: AutomatedTradingPublicStatus;
+      monitor: AtMonitorPublicStatus;
+      /** Phase 4.18F.7 — redacted proof (no image bytes / secrets). */
+      analysisProof: {
+        lifecycle: string | null;
+        instrument: string | null;
+        timeframes: string[];
+        primaryTimeframe: string | null;
+        chartImage: {
+          available: boolean;
+          imageHash: string | null;
+          includedInOpenAiRequest: boolean;
+          imageSourceLabel: string | null;
+          observationId: string | null;
+          imageId: string | null;
+          source: string | null;
+          note: string | null;
+        } | null;
+        evidenceDelivery: Record<string, unknown> | null;
+        placesOrders: false;
+        acceptsForExecution: false;
+        mutatesBroker: false;
+      } | null;
+    }
     | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
   > {
     const state = this.store.getState();
@@ -839,7 +865,87 @@ export class AutomatedTradingService {
         monitor: result.status,
       };
     }
-    return { ok: true, analysisId: result.analysisId, status, monitor: result.status };
+    let analysisProof: {
+      lifecycle: string | null;
+      instrument: string | null;
+      timeframes: string[];
+      primaryTimeframe: string | null;
+      chartImage: {
+        available: boolean;
+        imageHash: string | null;
+        includedInOpenAiRequest: boolean;
+        imageSourceLabel: string | null;
+        observationId: string | null;
+        imageId: string | null;
+        source: string | null;
+        note: string | null;
+      } | null;
+      evidenceDelivery: Record<string, unknown> | null;
+      placesOrders: false;
+      acceptsForExecution: false;
+      mutatesBroker: false;
+    } | null = null;
+    try {
+      const saved = this.analysisEngine.getById(result.analysisId)
+        ?? this.analysisEngine.getLatest();
+      const row = saved && saved.analysisId === result.analysisId
+        ? saved
+        : this.analysisEngine.listHistory(12).find((h) => h.analysisId === result.analysisId)
+          ?? null;
+      if (row) {
+        const chart = row.chartImage;
+        analysisProof = {
+          lifecycle: row.lifecycle ?? null,
+          instrument: row.instrument ?? null,
+          timeframes: Array.isArray(row.timeframes) ? row.timeframes.map(String) : [],
+          primaryTimeframe: row.primaryTimeframe ?? null,
+          chartImage: chart
+            ? {
+              available: Boolean(chart.available),
+              imageHash: chart.imageHash ?? null,
+              includedInOpenAiRequest: chart.includedInOpenAiRequest === true,
+              imageSourceLabel: chart.imageSourceLabel ?? null,
+              observationId: chart.observationId ?? null,
+              imageId: chart.imageId ?? null,
+              source: chart.source ?? null,
+              note: chart.note ? String(chart.note).slice(0, 160) : null,
+            }
+            : null,
+          evidenceDelivery: row.evidenceDelivery
+            ? {
+              phase: row.evidenceDelivery.phase ?? null,
+              requestStatus: row.evidenceDelivery.requestStatus ?? null,
+              responseStatus: row.evidenceDelivery.responseStatus ?? null,
+              validationStatus: row.evidenceDelivery.validationStatus ?? null,
+              imageDeliveryLifecycle: row.evidenceDelivery.imageDeliveryLifecycle ?? null,
+              includedImageBytesInRequest: row.evidenceDelivery.includedImageBytesInRequest === true,
+              imageSource: row.evidenceDelivery.imageSource ?? null,
+              observationId: row.evidenceDelivery.observationId ?? null,
+              imageId: row.evidenceDelivery.imageId ?? null,
+              imageHash: row.evidenceDelivery.imageHash ?? null,
+              timeframesIncluded: row.evidenceDelivery.timeframesIncluded ?? [],
+              categoriesIncluded: row.evidenceDelivery.categoriesIncluded ?? null,
+              placesOrders: false,
+              acceptsForExecution: false,
+              mutatesBroker: false,
+              blockers: row.evidenceDelivery.blockers ?? [],
+            }
+            : null,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        };
+      }
+    } catch {
+      analysisProof = null;
+    }
+    return {
+      ok: true,
+      analysisId: result.analysisId,
+      status,
+      monitor: result.status,
+      analysisProof,
+    };
   }
 
   readMonitorChartImage(analysisId: string): Buffer | null {

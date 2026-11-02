@@ -238,6 +238,14 @@ async function main() {
     process.exit(4);
   }
 
+  if (String(selectedEnvironment).toUpperCase() !== "DEMO") {
+    report.blockers.push("NOT_DEMO_SELECTION");
+    report.labels.multimodalRoundTrip = "BLOCKED_NOT_DEMO";
+    report.labels.note = "F.7 production proof targets DEMO only; select DEMO and re-run.";
+    console.log(JSON.stringify(redact(report), null, 2));
+    process.exit(2);
+  }
+
   // Bounded monitor analyze-now (image-required path).
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -248,11 +256,10 @@ async function main() {
       headers,
       signal: controller.signal,
       body: JSON.stringify({
-        environment: selectedEnvironment === "LIVE" ? "DEMO" : selectedEnvironment,
+        environment: "DEMO",
         expectedEnvironmentEpoch: environmentEpoch,
         instrument,
         timeframe,
-        timeoutMs: Math.min(timeoutMs - 5_000, 100_000),
       }),
     });
   } catch (err) {
@@ -271,19 +278,34 @@ async function main() {
   }
 
   const analysisId = analyze.body?.analysisId ?? analyze.body?.analysis?.analysisId ?? null;
-  let analysis = analyze.body?.analysis ?? null;
+  let analysis = analyze.body?.analysisProof ?? analyze.body?.analysis ?? null;
   if (!analysis && analysisId) {
     const latest = await getJson("/api/forex/automated-trading/openai/status", { headers });
     analysis = latest.body?.openai?.latest ?? null;
     if (analysis && analysis.analysisId !== analysisId) {
-      // Prefer explicit history lookup if present
       const hist = Array.isArray(latest.body?.openai?.history) ? latest.body.openai.history : [];
-      analysis = hist.find((h) => h?.analysisId === analysisId) ?? analysis;
+      analysis = hist.find((h) => h?.analysisId === analysisId) ?? null;
     }
   }
 
   const delivery = analysis?.evidenceDelivery ?? null;
   const chart = analysis?.chartImage ?? null;
+  const monAfter = analyze.body?.monitor ?? analyze.body?.status?.monitor ?? null;
+  if (monAfter?.health) {
+    report.checks.monitorAfterAnalyze = {
+      workerState: monAfter.health.workerState ?? null,
+      lastBlockerCode: monAfter.health.lastBlockerCode ?? null,
+      lastError: monAfter.health.lastError
+        ? String(monAfter.health.lastError).slice(0, 200)
+        : null,
+      lastObservationId: monAfter.health.lastObservationId ?? null,
+      lastImageId: monAfter.health.lastImageId ?? null,
+      lastImageSourceLabel: monAfter.health.lastImageSourceLabel ?? null,
+      lastIncludedImageBytesInRequest: monAfter.health.lastIncludedImageBytesInRequest ?? null,
+      lastImageDeliveryLifecycle: monAfter.health.lastImageDeliveryLifecycle ?? null,
+      lastScreenshotImageHash: monAfter.health.lastScreenshotImageHash ?? null,
+    };
+  }
   report.checks.monitorAnalyzeNow = {
     http: analyze.status,
     ok: analyze.body?.ok ?? null,
@@ -340,13 +362,22 @@ async function main() {
     report.blockers.push("EVIDENCE_DELIVERY_MISSING");
     report.labels.multimodalRoundTrip = "DELIVERY_MISSING";
   } else {
-    report.labels.multimodalRoundTrip = "PASS";
-    if (delivery.includedImageBytesInRequest !== true && chart?.includedInOpenAiRequest !== true) {
+    const imageInRequest =
+      delivery.includedImageBytesInRequest === true
+      || chart?.includedInOpenAiRequest === true
+      || report.checks.monitorAfterAnalyze?.lastIncludedImageBytesInRequest === true;
+    report.labels.multimodalRoundTrip = imageInRequest ? "PASS" : "IMAGE_NOT_VERIFIED";
+    if (!imageInRequest) {
       report.blockers.push("IMAGE_BYTES_NOT_IN_REQUEST");
-      report.labels.multimodalRoundTrip = "IMAGE_NOT_VERIFIED";
     }
     if (delivery.imageSource && delivery.imageSource !== "SERVER_OHLC_RENDER") {
       report.blockers.push("UNEXPECTED_DELIVERY_IMAGE_SOURCE");
+    }
+    if (
+      report.checks.monitorAfterAnalyze?.lastImageSourceLabel
+      && report.checks.monitorAfterAnalyze.lastImageSourceLabel !== "SERVER_OHLC_RENDER"
+    ) {
+      report.blockers.push("UNEXPECTED_MONITOR_IMAGE_SOURCE");
     }
     if (chart?.note && /trading station screenshot/i.test(chart.note) && !/NOT/i.test(chart.note)) {
       report.blockers.push("FALSE_SCREENSHOT_CLAIM_IN_NOTE");
