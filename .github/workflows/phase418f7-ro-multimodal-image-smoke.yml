@@ -54,6 +54,8 @@ jobs:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
           EXPECT_SHA: ${{ github.event.inputs.sha || (github.event_name == 'workflow_run' && github.event.workflow_run.head_sha) || github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.ssh"
@@ -145,4 +147,7 @@ jobs:
             printf '%s\n' "$SAFE_OUT" | tail -n 800
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          export COMMENT_SHA="${EXPECT_SHA}"
+          export F7_EXIT_CODE="${rc}"
+          printf '%s\n' "$SAFE_OUT" | python3 scripts/phase418f7-publish-smoke-comment.py || echo "commit_comment_publish_failed"
           exit "$rc"

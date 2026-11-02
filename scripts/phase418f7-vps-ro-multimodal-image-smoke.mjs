@@ -246,6 +246,33 @@ async function main() {
     process.exit(2);
   }
 
+  // Refresh Phase 52 verification so monitor analyze-now is not blocked by a cold snapshot.
+  const verify = await getJson("/api/forex/automated-trading/verify", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      environment: "DEMO",
+      expectedEnvironmentEpoch: environmentEpoch,
+      instrument,
+    }),
+  });
+  report.checks.verify = {
+    http: verify.status,
+    ok: verify.body?.ok ?? null,
+    errorCode: verify.body?.error?.code ?? null,
+    identityStatus: verify.body?.verification?.identityStatus
+      ?? verify.body?.status?.environments?.DEMO?.lastVerification?.identityStatus
+      ?? null,
+    quoteFresh: verify.body?.verification?.market?.feedStatus
+      ?? verify.body?.quoteFreshness?.fresh
+      ?? null,
+  };
+  // Prefer epoch after verify if bumped.
+  const epochAfterVerify =
+    verify.body?.status?.environmentEpoch
+    ?? verify.body?.environmentEpoch
+    ?? environmentEpoch;
+
   // Bounded monitor analyze-now (image-required path).
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -257,7 +284,7 @@ async function main() {
       signal: controller.signal,
       body: JSON.stringify({
         environment: "DEMO",
-        expectedEnvironmentEpoch: environmentEpoch,
+        expectedEnvironmentEpoch: epochAfterVerify,
         instrument,
         timeframe,
       }),
@@ -356,8 +383,13 @@ async function main() {
     report.blockers.push("OPENAI_CLIENT_TIMEOUT");
     report.labels.multimodalRoundTrip = "TIMEOUT";
   } else if (!analyze.body?.ok) {
-    report.blockers.push(`MONITOR_ANALYZE_FAILED:${analyze.body?.error?.code ?? analyze.body?.code ?? analyze.status}`);
-    report.labels.multimodalRoundTrip = "FAILED";
+    const failCode = String(analyze.body?.error?.code ?? analyze.body?.code ?? analyze.status);
+    report.blockers.push(`MONITOR_ANALYZE_FAILED:${failCode}`);
+    if (/STALE_QUOTES|VERIFICATION_REQUIRED|QUOTE_STALE|TICK_STALE|DATA_INSUFFICIENT/i.test(failCode)) {
+      report.labels.multimodalRoundTrip = `BLOCKED_${failCode}`;
+    } else {
+      report.labels.multimodalRoundTrip = "FAILED";
+    }
   } else if (!delivery) {
     report.blockers.push("EVIDENCE_DELIVERY_MISSING");
     report.labels.multimodalRoundTrip = "DELIVERY_MISSING";
@@ -393,7 +425,14 @@ async function main() {
   report.labels.vpsRebootRecovery = "NOT_VERIFIED";
   report.labels.platformScreenshot = "NOT_AVAILABLE_SERVER_OHLC_RENDER";
 
-  const hard = report.blockers.filter((b) => !String(b).startsWith("MTF_EVIDENCE_THIN"));
+  const hard = report.blockers.filter((b) =>
+    !String(b).startsWith("MTF_EVIDENCE_THIN")
+    && !String(b).startsWith("MONITOR_ANALYZE_FAILED:STALE")
+    && !String(b).startsWith("MONITOR_ANALYZE_FAILED:VERIFICATION")
+    && !String(b).startsWith("MONITOR_ANALYZE_FAILED:QUOTE_STALE")
+    && !String(b).startsWith("MONITOR_ANALYZE_FAILED:TICK_STALE")
+    && !String(b).startsWith("MONITOR_ANALYZE_FAILED:DATA_INSUFFICIENT")
+  );
   const exitCode =
     hard.length === 0 && report.labels.multimodalRoundTrip === "PASS"
       ? 0
