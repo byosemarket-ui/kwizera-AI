@@ -1272,6 +1272,16 @@ export class AutomatedTradingService {
     }
     | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
   > {
+    const master = getAtSystemMasterStore().get();
+    if (master.ownerState !== "ON" || master.masterEnabled !== true) {
+      return {
+        ok: false,
+        code: "SYSTEM_MASTER_OFF",
+        message: "System Master is OFF — OpenAI analysis requests are blocked until the owner turns SYSTEM ON.",
+        status: await this.buildStatus(),
+        monitor: this.monitor.getPublicStatus(),
+      };
+    }
     const state = this.store.getState();
     const env = parseAutomatedTradingEnvironment(input.environment) ?? state.selectedEnvironment;
     const result = await this.monitor.runManualNow({
@@ -2704,6 +2714,16 @@ export class AutomatedTradingService {
     | { ok: true; analysis: AtOpenAiAnalysisResult; status: AutomatedTradingPublicStatus }
     | { ok: false; code: string; message: string; analysis: AtOpenAiAnalysisResult | null; status: AutomatedTradingPublicStatus }
   > {
+    const masterGate = getAtSystemMasterStore().get();
+    if (masterGate.ownerState !== "ON" || masterGate.masterEnabled !== true) {
+      return {
+        ok: false,
+        code: "SYSTEM_MASTER_OFF",
+        message: "System Master is OFF — OpenAI analysis is blocked until SYSTEM ON.",
+        analysis: null,
+        status: await this.buildStatus(),
+      };
+    }
     const state = this.store.getState();
     const env =
       parseAutomatedTradingEnvironment(input.environment) ?? state.selectedEnvironment;
@@ -4406,6 +4426,10 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
       getVerification: (env) => store.getState().environments[env].lastVerification,
       getEnvironmentEpoch: () => store.getState().environmentEpoch,
       getSelectedEnvironment: () => store.getState().selectedEnvironment,
+      isSystemMasterOn: () => {
+        const m = getAtSystemMasterStore().get();
+        return m.ownerState === "ON" && m.masterEnabled === true;
+      },
       refreshVerification: async ({ environment, instrument, timeframe }) => {
         if (!serviceSingleton) return null;
         try {

@@ -162,6 +162,35 @@ describe("Phase 4.18F.8R System Master service gates", () => {
     expect(b.systemMaster.operationalState).toBe("OFF");
   });
 
+  it("OFF blocks monitor analyze-now / OpenAI analysis requests", async () => {
+    await svc.requestSystemMasterOff({ operatorHint: "test" });
+    const now = await svc.runMonitorAnalysisNow({
+      environment: "DEMO",
+      instrument: "EUR/USD",
+      timeframe: "5m",
+    });
+    expect(now.ok).toBe(false);
+    if (!now.ok) expect(now.code).toBe("SYSTEM_MASTER_OFF");
+
+    const oa = await svc.runOpenAiAnalysis({
+      environment: "DEMO",
+      instrument: "EUR/USD",
+      timeframes: ["5m"],
+    });
+    expect(oa.ok).toBe(false);
+    if (!oa.ok) expect(oa.code).toBe("SYSTEM_MASTER_OFF");
+  });
+
+  it("boot recovery preserves OFF and does not invent ON", async () => {
+    await svc.requestSystemMasterOff({ operatorHint: "test" });
+    await svc.recoverSystemMasterOnBoot();
+    const master = svc.getSystemMasterStatus();
+    expect(master.ownerState).toBe("OFF");
+    expect(master.masterEnabled).toBe(false);
+    expect(master.operationalState).toBe("OFF");
+    expect(svc.getMonitorStatus().config?.enabled ?? false).toBe(false);
+  });
+
   it("operational history is redacted and execution-safe", () => {
     const hist = svc.getOperationalCycleHistory(5);
     expect(hist.schemaVersion).toBe("at-operational-cycle-history-v1");

@@ -115,6 +115,8 @@ export interface AtMonitorWorkerDeps {
     instrument: string;
     timeframe: AtMonitorTimeframe;
   }) => Promise<AutomatedTradingVerificationResult | null>;
+  /** When false, scheduled ticks must not start analysis (System Master OFF). */
+  isSystemMasterOn?: () => boolean;
   pollIntervalMs?: number;
   /** Disable auto-timer (tests). */
   autoStart?: boolean;
@@ -179,11 +181,13 @@ export class AtMonitorWorker {
     getEnvironmentEpoch?: () => number;
     getSelectedEnvironment?: () => AutomatedTradingEnvironment;
     refreshVerification?: AtMonitorWorkerDeps["refreshVerification"];
+    isSystemMasterOn?: () => boolean;
   }): void {
     if (hooks.getVerification) this.deps.getVerification = hooks.getVerification;
     if (hooks.getEnvironmentEpoch) this.deps.getEnvironmentEpoch = hooks.getEnvironmentEpoch;
     if (hooks.getSelectedEnvironment) this.deps.getSelectedEnvironment = hooks.getSelectedEnvironment;
     if (hooks.refreshVerification) this.deps.refreshVerification = hooks.refreshVerification;
+    if (hooks.isSystemMasterOn) this.deps.isSystemMasterOn = hooks.isSystemMasterOn;
   }
 
   private deriveAutomaticAnalysisStatus(input: {
@@ -589,6 +593,24 @@ export class AtMonitorWorker {
     if (!persisted.config?.enabled) {
       this.runtimeActive = false;
       this.runtimeState = "STOPPED";
+      return;
+    }
+    // System Master owns analysis lifecycle — refuse residual enabled configs while OFF.
+    if (this.deps.isSystemMasterOn && this.deps.isSystemMasterOn() !== true) {
+      this.runtimeActive = false;
+      this.runtimeState = "STOPPED";
+      await this.store.update((s) => ({
+        ...s,
+        config: s.config ? { ...s.config, enabled: false, updatedAtUtc: nowIso() } : null,
+        health: {
+          ...s.health,
+          workerState: "STOPPED",
+          workerActive: false,
+          automaticAnalysisStatus: "STOPPED",
+          lastBlockerCode: "SYSTEM_MASTER_OFF",
+          lastError: "System Master OFF — analysis schedule halted.",
+        },
+      }));
       return;
     }
     this.tickInFlight = true;
