@@ -122,6 +122,21 @@ function normalizeHealth(raw: unknown): AtMonitorHealth {
       o.storageHealth === "OK" || o.storageHealth === "DEGRADED" || o.storageHealth === "UNKNOWN"
         ? o.storageHealth
         : "UNKNOWN",
+    lastAnalysisLifecycle: typeof o.lastAnalysisLifecycle === "string" ? o.lastAnalysisLifecycle.slice(0, 64) : null,
+    lastCanonicalFinalOutcome:
+      typeof o.lastCanonicalFinalOutcome === "string" ? o.lastCanonicalFinalOutcome.slice(0, 64) : null,
+    lastCanonicalDirection:
+      o.lastCanonicalDirection === "BUY"
+      || o.lastCanonicalDirection === "SELL"
+      || o.lastCanonicalDirection === "NO_TRADE"
+        ? o.lastCanonicalDirection
+        : null,
+    lastCanonicalConfidencePct:
+      typeof o.lastCanonicalConfidencePct === "number" && Number.isFinite(o.lastCanonicalConfidencePct)
+        ? Math.max(0, Math.min(100, o.lastCanonicalConfidencePct))
+        : null,
+    lastEvidenceIntegrityStatus:
+      typeof o.lastEvidenceIntegrityStatus === "string" ? o.lastEvidenceIntegrityStatus.slice(0, 64) : null,
     analysisInFlight: false,
     consecutiveFailures:
       typeof o.consecutiveFailures === "number" && Number.isFinite(o.consecutiveFailures)

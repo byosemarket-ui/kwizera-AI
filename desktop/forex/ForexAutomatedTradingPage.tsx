@@ -434,6 +434,11 @@ export function ForexAutomatedTradingPage(props: {
       lastImageDeliveryLifecycle?: string | null;
       lastIncludedImageBytesInRequest?: boolean | null;
       storageHealth?: string | null;
+      lastAnalysisLifecycle?: string | null;
+      lastCanonicalFinalOutcome?: string | null;
+      lastCanonicalDirection?: "BUY" | "SELL" | "NO_TRADE" | null;
+      lastCanonicalConfidencePct?: number | null;
+      lastEvidenceIntegrityStatus?: string | null;
     };
   } | null>(null);
   const [monitorTf, setMonitorTf] = useState("15m");
@@ -3297,6 +3302,26 @@ export function ForexAutomatedTradingPage(props: {
                     : monitor.health.lastIncludedImageBytesInRequest
                       ? " · bytes=yes"
                       : " · bytes=no"}
+                </dd>
+              </div>
+              <div>
+                <dt>OpenAI lifecycle</dt>
+                <dd data-fx-at-analysis-lifecycle="true">{monitor?.health?.lastAnalysisLifecycle ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Evidence integrity</dt>
+                <dd data-fx-at-evidence-integrity="true">{monitor?.health?.lastEvidenceIntegrityStatus ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Canonical outcome</dt>
+                <dd data-fx-at-canonical-outcome="true">
+                  {monitor?.health?.lastCanonicalFinalOutcome ?? "—"}
+                  {monitor?.health?.lastCanonicalDirection
+                    ? ` · ${monitor.health.lastCanonicalDirection}`
+                    : ""}
+                  {monitor?.health?.lastCanonicalConfidencePct != null
+                    ? ` · ${monitor.health.lastCanonicalConfidencePct}% ANALYSIS_CONFIDENCE`
+                    : ""}
                 </dd>
               </div>
               <div>

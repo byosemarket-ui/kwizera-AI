@@ -16,6 +16,8 @@ export type AtMonitorWorkerState =
   | "WAITING_CANDLE_CLOSE"
   | "ANALYSIS_IN_PROGRESS"
   | "ANALYSIS_SUCCESS"
+  /** OpenAI/delivery completed but semantic lifecycle was not ANALYSIS_VALID. */
+  | "ANALYSIS_SEMANTIC_REJECTED"
   | "DATA_INSUFFICIENT"
   | "PROVIDER_ERROR"
   | "PAUSED_SAFETY"
@@ -76,6 +78,13 @@ export interface AtMonitorHealth {
   lastImageDeliveryLifecycle: string | null;
   lastIncludedImageBytesInRequest: boolean | null;
   storageHealth: "OK" | "DEGRADED" | "UNKNOWN" | null;
+  /** OpenAI analysis lifecycle from last completed run (may differ from workerState). */
+  lastAnalysisLifecycle: string | null;
+  /** Canonical reconciler finalOutcome from last integrated run. */
+  lastCanonicalFinalOutcome: string | null;
+  lastCanonicalDirection: "BUY" | "SELL" | "NO_TRADE" | null;
+  lastCanonicalConfidencePct: number | null;
+  lastEvidenceIntegrityStatus: string | null;
 }
 
 export interface AtMonitorPersistedState {
@@ -145,6 +154,11 @@ export function defaultMonitorHealth(): AtMonitorHealth {
     lastImageDeliveryLifecycle: null,
     lastIncludedImageBytesInRequest: null,
     storageHealth: "UNKNOWN",
+    lastAnalysisLifecycle: null,
+    lastCanonicalFinalOutcome: null,
+    lastCanonicalDirection: null,
+    lastCanonicalConfidencePct: null,
+    lastEvidenceIntegrityStatus: null,
     analysisInFlight: false,
     consecutiveFailures: 0,
   };

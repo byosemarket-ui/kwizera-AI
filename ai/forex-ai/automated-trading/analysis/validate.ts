@@ -138,6 +138,12 @@ export function normalizeAtOpenAiAnalysis(input: {
   historicalOnly: boolean;
   createdAtUtc: string;
   latencyMs: number;
+  /**
+   * When true, server already passed candle/quote/fingerprint gates before OpenAI.
+   * Model dataQuality=INSUFFICIENT alone must not hard-fail if a valid BUY/SELL+confidence
+   * is present — it becomes a limitation. Missing/invalid direction still fail-closed.
+   */
+  localDataGatePassed?: boolean;
 }): { result: AtOpenAiAnalysisResult; lifecycle: AtAnalysisLifecycle } {
   const raw = input.raw;
   const snapshotPrices = collectSnapshotPrices(input.candlesByTf);
@@ -155,6 +161,14 @@ export function normalizeAtOpenAiAnalysis(input: {
   const mtfAgreement = enumOr<AtMtfAgreement>(raw.mtfAgreement, MTF, "UNKNOWN");
   let dataQuality = enumOr<AtDataQualityState>(raw.dataQuality, DQ, "PARTIAL");
   if (input.historicalOnly && dataQuality === "SUFFICIENT") dataQuality = "HISTORICAL_ONLY";
+
+  const localGate = input.localDataGatePassed === true && !input.historicalOnly;
+  const modelClaimedInsufficient = dataQuality === "INSUFFICIENT";
+  // Local gates already verified candles/quote — demote model INSUFFICIENT to PARTIAL so a
+  // grounded BUY/SELL+confidence can still validate. Do not invent direction if absent.
+  if (localGate && modelClaimedInsufficient) {
+    dataQuality = "PARTIAL";
+  }
 
   const supportLevels = (Array.isArray(raw.supportLevels) ? raw.supportLevels : [])
     .slice(0, 6)
@@ -223,6 +237,14 @@ export function normalizeAtOpenAiAnalysis(input: {
   let lifecycle: AtAnalysisLifecycle = "ANALYSIS_VALID";
   if (dataQuality === "INSUFFICIENT") lifecycle = "DATA_INSUFFICIENT";
 
+  if (localGate && modelClaimedInsufficient) {
+    blockers.push({
+      code: "MODEL_DATA_QUALITY_INSUFFICIENT_ADVISORY",
+      message:
+        "Model set dataQuality=INSUFFICIENT after local candle/quote gates passed — treated as PARTIAL advisory; direction still required for ANALYSIS_VALID.",
+    });
+  }
+
   if (!horizon.ok) {
     lifecycle = "ANALYSIS_INVALID";
     blockers.push({ code: horizon.code, message: horizon.message });
@@ -235,7 +257,10 @@ export function normalizeAtOpenAiAnalysis(input: {
 
   if (lifecycle === "ANALYSIS_VALID") {
     if (!dirParsed.ok) {
+      // When local gates passed but model refused direction after claiming insufficient,
+      // keep DATA_INSUFFICIENT (fail-closed — do not invent BUY/SELL).
       lifecycle = dataQuality === "INSUFFICIENT" || dataQuality === "STALE_QUOTE"
+        || (localGate && modelClaimedInsufficient)
         ? "DATA_INSUFFICIENT"
         : "ANALYSIS_INVALID";
       blockers.push({ code: dirParsed.code, message: dirParsed.message });

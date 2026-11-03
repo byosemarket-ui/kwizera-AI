@@ -822,13 +822,16 @@ export class AtOpenAiAnalysisEngine {
         historicalOnly: evidence.historicalOnly,
         createdAtUtc: new Date().toISOString(),
         latencyMs: Date.now() - started,
+        // Candle/quote/fingerprint gates already passed above — model INSUFFICIENT is advisory.
+        localDataGatePassed: true,
       });
 
+      // Distinguish delivery failure (VALIDATION_FAILED) from semantic rejection after RESPONSE_RECEIVED.
       const validationStatus =
         result.lifecycle === "ANALYSIS_VALID"
           ? "VALIDATED" as const
           : result.lifecycle === "ANALYSIS_INVALID" || result.lifecycle === "DATA_INSUFFICIENT"
-            ? "VALIDATION_FAILED" as const
+            ? "RESPONSE_SEMANTIC_REJECTED" as const
             : "RESPONSE_NOT_VERIFIED" as const;
 
       result.evidenceDelivery = buildOpenAiEvidenceDeliveryReport({

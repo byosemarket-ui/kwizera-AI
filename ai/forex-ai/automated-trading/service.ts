@@ -816,6 +816,11 @@ export class AutomatedTradingService {
         instrument: string | null;
         timeframes: string[];
         primaryTimeframe: string | null;
+        direction: "BUY" | "SELL" | null;
+        directionalConfidencePct: number | null;
+        confidenceType: "ANALYSIS_CONFIDENCE";
+        isCalibratedWinProbability: false;
+        chartImageReviewed: boolean;
         chartImage: {
           available: boolean;
           imageHash: string | null;
@@ -827,6 +832,10 @@ export class AutomatedTradingService {
           note: string | null;
         } | null;
         evidenceDelivery: Record<string, unknown> | null;
+        evidenceIntegrityStatus: string | null;
+        canonicalFinalOutcome: string | null;
+        canonicalDirection: "BUY" | "SELL" | "NO_TRADE" | null;
+        canonicalConfidencePct: number | null;
         placesOrders: false;
         acceptsForExecution: false;
         mutatesBroker: false;
@@ -870,6 +879,11 @@ export class AutomatedTradingService {
       instrument: string | null;
       timeframes: string[];
       primaryTimeframe: string | null;
+      direction: "BUY" | "SELL" | null;
+      directionalConfidencePct: number | null;
+      confidenceType: "ANALYSIS_CONFIDENCE";
+      isCalibratedWinProbability: false;
+      chartImageReviewed: boolean;
       chartImage: {
         available: boolean;
         imageHash: string | null;
@@ -881,6 +895,10 @@ export class AutomatedTradingService {
         note: string | null;
       } | null;
       evidenceDelivery: Record<string, unknown> | null;
+      evidenceIntegrityStatus: string | null;
+      canonicalFinalOutcome: string | null;
+      canonicalDirection: "BUY" | "SELL" | "NO_TRADE" | null;
+      canonicalConfidencePct: number | null;
       placesOrders: false;
       acceptsForExecution: false;
       mutatesBroker: false;
@@ -892,13 +910,21 @@ export class AutomatedTradingService {
         ? saved
         : this.analysisEngine.listHistory(12).find((h) => h.analysisId === result.analysisId)
           ?? null;
+      const monHealth = result.status?.health;
       if (row) {
         const chart = row.chartImage;
+        const imageInRequest = row.evidenceDelivery?.includedImageBytesInRequest === true
+          || chart?.includedInOpenAiRequest === true;
         analysisProof = {
           lifecycle: row.lifecycle ?? null,
           instrument: row.instrument ?? null,
           timeframes: Array.isArray(row.timeframes) ? row.timeframes.map(String) : [],
           primaryTimeframe: row.primaryTimeframe ?? null,
+          direction: row.direction === "BUY" || row.direction === "SELL" ? row.direction : null,
+          directionalConfidencePct: row.directionalConfidencePct ?? null,
+          confidenceType: "ANALYSIS_CONFIDENCE",
+          isCalibratedWinProbability: false,
+          chartImageReviewed: imageInRequest && row.lifecycle === "ANALYSIS_VALID",
           chartImage: chart
             ? {
               available: Boolean(chart.available),
@@ -931,6 +957,10 @@ export class AutomatedTradingService {
               blockers: row.evidenceDelivery.blockers ?? [],
             }
             : null,
+          evidenceIntegrityStatus: monHealth?.lastEvidenceIntegrityStatus ?? null,
+          canonicalFinalOutcome: monHealth?.lastCanonicalFinalOutcome ?? null,
+          canonicalDirection: monHealth?.lastCanonicalDirection ?? null,
+          canonicalConfidencePct: monHealth?.lastCanonicalConfidencePct ?? null,
           placesOrders: false,
           acceptsForExecution: false,
           mutatesBroker: false,

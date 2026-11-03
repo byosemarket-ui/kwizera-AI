@@ -16,6 +16,8 @@ import {
 import {
   getAtOpenAiAnalysisEngine,
   AT_MTF_EVIDENCE_TIMEFRAMES,
+  runCanonicalAnalysis,
+  createCanonicalAnalysisProductionDeps,
   type AtOpenAiAnalysisEngine,
 } from "../analysis/index.js";
 import {
@@ -25,6 +27,7 @@ import {
   AT_PLATFORM_SCREENSHOT_AVAILABLE,
   AT_PLATFORM_SCREENSHOT_BLOCKER,
 } from "../analysis/observation-snapshot.js";
+import { validateEvidenceIntegrity } from "../analysis/evidence-integrity.js";
 import type { StrategyCandle } from "../auto-engine/strategy/rules.js";
 import { overlaysFromObservationSnapshot, renderAtMarketChartPng } from "./chart-render.js";
 import {
@@ -103,6 +106,25 @@ export interface AtMonitorWorkerDeps {
   pollIntervalMs?: number;
   /** Disable auto-timer (tests). */
   autoStart?: boolean;
+  /**
+   * Optional canonical reconciler hook (defaults to production ForexConnect deps).
+   * Analysis-only — never places orders. Tests may inject a stub.
+   */
+  runCanonical?: (input: {
+    environment: AutomatedTradingEnvironment;
+    instrument: string;
+    timeframe: string;
+    trigger: AtAnalysisTrigger;
+    openAiAnalysis: import("../analysis/types.js").AtOpenAiAnalysisResult | null;
+  }) => Promise<{
+    ok: boolean;
+    result: {
+      finalOutcome: string;
+      direction: "BUY" | "SELL" | null;
+      confidencePct: number | null;
+      reconciliationCode?: string | null;
+    } | null;
+  }>;
 }
 
 export class AtMonitorWorker {
@@ -886,15 +908,102 @@ export class AtMonitorWorker {
       if (input.dedupeKey) await this.store.rememberDedupe(input.dedupeKey);
 
       const delivery = result.analysis.evidenceDelivery;
-      this.runtimeState = "ANALYSIS_SUCCESS";
+      const integrity = validateEvidenceIntegrity({
+        observationId: snapshot.observationId,
+        imageId: binding.imageId,
+        imageHash: rendered.imageHash,
+        instrument: snapshot.instrument,
+        primaryTimeframe: tf,
+        marketDataFingerprint: result.analysis.chartImage?.marketDataFingerprint
+          ?? result.analysis.inputFingerprint,
+        deliveryObservationId: delivery?.observationId ?? null,
+        deliveryImageId: delivery?.imageId ?? null,
+        deliveryImageHash: delivery?.imageHash ?? null,
+        evidenceFingerprint: result.analysis.inputFingerprint,
+        analysisInstrument: result.analysis.instrument,
+        analysisPrimaryTimeframe: result.analysis.primaryTimeframe,
+        includedImageBytesInRequest: delivery?.includedImageBytesInRequest ?? null,
+        requireImage: true,
+      });
+
+      // Integrate canonical reconciler — OpenAI is advisory; deterministic authority preserved.
+      let canonicalOutcome: string | null = null;
+      let canonicalDirection: "BUY" | "SELL" | "NO_TRADE" | null = null;
+      let canonicalConfidence: number | null = null;
+      try {
+        const runCanon = this.deps.runCanonical
+          ?? (async (canonInput) => {
+            const out = await runCanonicalAnalysis(
+              {
+                environment: canonInput.environment,
+                instrument: canonInput.instrument,
+                timeframe: canonInput.timeframe,
+                trigger: canonInput.trigger === "legacy" ? "manual" : canonInput.trigger,
+                openAiAnalysis: canonInput.openAiAnalysis,
+                includeOpenAi: true,
+                persist: true,
+              },
+              createCanonicalAnalysisProductionDeps(),
+            );
+            return {
+              ok: out.ok,
+              result: out.result
+                ? {
+                  finalOutcome: out.result.finalOutcome,
+                  direction: out.result.direction,
+                  confidencePct: out.result.confidencePct,
+                  reconciliationCode: out.result.reconciliationCode ?? null,
+                }
+                : null,
+            };
+          });
+        const canon = await runCanon({
+          environment: input.config.environment,
+          instrument: input.config.instrument,
+          timeframe: tf,
+          trigger: input.trigger,
+          openAiAnalysis: result.analysis,
+        });
+        if (canon.result) {
+          canonicalOutcome = canon.result.finalOutcome;
+          if (canon.result.direction === "BUY" || canon.result.direction === "SELL") {
+            canonicalDirection = canon.result.direction;
+          } else if (
+            canon.result.finalOutcome === "NO_TRADE"
+            || /NO_TRADE|NO_CROSSOVER|INSUFFICIENT|STALE|CONFLICT/i.test(canon.result.finalOutcome)
+          ) {
+            canonicalDirection = "NO_TRADE";
+          } else {
+            canonicalDirection = null;
+          }
+          canonicalConfidence = canon.result.confidencePct;
+        }
+      } catch {
+        canonicalOutcome = "CANONICAL_INTEGRATION_ERROR";
+      }
+
+      const lifecycle = result.analysis.lifecycle;
+      const semanticOk = lifecycle === "ANALYSIS_VALID";
+      const workerState: AtMonitorWorkerState = !integrity.ok
+        ? "PROVIDER_ERROR"
+        : semanticOk
+          ? "ANALYSIS_SUCCESS"
+          : lifecycle === "DATA_INSUFFICIENT"
+            ? "DATA_INSUFFICIENT"
+            : "ANALYSIS_SEMANTIC_REJECTED";
+      this.runtimeState = workerState;
       await this.patchHealth({
-        workerState: "ANALYSIS_SUCCESS",
+        workerState,
         lastAnalysisAtUtc: result.analysis.createdAtUtc,
         lastAnalysisId: result.analysis.analysisId,
         lastDedupeKey: input.dedupeKey ?? null,
-        consecutiveFailures: 0,
-        lastError: null,
-        lastBlockerCode: null,
+        consecutiveFailures: semanticOk && integrity.ok ? 0 : (this.store.getState().health.consecutiveFailures ?? 0) + 1,
+        lastError: !integrity.ok
+          ? integrity.reasons[0] ?? integrity.status
+          : (!semanticOk ? `OpenAI lifecycle ${lifecycle}` : null),
+        lastBlockerCode: !integrity.ok
+          ? integrity.status
+          : (!semanticOk ? lifecycle : null),
         nextScheduledAnalysisAtUtc: nextCandleCloseUtc(tf),
         lastObservationId: snapshot.observationId,
         lastImageId: binding.imageId,
@@ -904,6 +1013,11 @@ export class AtMonitorWorker {
           : null,
         lastImageDeliveryLifecycle: delivery?.imageDeliveryLifecycle ?? null,
         lastIncludedImageBytesInRequest: delivery?.includedImageBytesInRequest ?? null,
+        lastAnalysisLifecycle: lifecycle,
+        lastCanonicalFinalOutcome: canonicalOutcome,
+        lastCanonicalDirection: canonicalDirection,
+        lastCanonicalConfidencePct: canonicalConfidence,
+        lastEvidenceIntegrityStatus: integrity.status,
         imageFresh: true,
         storageHealth,
       });

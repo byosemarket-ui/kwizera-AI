@@ -35,7 +35,13 @@ export type OpenAiEvidenceResponseStatus =
 
 export type OpenAiEvidenceValidationStatus =
   | "VALIDATED"
+  /** OpenAI HTTP/transport/request failure (bytes may not have been accepted). */
   | "VALIDATION_FAILED"
+  /**
+   * Response received and parsed, but semantic lifecycle is not ANALYSIS_VALID
+   * (e.g. DATA_INSUFFICIENT / ANALYSIS_INVALID). Distinct from delivery failure.
+   */
+  | "RESPONSE_SEMANTIC_REJECTED"
   | "RESPONSE_NOT_VERIFIED"
   | "REQUEST_NOT_RUN";
 

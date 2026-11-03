@@ -108,3 +108,10 @@ export {
   type AtObservationSnapshot,
   type AtChartImageBinding,
 } from "./observation-snapshot.js";
+export {
+  EVIDENCE_INTEGRITY_SCHEMA,
+  validateEvidenceIntegrity,
+  type EvidenceIntegrityInput,
+  type EvidenceIntegrityReport,
+  type EvidenceIntegrityStatus,
+} from "./evidence-integrity.js";
