@@ -189,43 +189,105 @@ async function main() {
   }
   if (on.body?.placesOrders === true) report.blockers.push("UNSAFE_PLACES_ORDERS_ON_ON");
 
-  // --- Test C: two scheduled cycles ---
+  // --- Test C: two TERMINAL scheduled cycles (never count mid-flight ANALYSIS_IN_FLIGHT) ---
+  const NON_TERMINAL = new Set(["ANALYSIS_IN_FLIGHT", "ANALYSIS_IN_PROGRESS", null, undefined, ""]);
   const seen = new Set();
+  const baselineTerminals = new Set(
+    (await getJson("/api/forex/automated-trading/operational-history?limit=24", { headers }))
+      .body?.scheduledTerminals?.map((t) => String(t.slotSec)) ?? [],
+  );
   const deadline = Date.now() + waitMs;
   while (Date.now() < deadline && report.cycles.length < 2) {
-    const mon = await getJson("/api/forex/automated-trading/monitor/status", { headers });
-    const h = mon.body?.monitor?.health ?? {};
-    const key = h.lastScheduleSlotSec != null
-      ? String(h.lastScheduleSlotSec)
-      : (h.lastCycleCompletedAtUtc || h.lastAnalysisAtUtc || null);
-    if (key && !seen.has(key) && (h.lastCycleCompletedAtUtc || h.lastBlockerCode || h.lastAnalysisAtUtc)) {
+    const histPoll = await getJson("/api/forex/automated-trading/operational-history?limit=24", { headers });
+    const terminals = Array.isArray(histPoll.body?.scheduledTerminals)
+      ? histPoll.body.scheduledTerminals
+      : [];
+    for (const t of terminals) {
+      const key = String(t.slotSec ?? "");
+      if (!key || seen.has(key) || baselineTerminals.has(key)) continue;
+      if (!t.isTerminal || !t.completedAtUtc || !t.terminalStatus) continue;
+      if (NON_TERMINAL.has(t.terminalStatus) || t.terminalStatus === "ANALYSIS_IN_FLIGHT") continue;
       seen.add(key);
       report.cycles.push({
         slotKey: key,
+        terminalStatus: t.terminalStatus ?? null,
+        scheduledAt: t.scheduledAtUtc ?? null,
+        startedAt: t.startedAtUtc ?? null,
+        completedAt: t.completedAtUtc ?? null,
+        durationMs: t.durationMs ?? null,
+        observationId: t.observationId ?? null,
+        imageId: t.imageId ?? null,
+        imageHash: t.imageHash ?? null,
+        lifecycle: t.lifecycle ?? null,
+        canonical: t.canonicalFinalOutcome ?? null,
+        blocker: t.blockerCode ?? null,
+        includedImageBytesInRequest: t.includedImageBytesInRequest ?? null,
+        analysisId: t.analysisId ?? null,
+        observedAtUtc: new Date().toISOString(),
+        isTerminal: true,
+      });
+      if (report.cycles.length >= 2) break;
+    }
+    if (report.cycles.length >= 2) break;
+
+    // Fallback: monitor health lastCycleTerminalStatus with completedAt (still requires terminal).
+    const mon = await getJson("/api/forex/automated-trading/monitor/status", { headers });
+    const h = mon.body?.monitor?.health ?? {};
+    const key = h.lastScheduleSlotSec != null ? String(h.lastScheduleSlotSec) : null;
+    const term = h.lastCycleTerminalStatus ?? null;
+    if (
+      key
+      && !seen.has(key)
+      && !baselineTerminals.has(key)
+      && h.lastCycleCompletedAtUtc
+      && term
+      && !NON_TERMINAL.has(term)
+      && term !== "ANALYSIS_IN_FLIGHT"
+    ) {
+      seen.add(key);
+      report.cycles.push({
+        slotKey: key,
+        terminalStatus: term,
         scheduledAt: h.lastScheduledAtUtc ?? null,
+        startedAt: h.lastCycleStartedAtUtc ?? null,
         completedAt: h.lastCycleCompletedAtUtc ?? null,
+        durationMs: h.lastCycleDurationMs ?? null,
         observationId: h.lastObservationId ?? null,
         imageId: h.lastImageId ?? null,
         imageHash: h.lastScreenshotImageHash ?? null,
         lifecycle: h.lastAnalysisLifecycle ?? null,
         canonical: h.lastCanonicalFinalOutcome ?? null,
         blocker: h.lastBlockerCode ?? null,
+        includedImageBytesInRequest: h.lastIncludedImageBytesInRequest ?? null,
+        analysisId: h.lastAnalysisId ?? null,
         observedAtUtc: new Date().toISOString(),
+        isTerminal: true,
+        source: "monitor_health_fallback",
       });
     }
     if (report.cycles.length >= 2) break;
     await sleep(pollMs);
   }
   report.labels.scheduledCyclesObserved = report.cycles.length;
+  report.labels.allCyclesTerminal = report.cycles.every((c) => c.isTerminal === true && c.completedAt);
   if (report.cycles.length < 2) report.blockers.push("LESS_THAN_TWO_SCHEDULED_CYCLES");
+  if (report.cycles.some((c) => !c.completedAt || c.terminalStatus === "ANALYSIS_IN_FLIGHT")) {
+    report.blockers.push("NON_TERMINAL_CYCLE_COUNTED");
+  }
 
   const hist = await getJson("/api/forex/automated-trading/operational-history?limit=12", { headers });
   report.historyCycles = Array.isArray(hist.body?.cycles) ? hist.body.cycles.slice(0, 6) : [];
+  report.scheduledTerminals = Array.isArray(hist.body?.scheduledTerminals)
+    ? hist.body.scheduledTerminals.slice(0, 6)
+    : [];
   report.tests.C_operationalHistory = {
     http: hist.status,
     count: report.historyCycles.length,
-    hasObservationIds: report.historyCycles.some((c) => c.observationId),
-    hasImageIds: report.historyCycles.some((c) => c.imageId),
+    terminalCount: report.scheduledTerminals.length,
+    hasObservationIds: report.historyCycles.some((c) => c.observationId)
+      || report.scheduledTerminals.some((c) => c.observationId),
+    hasImageIds: report.historyCycles.some((c) => c.imageId)
+      || report.scheduledTerminals.some((c) => c.imageId),
   };
 
   // Leave system ON for continuous operation after successful proof (owner intent verified).

@@ -55,11 +55,14 @@ import {
   type AtMonitorTimeframe,
 } from "./timeframes.js";
 import {
+  AT_MONITOR_CYCLE_TERMINAL_MAX,
   AT_MONITOR_PHASE,
   AT_MONITOR_SCHEMA,
   defaultMonitorHealth,
   type AtAutomaticAnalysisStatus,
   type AtMonitorConfig,
+  type AtMonitorCycleTerminal,
+  type AtMonitorCycleTerminalStatus,
   type AtMonitorPublicStatus,
   type AtMonitorWorkerState,
 } from "./types.js";
@@ -159,6 +162,67 @@ export class AtMonitorWorker {
   private lastFreshnessReasonLogged: string | null = null;
   private cycleStartedAtMs: number | null = null;
   private cycleScheduledAtUtc: string | null = null;
+  private cycleSlotSec: number | null = null;
+
+  private async recordCycleTerminal(input: {
+    slotSec: number;
+    scheduledAtUtc: string;
+    startedAtUtc?: string | null;
+    terminalStatus: AtMonitorCycleTerminalStatus;
+    trigger?: "scheduled" | "manual";
+    analysisId?: string | null;
+    observationId?: string | null;
+    imageId?: string | null;
+    imageHash?: string | null;
+    lifecycle?: string | null;
+    canonicalFinalOutcome?: string | null;
+    blockerCode?: string | null;
+    includedImageBytesInRequest?: boolean | null;
+    durationMs?: number | null;
+  }): Promise<void> {
+    const completedAtUtc = nowIso();
+    const startedAtUtc =
+      input.startedAtUtc
+      ?? (this.cycleStartedAtMs != null ? new Date(this.cycleStartedAtMs).toISOString() : null);
+    const durationMs =
+      input.durationMs
+      ?? (this.cycleStartedAtMs != null ? Math.max(0, Date.now() - this.cycleStartedAtMs) : null);
+    const terminal: AtMonitorCycleTerminal = {
+      slotSec: input.slotSec,
+      scheduledAtUtc: input.scheduledAtUtc,
+      startedAtUtc,
+      completedAtUtc,
+      durationMs,
+      terminalStatus: input.terminalStatus,
+      trigger: input.trigger ?? "scheduled",
+      analysisId: input.analysisId ?? null,
+      observationId: input.observationId ?? null,
+      imageId: input.imageId ?? null,
+      imageHash: input.imageHash ?? null,
+      lifecycle: input.lifecycle ?? null,
+      canonicalFinalOutcome: input.canonicalFinalOutcome ?? null,
+      blockerCode: input.blockerCode ?? null,
+      includedImageBytesInRequest: input.includedImageBytesInRequest ?? null,
+    };
+    await this.store.update((s) => {
+      const prior = Array.isArray(s.health.recentCycleTerminals) ? s.health.recentCycleTerminals : [];
+      // Replace same-slot terminal if re-recorded; keep newest first.
+      const filtered = prior.filter((t) => t.slotSec !== terminal.slotSec);
+      return {
+        ...s,
+        health: {
+          ...s.health,
+          lastCycleStartedAtUtc: startedAtUtc ?? s.health.lastCycleStartedAtUtc,
+          lastCycleCompletedAtUtc: completedAtUtc,
+          lastCycleDurationMs: durationMs,
+          lastCycleTerminalStatus: terminal.terminalStatus,
+          lastScheduleSlotSec: Math.max(s.health.lastScheduleSlotSec ?? 0, terminal.slotSec),
+          lastScheduledAtUtc: terminal.scheduledAtUtc,
+          recentCycleTerminals: [terminal, ...filtered].slice(0, AT_MONITOR_CYCLE_TERMINAL_MAX),
+        },
+      };
+    });
+  }
 
   constructor(deps: AtMonitorWorkerDeps = {}) {
     this.deps = { ...deps };
@@ -677,8 +741,6 @@ export class AtMonitorWorker {
           ...s,
           health: {
             ...s.health,
-            lastScheduleSlotSec: slotDecision.slotSec,
-            lastScheduledAtUtc: slotDecision.scheduledAtUtc,
             missedCycles: (s.health.missedCycles ?? 0) + 1,
             lastBlockerCode: "SCHEDULE_SLOT_MISSED",
             lastError:
@@ -686,6 +748,13 @@ export class AtMonitorWorker {
             nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
           },
         }));
+        await this.recordCycleTerminal({
+          slotSec: slotDecision.slotSec,
+          scheduledAtUtc: slotDecision.scheduledAtUtc,
+          terminalStatus: "SCHEDULE_SLOT_MISSED",
+          blockerCode: "SCHEDULE_SLOT_MISSED",
+          durationMs: 0,
+        });
         return;
       }
 
@@ -696,8 +765,6 @@ export class AtMonitorWorker {
           ...s,
           health: {
             ...s.health,
-            lastScheduleSlotSec: slotDecision.slotSec,
-            lastScheduledAtUtc: slotDecision.scheduledAtUtc,
             delayedCycles: (s.health.delayedCycles ?? 0) + 1,
             missedCycles: (s.health.missedCycles ?? 0) + 1,
             lastBlockerCode: "SCHEDULE_SLOT_SKIPPED_IN_FLIGHT",
@@ -706,6 +773,13 @@ export class AtMonitorWorker {
             nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
           },
         }));
+        await this.recordCycleTerminal({
+          slotSec: slotDecision.slotSec,
+          scheduledAtUtc: slotDecision.scheduledAtUtc,
+          terminalStatus: "SCHEDULE_SLOT_SKIPPED_IN_FLIGHT",
+          blockerCode: "SCHEDULE_SLOT_SKIPPED_IN_FLIGHT",
+          durationMs: 0,
+        });
         return;
       }
 
@@ -787,9 +861,14 @@ export class AtMonitorWorker {
           lastBlockerCode: "VERIFICATION_REQUIRED",
           lastError: "Fresh Phase 52 verification is required before scheduled OpenAI analysis.",
           automaticAnalysisStatus: "BLOCKED",
-          lastCycleStartedAtUtc: nowIso(),
-          lastCycleCompletedAtUtc: nowIso(),
-          lastCycleDurationMs: 0,
+        });
+        await this.recordCycleTerminal({
+          slotSec: slotDecision.slotSec,
+          scheduledAtUtc: slotDecision.scheduledAtUtc,
+          startedAtUtc: nowIso(),
+          terminalStatus: "BLOCKED_VERIFICATION",
+          blockerCode: "VERIFICATION_REQUIRED",
+          durationMs: 0,
         });
         return;
       }
@@ -801,9 +880,14 @@ export class AtMonitorWorker {
           lastBlockerCode: "DATA_INSUFFICIENT",
           lastError: "No candles returned from ForexConnect.",
           automaticAnalysisStatus: "BLOCKED",
-          lastCycleStartedAtUtc: nowIso(),
-          lastCycleCompletedAtUtc: nowIso(),
-          lastCycleDurationMs: 0,
+        });
+        await this.recordCycleTerminal({
+          slotSec: slotDecision.slotSec,
+          scheduledAtUtc: slotDecision.scheduledAtUtc,
+          startedAtUtc: nowIso(),
+          terminalStatus: "BLOCKED_DATA_INSUFFICIENT",
+          blockerCode: "DATA_INSUFFICIENT",
+          durationMs: 0,
         });
         return;
       }
@@ -821,16 +905,28 @@ export class AtMonitorWorker {
           lastBlockerCode: "STALE_QUOTES",
           lastError: staleMsg,
           automaticAnalysisStatus: "BLOCKED",
-          lastCycleStartedAtUtc: nowIso(),
-          lastCycleCompletedAtUtc: nowIso(),
-          lastCycleDurationMs: 0,
+        });
+        await this.recordCycleTerminal({
+          slotSec: slotDecision.slotSec,
+          scheduledAtUtc: slotDecision.scheduledAtUtc,
+          startedAtUtc: nowIso(),
+          terminalStatus: "BLOCKED_STALE_QUOTES",
+          blockerCode: "STALE_QUOTES",
+          durationMs: 0,
         });
         return;
       }
       this.lastFreshnessReasonLogged = freshness.reasonCode;
 
       this.cycleScheduledAtUtc = slotDecision.scheduledAtUtc;
+      this.cycleSlotSec = slotDecision.slotSec;
       this.cycleStartedAtMs = Date.now();
+      await this.patchHealth({
+        lastCycleStartedAtUtc: new Date(this.cycleStartedAtMs).toISOString(),
+        lastScheduledAtUtc: slotDecision.scheduledAtUtc,
+        lastBlockerCode: null,
+        lastError: null,
+      });
       await this.runAnalysis({
         trigger: "scheduled",
         dedupeKey: dedupe,
@@ -1020,6 +1116,18 @@ export class AtMonitorWorker {
           imageFresh: false,
           consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
         });
+        if (this.cycleSlotSec != null && this.cycleScheduledAtUtc) {
+          await this.recordCycleTerminal({
+            slotSec: this.cycleSlotSec,
+            scheduledAtUtc: this.cycleScheduledAtUtc,
+            terminalStatus: "BLOCKED_IMAGE",
+            blockerCode: "IMAGE_UNAVAILABLE",
+            observationId: snapshot.observationId,
+          });
+          this.cycleSlotSec = null;
+          this.cycleScheduledAtUtc = null;
+          this.cycleStartedAtMs = null;
+        }
         return { ok: false, code: "IMAGE_UNAVAILABLE", message: rendered.message };
       }
 
@@ -1049,6 +1157,19 @@ export class AtMonitorWorker {
           imageFresh: false,
           consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
         });
+        if (this.cycleSlotSec != null && this.cycleScheduledAtUtc) {
+          await this.recordCycleTerminal({
+            slotSec: this.cycleSlotSec,
+            scheduledAtUtc: this.cycleScheduledAtUtc,
+            terminalStatus: "BLOCKED_IMAGE",
+            blockerCode: bindCheck.code,
+            observationId: snapshot.observationId,
+            imageId: binding.imageId,
+          });
+          this.cycleSlotSec = null;
+          this.cycleScheduledAtUtc = null;
+          this.cycleStartedAtMs = null;
+        }
         return { ok: false, code: bindCheck.code, message: bindCheck.message };
       }
 
@@ -1138,6 +1259,28 @@ export class AtMonitorWorker {
             result.analysis?.evidenceDelivery?.includedImageBytesInRequest ?? false,
           consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
         });
+        if (this.cycleSlotSec != null && this.cycleScheduledAtUtc) {
+          const terminalStatus: AtMonitorCycleTerminalStatus =
+            result.code === "DATA_INSUFFICIENT"
+              ? "BLOCKED_DATA_INSUFFICIENT"
+              : result.code === "ANALYSIS_IN_FLIGHT"
+                ? "SCHEDULE_SLOT_SKIPPED_IN_FLIGHT"
+                : result.code === "CONFIG_CHANGED"
+                  ? "CONFIG_CHANGED"
+                  : "PROVIDER_ERROR";
+          await this.recordCycleTerminal({
+            slotSec: this.cycleSlotSec,
+            scheduledAtUtc: this.cycleScheduledAtUtc,
+            terminalStatus,
+            blockerCode: result.code,
+            lifecycle: result.analysis?.lifecycle ?? null,
+            includedImageBytesInRequest:
+              result.analysis?.evidenceDelivery?.includedImageBytesInRequest ?? false,
+          });
+          this.cycleSlotSec = null;
+          this.cycleScheduledAtUtc = null;
+          this.cycleStartedAtMs = null;
+        }
         return { ok: false, code: result.code, message: result.message };
       }
 
@@ -1239,9 +1382,6 @@ export class AtMonitorWorker {
             ? "DATA_INSUFFICIENT"
             : "ANALYSIS_SEMANTIC_REJECTED";
       this.runtimeState = workerState;
-      const cycleCompletedAt = nowIso();
-      const cycleDurationMs =
-        this.cycleStartedAtMs != null ? Math.max(0, Date.now() - this.cycleStartedAtMs) : null;
       await this.patchHealth({
         workerState,
         lastAnalysisAtUtc: result.analysis.createdAtUtc,
@@ -1270,21 +1410,37 @@ export class AtMonitorWorker {
         lastEvidenceIntegrityStatus: integrity.status,
         imageFresh: true,
         storageHealth,
-        lastScheduledAtUtc: this.cycleScheduledAtUtc ?? this.store.getState().health.lastScheduledAtUtc,
-        lastCycleStartedAtUtc:
-          this.cycleStartedAtMs != null
-            ? new Date(this.cycleStartedAtMs).toISOString()
-            : this.store.getState().health.lastCycleStartedAtUtc,
-        lastCycleCompletedAtUtc: cycleCompletedAt,
-        lastCycleDurationMs: cycleDurationMs,
         lastSuccessfulAnalysisAtUtc:
           semanticOk && integrity.ok
             ? result.analysis.createdAtUtc
             : this.store.getState().health.lastSuccessfulAnalysisAtUtc,
         automaticAnalysisStatus: "ACTIVE",
       });
+      if (this.cycleSlotSec != null && this.cycleScheduledAtUtc) {
+        const terminalStatus: AtMonitorCycleTerminalStatus = !integrity.ok
+          ? "ANALYSIS_FAILED"
+          : semanticOk
+            ? "ANALYSIS_VALID"
+            : "ANALYSIS_SEMANTIC_REJECTED";
+        await this.recordCycleTerminal({
+          slotSec: this.cycleSlotSec,
+          scheduledAtUtc: this.cycleScheduledAtUtc,
+          terminalStatus,
+          analysisId: result.analysis.analysisId,
+          observationId: snapshot.observationId,
+          imageId: binding.imageId,
+          imageHash: rendered.imageHash,
+          lifecycle,
+          canonicalFinalOutcome: canonicalOutcome,
+          blockerCode: !integrity.ok
+            ? integrity.status
+            : (!semanticOk ? lifecycle : null),
+          includedImageBytesInRequest: delivery?.includedImageBytesInRequest ?? null,
+        });
+      }
       this.cycleStartedAtMs = null;
       this.cycleScheduledAtUtc = null;
+      this.cycleSlotSec = null;
       return { ok: true, analysisId: result.analysis.analysisId };
     } catch (err) {
       const message = err instanceof Error ? err.message.slice(0, 200) : "Analysis failed.";
@@ -1295,6 +1451,17 @@ export class AtMonitorWorker {
         lastBlockerCode: "ANALYSIS_FAILED",
         consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
       });
+      if (this.cycleSlotSec != null && this.cycleScheduledAtUtc) {
+        await this.recordCycleTerminal({
+          slotSec: this.cycleSlotSec,
+          scheduledAtUtc: this.cycleScheduledAtUtc,
+          terminalStatus: "ANALYSIS_FAILED",
+          blockerCode: "ANALYSIS_FAILED",
+        });
+        this.cycleSlotSec = null;
+        this.cycleScheduledAtUtc = null;
+        this.cycleStartedAtMs = null;
+      }
       // Bounded backoff marker only — next tick will retry after cooldown.
       if ((this.store.getState().health.consecutiveFailures ?? 0) <= AT_MONITOR_MAX_RETRIES) {
         this.lastAnalysisAttemptMs = Date.now() + AT_MONITOR_RETRY_BACKOFF_MS - AT_MONITOR_ANALYSIS_COOLDOWN_MS;

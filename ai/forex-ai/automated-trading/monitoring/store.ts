@@ -7,11 +7,14 @@ import { resolveStorageRoot } from "../../../../storage/paths/storage-paths.js";
 import { readJsonSafeSync, writeJsonAtomic } from "../../../../storage/safe-json.js";
 import { parseAtMonitorTimeframe } from "./timeframes.js";
 import {
+  AT_MONITOR_CYCLE_TERMINAL_MAX,
   AT_MONITOR_PHASE,
   AT_MONITOR_SCHEMA,
   defaultMonitorHealth,
   defaultMonitorPersisted,
   type AtMonitorConfig,
+  type AtMonitorCycleTerminal,
+  type AtMonitorCycleTerminalStatus,
   type AtMonitorHealth,
   type AtMonitorPersistedState,
 } from "./types.js";
@@ -25,6 +28,43 @@ function storePath(storageRoot?: string): string {
     "forex-automated-trading",
     "monitoring.json",
   );
+}
+
+function normalizeCycleTerminals(raw: unknown): AtMonitorCycleTerminal[] {
+  if (!Array.isArray(raw)) return [];
+  const out: AtMonitorCycleTerminal[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const o = row as Record<string, unknown>;
+    const slotSec = Number(o.slotSec);
+    if (!Number.isFinite(slotSec)) continue;
+    const terminalStatus = String(o.terminalStatus ?? "");
+    if (!terminalStatus) continue;
+    out.push({
+      slotSec: Math.floor(slotSec),
+      scheduledAtUtc: typeof o.scheduledAtUtc === "string" ? o.scheduledAtUtc : new Date(slotSec * 1000).toISOString(),
+      startedAtUtc: typeof o.startedAtUtc === "string" ? o.startedAtUtc : null,
+      completedAtUtc: typeof o.completedAtUtc === "string" ? o.completedAtUtc : new Date().toISOString(),
+      durationMs:
+        typeof o.durationMs === "number" && Number.isFinite(o.durationMs)
+          ? Math.max(0, Math.floor(o.durationMs))
+          : null,
+      terminalStatus: terminalStatus as AtMonitorCycleTerminalStatus,
+      trigger: o.trigger === "manual" ? "manual" : "scheduled",
+      analysisId: typeof o.analysisId === "string" ? o.analysisId.slice(0, 64) : null,
+      observationId: typeof o.observationId === "string" ? o.observationId.slice(0, 64) : null,
+      imageId: typeof o.imageId === "string" ? o.imageId.slice(0, 64) : null,
+      imageHash: typeof o.imageHash === "string" ? o.imageHash.slice(0, 64) : null,
+      lifecycle: typeof o.lifecycle === "string" ? o.lifecycle.slice(0, 64) : null,
+      canonicalFinalOutcome:
+        typeof o.canonicalFinalOutcome === "string" ? o.canonicalFinalOutcome.slice(0, 64) : null,
+      blockerCode: typeof o.blockerCode === "string" ? o.blockerCode.slice(0, 80) : null,
+      includedImageBytesInRequest:
+        typeof o.includedImageBytesInRequest === "boolean" ? o.includedImageBytesInRequest : null,
+    });
+    if (out.length >= AT_MONITOR_CYCLE_TERMINAL_MAX) break;
+  }
+  return out;
 }
 
 function normalizeConfig(raw: unknown): AtMonitorConfig | null {
@@ -168,6 +208,11 @@ function normalizeHealth(raw: unknown): AtMonitorHealth {
         : 0,
     lastSuccessfulAnalysisAtUtc:
       typeof o.lastSuccessfulAnalysisAtUtc === "string" ? o.lastSuccessfulAnalysisAtUtc : null,
+    recentCycleTerminals: normalizeCycleTerminals(o.recentCycleTerminals),
+    lastCycleTerminalStatus:
+      typeof o.lastCycleTerminalStatus === "string"
+        ? (o.lastCycleTerminalStatus as AtMonitorCycleTerminalStatus)
+        : null,
     analysisInFlight: false,
     consecutiveFailures:
       typeof o.consecutiveFailures === "number" && Number.isFinite(o.consecutiveFailures)

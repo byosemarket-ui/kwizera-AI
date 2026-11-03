@@ -10,6 +10,39 @@ export const AT_MONITOR_PHASE = "4.18F.8";
 
 export type AtAutomaticAnalysisStatus = "ACTIVE" | "STOPPED" | "BLOCKED";
 
+/** Terminal status for one UTC five-minute schedule slot (never mid-flight). */
+export type AtMonitorCycleTerminalStatus =
+  | "ANALYSIS_VALID"
+  | "ANALYSIS_SEMANTIC_REJECTED"
+  | "BLOCKED_STALE_QUOTES"
+  | "BLOCKED_VERIFICATION"
+  | "BLOCKED_DATA_INSUFFICIENT"
+  | "BLOCKED_IMAGE"
+  | "SCHEDULE_SLOT_MISSED"
+  | "SCHEDULE_SLOT_SKIPPED_IN_FLIGHT"
+  | "ANALYSIS_FAILED"
+  | "PROVIDER_ERROR"
+  | "CONFIG_CHANGED"
+  | "CANCELLED";
+
+export interface AtMonitorCycleTerminal {
+  slotSec: number;
+  scheduledAtUtc: string;
+  startedAtUtc: string | null;
+  completedAtUtc: string;
+  durationMs: number | null;
+  terminalStatus: AtMonitorCycleTerminalStatus;
+  trigger: "scheduled" | "manual";
+  analysisId: string | null;
+  observationId: string | null;
+  imageId: string | null;
+  imageHash: string | null;
+  lifecycle: string | null;
+  canonicalFinalOutcome: string | null;
+  blockerCode: string | null;
+  includedImageBytesInRequest: boolean | null;
+}
+
 export type AtMonitorWorkerState =
   | "STOPPED"
   | "CONNECTING"
@@ -98,6 +131,9 @@ export interface AtMonitorHealth {
   missedCycles: number;
   delayedCycles: number;
   lastSuccessfulAnalysisAtUtc: string | null;
+  /** Bounded ring of terminal scheduled-cycle records (evidence; never mid-flight). */
+  recentCycleTerminals: AtMonitorCycleTerminal[];
+  lastCycleTerminalStatus: AtMonitorCycleTerminalStatus | null;
 }
 
 export interface AtMonitorPersistedState {
@@ -187,9 +223,35 @@ export function defaultMonitorHealth(): AtMonitorHealth {
     missedCycles: 0,
     delayedCycles: 0,
     lastSuccessfulAnalysisAtUtc: null,
+    recentCycleTerminals: [],
+    lastCycleTerminalStatus: null,
     analysisInFlight: false,
     consecutiveFailures: 0,
   };
+}
+
+export const AT_MONITOR_CYCLE_TERMINAL_MAX = 24;
+
+export function isTerminalCycleStatus(code: string | null | undefined): boolean {
+  if (!code) return false;
+  return [
+    "ANALYSIS_VALID",
+    "ANALYSIS_SEMANTIC_REJECTED",
+    "BLOCKED_STALE_QUOTES",
+    "BLOCKED_VERIFICATION",
+    "BLOCKED_DATA_INSUFFICIENT",
+    "BLOCKED_IMAGE",
+    "SCHEDULE_SLOT_MISSED",
+    "SCHEDULE_SLOT_SKIPPED_IN_FLIGHT",
+    "ANALYSIS_FAILED",
+    "PROVIDER_ERROR",
+    "CONFIG_CHANGED",
+    "CANCELLED",
+    "STALE_QUOTES",
+    "VERIFICATION_REQUIRED",
+    "DATA_INSUFFICIENT",
+    "IMAGE_UNAVAILABLE",
+  ].includes(code);
 }
 
 export function defaultMonitorPersisted(): AtMonitorPersistedState {

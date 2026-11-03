@@ -150,6 +150,7 @@ export class AutomatedTradingService {
   getOperationalCycleHistory(limit = 12): {
     schemaVersion: "at-operational-cycle-history-v1";
     cycles: Array<Record<string, unknown>>;
+    scheduledTerminals: Array<Record<string, unknown>>;
     placesOrders: false;
     acceptsForExecution: false;
     mutatesBroker: false;
@@ -157,7 +158,33 @@ export class AutomatedTradingService {
     const n = Math.max(1, Math.min(40, Math.floor(Number(limit) || 12)));
     const mon = this.monitor.getPublicStatus();
     const oa = this.analysisEngine.listHistory(n);
+    const slotFromIso = (iso: string | null | undefined): number | null => {
+      if (!iso) return null;
+      const ms = Date.parse(iso);
+      if (!Number.isFinite(ms)) return null;
+      return Math.floor(Math.floor(ms / 1000) / 300) * 300;
+    };
+    const scheduledTerminals = (mon.health.recentCycleTerminals ?? []).slice(0, n).map((t) => ({
+      kind: "scheduled_terminal" as const,
+      slotSec: t.slotSec,
+      scheduledAtUtc: t.scheduledAtUtc,
+      startedAtUtc: t.startedAtUtc,
+      completedAtUtc: t.completedAtUtc,
+      durationMs: t.durationMs,
+      terminalStatus: t.terminalStatus,
+      trigger: t.trigger,
+      analysisId: t.analysisId,
+      observationId: t.observationId,
+      imageId: t.imageId,
+      imageHash: t.imageHash,
+      lifecycle: t.lifecycle,
+      canonicalFinalOutcome: t.canonicalFinalOutcome,
+      blockerCode: t.blockerCode,
+      includedImageBytesInRequest: t.includedImageBytesInRequest,
+      isTerminal: true,
+    }));
     const cycles = oa.map((row) => ({
+      kind: "openai_history" as const,
       analysisId: row.analysisId ?? null,
       createdAtUtc: row.createdAtUtc ?? null,
       trigger: row.trigger ?? null,
@@ -175,12 +202,15 @@ export class AutomatedTradingService {
       requestStatus: row.evidenceDelivery?.requestStatus ?? null,
       responseStatus: row.evidenceDelivery?.responseStatus ?? null,
       validationStatus: row.evidenceDelivery?.validationStatus ?? null,
-      scheduleSlotSec: mon.health.lastScheduleSlotSec ?? null,
+      // Per-row slot from analysis time — never overwrite all rows with latest monitor slot.
+      scheduleSlotSec: slotFromIso(row.createdAtUtc ?? null),
       nextScheduledAnalysisAtUtc: mon.health.nextScheduledAnalysisAtUtc ?? null,
+      isTerminal: row.lifecycle != null,
     }));
     return {
       schemaVersion: "at-operational-cycle-history-v1",
       cycles,
+      scheduledTerminals,
       placesOrders: false,
       acceptsForExecution: false,
       mutatesBroker: false,
