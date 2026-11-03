@@ -17,7 +17,7 @@ import {
 } from "../../ai/forex-ai/automated-trading/market-selection";
 
 const BANNER =
-  "GLOBAL BROKER EXECUTION DISABLED — START AUTO = monitoring/analysis only (Phase 4.11). DEMO submit requires separate grant path after 0.01-lot + margin gates pass.";
+  "GLOBAL BROKER EXECUTION DISABLED — SYSTEM ON = analysis modules only (Phase 4.18F.8R). Never places broker orders. DEMO submit requires separate grant path after 0.01-lot + margin gates pass.";
 
 type Env = "DEMO" | "LIVE";
 
@@ -607,6 +607,29 @@ export function ForexAutomatedTradingPage(props: {
     acceptsForExecution?: false;
     note?: string;
   } | null>(null);
+  /** Phase 4.18F.8R — owner System Master (analysis lifecycle; never broker). */
+  const [systemMaster, setSystemMaster] = useState<{
+    stateVersion?: number;
+    masterEnabled?: boolean;
+    ownerState?: "ON" | "OFF";
+    operationalState?: "OFF" | "STARTING" | "ON" | "STOPPING" | "BLOCKED" | "ERROR";
+    changedAtUtc?: string;
+    changedBy?: string;
+    lastStartAtUtc?: string | null;
+    lastStopAtUtc?: string | null;
+    activeModuleCount?: number;
+    activeModules?: string[];
+    blockedModules?: string[];
+    lastError?: string | null;
+    lastBlockerCode?: string | null;
+    placesOrders?: false;
+    acceptsForExecution?: false;
+    mutatesBroker?: false;
+    brokerExecution?: "DISABLED";
+    executionStatusLabel?: "EXECUTION_FORBIDDEN";
+    note?: string;
+  } | null>(null);
+  const [systemMasterBusy, setSystemMasterBusy] = useState(false);
   const [autoBusy, setAutoBusy] = useState(false);
 
   /** Phase 57.0 — broker-intent architecture status (never execution). */
@@ -696,7 +719,7 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, canonRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, canonRes, masterRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
@@ -709,6 +732,7 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/broker-intent/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/automation/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/canonical-analysis/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/system-master/status", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -756,6 +780,10 @@ export function ForexAutomatedTradingPage(props: {
       const autoJson = await autoRes.json() as {
         ok?: boolean;
         automation?: typeof automation;
+      };
+      const masterJson = await masterRes.json() as {
+        ok?: boolean;
+        systemMaster?: typeof systemMaster;
       };
       const canonJson = await canonRes.json() as {
         ok?: boolean;
@@ -811,6 +839,7 @@ export function ForexAutomatedTradingPage(props: {
       if (lifeRes.ok && lifeJson.ok && lifeJson.lifecycle) setSimLifecycle(lifeJson.lifecycle);
       if (biRes.ok && biJson.ok && biJson.brokerIntent) setBrokerIntent(biJson.brokerIntent);
       if (autoRes.ok && autoJson.ok && autoJson.automation) setAutomation(autoJson.automation);
+      if (masterRes.ok && masterJson.ok && masterJson.systemMaster) setSystemMaster(masterJson.systemMaster);
       if (canonRes.ok && canonJson.ok && canonJson.canonical?.view) {
         setCanonicalView(canonJson.canonical.view);
       }
@@ -1687,7 +1716,96 @@ export function ForexAutomatedTradingPage(props: {
     }
   };
 
-  /** Phase 57.1 — START AUTO (server-authoritative; never broker execution). */
+  /** Phase 4.18F.8R — System Master ON (analysis modules only; never broker). */
+  const systemMasterOnUi = async () => {
+    if (systemMasterBusy) return;
+    const transitioning =
+      systemMaster?.operationalState === "STARTING"
+      || systemMaster?.operationalState === "STOPPING";
+    if (transitioning) return;
+    const ok = window.confirm(
+      "SYSTEM ON will start Automated Trading analysis on the VPS.\n\n"
+      + "The five-minute UTC schedule will run automatically while this page is closed.\n\n"
+      + "Broker order execution remains DISABLED.\nContinue?",
+    );
+    if (!ok) return;
+    setSystemMasterBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/system-master/on", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          expectedStateVersion: systemMaster?.stateVersion,
+          timeframe: monitorTf || "5m",
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        message?: string;
+        code?: string;
+        systemMaster?: typeof systemMaster;
+        status?: PublicStatus;
+        monitor?: typeof monitor;
+        error?: { message?: string; code?: string };
+      };
+      if (data.systemMaster) setSystemMaster(data.systemMaster);
+      if (data.status) setStatus(data.status);
+      if (data.monitor) setMonitor(data.monitor);
+      if (!res.ok || !data.ok) {
+        setError(data.message || data.error?.message || data.code || `SYSTEM ON failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "SYSTEM ON failed");
+    } finally {
+      setSystemMasterBusy(false);
+    }
+  };
+
+  const systemMasterOffUi = async () => {
+    if (systemMasterBusy) return;
+    const transitioning =
+      systemMaster?.operationalState === "STARTING"
+      || systemMaster?.operationalState === "STOPPING";
+    if (transitioning) return;
+    const ok = window.confirm(
+      "SYSTEM OFF will stop Automated Trading analysis on the VPS.\n\n"
+      + "No new five-minute analysis cycles or OpenAI requests will start.\n\n"
+      + "Shared ForexConnect sidecar/gateway stay running for other modules.\nContinue?",
+    );
+    if (!ok) return;
+    setSystemMasterBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/system-master/off", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({ expectedStateVersion: systemMaster?.stateVersion }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        message?: string;
+        systemMaster?: typeof systemMaster;
+        status?: PublicStatus;
+        monitor?: typeof monitor;
+        error?: { message?: string };
+      };
+      if (data.systemMaster) setSystemMaster(data.systemMaster);
+      if (data.status) setStatus(data.status);
+      if (data.monitor) setMonitor(data.monitor);
+      if (!res.ok || !data.ok) {
+        setError(data.message || data.error?.message || `SYSTEM OFF failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "SYSTEM OFF failed");
+    } finally {
+      setSystemMasterBusy(false);
+    }
+  };
+
+  /** Legacy Phase 57.1 automation start (kept for API compatibility; prefer System Master). */
   const startAutomationUi = async () => {
     if (autoBusy) return;
     const ok = window.confirm(
@@ -1920,8 +2038,78 @@ export function ForexAutomatedTradingPage(props: {
     ?? verification?.instrument.symbol
     ?? null;
 
+  const masterOp = systemMaster?.operationalState ?? "OFF";
+  const masterTransitioning = masterOp === "STARTING" || masterOp === "STOPPING";
+  const masterOnVisual = masterOp === "ON" || masterOp === "BLOCKED" || masterOp === "STARTING";
+
   return (
     <section className="fx-auto-trading" data-forex-page="automated-trading" aria-label="Automated Trading">
+      <div
+        className="fx-at-system-master-bar"
+        data-fx-at-system-master="true"
+        data-master-state={masterOp}
+        data-master-on={masterOnVisual ? "true" : "false"}
+      >
+        <div className="fx-at-system-master-bar-main">
+          <span className="fx-at-system-master-label">System Master</span>
+          <ForexStatusBadge
+            tone={
+              masterOp === "ON"
+                ? "live"
+                : masterOp === "BLOCKED" || masterOp === "ERROR"
+                  ? "offline"
+                  : masterOp === "STARTING" || masterOp === "STOPPING"
+                    ? "future"
+                    : "offline"
+            }
+          >
+            {masterOp}
+          </ForexStatusBadge>
+          <span className="fx-at-system-master-meta" data-fx-at-master-modules="true">
+            {systemMaster?.activeModuleCount ?? 0} modules
+          </span>
+        </div>
+        <div className="fx-at-system-master-actions">
+          <button
+            type="button"
+            className="fx-at-system-btn fx-at-system-btn--on"
+            data-fx-at-system-on="true"
+            disabled={busy || systemMasterBusy || !token || masterTransitioning || masterOp === "ON"}
+            onClick={() => void systemMasterOnUi()}
+            aria-label="Turn Automated Trading system ON"
+          >
+            {systemMasterBusy && masterOp === "STARTING" ? "…" : "SYSTEM ON"}
+          </button>
+          <button
+            type="button"
+            className="fx-at-system-btn fx-at-system-btn--off"
+            data-fx-at-system-off="true"
+            disabled={busy || systemMasterBusy || !token || masterTransitioning || masterOp === "OFF"}
+            onClick={() => void systemMasterOffUi()}
+            aria-label="Turn Automated Trading system OFF"
+          >
+            {systemMasterBusy && masterOp === "STOPPING" ? "…" : "SYSTEM OFF"}
+          </button>
+        </div>
+        <div className="fx-at-system-master-status" aria-live="polite">
+          <span data-fx-at-master-worker="true">
+            Worker: {monitor?.health?.workerState ?? "STOPPED"}
+          </span>
+          <span data-fx-at-master-schedule="true">
+            Next: {monitor?.health?.nextScheduledAnalysisAtUtc ?? "—"}
+          </span>
+          <span data-fx-at-master-last-success="true">
+            Last OK: {monitor?.health?.lastSuccessfulAnalysisAtUtc ?? "—"}
+          </span>
+          {systemMaster?.lastBlockerCode ? (
+            <span className="fx-at-system-master-blocker" data-fx-at-master-blocker="true">
+              {systemMaster.lastBlockerCode}
+              {systemMaster.lastError ? `: ${systemMaster.lastError}` : ""}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
       <header className="fx-auto-trading-header">
         <div className="fx-auto-trading-title-block">
           <div className="fx-auto-trading-title-row">
@@ -2514,25 +2702,21 @@ export function ForexAutomatedTradingPage(props: {
       <section
         className="fx-auto-trading-panel"
         data-fx-at-automation-control="true"
-        aria-label="Automatic analysis and execution safety status"
+        aria-label="System Master analysis and execution safety status"
       >
-        <h2 className="fx-auto-trading-panel-title">Automatic analysis &amp; safety</h2>
+        <h2 className="fx-auto-trading-panel-title">System Master &amp; safety</h2>
         <div className="fx-auto-trading-token-row" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
           <span data-fx-at-automatic-analysis="true">
             <ForexStatusBadge
               tone={
-                (monitor as { automaticAnalysisStatus?: string } | null)?.automaticAnalysisStatus === "ACTIVE"
-                  || monitor?.health?.automaticAnalysisStatus === "ACTIVE"
+                systemMaster?.operationalState === "ON"
                   ? "live"
-                  : (monitor as { automaticAnalysisStatus?: string } | null)?.automaticAnalysisStatus === "BLOCKED"
-                    || monitor?.health?.automaticAnalysisStatus === "BLOCKED"
+                  : systemMaster?.operationalState === "BLOCKED" || systemMaster?.operationalState === "ERROR"
                     ? "offline"
                     : "future"
               }
             >
-              {`AUTOMATIC ANALYSIS: ${(monitor as { automaticAnalysisStatus?: string } | null)?.automaticAnalysisStatus
-                ?? monitor?.health?.automaticAnalysisStatus
-                ?? "STOPPED"}`}
+              {`MASTER: ${systemMaster?.operationalState ?? "OFF"}`}
             </ForexStatusBadge>
           </span>
           <span data-fx-at-monitoring-lifecycle="true">
@@ -2540,9 +2724,7 @@ export function ForexAutomatedTradingPage(props: {
               tone={
                 monitor?.config?.enabled && monitor?.health?.workerActive
                   ? "live"
-                  : automation?.lifecycle === "BLOCKED" || automation?.lifecycle === "ERROR"
-                    ? "offline"
-                    : "future"
+                  : "future"
               }
             >
               {`Worker: ${monitor?.health?.workerState ?? "STOPPED"}`}
@@ -2550,11 +2732,11 @@ export function ForexAutomatedTradingPage(props: {
           </span>
           <span
             data-fx-at-execution-status="true"
-            title={`Technical code: ${automation?.executionStatusLabel ?? status?.operationalStatus?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}`}
+            title={`Technical code: ${systemMaster?.executionStatusLabel ?? status?.operationalStatus?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}`}
           >
             <ForexStatusBadge tone="offline">
               {formatBrokerExecutionBadgeLabel(
-                automation?.executionStatusLabel
+                systemMaster?.executionStatusLabel
                   ?? status?.operationalStatus?.executionStatusLabel
                   ?? "EXECUTION_FORBIDDEN",
               )}
@@ -2563,16 +2745,20 @@ export function ForexAutomatedTradingPage(props: {
         </div>
         <ul className="fx-auto-trading-hint" style={{ margin: "0.5rem 0 0", paddingLeft: "1.1rem" }}>
           <li>
-            Requested: <strong>{automation?.requestedMode ?? "OFF"}</strong>
+            Owner: <strong>{systemMaster?.ownerState ?? "OFF"}</strong>
             {" · "}
-            Monitoring lifecycle: <strong>{automation?.lifecycle ?? "OFF"}</strong>
+            Operational: <strong>{systemMaster?.operationalState ?? "OFF"}</strong>
             {" · "}
-            v{automation?.stateVersion ?? "—"}
+            v{systemMaster?.stateVersion ?? "—"}
+            {" · "}
+            modules {systemMaster?.activeModuleCount ?? 0}
           </li>
           <li>
-            Market monitoring: <strong>{automation?.marketMonitoring ?? "INACTIVE"}</strong>
+            Schedule: 5 min UTC
             {" · "}
-            Recovery: <strong data-fx-at-recovery-status="true">{automation?.recoveryStatus ?? "IDLE"}</strong>
+            Next: <strong>{monitor?.health?.nextScheduledAnalysisAtUtc ?? "—"}</strong>
+            {" · "}
+            Last success: <strong>{monitor?.health?.lastSuccessfulAnalysisAtUtc ?? "—"}</strong>
           </li>
           <li data-fx-at-execution-detail="true">
             Broker execution: <strong>{automation?.brokerExecution ?? "DISABLED"}</strong>

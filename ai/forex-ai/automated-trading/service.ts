@@ -74,6 +74,13 @@ import {
   toAutomationPublicStatus,
   type AutomationControlPublicStatus,
 } from "./automation-control/index.js";
+import {
+  getAtSystemMasterStore,
+  toSystemMasterPublicStatus,
+  AT_SYSTEM_MASTER_OWNED_MODULES,
+  type SystemMasterPublicStatus,
+  type SystemMasterModuleId,
+} from "./system-master/index.js";
 import { prepareDemoExecutionPlan as buildDemoExecutionPlan } from "./order-execution/prepare-plan.js";
 import type { AtExecutionPlan } from "./order-execution/types.js";
 import { getDemoExecutionGrantStore } from "./demo-execution/grant-store.js";
@@ -129,6 +136,387 @@ export class AutomatedTradingService {
   /** Phase 57.1 — authoritative automation START/STOP status. */
   getAutomationControlStatus(): AutomationControlPublicStatus {
     return toAutomationPublicStatus(getAtAutomationControlStore().get());
+  }
+
+  /** Phase 4.18F.8R — owner System Master status (analysis lifecycle; never broker). */
+  getSystemMasterStatus(): SystemMasterPublicStatus {
+    return toSystemMasterPublicStatus(getAtSystemMasterStore().get());
+  }
+
+  /**
+   * Read-only operational cycle history for evidence correlation.
+   * Redacted — no tokens, image bytes, or secrets.
+   */
+  getOperationalCycleHistory(limit = 12): {
+    schemaVersion: "at-operational-cycle-history-v1";
+    cycles: Array<Record<string, unknown>>;
+    placesOrders: false;
+    acceptsForExecution: false;
+    mutatesBroker: false;
+  } {
+    const n = Math.max(1, Math.min(40, Math.floor(Number(limit) || 12)));
+    const mon = this.monitor.getPublicStatus();
+    const oa = this.analysisEngine.listHistory(n);
+    const cycles = oa.map((row) => ({
+      analysisId: row.analysisId ?? null,
+      createdAtUtc: row.createdAtUtc ?? null,
+      trigger: row.trigger ?? null,
+      instrument: row.instrument ?? null,
+      primaryTimeframe: row.primaryTimeframe ?? null,
+      lifecycle: row.lifecycle ?? null,
+      direction: row.direction ?? null,
+      directionalConfidencePct: row.directionalConfidencePct ?? null,
+      observationId: row.evidenceDelivery?.observationId ?? row.chartImage?.observationId ?? null,
+      imageId: row.evidenceDelivery?.imageId ?? row.chartImage?.imageId ?? null,
+      imageHash: row.evidenceDelivery?.imageHash ?? row.chartImage?.imageHash ?? null,
+      imageSource: row.chartImage?.imageSourceLabel ?? row.chartImage?.source ?? null,
+      includedImageBytesInRequest: row.evidenceDelivery?.includedImageBytesInRequest ?? null,
+      imageDeliveryLifecycle: row.evidenceDelivery?.imageDeliveryLifecycle ?? null,
+      requestStatus: row.evidenceDelivery?.requestStatus ?? null,
+      responseStatus: row.evidenceDelivery?.responseStatus ?? null,
+      validationStatus: row.evidenceDelivery?.validationStatus ?? null,
+      scheduleSlotSec: mon.health.lastScheduleSlotSec ?? null,
+      nextScheduledAnalysisAtUtc: mon.health.nextScheduledAnalysisAtUtc ?? null,
+    }));
+    return {
+      schemaVersion: "at-operational-cycle-history-v1",
+      cycles,
+      placesOrders: false,
+      acceptsForExecution: false,
+      mutatesBroker: false,
+    };
+  }
+
+  /**
+   * Phase 4.18F.8R — Owner SYSTEM ON.
+   * Starts all managed analysis modules. Never enables broker execution.
+   */
+  async requestSystemMasterOn(input?: {
+    expectedStateVersion?: number;
+    instrument?: unknown;
+    timeframe?: unknown;
+    operatorHint?: string;
+  }): Promise<{
+    ok: boolean;
+    code: string;
+    message: string;
+    systemMaster: SystemMasterPublicStatus;
+    monitor: AtMonitorPublicStatus;
+    status: AutomatedTradingPublicStatus;
+    placesOrders: false;
+    acceptsForExecution: false;
+    mutatesBroker: false;
+    brokerExecution: "DISABLED";
+  }> {
+    const masterStore = getAtSystemMasterStore();
+    const before = masterStore.get();
+    const expected =
+      typeof input?.expectedStateVersion === "number"
+        ? input.expectedStateVersion
+        : before.stateVersion;
+    const operator = String(input?.operatorHint ?? "owner").slice(0, 64);
+
+    // Idempotent: already ON with worker enabled.
+    if (
+      before.ownerState === "ON"
+      && (before.operationalState === "ON" || before.operationalState === "BLOCKED")
+      && before.stateVersion === expected
+      && this.monitor.getPublicStatus().config?.enabled === true
+    ) {
+      return {
+        ok: true,
+        code: "ALREADY_ON",
+        message: "System Master already ON (analysis modules managed; broker execution DISABLED).",
+        systemMaster: toSystemMasterPublicStatus(before),
+        monitor: this.monitor.getPublicStatus(),
+        status: await this.buildStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+      };
+    }
+
+    const starting = await masterStore.compareAndSet(expected, (prev) => ({
+      ...prev,
+      masterEnabled: true,
+      ownerState: "ON",
+      operationalState: "STARTING",
+      changedBy: operator,
+      lastError: null,
+      lastBlockerCode: null,
+      blockedModules: [],
+      activeModules: [],
+      lastStartAtUtc: new Date().toISOString(),
+    }));
+    if (!starting) {
+      return {
+        ok: false,
+        code: "STALE_STATE_VERSION",
+        message: "Stale System Master state version — refresh and retry.",
+        systemMaster: toSystemMasterPublicStatus(masterStore.get()),
+        monitor: this.monitor.getPublicStatus(),
+        status: await this.buildStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+      };
+    }
+
+    const activated = await this.activateSystemMasterModules({
+      instrument: input?.instrument,
+      timeframe: input?.timeframe,
+      operator,
+    });
+
+    await this.store.appendAudit({
+      action: activated.ok ? "system_master_on" : "system_master_on_blocked",
+      environment: this.store.getState().selectedEnvironment,
+      ok: activated.ok,
+      code: activated.code,
+      detail: activated.message.slice(0, 160),
+    });
+
+    return {
+      ok: activated.ok,
+      code: activated.code,
+      message: activated.message,
+      systemMaster: this.getSystemMasterStatus(),
+      monitor: this.monitor.getPublicStatus(),
+      status: await this.buildStatus(),
+      placesOrders: false,
+      acceptsForExecution: false,
+      mutatesBroker: false,
+      brokerExecution: "DISABLED",
+    };
+  }
+
+  /**
+   * Phase 4.18F.8R — Owner SYSTEM OFF.
+   * Stops all managed analysis modules. Does not stop shared ForexConnect sidecar/gateway.
+   */
+  async requestSystemMasterOff(input?: {
+    expectedStateVersion?: number;
+    operatorHint?: string;
+  }): Promise<{
+    ok: true;
+    code: string;
+    message: string;
+    systemMaster: SystemMasterPublicStatus;
+    monitor: AtMonitorPublicStatus;
+    status: AutomatedTradingPublicStatus;
+    placesOrders: false;
+    acceptsForExecution: false;
+    mutatesBroker: false;
+    brokerExecution: "DISABLED";
+  }> {
+    const masterStore = getAtSystemMasterStore();
+    const before = masterStore.get();
+    const expected =
+      typeof input?.expectedStateVersion === "number"
+        ? input.expectedStateVersion
+        : before.stateVersion;
+    const operator = String(input?.operatorHint ?? "owner").slice(0, 64);
+
+    if (before.ownerState === "OFF" && before.operationalState === "OFF" && before.stateVersion === expected) {
+      // Ensure worker is stopped even if split-brain.
+      if (this.monitor.getPublicStatus().config?.enabled) {
+        await this.stopMonitoring().catch(() => undefined);
+      }
+      return {
+        ok: true,
+        code: "ALREADY_OFF",
+        message: "System Master already OFF. No Automated Trading analysis cycles will start.",
+        systemMaster: toSystemMasterPublicStatus(before),
+        monitor: this.monitor.getPublicStatus(),
+        status: await this.buildStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+      };
+    }
+
+    const stopping = await masterStore.compareAndSet(expected, (prev) => ({
+      ...prev,
+      masterEnabled: false,
+      ownerState: "OFF",
+      operationalState: "STOPPING",
+      changedBy: operator,
+      lastStopAtUtc: new Date().toISOString(),
+      lastError: null,
+      lastBlockerCode: "OPERATOR_STOP",
+    }));
+    if (!stopping) {
+      await masterStore.forceSet((prev) => ({
+        ...prev,
+        masterEnabled: false,
+        ownerState: "OFF",
+        operationalState: "STOPPING",
+        changedBy: operator,
+        lastStopAtUtc: new Date().toISOString(),
+        lastBlockerCode: "OPERATOR_STOP",
+      }));
+    }
+
+    await this.stopMonitoring().catch(() => undefined);
+
+    await masterStore.forceSet((prev) => ({
+      ...prev,
+      masterEnabled: false,
+      ownerState: "OFF",
+      operationalState: "OFF",
+      activeModules: [],
+      blockedModules: [],
+      lastError: null,
+      lastBlockerCode: "OPERATOR_STOP",
+      changedBy: operator,
+      lastStopAtUtc: prev.lastStopAtUtc ?? new Date().toISOString(),
+    }));
+
+    await this.store.appendAudit({
+      action: "system_master_off",
+      environment: this.store.getState().selectedEnvironment,
+      ok: true,
+      code: "OFF",
+      detail: "System Master OFF — analysis modules stopped; shared sidecar/gateway left running.",
+    });
+
+    return {
+      ok: true,
+      code: "OFF",
+      message:
+        "System Master OFF. Automated Trading analysis stopped. Shared ForexConnect sidecar/gateway remain available for other modules. Broker execution DISABLED.",
+      systemMaster: this.getSystemMasterStatus(),
+      monitor: this.monitor.getPublicStatus(),
+      status: await this.buildStatus(),
+      placesOrders: false,
+      acceptsForExecution: false,
+      mutatesBroker: false,
+      brokerExecution: "DISABLED",
+    };
+  }
+
+  private async activateSystemMasterModules(input: {
+    instrument?: unknown;
+    timeframe?: unknown;
+    operator: string;
+  }): Promise<{ ok: boolean; code: string; message: string }> {
+    const masterStore = getAtSystemMasterStore();
+    const env = this.store.getState().selectedEnvironment;
+    const monNow = this.monitor.getPublicStatus();
+    const instrument = String(
+      input.instrument
+        ?? this.store.getState().environments[env].selectedInstrument
+        ?? monNow.config?.instrument
+        ?? "",
+    ).trim();
+
+    if (!instrument) {
+      await masterStore.forceSet((prev) => ({
+        ...prev,
+        masterEnabled: true,
+        ownerState: "ON",
+        operationalState: "BLOCKED",
+        activeModules: [],
+        blockedModules: [...AT_SYSTEM_MASTER_OWNED_MODULES],
+        lastBlockerCode: "INSTRUMENT_NOT_CONFIGURED",
+        lastError:
+          "System Master ON requested but no ForexConnect instrument is selected — analysis modules blocked.",
+        changedBy: input.operator,
+      }));
+      await this.monitor.markAutomaticAnalysisBlocked({
+        code: "INSTRUMENT_NOT_CONFIGURED",
+        message: "System Master ON but instrument not configured.",
+      });
+      return {
+        ok: false,
+        code: "INSTRUMENT_NOT_CONFIGURED",
+        message: "Select a ForexConnect instrument before System Master can activate analysis modules.",
+      };
+    }
+
+    const timeframe =
+      input.timeframe
+      ?? (monNow.config?.timeframe && ["5m", "15m", "30m", "1h"].includes(monNow.config.timeframe)
+        ? monNow.config.timeframe
+        : AT_ANALYSIS_DEFAULT_TIMEFRAME);
+
+    await this.runVerification({ environment: env, instrument, timeframe }).catch(() => undefined);
+
+    const started = await this.startMonitoring({
+      environment: env,
+      instrument,
+      timeframe,
+      allowWhileMasterStarting: true,
+    });
+    if (!started.ok) {
+      await masterStore.forceSet((prev) => ({
+        ...prev,
+        masterEnabled: true,
+        ownerState: "ON",
+        operationalState: "BLOCKED",
+        activeModules: [],
+        blockedModules: [...AT_SYSTEM_MASTER_OWNED_MODULES],
+        lastBlockerCode: started.code,
+        lastError: started.message.slice(0, 240),
+        changedBy: input.operator,
+      }));
+      return { ok: false, code: started.code, message: started.message };
+    }
+
+    const active: SystemMasterModuleId[] = [...AT_SYSTEM_MASTER_OWNED_MODULES];
+    await masterStore.forceSet((prev) => ({
+      ...prev,
+      masterEnabled: true,
+      ownerState: "ON",
+      operationalState: "ON",
+      activeModules: active,
+      blockedModules: [],
+      lastError: null,
+      lastBlockerCode: null,
+      changedBy: input.operator,
+      lastStartAtUtc: prev.lastStartAtUtc ?? new Date().toISOString(),
+    }));
+    return {
+      ok: true,
+      code: "ON",
+      message: "System Master ON — Automated Trading analysis modules active (broker execution DISABLED).",
+    };
+  }
+
+  /**
+   * Boot recovery for System Master. Never silently defaults to ON.
+   * If ownerState=ON → resume modules. If OFF → ensure analysis worker stopped.
+   */
+  async recoverSystemMasterOnBoot(): Promise<void> {
+    const masterStore = getAtSystemMasterStore();
+    const cur = masterStore.get();
+    if (cur.ownerState !== "ON" || cur.masterEnabled !== true) {
+      // Fail closed: stop any residual enabled monitor from prior F.8 auto-enable.
+      if (this.monitor.getPublicStatus().config?.enabled) {
+        await this.stopMonitoring().catch(() => undefined);
+      }
+      await masterStore.forceSet((prev) => ({
+        ...prev,
+        masterEnabled: false,
+        ownerState: "OFF",
+        operationalState: "OFF",
+        activeModules: [],
+        blockedModules: [],
+        lastBlockerCode: prev.lastBlockerCode === "OPERATOR_STOP" ? "OPERATOR_STOP" : prev.lastBlockerCode,
+        changedBy: "boot_recovery",
+      }));
+      return;
+    }
+
+    await masterStore.forceSet((prev) => ({
+      ...prev,
+      operationalState: "STARTING",
+      changedBy: "boot_recovery",
+    }));
+    await this.activateSystemMasterModules({ operator: "boot_recovery" });
   }
 
   /**
@@ -695,61 +1083,19 @@ export class AutomatedTradingService {
   }
 
   /**
-   * Phase 4.18F.8 — Ensure analysis-only automatic 5-minute monitoring is enabled
-   * when the gateway service starts. Independent of START AUTO / trading controls.
-   * Never enables broker execution.
+   * Phase 4.18F.8R — Only resumes analysis when System Master ownerState is ON.
+   * Never silently defaults to ON. Never enables broker execution.
    */
   async ensureAutomaticAnalysisScheduleOnBoot(): Promise<AtMonitorPublicStatus> {
-    const state = this.store.getState();
-    const env = state.selectedEnvironment;
-    const monNow = this.monitor.getPublicStatus();
-    const instrument = String(
-      state.environments[env].selectedInstrument
-        ?? monNow.config?.instrument
-        ?? "",
-    ).trim();
-
-    if (!instrument) {
-      return this.monitor.markAutomaticAnalysisBlocked({
-        code: "INSTRUMENT_NOT_CONFIGURED",
-        message:
-          "Automatic analysis BLOCKED — select a ForexConnect instrument. Recurring 5-minute analysis cannot start without an instrument.",
-      });
+    const master = getAtSystemMasterStore().get();
+    if (master.ownerState !== "ON" || master.masterEnabled !== true) {
+      if (this.monitor.getPublicStatus().config?.enabled) {
+        await this.stopMonitoring().catch(() => undefined);
+      }
+      return this.monitor.getPublicStatus();
     }
-
-    const timeframe =
-      (monNow.config?.timeframe && ["5m", "15m", "30m", "1h"].includes(monNow.config.timeframe)
-        ? monNow.config.timeframe
-        : AT_ANALYSIS_DEFAULT_TIMEFRAME);
-
-    // Best-effort live verification refresh — stale quotes still allow the worker
-    // to run; OpenAI cycles remain fail-closed via the freshness gate.
-    await this.runVerification({
-      environment: env,
-      instrument,
-      timeframe,
-    }).catch(() => undefined);
-
-    const started = await this.startMonitoring({
-      environment: env,
-      instrument,
-      timeframe,
-    });
-    if (!started.ok) {
-      return this.monitor.markAutomaticAnalysisBlocked({
-        code: started.code,
-        message: started.message,
-      });
-    }
-
-    await this.store.appendAudit({
-      action: "automatic_analysis_schedule_enabled",
-      environment: env,
-      ok: true,
-      code: "OK",
-      detail: `Analysis-only 5m schedule enabled for ${instrument} · ${timeframe}`,
-    });
-    return started.monitor;
+    await this.recoverSystemMasterOnBoot();
+    return this.monitor.getPublicStatus();
   }
 
   async startMonitoring(input: {
@@ -757,10 +1103,30 @@ export class AutomatedTradingService {
     expectedEnvironmentEpoch?: unknown;
     instrument?: unknown;
     timeframe?: unknown;
+    /** Internal: allow start while System Master is transitioning to ON. */
+    allowWhileMasterStarting?: boolean;
   }): Promise<
     | { ok: true; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
     | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
   > {
+    const master = getAtSystemMasterStore().get();
+    const masterAllows =
+      master.ownerState === "ON"
+      && (
+        master.operationalState === "ON"
+        || master.operationalState === "STARTING"
+        || master.operationalState === "BLOCKED"
+        || input.allowWhileMasterStarting === true
+      );
+    if (!masterAllows) {
+      return {
+        ok: false,
+        code: "SYSTEM_MASTER_OFF",
+        message: "System Master is OFF — analysis modules cannot start until the owner turns SYSTEM ON.",
+        status: await this.buildStatus(),
+        monitor: this.monitor.getPublicStatus(),
+      };
+    }
     const state = this.store.getState();
     const env = parseAutomatedTradingEnvironment(input.environment) ?? state.selectedEnvironment;
     const instrument = String(
@@ -4061,13 +4427,11 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
       // Recovery errors must not block service construction; positions remain on disk.
     });
     // Phase 57.1 — automation control fail-closed recovery (never resume entry generation).
-    // Phase 4.18F.8 — then ensure analysis-only 5-minute schedule is enabled independently.
-    void serviceSingleton.recoverAutomationControlOnBoot()
-      .catch(() => undefined)
-      .then(() => serviceSingleton?.ensureAutomaticAnalysisScheduleOnBoot())
-      .catch(() => {
-        /* blocker recorded on monitor health */
-      });
+    void serviceSingleton.recoverAutomationControlOnBoot().catch(() => undefined);
+    // Phase 4.18F.8R — System Master owns analysis lifecycle (never silently default ON).
+    void serviceSingleton.recoverSystemMasterOnBoot().catch(() => {
+      /* OFF preserved / blocker recorded */
+    });
     // Phase 59.0.13 — auto DEMO grant lifecycle (mode=off by default; never broker orders).
     void import("./demo-execution/auto-grant-lifecycle.js")
       .then(({ resumeAutoDemoGrantLifecycleFromPersistence }) => {

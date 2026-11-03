@@ -3328,6 +3328,120 @@ html.reduce-motion .fx-sidebar {
   max-width: 880px;
   min-width: 0;
 }
+/* Phase 4.18F.8R — sticky owner System Master control (top-right of AT page). */
+.fx-at-system-master-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "main actions"
+    "status status";
+  gap: 6px 10px;
+  align-items: center;
+  padding: 6px 8px;
+  margin: 0 0 2px;
+  border-radius: 8px;
+  border: 1px solid var(--fx-border, #262b33);
+  background: color-mix(in srgb, var(--fx-elevated, #161c25) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 0 color-mix(in srgb, #000 18%, transparent);
+}
+.fx-at-system-master-bar[data-master-on="true"] {
+  border-color: color-mix(in srgb, var(--fx-accent, #3d9a6a) 45%, var(--fx-border, #262b33));
+}
+.fx-at-system-master-bar[data-master-state="OFF"] {
+  opacity: 0.96;
+}
+.fx-at-system-master-bar-main {
+  grid-area: main;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+  min-width: 0;
+  font-size: 12px;
+}
+.fx-at-system-master-label {
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 10px;
+  opacity: 0.85;
+}
+.fx-at-system-master-meta {
+  font-size: 11px;
+  opacity: 0.78;
+  font-variant-numeric: tabular-nums;
+}
+.fx-at-system-master-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+.fx-at-system-btn {
+  appearance: none;
+  border-radius: 999px;
+  border: 1px solid var(--fx-border, #262b33);
+  background: var(--fx-elevated, #161c25);
+  color: var(--fx-text, #e7e9ed);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fx-at-system-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.fx-at-system-btn--on {
+  border-color: color-mix(in srgb, var(--fx-accent, #3d9a6a) 55%, var(--fx-border, #262b33));
+  color: color-mix(in srgb, var(--fx-accent, #3d9a6a) 80%, white);
+}
+.fx-at-system-btn--off {
+  border-color: color-mix(in srgb, #c45c5c 40%, var(--fx-border, #262b33));
+  color: color-mix(in srgb, #e08a8a 70%, white);
+}
+.fx-at-system-master-status {
+  grid-area: status;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 10px;
+  opacity: 0.82;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+.fx-at-system-master-blocker {
+  color: color-mix(in srgb, #e08a8a 85%, white);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .fx-at-system-master-bar {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "main"
+      "actions"
+      "status";
+  }
+  .fx-at-system-master-actions {
+    justify-content: stretch;
+  }
+  .fx-at-system-btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
 .fx-auto-trading-header {
   display: flex;
   justify-content: space-between;

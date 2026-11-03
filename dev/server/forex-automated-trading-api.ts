@@ -906,6 +906,99 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 4.18F.8R — owner System Master ON/OFF (analysis lifecycle; never broker execution).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/system-master/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        systemMaster: service.getSystemMasterStatus(),
+        monitor: service.getMonitorStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+        executionStatusLabel: "EXECUTION_FORBIDDEN",
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/system-master/on")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.requestSystemMasterOn({
+        expectedStateVersion:
+          typeof body.expectedStateVersion === "number" ? body.expectedStateVersion : undefined,
+        instrument: body.instrument,
+        timeframe: body.timeframe,
+        operatorHint: "owner",
+      });
+      sendJson(res, result.ok ? 200 : result.code === "STALE_STATE_VERSION" ? 409 : 422, {
+        ok: result.ok,
+        code: result.code,
+        message: result.message,
+        systemMaster: result.systemMaster,
+        monitor: result.monitor,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+        executionStatusLabel: "EXECUTION_FORBIDDEN",
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/system-master/off")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.requestSystemMasterOff({
+        expectedStateVersion:
+          typeof body.expectedStateVersion === "number" ? body.expectedStateVersion : undefined,
+        operatorHint: "owner",
+      });
+      sendJson(res, 200, {
+        ok: true,
+        code: result.code,
+        message: result.message,
+        systemMaster: result.systemMaster,
+        monitor: result.monitor,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+        executionStatusLabel: "EXECUTION_FORBIDDEN",
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/operational-history")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limitRaw = Number(url.searchParams.get("limit") ?? 12);
+      const history = service.getOperationalCycleHistory(limitRaw);
+      sendJson(res, 200, {
+        ok: true,
+        ...history,
+        systemMaster: service.getSystemMasterStatus(),
+        monitor: service.getMonitorStatus(),
+        brokerExecution: "DISABLED",
+        executionStatusLabel: "EXECUTION_FORBIDDEN",
+      });
+      return true;
+    }
+
     // Phase 57.1 — master automation START/STOP (monitoring only; never broker execution).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/automation/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
