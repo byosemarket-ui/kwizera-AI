@@ -20,6 +20,8 @@ permissions:
   contents: write
   actions: read
   statuses: read
+  # Needed to publish redacted cycle/observation evidence as a commit comment.
+  # (Same pattern as Phase 4.18F.7 smoke evidence comments.)
 
 jobs:
   verify:
@@ -145,4 +147,9 @@ jobs:
             printf '%s\n' "$SAFE_OUT" | tail -n 900
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          export COMMENT_SHA="${EXPECT_SHA}"
+          export F8R_EXIT_CODE="${rc}"
+          export GITHUB_TOKEN="${{ github.token }}"
+          export GITHUB_REPOSITORY="${{ github.repository }}"
+          printf '%s\n' "$SAFE_OUT" | python3 scripts/phase418f8r-publish-smoke-comment.py || echo "commit_comment_publish_failed"
           exit "$rc"
