@@ -137,6 +137,37 @@ function normalizeHealth(raw: unknown): AtMonitorHealth {
         : null,
     lastEvidenceIntegrityStatus:
       typeof o.lastEvidenceIntegrityStatus === "string" ? o.lastEvidenceIntegrityStatus.slice(0, 64) : null,
+    automaticAnalysisStatus:
+      o.automaticAnalysisStatus === "ACTIVE"
+      || o.automaticAnalysisStatus === "STOPPED"
+      || o.automaticAnalysisStatus === "BLOCKED"
+        ? o.automaticAnalysisStatus
+        : "STOPPED",
+    scheduleIntervalMs:
+      typeof o.scheduleIntervalMs === "number" && Number.isFinite(o.scheduleIntervalMs)
+        ? Math.max(60_000, Math.floor(o.scheduleIntervalMs))
+        : 300_000,
+    lastScheduledAtUtc: typeof o.lastScheduledAtUtc === "string" ? o.lastScheduledAtUtc : null,
+    lastCycleStartedAtUtc: typeof o.lastCycleStartedAtUtc === "string" ? o.lastCycleStartedAtUtc : null,
+    lastCycleCompletedAtUtc: typeof o.lastCycleCompletedAtUtc === "string" ? o.lastCycleCompletedAtUtc : null,
+    lastCycleDurationMs:
+      typeof o.lastCycleDurationMs === "number" && Number.isFinite(o.lastCycleDurationMs)
+        ? Math.max(0, Math.floor(o.lastCycleDurationMs))
+        : null,
+    lastScheduleSlotSec:
+      typeof o.lastScheduleSlotSec === "number" && Number.isFinite(o.lastScheduleSlotSec)
+        ? Math.floor(o.lastScheduleSlotSec)
+        : null,
+    missedCycles:
+      typeof o.missedCycles === "number" && Number.isFinite(o.missedCycles)
+        ? Math.max(0, Math.floor(o.missedCycles))
+        : 0,
+    delayedCycles:
+      typeof o.delayedCycles === "number" && Number.isFinite(o.delayedCycles)
+        ? Math.max(0, Math.floor(o.delayedCycles))
+        : 0,
+    lastSuccessfulAnalysisAtUtc:
+      typeof o.lastSuccessfulAnalysisAtUtc === "string" ? o.lastSuccessfulAnalysisAtUtc : null,
     analysisInFlight: false,
     consecutiveFailures:
       typeof o.consecutiveFailures === "number" && Number.isFinite(o.consecutiveFailures)

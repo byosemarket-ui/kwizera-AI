@@ -60,7 +60,8 @@ export function decideAutomationBootRecovery(input: {
       recoveryStatus: "RECOVERED",
       monitoringDesired: false,
       requestedMode: "OFF",
-      stopMonitorWorker: true,
+      // Analysis schedule remains independent of trading-automation STOPPING recovery.
+      stopMonitorWorker: false,
     };
   }
 
@@ -81,7 +82,8 @@ export function decideAutomationBootRecovery(input: {
         recoveryStatus: cur.reasonCode === "AMBIGUOUS_RECOVERY" ? "AMBIGUOUS_RECOVERY" : "IDLE",
         monitoringDesired: false,
         requestedMode: "OFF",
-        stopMonitorWorker: cur.monitoringDesired === true,
+        // Phase 4.18F.8 — analysis schedule is independent of automation OFF.
+        stopMonitorWorker: false,
       };
     }
     return {
@@ -125,12 +127,12 @@ export function decideAutomationBootRecovery(input: {
     reasonCode,
     reasonMessage:
       input.readiness?.reasonMessage
-      ?? "Process restart — monitoring not resumed. Re-run START AUTO after prerequisites pass. Broker execution remains DISABLED.",
+      ?? "Process restart — trading-automation not resumed. Analysis schedule may still run independently. Broker execution remains DISABLED.",
     recoveryStatus:
       reasonCode === "AMBIGUOUS_RECOVERY" ? "AMBIGUOUS_RECOVERY" : "RECOVERY_BLOCKED",
     monitoringDesired: false,
     requestedMode: "ON",
-    // Align worker: do not leave monitor running while automation is BLOCKED.
-    stopMonitorWorker: true,
+    // Phase 4.18F.8 — do not stop analysis worker when automation is BLOCKED.
+    stopMonitorWorker: false,
   };
 }

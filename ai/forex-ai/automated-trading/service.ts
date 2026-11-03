@@ -14,6 +14,7 @@ import {
 } from "./analysis/index.js";
 import {
   getAtMonitorWorker,
+  AT_ANALYSIS_DEFAULT_TIMEFRAME,
   type AtMonitorWorker,
   type AtMonitorPublicStatus,
 } from "./monitoring/index.js";
@@ -131,8 +132,10 @@ export class AutomatedTradingService {
   }
 
   /**
-   * Phase 57.4 — Reconcile automation lifecycle with actual monitor worker.
-   * Never enables broker execution. Does not invent MONITORING without a running worker.
+   * Phase 57.4 / 4.18F.8 — Reconcile automation lifecycle with monitor worker.
+   * Never enables broker execution.
+   * Analysis-only automatic schedule is independent of automation OFF — do not stop
+   * the analysis worker when trading-automation desire is OFF.
    */
   async reconcileAutomationMonitorAlignment(): Promise<void> {
     const autoStore = getAtAutomationControlStore();
@@ -140,10 +143,8 @@ export class AutomatedTradingService {
     const mon = this.monitor.getPublicStatus();
     const enabled = Boolean(mon.config?.enabled);
 
-    if ((cur.lifecycle === "OFF" || cur.requestedMode === "OFF") && enabled) {
-      await this.stopMonitoring().catch(() => undefined);
-      return;
-    }
+    // Phase 4.18F.8 — automation OFF must not disable the analysis schedule.
+    // Trading/entry generation remains disabled separately.
 
     if (cur.lifecycle === "MONITORING" && cur.requestedMode === "ON" && !enabled) {
       const env = this.store.getState().selectedEnvironment;
@@ -342,13 +343,13 @@ export class AutomatedTradingService {
       };
     }
 
-    // Prefer explicit TF; else last monitor config if supported; else safe default 15m.
+    // Prefer explicit TF; else last monitor config if supported; else 5m (wall-clock schedule).
     const monCfgTf = this.monitor.getPublicStatus().config?.timeframe;
     const timeframe =
       input?.timeframe
       ?? (typeof monCfgTf === "string" && ["5m", "15m", "30m", "1h"].includes(monCfgTf)
         ? monCfgTf
-        : "15m");
+        : "5m");
     const mon = await this.startMonitoring({
       environment: env,
       instrument,
@@ -428,8 +429,10 @@ export class AutomatedTradingService {
   }
 
   /**
-   * Phase 57.1 — STOP AUTO. Idempotent. Blocks new entry-producing work (already disabled)
-   * and stops monitoring worker. Never cancels broker orders (none authorized).
+   * Phase 57.1 / 4.18F.8 — STOP AUTO. Idempotent.
+   * Clears trading-automation desire only. Does NOT stop the analysis-only
+   * 5-minute schedule (analysis is independent of START/STOP AUTO).
+   * Never cancels broker orders (none authorized).
    */
   async stopAutomation(input?: {
     expectedStateVersion?: number;
@@ -456,7 +459,7 @@ export class AutomatedTradingService {
       return {
         ok: true,
         code: "ALREADY_OFF",
-        message: "Automation already OFF.",
+        message: "Automation already OFF. Analysis schedule remains independent.",
         automation: toAutomationPublicStatus(before),
         status: await this.buildStatus(),
         monitor: this.monitor.getPublicStatus(),
@@ -471,7 +474,7 @@ export class AutomatedTradingService {
       requestedMode: "OFF",
       lifecycle: "STOPPING",
       reasonCode: "OPERATOR_STOP",
-      reasonMessage: "Stopping automation…",
+      reasonMessage: "Stopping trading-automation desire…",
       lastOperatorHint: String(input?.operatorHint ?? "admin").slice(0, 64),
       monitoringDesired: false,
       entryGenerationEnabled: false,
@@ -496,13 +499,14 @@ export class AutomatedTradingService {
       }));
     }
 
-    const mon = await this.stopMonitoring();
+    // Phase 4.18F.8 — do not stop analysis worker here.
     const off = await autoStore.forceSet((prev) => ({
       ...prev,
       requestedMode: "OFF",
       lifecycle: "OFF",
       reasonCode: "OPERATOR_STOP",
-      reasonMessage: "Automation OFF. Broker execution DISABLED. No broker orders cancelled (none authorized).",
+      reasonMessage:
+        "Trading-automation OFF. Analysis 5-minute schedule continues independently. Broker execution DISABLED.",
       monitoringDesired: false,
       recoveryStatus: "IDLE",
       entryGenerationEnabled: false,
@@ -516,16 +520,17 @@ export class AutomatedTradingService {
       environment: this.store.getState().selectedEnvironment,
       ok: true,
       code: "OFF",
-      detail: "STOP AUTO — monitoring stopped; entry generation remains disabled.",
+      detail: "STOP AUTO — trading desire OFF; analysis schedule left running.",
     });
 
     return {
       ok: true,
       code: "OFF",
-      message: "Automation OFF. Broker execution remains DISABLED.",
+      message:
+        "Trading-automation OFF. Analysis schedule continues. Broker execution remains DISABLED.",
       automation: toAutomationPublicStatus(off),
-      status: mon.status,
-      monitor: mon.monitor,
+      status: await this.buildStatus(),
+      monitor: this.monitor.getPublicStatus(),
       placesOrders: false,
       acceptsForExecution: false,
       brokerExecution: "DISABLED",
@@ -620,7 +625,7 @@ export class AutomatedTradingService {
       const started = await this.startMonitoring({
         environment: env,
         instrument,
-        timeframe: mon.config?.timeframe ?? "15m",
+        timeframe: mon.config?.timeframe ?? AT_ANALYSIS_DEFAULT_TIMEFRAME,
       });
       if (!started.ok) {
         await this.stopMonitoring().catch(() => undefined);
@@ -687,6 +692,64 @@ export class AutomatedTradingService {
         brokerExecution: "DISABLED",
       }));
     }
+  }
+
+  /**
+   * Phase 4.18F.8 — Ensure analysis-only automatic 5-minute monitoring is enabled
+   * when the gateway service starts. Independent of START AUTO / trading controls.
+   * Never enables broker execution.
+   */
+  async ensureAutomaticAnalysisScheduleOnBoot(): Promise<AtMonitorPublicStatus> {
+    const state = this.store.getState();
+    const env = state.selectedEnvironment;
+    const monNow = this.monitor.getPublicStatus();
+    const instrument = String(
+      state.environments[env].selectedInstrument
+        ?? monNow.config?.instrument
+        ?? "",
+    ).trim();
+
+    if (!instrument) {
+      return this.monitor.markAutomaticAnalysisBlocked({
+        code: "INSTRUMENT_NOT_CONFIGURED",
+        message:
+          "Automatic analysis BLOCKED — select a ForexConnect instrument. Recurring 5-minute analysis cannot start without an instrument.",
+      });
+    }
+
+    const timeframe =
+      (monNow.config?.timeframe && ["5m", "15m", "30m", "1h"].includes(monNow.config.timeframe)
+        ? monNow.config.timeframe
+        : AT_ANALYSIS_DEFAULT_TIMEFRAME);
+
+    // Best-effort live verification refresh — stale quotes still allow the worker
+    // to run; OpenAI cycles remain fail-closed via the freshness gate.
+    await this.runVerification({
+      environment: env,
+      instrument,
+      timeframe,
+    }).catch(() => undefined);
+
+    const started = await this.startMonitoring({
+      environment: env,
+      instrument,
+      timeframe,
+    });
+    if (!started.ok) {
+      return this.monitor.markAutomaticAnalysisBlocked({
+        code: started.code,
+        message: started.message,
+      });
+    }
+
+    await this.store.appendAudit({
+      action: "automatic_analysis_schedule_enabled",
+      environment: env,
+      ok: true,
+      code: "OK",
+      detail: `Analysis-only 5m schedule enabled for ${instrument} · ${timeframe}`,
+    });
+    return started.monitor;
   }
 
   async startMonitoring(input: {
@@ -3977,6 +4040,19 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
       getVerification: (env) => store.getState().environments[env].lastVerification,
       getEnvironmentEpoch: () => store.getState().environmentEpoch,
       getSelectedEnvironment: () => store.getState().selectedEnvironment,
+      refreshVerification: async ({ environment, instrument, timeframe }) => {
+        if (!serviceSingleton) return null;
+        try {
+          await serviceSingleton.runVerification({
+            environment,
+            instrument,
+            timeframe,
+          });
+        } catch {
+          /* freshness gate will fail closed on aged snapshot */
+        }
+        return store.getState().environments[environment].lastVerification ?? null;
+      },
     });
     mon.resumeFromPersistence();
     serviceSingleton = new AutomatedTradingService(store, engine, mon, decision, simRisk);
@@ -3985,9 +4061,13 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
       // Recovery errors must not block service construction; positions remain on disk.
     });
     // Phase 57.1 — automation control fail-closed recovery (never resume entry generation).
-    void serviceSingleton.recoverAutomationControlOnBoot().catch(() => {
-      /* keep defaults */
-    });
+    // Phase 4.18F.8 — then ensure analysis-only 5-minute schedule is enabled independently.
+    void serviceSingleton.recoverAutomationControlOnBoot()
+      .catch(() => undefined)
+      .then(() => serviceSingleton?.ensureAutomaticAnalysisScheduleOnBoot())
+      .catch(() => {
+        /* blocker recorded on monitor health */
+      });
     // Phase 59.0.13 — auto DEMO grant lifecycle (mode=off by default; never broker orders).
     void import("./demo-execution/auto-grant-lifecycle.js")
       .then(({ resumeAutoDemoGrantLifecycleFromPersistence }) => {

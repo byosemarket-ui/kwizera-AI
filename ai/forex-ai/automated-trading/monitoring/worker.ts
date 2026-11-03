@@ -31,11 +31,14 @@ import { validateEvidenceIntegrity } from "../analysis/evidence-integrity.js";
 import type { StrategyCandle } from "../auto-engine/strategy/rules.js";
 import { overlaysFromObservationSnapshot, renderAtMarketChartPng } from "./chart-render.js";
 import {
+  AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
   AT_MONITOR_ANALYSIS_COOLDOWN_MS,
   AT_MONITOR_MAX_RETRIES,
   AT_MONITOR_RETRY_BACKOFF_MS,
+  decideFiveMinuteSlot,
   latestClosedCandleOpenSec,
-  scheduledAnalysisDedupeKey,
+  nextFiveMinuteBoundaryUtc,
+  scheduledSlotDedupeKey,
   type AtAnalysisTrigger,
 } from "./schedule.js";
 import {
@@ -48,7 +51,6 @@ import {
 import {
   AT_MONITOR_TIMEFRAME_LABELS,
   AT_MONITOR_TIMEFRAMES,
-  nextCandleCloseUtc,
   parseAtMonitorTimeframe,
   type AtMonitorTimeframe,
 } from "./timeframes.js";
@@ -56,6 +58,7 @@ import {
   AT_MONITOR_PHASE,
   AT_MONITOR_SCHEMA,
   defaultMonitorHealth,
+  type AtAutomaticAnalysisStatus,
   type AtMonitorConfig,
   type AtMonitorPublicStatus,
   type AtMonitorWorkerState,
@@ -103,6 +106,15 @@ export interface AtMonitorWorkerDeps {
   ) => AutomatedTradingVerificationResult | null;
   getEnvironmentEpoch?: () => number;
   getSelectedEnvironment?: () => AutomatedTradingEnvironment;
+  /**
+   * Refresh Phase-52 verification / live quotes before a scheduled cycle freshness gate.
+   * Prevents aged lastVerification snapshots from falsely blocking LIVE markets.
+   */
+  refreshVerification?: (input: {
+    environment: AutomatedTradingEnvironment;
+    instrument: string;
+    timeframe: AtMonitorTimeframe;
+  }) => Promise<AutomatedTradingVerificationResult | null>;
   pollIntervalMs?: number;
   /** Disable auto-timer (tests). */
   autoStart?: boolean;
@@ -133,6 +145,7 @@ export class AtMonitorWorker {
   private readonly storageRoot?: string;
   private readonly deps: AtMonitorWorkerDeps;
   private timer: ReturnType<typeof setInterval> | null = null;
+  private boundaryTimer: ReturnType<typeof setTimeout> | null = null;
   private tickInFlight = false;
   private analysisInFlight = false;
   private disposed = false;
@@ -142,6 +155,8 @@ export class AtMonitorWorker {
   /** When verification updates mid-tick, schedule one immediate follow-up evaluation. */
   private pendingVerificationNudge = false;
   private lastFreshnessReasonLogged: string | null = null;
+  private cycleStartedAtMs: number | null = null;
+  private cycleScheduledAtUtc: string | null = null;
 
   constructor(deps: AtMonitorWorkerDeps = {}) {
     this.deps = { ...deps };
@@ -163,10 +178,52 @@ export class AtMonitorWorker {
     ) => AutomatedTradingVerificationResult | null;
     getEnvironmentEpoch?: () => number;
     getSelectedEnvironment?: () => AutomatedTradingEnvironment;
+    refreshVerification?: AtMonitorWorkerDeps["refreshVerification"];
   }): void {
     if (hooks.getVerification) this.deps.getVerification = hooks.getVerification;
     if (hooks.getEnvironmentEpoch) this.deps.getEnvironmentEpoch = hooks.getEnvironmentEpoch;
     if (hooks.getSelectedEnvironment) this.deps.getSelectedEnvironment = hooks.getSelectedEnvironment;
+    if (hooks.refreshVerification) this.deps.refreshVerification = hooks.refreshVerification;
+  }
+
+  private deriveAutomaticAnalysisStatus(input: {
+    enabled: boolean;
+    workerActive: boolean;
+    blockerCode: string | null;
+  }): AtAutomaticAnalysisStatus {
+    if (!input.enabled || !input.workerActive) return "STOPPED";
+    if (
+      input.blockerCode === "INSTRUMENT_NOT_CONFIGURED"
+      || input.blockerCode === "ENVIRONMENT_MISMATCH"
+      || input.blockerCode === "VERIFICATION_REQUIRED"
+      || input.blockerCode === "STALE_QUOTES"
+      || input.blockerCode === "DATA_INSUFFICIENT"
+      || input.blockerCode === "IMAGE_UNAVAILABLE"
+      || input.blockerCode === "PROVIDER_ERROR"
+    ) {
+      return "BLOCKED";
+    }
+    return "ACTIVE";
+  }
+
+  private armBoundaryWake(): void {
+    if (this.disposed) return;
+    if (this.boundaryTimer) {
+      clearTimeout(this.boundaryTimer);
+      this.boundaryTimer = null;
+    }
+    const nextAt = Date.parse(nextFiveMinuteBoundaryUtc());
+    const delay = Number.isFinite(nextAt)
+      ? Math.max(500, nextAt - Date.now() + 400)
+      : AT_ANALYSIS_SCHEDULE_INTERVAL_MS;
+    this.boundaryTimer = setTimeout(() => {
+      this.boundaryTimer = null;
+      void this.tick();
+      this.armBoundaryWake();
+    }, delay);
+    if (typeof this.boundaryTimer === "object" && this.boundaryTimer && "unref" in this.boundaryTimer) {
+      this.boundaryTimer.unref();
+    }
   }
 
   /**
@@ -192,16 +249,19 @@ export class AtMonitorWorker {
   }
 
   private ensureTimer(): void {
-    if (this.timer || this.disposed) return;
-    const ms = this.deps.pollIntervalMs
-      ?? this.store.getState().config?.pollIntervalMs
-      ?? 20_000;
-    this.timer = setInterval(() => {
-      void this.tick();
-    }, Math.max(15_000, ms));
-    if (typeof this.timer === "object" && this.timer && "unref" in this.timer) {
-      this.timer.unref();
+    if (this.disposed) return;
+    if (!this.timer) {
+      const ms = this.deps.pollIntervalMs
+        ?? this.store.getState().config?.pollIntervalMs
+        ?? 15_000;
+      this.timer = setInterval(() => {
+        void this.tick();
+      }, Math.max(15_000, ms));
+      if (typeof this.timer === "object" && this.timer && "unref" in this.timer) {
+        this.timer.unref();
+      }
     }
+    this.armBoundaryWake();
   }
 
   private async bootstrapFromPersistence(): Promise<void> {
@@ -209,6 +269,13 @@ export class AtMonitorWorker {
     if (!state.config?.enabled) {
       this.runtimeActive = false;
       this.runtimeState = "STOPPED";
+      await this.patchHealth({
+        workerState: "STOPPED",
+        workerActive: false,
+        automaticAnalysisStatus: "STOPPED",
+        scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
+        nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
+      });
       return;
     }
 
@@ -223,6 +290,9 @@ export class AtMonitorWorker {
         lastBlockerCode: "ENVIRONMENT_MISMATCH",
         lastError:
           "Monitoring not resumed after restart — selected AT environment no longer matches persisted monitor config.",
+        automaticAnalysisStatus: "BLOCKED",
+        scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
+        nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
       });
       return;
     }
@@ -234,8 +304,12 @@ export class AtMonitorWorker {
       workerActive: true,
       lastError: null,
       lastBlockerCode: null,
-      nextScheduledAnalysisAtUtc: nextCandleCloseUtc(state.config.timeframe),
+      automaticAnalysisStatus: "ACTIVE",
+      scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
+      nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
     });
+    // Evaluate the current slot promptly after resume (boundary timer covers the next).
+    void this.tick();
   }
 
   private async patchHealth(
@@ -312,6 +386,19 @@ export class AtMonitorWorker {
       };
     }
 
+    const automaticAnalysisStatus = this.deriveAutomaticAnalysisStatus({
+      enabled: Boolean(s.config?.enabled),
+      workerActive,
+      blockerCode: health.lastBlockerCode,
+    });
+    health = {
+      ...health,
+      automaticAnalysisStatus,
+      scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
+      nextScheduledAnalysisAtUtc:
+        health.nextScheduledAnalysisAtUtc ?? nextFiveMinuteBoundaryUtc(),
+    };
+
     return {
       schemaVersion: AT_MONITOR_SCHEMA,
       phase: AT_MONITOR_PHASE,
@@ -325,6 +412,10 @@ export class AtMonitorWorker {
       requiresBrowserOpen: false,
       persistsAcrossAppRestart: true,
       persistsAcrossVpsReboot: "NOT_CLAIMED",
+      requiresDashboardClick: false,
+      scheduleMode: "five_minute_wall_utc",
+      scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
+      automaticAnalysisStatus,
       config: s.config,
       health,
       placesOrders: false,
@@ -403,7 +494,7 @@ export class AtMonitorWorker {
       configEpoch: nextEpoch,
       createdAtUtc: prev?.createdAtUtc && prev.instrument === instrument ? prev.createdAtUtc : now,
       updatedAtUtc: now,
-      pollIntervalMs: prev?.pollIntervalMs ?? 20_000,
+      pollIntervalMs: prev?.pollIntervalMs ?? 15_000,
     };
 
     this.runtimeActive = true;
@@ -416,10 +507,17 @@ export class AtMonitorWorker {
         ...defaultMonitorHealth(),
         workerState: "CONNECTING",
         workerActive: true,
-        nextScheduledAnalysisAtUtc: nextCandleCloseUtc(tf),
+        automaticAnalysisStatus: "ACTIVE",
+        scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
+        nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
+        // Preserve prior success age across reconfigure so failed cycles cannot erase it.
+        lastSuccessfulAnalysisAtUtc: prev ? s.health.lastSuccessfulAnalysisAtUtc : null,
+        missedCycles: s.health.missedCycles ?? 0,
+        delayedCycles: s.health.delayedCycles ?? 0,
       },
     }));
     this.ensureTimer();
+    void this.tick();
     return { ok: true, status: this.getPublicStatus() };
   }
 
@@ -435,10 +533,33 @@ export class AtMonitorWorker {
         workerState: "STOPPED",
         workerActive: false,
         analysisInFlight: false,
+        automaticAnalysisStatus: "STOPPED",
         lastError: reason === "user_stop" ? null : reason.slice(0, 200),
         lastBlockerCode: reason === "user_stop" ? null : "STOPPED",
       },
     }));
+    return this.getPublicStatus();
+  }
+
+  /**
+   * Mark automatic analysis blocked without disabling the schedule config.
+   * Used when boot cannot select an instrument — surface the exact blocker.
+   */
+  async markAutomaticAnalysisBlocked(input: {
+    code: string;
+    message: string;
+  }): Promise<AtMonitorPublicStatus> {
+    this.runtimeActive = false;
+    this.runtimeState = "PAUSED_SAFETY";
+    await this.patchHealth({
+      workerState: "PAUSED_SAFETY",
+      workerActive: false,
+      automaticAnalysisStatus: "BLOCKED",
+      lastBlockerCode: input.code.slice(0, 80),
+      lastError: input.message.slice(0, 240),
+      scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
+      nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
+    });
     return this.getPublicStatus();
   }
 
@@ -480,17 +601,116 @@ export class AtMonitorWorker {
           workerState: "PAUSED_SAFETY",
           lastBlockerCode: "ENVIRONMENT_MISMATCH",
           lastError: "Monitoring paused — selected AT environment no longer matches monitor config.",
+          automaticAnalysisStatus: "BLOCKED",
+          nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
         });
         return;
       }
 
       this.runtimeActive = true;
-      const candles = await this.loadCandles(persisted.config.instrument, persisted.config.timeframe);
-      // Abort if config changed mid-tick
+      const slotDecision = decideFiveMinuteSlot({
+        lastCompletedSlotSec: persisted.health.lastScheduleSlotSec,
+      });
+
+      await this.patchHealth({
+        scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
+        nextScheduledAnalysisAtUtc:
+          slotDecision.action === "run" || slotDecision.action === "missed"
+            ? nextFiveMinuteBoundaryUtc()
+            : ("nextAtUtc" in slotDecision ? slotDecision.nextAtUtc : nextFiveMinuteBoundaryUtc()),
+        automaticAnalysisStatus: "ACTIVE",
+      });
+
+      if (slotDecision.action === "done" || slotDecision.action === "wait") {
+        if (!this.analysisInFlight) {
+          this.runtimeState = "MONITORING_LIVE";
+          await this.patchHealth({ workerState: "MONITORING_LIVE" });
+        }
+        return;
+      }
+
+      const dedupe = scheduledSlotDedupeKey({
+        environment: persisted.config.environment,
+        instrument: persisted.config.instrument,
+        timeframe: persisted.config.timeframe,
+        slotSec: slotDecision.slotSec,
+        configEpoch,
+      });
+      if (this.store.hasDedupe(dedupe)) {
+        await this.store.update((s) => ({
+          ...s,
+          health: {
+            ...s.health,
+            lastScheduleSlotSec: Math.max(s.health.lastScheduleSlotSec ?? 0, slotDecision.slotSec),
+            nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
+          },
+        }));
+        return;
+      }
+
+      if (slotDecision.action === "missed") {
+        // Explicit no-backlog policy: record missed, consume the slot, wait for next boundary.
+        await this.store.rememberDedupe(dedupe);
+        await this.store.update((s) => ({
+          ...s,
+          health: {
+            ...s.health,
+            lastScheduleSlotSec: slotDecision.slotSec,
+            lastScheduledAtUtc: slotDecision.scheduledAtUtc,
+            missedCycles: (s.health.missedCycles ?? 0) + 1,
+            lastBlockerCode: "SCHEDULE_SLOT_MISSED",
+            lastError:
+              `Analysis slot ${slotDecision.scheduledAtUtc} missed (grace exceeded; no backlog).`,
+            nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
+          },
+        }));
+        return;
+      }
+
+      if (this.analysisInFlight) {
+        // Overlap policy: skip this slot; never fabricate an on-time completion.
+        await this.store.rememberDedupe(dedupe);
+        await this.store.update((s) => ({
+          ...s,
+          health: {
+            ...s.health,
+            lastScheduleSlotSec: slotDecision.slotSec,
+            lastScheduledAtUtc: slotDecision.scheduledAtUtc,
+            delayedCycles: (s.health.delayedCycles ?? 0) + 1,
+            missedCycles: (s.health.missedCycles ?? 0) + 1,
+            lastBlockerCode: "SCHEDULE_SLOT_SKIPPED_IN_FLIGHT",
+            lastError:
+              `Analysis slot ${slotDecision.scheduledAtUtc} skipped — previous cycle still in flight.`,
+            nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
+          },
+        }));
+        return;
+      }
+
+      const sinceLast = Date.now() - this.lastAnalysisAttemptMs;
+      if (sinceLast < AT_MONITOR_ANALYSIS_COOLDOWN_MS) return;
+
+      // Refresh live verification before freshness gate (avoid aged snapshot false STALE).
+      let verification =
+        this.deps.getVerification?.(persisted.config.environment) ?? null;
+      if (this.deps.refreshVerification) {
+        try {
+          const refreshed = await this.deps.refreshVerification({
+            environment: persisted.config.environment,
+            instrument: persisted.config.instrument,
+            timeframe: persisted.config.timeframe,
+          });
+          if (refreshed) verification = refreshed;
+          else verification = this.deps.getVerification?.(persisted.config.environment) ?? verification;
+        } catch {
+          verification = this.deps.getVerification?.(persisted.config.environment) ?? verification;
+        }
+      }
       if (this.store.getState().config?.configEpoch !== configEpoch) return;
 
-      const verification = this.deps.getVerification?.(persisted.config.environment) ?? null;
-      // Canonical freshness: same contract as Phase 52 status readiness (age-forwarded snapshot).
+      const candles = await this.loadCandles(persisted.config.instrument, persisted.config.timeframe);
+      if (this.store.getState().config?.configEpoch !== configEpoch) return;
+
       const freshness = evaluateVerificationMarketQuoteFreshness(verification, {
         expectedInstrument: persisted.config.instrument,
       });
@@ -498,11 +718,16 @@ export class AtMonitorWorker {
       const feedStatus = freshness.feedStatus;
       const lastQuoteChange = verificationLastQuoteChangeAtUtc(verification);
       const identityOk = isVerificationAccountIdentityOk(verification);
+      const closed = latestClosedCandleOpenSec(
+        candles.map((c) => c.time),
+        persisted.config.timeframe,
+      );
 
       await this.patchHealth({
         lastCandleUpdateAtUtc: nowIso(),
         lastObservationAtUtc: nowIso(),
         lastQuoteChangeAtUtc: lastQuoteChange,
+        lastClosedCandleOpenSec: closed?.openTimeSec ?? null,
         quoteFresh: verification ? quoteFresh : null,
         feedStatus: feedStatus ? String(feedStatus) : null,
         freshnessReasonCode: freshness.reasonCode,
@@ -515,8 +740,23 @@ export class AtMonitorWorker {
         quoteSnapshotFingerprint: freshness.snapshotFingerprint,
         quoteSourceTimestampMs: freshness.sourceTimestampMs,
         quoteReceivedAtMs: freshness.receivedAtMs,
-        nextScheduledAnalysisAtUtc: nextCandleCloseUtc(persisted.config.timeframe),
+        lastScheduledAtUtc: slotDecision.scheduledAtUtc,
+        delayedCycles: slotDecision.delayed
+          ? (this.store.getState().health.delayedCycles ?? 0) + 1
+          : this.store.getState().health.delayedCycles ?? 0,
+        nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
       });
+
+      // Slot is claimed before gates so a blocked cycle still advances the schedule.
+      await this.store.rememberDedupe(dedupe);
+      await this.store.update((s) => ({
+        ...s,
+        health: {
+          ...s.health,
+          lastScheduleSlotSec: slotDecision.slotSec,
+          lastDedupeKey: dedupe,
+        },
+      }));
 
       if (!verification || !identityOk) {
         this.runtimeState = "VERIFICATION_REQUIRED";
@@ -524,6 +764,10 @@ export class AtMonitorWorker {
           workerState: "VERIFICATION_REQUIRED",
           lastBlockerCode: "VERIFICATION_REQUIRED",
           lastError: "Fresh Phase 52 verification is required before scheduled OpenAI analysis.",
+          automaticAnalysisStatus: "BLOCKED",
+          lastCycleStartedAtUtc: nowIso(),
+          lastCycleCompletedAtUtc: nowIso(),
+          lastCycleDurationMs: 0,
         });
         return;
       }
@@ -534,6 +778,10 @@ export class AtMonitorWorker {
           workerState: "DATA_INSUFFICIENT",
           lastBlockerCode: "DATA_INSUFFICIENT",
           lastError: "No candles returned from ForexConnect.",
+          automaticAnalysisStatus: "BLOCKED",
+          lastCycleStartedAtUtc: nowIso(),
+          lastCycleCompletedAtUtc: nowIso(),
+          lastCycleDurationMs: 0,
         });
         return;
       }
@@ -541,51 +789,26 @@ export class AtMonitorWorker {
       if (!quoteFresh) {
         this.runtimeState = "STALE_QUOTES";
         const reason = freshness.reasonCode;
-        // Deduplicate identical stale reasons in health.lastError (bounded noise).
         const staleMsg =
           reason === this.lastFreshnessReasonLogged
-            ? `Quotes not fresh (${reason}) — monitoring continues; analysis blocked.`
-            : `Quotes not fresh (${reason}) — monitoring continues but LIVE is not claimed and analysis is blocked.`;
+            ? `Quotes not fresh (${reason}) — schedule advanced; OpenAI analysis blocked.`
+            : `Quotes not fresh (${reason}) — schedule advanced; LIVE not claimed; OpenAI analysis blocked.`;
         this.lastFreshnessReasonLogged = reason;
         await this.patchHealth({
           workerState: "STALE_QUOTES",
           lastBlockerCode: "STALE_QUOTES",
           lastError: staleMsg,
+          automaticAnalysisStatus: "BLOCKED",
+          lastCycleStartedAtUtc: nowIso(),
+          lastCycleCompletedAtUtc: nowIso(),
+          lastCycleDurationMs: 0,
         });
         return;
       }
       this.lastFreshnessReasonLogged = freshness.reasonCode;
 
-      if (!this.analysisInFlight) {
-        this.runtimeState = "MONITORING_LIVE";
-        await this.patchHealth({ workerState: "MONITORING_LIVE" });
-      }
-
-      const closed = latestClosedCandleOpenSec(
-        candles.map((c) => c.time),
-        persisted.config.timeframe,
-      );
-      if (!closed) {
-        this.runtimeState = "WAITING_CANDLE_CLOSE";
-        await this.patchHealth({ workerState: "WAITING_CANDLE_CLOSE" });
-        return;
-      }
-
-      await this.patchHealth({ lastClosedCandleOpenSec: closed.openTimeSec });
-
-      const dedupe = scheduledAnalysisDedupeKey({
-        environment: persisted.config.environment,
-        instrument: persisted.config.instrument,
-        timeframe: persisted.config.timeframe,
-        closedCandleOpenSec: closed.openTimeSec,
-        configEpoch,
-      });
-      if (this.store.hasDedupe(dedupe)) return;
-
-      const sinceLast = Date.now() - this.lastAnalysisAttemptMs;
-      if (sinceLast < AT_MONITOR_ANALYSIS_COOLDOWN_MS) return;
-      if (this.analysisInFlight) return;
-
+      this.cycleScheduledAtUtc = slotDecision.scheduledAtUtc;
+      this.cycleStartedAtMs = Date.now();
       await this.runAnalysis({
         trigger: "scheduled",
         dedupeKey: dedupe,
@@ -600,6 +823,7 @@ export class AtMonitorWorker {
         workerState: "PROVIDER_ERROR",
         lastError: message,
         lastBlockerCode: "PROVIDER_ERROR",
+        automaticAnalysisStatus: "BLOCKED",
         consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
       });
     } finally {
@@ -993,6 +1217,9 @@ export class AtMonitorWorker {
             ? "DATA_INSUFFICIENT"
             : "ANALYSIS_SEMANTIC_REJECTED";
       this.runtimeState = workerState;
+      const cycleCompletedAt = nowIso();
+      const cycleDurationMs =
+        this.cycleStartedAtMs != null ? Math.max(0, Date.now() - this.cycleStartedAtMs) : null;
       await this.patchHealth({
         workerState,
         lastAnalysisAtUtc: result.analysis.createdAtUtc,
@@ -1005,7 +1232,7 @@ export class AtMonitorWorker {
         lastBlockerCode: !integrity.ok
           ? integrity.status
           : (!semanticOk ? lifecycle : null),
-        nextScheduledAnalysisAtUtc: nextCandleCloseUtc(tf),
+        nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
         lastObservationId: snapshot.observationId,
         lastImageId: binding.imageId,
         lastImageSourceLabel: "SERVER_OHLC_RENDER",
@@ -1021,7 +1248,21 @@ export class AtMonitorWorker {
         lastEvidenceIntegrityStatus: integrity.status,
         imageFresh: true,
         storageHealth,
+        lastScheduledAtUtc: this.cycleScheduledAtUtc ?? this.store.getState().health.lastScheduledAtUtc,
+        lastCycleStartedAtUtc:
+          this.cycleStartedAtMs != null
+            ? new Date(this.cycleStartedAtMs).toISOString()
+            : this.store.getState().health.lastCycleStartedAtUtc,
+        lastCycleCompletedAtUtc: cycleCompletedAt,
+        lastCycleDurationMs: cycleDurationMs,
+        lastSuccessfulAnalysisAtUtc:
+          semanticOk && integrity.ok
+            ? result.analysis.createdAtUtc
+            : this.store.getState().health.lastSuccessfulAnalysisAtUtc,
+        automaticAnalysisStatus: "ACTIVE",
       });
+      this.cycleStartedAtMs = null;
+      this.cycleScheduledAtUtc = null;
       return { ok: true, analysisId: result.analysis.analysisId };
     } catch (err) {
       const message = err instanceof Error ? err.message.slice(0, 200) : "Analysis failed.";
@@ -1153,6 +1394,10 @@ export class AtMonitorWorker {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
+    }
+    if (this.boundaryTimer) {
+      clearTimeout(this.boundaryTimer);
+      this.boundaryTimer = null;
     }
   }
 }

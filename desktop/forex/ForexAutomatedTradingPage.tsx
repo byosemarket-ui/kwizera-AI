@@ -406,6 +406,10 @@ export function ForexAutomatedTradingPage(props: {
       environment?: string;
       configEpoch?: number;
     } | null;
+    automaticAnalysisStatus?: "ACTIVE" | "STOPPED" | "BLOCKED";
+    scheduleIntervalMs?: number;
+    scheduleMode?: string;
+    requiresDashboardClick?: boolean;
     health?: {
       workerState?: string;
       workerActive?: boolean;
@@ -439,9 +443,19 @@ export function ForexAutomatedTradingPage(props: {
       lastCanonicalDirection?: "BUY" | "SELL" | "NO_TRADE" | null;
       lastCanonicalConfidencePct?: number | null;
       lastEvidenceIntegrityStatus?: string | null;
+      automaticAnalysisStatus?: "ACTIVE" | "STOPPED" | "BLOCKED";
+      scheduleIntervalMs?: number;
+      lastScheduledAtUtc?: string | null;
+      lastCycleStartedAtUtc?: string | null;
+      lastCycleCompletedAtUtc?: string | null;
+      lastCycleDurationMs?: number | null;
+      lastScheduleSlotSec?: number | null;
+      missedCycles?: number;
+      delayedCycles?: number;
+      lastSuccessfulAnalysisAtUtc?: string | null;
     };
   } | null>(null);
-  const [monitorTf, setMonitorTf] = useState("15m");
+  const [monitorTf, setMonitorTf] = useState("5m");
   const [monitorBusy, setMonitorBusy] = useState(false);
   const [chartObjectUrl, setChartObjectUrl] = useState<string | null>(null);
   const [decisionStatus, setDecisionStatus] = useState<{
@@ -1953,16 +1967,7 @@ export function ForexAutomatedTradingPage(props: {
         aria-label="Market selection and feed"
       >
         <div className="fx-auto-trading-panel-head">
-          <h2 className="fx-auto-trading-h2">Market selection &amp; feed (Phase 4.12)</h2>
-          <button
-            type="button"
-            className="fx-capture-button"
-            disabled={busy || strategyDryRunBusy || !token}
-            onClick={() => void runStrategyDryRunUi()}
-            data-fx-at-strategy-dry-run="true"
-          >
-            {strategyDryRunBusy ? "…" : "Strategy dry-run"}
-          </button>
+          <h2 className="fx-auto-trading-h2">Market selection &amp; feed</h2>
         </div>
         <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
           <li data-fx-at-selection-agreement="true">
@@ -2063,7 +2068,7 @@ export function ForexAutomatedTradingPage(props: {
               ) : null}
             </>
           ) : (
-            <li>Run Strategy dry-run to load live feed + candle diagnostics.</li>
+            <li>Feed and candle diagnostics update from Verify and the automatic analysis worker.</li>
           )}
           {strategyDryRun?.dryRun?.strategy ? (
             <>
@@ -2509,41 +2514,38 @@ export function ForexAutomatedTradingPage(props: {
       <section
         className="fx-auto-trading-panel"
         data-fx-at-automation-control="true"
-        aria-label="Automated trading master START STOP control"
+        aria-label="Automatic analysis and execution safety status"
       >
-        <h2 className="fx-auto-trading-panel-title">Automation control</h2>
+        <h2 className="fx-auto-trading-panel-title">Automatic analysis &amp; safety</h2>
         <div className="fx-auto-trading-token-row" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
-          <button
-            type="button"
-            className="fx-capture-button"
-            data-fx-at-automation-start="true"
-            disabled={busy || autoBusy || !token}
-            onClick={() => void startAutomationUi()}
-            aria-label="Start auto market monitoring"
-          >
-            {autoBusy ? "Working…" : "START AUTO"}
-          </button>
-          <button
-            type="button"
-            className="fx-btn fx-btn--ghost"
-            data-fx-at-automation-stop="true"
-            disabled={busy || autoBusy || !token}
-            onClick={() => void stopAutomationUi()}
-            aria-label="Stop auto market monitoring"
-          >
-            STOP AUTO
-          </button>
+          <span data-fx-at-automatic-analysis="true">
+            <ForexStatusBadge
+              tone={
+                (monitor as { automaticAnalysisStatus?: string } | null)?.automaticAnalysisStatus === "ACTIVE"
+                  || monitor?.health?.automaticAnalysisStatus === "ACTIVE"
+                  ? "live"
+                  : (monitor as { automaticAnalysisStatus?: string } | null)?.automaticAnalysisStatus === "BLOCKED"
+                    || monitor?.health?.automaticAnalysisStatus === "BLOCKED"
+                    ? "offline"
+                    : "future"
+              }
+            >
+              {`AUTOMATIC ANALYSIS: ${(monitor as { automaticAnalysisStatus?: string } | null)?.automaticAnalysisStatus
+                ?? monitor?.health?.automaticAnalysisStatus
+                ?? "STOPPED"}`}
+            </ForexStatusBadge>
+          </span>
           <span data-fx-at-monitoring-lifecycle="true">
             <ForexStatusBadge
               tone={
-                automation?.lifecycle === "MONITORING"
+                monitor?.config?.enabled && monitor?.health?.workerActive
                   ? "live"
                   : automation?.lifecycle === "BLOCKED" || automation?.lifecycle === "ERROR"
                     ? "offline"
                     : "future"
               }
             >
-              {`Monitoring: ${automation?.lifecycle ?? "OFF"}`}
+              {`Worker: ${monitor?.health?.workerState ?? "STOPPED"}`}
             </ForexStatusBadge>
           </span>
           <span
@@ -3169,79 +3171,80 @@ export function ForexAutomatedTradingPage(props: {
             ) : null}
           </section>
 
-          <section className="fx-auto-trading-panel" aria-label="Live monitoring" data-fx-at-monitor="true">
+          <section className="fx-auto-trading-panel" aria-label="Automatic analysis schedule" data-fx-at-monitor="true">
             <div className="fx-auto-trading-panel-head">
-              <h2 className="fx-auto-trading-h2">Live FXCM monitoring</h2>
-              <div className="fx-auto-env-actions">
-                <button
-                  type="button"
-                  className="fx-capture-button"
-                  disabled={busy || monitorBusy || !status || Boolean(monitor?.config?.enabled)}
-                  onClick={() => void startMonitoring()}
-                  data-fx-at-monitor-start="true"
-                >
-                  {monitorBusy ? "…" : "Start"}
-                </button>
-                <button
-                  type="button"
-                  className="fx-capture-button"
-                  disabled={busy || monitorBusy || !status || !monitor?.config?.enabled}
-                  onClick={() => void stopMonitoring()}
-                  data-fx-at-monitor-stop="true"
-                >
-                  Stop
-                </button>
-              </div>
+              <h2 className="fx-auto-trading-h2">Automatic analysis (5-minute UTC)</h2>
             </div>
             <p className="fx-auto-trading-hint">
-              Server-side worker — continues after you leave this page. Not a browser screenshot session.
+              Server-side worker starts with the gateway — no dashboard click required.
+              {" "}Schedule: every 5 minutes at :00/:05/…/:55 UTC. Continues after you leave this page.
               {" "}Image source:{" "}
               <strong data-fx-at-chart-source-label="true">
                 {monitor?.chartImageSourceLabel ?? "SERVER_OHLC_RENDER"}
               </strong>
-              {" "}(not Trading Station). Chart image required for OpenAI. Confidence: NOT CALIBRATED.
-              {" "}H2 unsupported on ForexConnect mappings.
-              {monitor?.platformScreenshotAvailable
-                ? null
-                : ` Platform screenshot: unavailable.`}
+              {" "}(not Trading Station). Confidence: NOT CALIBRATED · ANALYSIS_CONFIDENCE.
             </p>
-            <div className="fx-auto-monitor-controls">
-              <label className="fx-auto-trading-hint" htmlFor="fx-at-monitor-tf">
-                Timeframe
-                <select
-                  id="fx-at-monitor-tf"
-                  className="fx-auto-monitor-select"
-                  value={monitorTf}
-                  onChange={(e) => setMonitorTf(e.target.value)}
-                  data-fx-at-monitor-tf="true"
-                >
-                  {(monitor?.supportedTimeframes ?? ["5m", "15m", "30m", "1h"]).map((tf) => (
-                    <option key={tf} value={tf}>{tf}</option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                className="fx-capture-button"
-                disabled={busy || monitorBusy || !status || !monitor?.config?.enabled}
-                onClick={() => void applyMonitorConfig()}
-                data-fx-at-monitor-change="true"
-              >
-                Apply change
-              </button>
-            </div>
             <dl className="fx-auto-config-grid">
+              <div>
+                <dt>Automatic analysis</dt>
+                <dd data-fx-at-auto-status="true">
+                  <ForexStatusBadge tone={statusTone(String(monitor?.health?.automaticAnalysisStatus ?? "STOPPED"))}>
+                    {monitor?.health?.automaticAnalysisStatus
+                      ?? (monitor as { automaticAnalysisStatus?: string } | null)?.automaticAnalysisStatus
+                      ?? "STOPPED"}
+                  </ForexStatusBadge>
+                </dd>
+              </div>
               <div>
                 <dt>Worker</dt>
                 <dd>
                   <ForexStatusBadge tone={statusTone(String(monitor?.health?.workerState ?? "STOPPED"))}>
                     {monitor?.health?.workerState ?? "STOPPED"}
                   </ForexStatusBadge>
+                  {monitor?.health?.analysisInFlight ? " · in flight" : ""}
+                </dd>
+              </div>
+              <div>
+                <dt>Schedule interval</dt>
+                <dd data-fx-at-schedule-interval="true">
+                  {Math.round((monitor?.health?.scheduleIntervalMs
+                    ?? (monitor as { scheduleIntervalMs?: number } | null)?.scheduleIntervalMs
+                    ?? 300_000) / 60_000)} minutes
                 </dd>
               </div>
               <div>
                 <dt>Instrument</dt>
                 <dd>{monitor?.config?.instrument ?? shellInstrument ?? status?.selectedEnvState?.selectedInstrument ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Last scheduled</dt>
+                <dd data-fx-at-last-scheduled="true">{monitor?.health?.lastScheduledAtUtc ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Last start</dt>
+                <dd data-fx-at-last-cycle-start="true">{monitor?.health?.lastCycleStartedAtUtc ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Last completion</dt>
+                <dd data-fx-at-last-cycle-complete="true">{monitor?.health?.lastCycleCompletedAtUtc ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Last cycle duration</dt>
+                <dd data-fx-at-cycle-duration="true">
+                  {monitor?.health?.lastCycleDurationMs != null
+                    ? `${monitor.health.lastCycleDurationMs} ms`
+                    : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt>Missed / delayed</dt>
+                <dd data-fx-at-missed-delayed="true">
+                  {monitor?.health?.missedCycles ?? 0} missed · {monitor?.health?.delayedCycles ?? 0} delayed
+                </dd>
+              </div>
+              <div>
+                <dt>Last successful analysis</dt>
+                <dd data-fx-at-last-success="true">{monitor?.health?.lastSuccessfulAnalysisAtUtc ?? "—"}</dd>
               </div>
               <div>
                 <dt>Last quote change</dt>
@@ -3273,7 +3276,7 @@ export function ForexAutomatedTradingPage(props: {
               </div>
               <div>
                 <dt>Next scheduled</dt>
-                <dd>{monitor?.health?.nextScheduledAnalysisAtUtc ?? "—"}</dd>
+                <dd data-fx-at-next-scheduled="true">{monitor?.health?.nextScheduledAnalysisAtUtc ?? "—"}</dd>
               </div>
               <div>
                 <dt>Quote fresh</dt>
@@ -3360,19 +3363,11 @@ export function ForexAutomatedTradingPage(props: {
 
           <section className="fx-auto-trading-panel" aria-label="Technical analysis" data-fx-at-openai-ta="true">
             <div className="fx-auto-trading-panel-head">
-              <h2 className="fx-auto-trading-h2">Technical analysis (OpenAI)</h2>
-              <button
-                type="button"
-                className="fx-capture-button"
-                disabled={busy || analysisBusy || monitorBusy || !status}
-                onClick={() => void runOpenAiAnalysis()}
-                data-fx-at-run-openai="true"
-              >
-                {analysisBusy ? "Analyzing…" : "Run Analysis Now"}
-              </button>
+              <h2 className="fx-auto-trading-h2">Latest AI analysis (automatic)</h2>
             </div>
             <p className="fx-auto-trading-hint">
-              Independent AT engine with server-rendered chart image when available. Deliberate or candle-close scheduled. Confidence: NOT CALIBRATED.
+              Results update from the server-side 5-minute schedule. No manual analysis trigger in normal operation.
+              {" "}Confidence: NOT CALIBRATED · ANALYSIS_CONFIDENCE (not profit probability).
             </p>
             <dl className="fx-auto-config-grid">
               <div>
@@ -3451,7 +3446,7 @@ export function ForexAutomatedTradingPage(props: {
                 } | null;
               };
               if (!latest) {
-                return <p className="fx-auto-trading-hint">No AT OpenAI analysis yet. Start monitoring or run analysis after Verify.</p>;
+                return <p className="fx-auto-trading-hint">No automatic AT OpenAI analysis yet. Results appear after the next 5-minute scheduled cycle.</p>;
               }
               const chartId = latest.analysisId;
               return (

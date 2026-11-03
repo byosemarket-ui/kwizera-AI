@@ -5,8 +5,10 @@ import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AtMonitorTimeframe } from "./timeframes.js";
 
 export const AT_MONITOR_SCHEMA = "at-live-monitor-v1";
-/** Phase 4.18F.7 extends 53.3 monitor contracts (image provenance + freshness fields). */
-export const AT_MONITOR_PHASE = "4.18F.7";
+/** Phase 4.18F.8 — automatic 5-minute wall-clock analysis schedule (extends F.7). */
+export const AT_MONITOR_PHASE = "4.18F.8";
+
+export type AtAutomaticAnalysisStatus = "ACTIVE" | "STOPPED" | "BLOCKED";
 
 export type AtMonitorWorkerState =
   | "STOPPED"
@@ -85,6 +87,17 @@ export interface AtMonitorHealth {
   lastCanonicalDirection: "BUY" | "SELL" | "NO_TRADE" | null;
   lastCanonicalConfidencePct: number | null;
   lastEvidenceIntegrityStatus: string | null;
+  /** Phase 4.18F.8 — automatic 5-minute schedule telemetry (UTC). */
+  automaticAnalysisStatus: AtAutomaticAnalysisStatus;
+  scheduleIntervalMs: number;
+  lastScheduledAtUtc: string | null;
+  lastCycleStartedAtUtc: string | null;
+  lastCycleCompletedAtUtc: string | null;
+  lastCycleDurationMs: number | null;
+  lastScheduleSlotSec: number | null;
+  missedCycles: number;
+  delayedCycles: number;
+  lastSuccessfulAnalysisAtUtc: string | null;
 }
 
 export interface AtMonitorPersistedState {
@@ -109,6 +122,11 @@ export interface AtMonitorPublicStatus {
   requiresBrowserOpen: false;
   persistsAcrossAppRestart: true;
   persistsAcrossVpsReboot: "NOT_CLAIMED";
+  /** Analysis schedule is server-side; dashboard clicks are not required. */
+  requiresDashboardClick: false;
+  scheduleMode: "five_minute_wall_utc";
+  scheduleIntervalMs: number;
+  automaticAnalysisStatus: AtAutomaticAnalysisStatus;
   config: AtMonitorConfig | null;
   health: AtMonitorHealth;
   placesOrders: false;
@@ -159,6 +177,16 @@ export function defaultMonitorHealth(): AtMonitorHealth {
     lastCanonicalDirection: null,
     lastCanonicalConfidencePct: null,
     lastEvidenceIntegrityStatus: null,
+    automaticAnalysisStatus: "STOPPED",
+    scheduleIntervalMs: 300_000,
+    lastScheduledAtUtc: null,
+    lastCycleStartedAtUtc: null,
+    lastCycleCompletedAtUtc: null,
+    lastCycleDurationMs: null,
+    lastScheduleSlotSec: null,
+    missedCycles: 0,
+    delayedCycles: 0,
+    lastSuccessfulAnalysisAtUtc: null,
     analysisInFlight: false,
     consecutiveFailures: 0,
   };
