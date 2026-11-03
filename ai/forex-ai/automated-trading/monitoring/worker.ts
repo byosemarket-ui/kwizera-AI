@@ -32,10 +32,12 @@ import type { StrategyCandle } from "../auto-engine/strategy/rules.js";
 import { overlaysFromObservationSnapshot, renderAtMarketChartPng } from "./chart-render.js";
 import {
   AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
+  AT_ANALYSIS_SCHEDULE_SLOT_GRACE_MS,
   AT_MONITOR_ANALYSIS_COOLDOWN_MS,
   AT_MONITOR_MAX_RETRIES,
   AT_MONITOR_RETRY_BACKOFF_MS,
   decideFiveMinuteSlot,
+  fiveMinuteBoundarySec,
   latestClosedCandleOpenSec,
   nextFiveMinuteBoundaryUtc,
   scheduledSlotDedupeKey,
@@ -286,12 +288,36 @@ export class AtMonitorWorker {
       : AT_ANALYSIS_SCHEDULE_INTERVAL_MS;
     this.boundaryTimer = setTimeout(() => {
       this.boundaryTimer = null;
-      void this.tick();
-      this.armBoundaryWake();
+      this.onBoundaryWake();
     }, delay);
     if (typeof this.boundaryTimer === "object" && this.boundaryTimer && "unref" in this.boundaryTimer) {
       this.boundaryTimer.unref();
     }
+  }
+
+  /**
+   * Fire a schedule wake. If a prior tick still holds the lock, retry every 2s
+   * while inside the current slot grace — never jump to the next boundary and
+   * orphan the active slot as SCHEDULE_SLOT_MISSED.
+   */
+  private onBoundaryWake(): void {
+    if (this.disposed) return;
+    if (this.tickInFlight) {
+      const slotSec = fiveMinuteBoundarySec();
+      const ageInSlotMs = Math.max(0, Date.now() - slotSec * 1000);
+      if (ageInSlotMs < AT_ANALYSIS_SCHEDULE_SLOT_GRACE_MS) {
+        this.boundaryTimer = setTimeout(() => {
+          this.boundaryTimer = null;
+          this.onBoundaryWake();
+        }, 2_000);
+        if (typeof this.boundaryTimer === "object" && this.boundaryTimer && "unref" in this.boundaryTimer) {
+          this.boundaryTimer.unref();
+        }
+        return;
+      }
+    }
+    void this.tick();
+    this.armBoundaryWake();
   }
 
   /**
@@ -679,6 +705,7 @@ export class AtMonitorWorker {
     }
     this.tickInFlight = true;
     const configEpoch = persisted.config.configEpoch;
+    let claimedThisTick = false;
     try {
       const selectedEnv = this.deps.getSelectedEnvironment?.() ?? persisted.config.environment;
       if (selectedEnv !== persisted.config.environment) {
@@ -786,6 +813,27 @@ export class AtMonitorWorker {
       const sinceLast = Date.now() - this.lastAnalysisAttemptMs;
       if (sinceLast < AT_MONITOR_ANALYSIS_COOLDOWN_MS) return;
 
+      // Claim the slot BEFORE refresh/candle awaits. Otherwise a slow ForexConnect
+      // failure can hold tickInFlight past grace and the next tick falsely records
+      // SCHEDULE_SLOT_MISSED without ever emitting a freshness/provider terminal.
+      const cycleStartedAtUtc = nowIso();
+      await this.store.rememberDedupe(dedupe);
+      await this.store.update((s) => ({
+        ...s,
+        health: {
+          ...s.health,
+          lastScheduleSlotSec: slotDecision.slotSec,
+          lastDedupeKey: dedupe,
+          lastScheduledAtUtc: slotDecision.scheduledAtUtc,
+          lastCycleStartedAtUtc: cycleStartedAtUtc,
+          nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
+        },
+      }));
+      this.cycleScheduledAtUtc = slotDecision.scheduledAtUtc;
+      this.cycleSlotSec = slotDecision.slotSec;
+      this.cycleStartedAtMs = Date.parse(cycleStartedAtUtc) || Date.now();
+      claimedThisTick = true;
+
       // Refresh live verification before freshness gate (avoid aged snapshot false STALE).
       let verification =
         this.deps.getVerification?.(persisted.config.environment) ?? null;
@@ -802,10 +850,53 @@ export class AtMonitorWorker {
           verification = this.deps.getVerification?.(persisted.config.environment) ?? verification;
         }
       }
-      if (this.store.getState().config?.configEpoch !== configEpoch) return;
+      if (this.store.getState().config?.configEpoch !== configEpoch) {
+        await this.recordCycleTerminal({
+          slotSec: slotDecision.slotSec,
+          scheduledAtUtc: slotDecision.scheduledAtUtc,
+          startedAtUtc: cycleStartedAtUtc,
+          terminalStatus: "CONFIG_CHANGED",
+          blockerCode: "CONFIG_EPOCH_CHANGED",
+          durationMs: Math.max(0, Date.now() - this.cycleStartedAtMs),
+        });
+        return;
+      }
 
-      const candles = await this.loadCandles(persisted.config.instrument, persisted.config.timeframe);
-      if (this.store.getState().config?.configEpoch !== configEpoch) return;
+      let candles: ReturnType<typeof mapCandles> = [];
+      try {
+        candles = await this.loadCandles(persisted.config.instrument, persisted.config.timeframe);
+      } catch (candleErr) {
+        const message =
+          candleErr instanceof Error ? candleErr.message.slice(0, 200) : "Candle load failed.";
+        this.runtimeState = "PROVIDER_ERROR";
+        await this.patchHealth({
+          workerState: "PROVIDER_ERROR",
+          lastError: message,
+          lastBlockerCode: "PROVIDER_ERROR",
+          automaticAnalysisStatus: "BLOCKED",
+          consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
+        });
+        await this.recordCycleTerminal({
+          slotSec: slotDecision.slotSec,
+          scheduledAtUtc: slotDecision.scheduledAtUtc,
+          startedAtUtc: cycleStartedAtUtc,
+          terminalStatus: "PROVIDER_ERROR",
+          blockerCode: "PROVIDER_ERROR",
+          durationMs: Math.max(0, Date.now() - this.cycleStartedAtMs),
+        });
+        return;
+      }
+      if (this.store.getState().config?.configEpoch !== configEpoch) {
+        await this.recordCycleTerminal({
+          slotSec: slotDecision.slotSec,
+          scheduledAtUtc: slotDecision.scheduledAtUtc,
+          startedAtUtc: cycleStartedAtUtc,
+          terminalStatus: "CONFIG_CHANGED",
+          blockerCode: "CONFIG_EPOCH_CHANGED",
+          durationMs: Math.max(0, Date.now() - this.cycleStartedAtMs),
+        });
+        return;
+      }
 
       const freshness = evaluateVerificationMarketQuoteFreshness(verification, {
         expectedInstrument: persisted.config.instrument,
@@ -843,17 +934,6 @@ export class AtMonitorWorker {
         nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
       });
 
-      // Slot is claimed before gates so a blocked cycle still advances the schedule.
-      await this.store.rememberDedupe(dedupe);
-      await this.store.update((s) => ({
-        ...s,
-        health: {
-          ...s.health,
-          lastScheduleSlotSec: slotDecision.slotSec,
-          lastDedupeKey: dedupe,
-        },
-      }));
-
       if (!verification || !identityOk) {
         this.runtimeState = "VERIFICATION_REQUIRED";
         await this.patchHealth({
@@ -865,10 +945,10 @@ export class AtMonitorWorker {
         await this.recordCycleTerminal({
           slotSec: slotDecision.slotSec,
           scheduledAtUtc: slotDecision.scheduledAtUtc,
-          startedAtUtc: nowIso(),
+          startedAtUtc: cycleStartedAtUtc,
           terminalStatus: "BLOCKED_VERIFICATION",
           blockerCode: "VERIFICATION_REQUIRED",
-          durationMs: 0,
+          durationMs: Math.max(0, Date.now() - this.cycleStartedAtMs),
         });
         return;
       }
@@ -884,10 +964,10 @@ export class AtMonitorWorker {
         await this.recordCycleTerminal({
           slotSec: slotDecision.slotSec,
           scheduledAtUtc: slotDecision.scheduledAtUtc,
-          startedAtUtc: nowIso(),
+          startedAtUtc: cycleStartedAtUtc,
           terminalStatus: "BLOCKED_DATA_INSUFFICIENT",
           blockerCode: "DATA_INSUFFICIENT",
-          durationMs: 0,
+          durationMs: Math.max(0, Date.now() - this.cycleStartedAtMs),
         });
         return;
       }
@@ -909,20 +989,17 @@ export class AtMonitorWorker {
         await this.recordCycleTerminal({
           slotSec: slotDecision.slotSec,
           scheduledAtUtc: slotDecision.scheduledAtUtc,
-          startedAtUtc: nowIso(),
+          startedAtUtc: cycleStartedAtUtc,
           terminalStatus: "BLOCKED_STALE_QUOTES",
           blockerCode: "STALE_QUOTES",
-          durationMs: 0,
+          durationMs: Math.max(0, Date.now() - this.cycleStartedAtMs),
         });
         return;
       }
       this.lastFreshnessReasonLogged = freshness.reasonCode;
 
-      this.cycleScheduledAtUtc = slotDecision.scheduledAtUtc;
-      this.cycleSlotSec = slotDecision.slotSec;
-      this.cycleStartedAtMs = Date.now();
       await this.patchHealth({
-        lastCycleStartedAtUtc: new Date(this.cycleStartedAtMs).toISOString(),
+        lastCycleStartedAtUtc: cycleStartedAtUtc,
         lastScheduledAtUtc: slotDecision.scheduledAtUtc,
         lastBlockerCode: null,
         lastError: null,
@@ -944,6 +1021,33 @@ export class AtMonitorWorker {
         automaticAnalysisStatus: "BLOCKED",
         consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
       });
+      // If this tick already claimed the slot, emit a terminal so a provider hang/throw
+      // is never mislabeled later as SCHEDULE_SLOT_MISSED.
+      if (
+        claimedThisTick
+        && typeof this.cycleSlotSec === "number"
+        && this.cycleScheduledAtUtc
+      ) {
+        const slotSec = this.cycleSlotSec;
+        const already =
+          this.store.getState().health.recentCycleTerminals?.some(
+            (t) => t.slotSec === slotSec && t.completedAtUtc,
+          ) ?? false;
+        if (!already) {
+          await this.recordCycleTerminal({
+            slotSec,
+            scheduledAtUtc: this.cycleScheduledAtUtc,
+            startedAtUtc: this.cycleStartedAtMs
+              ? new Date(this.cycleStartedAtMs).toISOString()
+              : null,
+            terminalStatus: "PROVIDER_ERROR",
+            blockerCode: "PROVIDER_ERROR",
+            durationMs: this.cycleStartedAtMs
+              ? Math.max(0, Date.now() - this.cycleStartedAtMs)
+              : 0,
+          });
+        }
+      }
     } finally {
       this.tickInFlight = false;
       if (this.pendingVerificationNudge && !this.disposed) {
