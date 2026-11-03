@@ -253,12 +253,13 @@ export class AtMonitorWorker {
   }
 
   /**
-   * True when a persisted monitor config epoch advanced mid-flight.
-   * Ephemeral manual analyses (no persisted config) must not trip CONFIG_CHANGED.
+   * True when a *live* persisted monitor config epoch advanced mid-flight.
+   * Ephemeral manual analyses (no config, or disabled persisted config) must not
+   * trip CONFIG_CHANGED — production smoke hits this when monitor is STOPPED.
    */
   private configEpochInvalidated(expectedEpoch: number): boolean {
     const persisted = this.store.getState().config;
-    if (!persisted) return false;
+    if (!persisted || persisted.enabled !== true) return false;
     return persisted.configEpoch !== expectedEpoch;
   }
 
@@ -1107,6 +1108,9 @@ export class AtMonitorWorker {
         status: this.getPublicStatus(),
       };
     }
+    // Ephemeral configs must reuse the on-disk epoch (not +1). Bumping would make
+    // configEpochInvalidated fire against the disabled persisted config immediately.
+    const persistedEpoch = this.store.getState().config?.configEpoch ?? 0;
     const config: AtMonitorConfig = useConfig && useConfig.instrument === instrument && useConfig.timeframe === tf
       ? useConfig
       : {
@@ -1114,7 +1118,7 @@ export class AtMonitorWorker {
           environment: input.environment,
           instrument,
           timeframe: tf,
-          configEpoch: (useConfig?.configEpoch ?? 0) + 1,
+          configEpoch: persistedEpoch,
           createdAtUtc: nowIso(),
           updatedAtUtc: nowIso(),
           pollIntervalMs: 20_000,

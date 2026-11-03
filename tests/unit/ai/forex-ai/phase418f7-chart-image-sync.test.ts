@@ -37,6 +37,12 @@ import {
   resetAtMonitorStoreForTests,
   resetAtMonitorWorkerForTests,
 } from "../../../../ai/forex-ai/automated-trading/index.ts";
+import { getAtMonitorStore } from "../../../../ai/forex-ai/automated-trading/monitoring/store.js";
+import {
+  AT_MONITOR_PHASE,
+  AT_MONITOR_SCHEMA,
+  defaultMonitorHealth,
+} from "../../../../ai/forex-ai/automated-trading/monitoring/types.js";
 import { buildOpenAiMultimodalChatJsonBody } from "../../../../ai/forex-ai/snapshot-openai/openai-client.ts";
 import type { StrategyCandle } from "../../../../ai/forex-ai/automated-trading/auto-engine/strategy/rules.js";
 import { MARKET_EVIDENCE_VERSION } from "../../../../ai/forex-ai/automated-trading/analysis/market-evidence-builder.js";
@@ -649,6 +655,106 @@ describe("Phase 4.18F.7 multimodal delivery + worker autonomy", () => {
         expect(bytes[0]).toBe(0x89);
       }
     }
+  });
+
+  it("runManualNow with disabled persisted config does not abort as CONFIG_CHANGED", async () => {
+    const candles = rising(48).map(({ time, open, high, low, close }) => ({
+      time, open, high, low, close,
+    }));
+    const store = getAtMonitorStore(tmp);
+    await store.save({
+      schemaVersion: AT_MONITOR_SCHEMA,
+      phase: AT_MONITOR_PHASE,
+      config: {
+        enabled: false,
+        environment: "DEMO",
+        instrument: "XAU/USD",
+        timeframe: "15m",
+        configEpoch: 7,
+        createdAtUtc: new Date().toISOString(),
+        updatedAtUtc: new Date().toISOString(),
+        pollIntervalMs: 20_000,
+      },
+      health: defaultMonitorHealth(),
+      completedDedupeKeys: [],
+    });
+
+    const chatMultimodal = vi.fn(async () => ({
+      ok: true,
+      data: {
+        direction: "BUY",
+        directionalConfidencePct: 58,
+        directionalBias: "BULLISH",
+        trendState: "UPTREND",
+        trendStrength: "MODERATE",
+        mtfAgreement: "AGREE_BULLISH",
+        keyEvidence: ["HH"],
+        counterEvidence: [],
+        structureNotes: ["structure"],
+        supportLevels: [],
+        resistanceLevels: [],
+        scenarios: {
+          bullish: { summary: "x", supportingEvidence: [], confirmationConditions: [], invalidationConditions: [] },
+          bearish: { summary: "y", supportingEvidence: [], confirmationConditions: [], invalidationConditions: [] },
+        },
+        dataQuality: "SUFFICIENT",
+        limitations: [],
+        explanation: "BUY lean — not an order.",
+      },
+      model: "gpt-6-luna",
+      code: "OK",
+    }));
+
+    const engine = new AtOpenAiAnalysisEngine({
+      storageRoot: tmp,
+      chat: vi.fn() as never,
+      chatMultimodal: chatMultimodal as never,
+      config: {
+        getPublicStatus: async () => ({
+          configured: true,
+          model: "gpt-6-luna",
+          apiKeyConfigured: true,
+        }),
+        getApiKey: async () => "sk-test",
+      } as never,
+      loadCandles: async () => candles,
+    });
+
+    const worker = new AtMonitorWorker({
+      storageRoot: tmp,
+      analysisEngine: engine,
+      loadCandles: async () => candles,
+      autoStart: false,
+      runCanonical: async () => ({
+        ok: true,
+        result: {
+          finalOutcome: "NO_TRADE",
+          direction: null,
+          confidencePct: null,
+          reconciliationCode: "RECON_NO_CROSS_AI_IGNORED",
+        },
+      }),
+    });
+
+    const result = await worker.runManualNow({
+      environment: "DEMO",
+      instrument: "XAU/USD",
+      timeframe: "15m",
+      expectedEnvironmentEpoch: 1,
+      currentEnvironment: "DEMO",
+      currentEnvironmentEpoch: 1,
+      verification: freshVerification() as never,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      expect(result.code).not.toBe("CONFIG_CHANGED");
+      return;
+    }
+    expect(chatMultimodal).toHaveBeenCalledTimes(1);
+    expect(result.status.health.lastEvidenceIntegrityStatus).toBe("VALID");
+    expect(result.status.health.lastCanonicalFinalOutcome).toBe("NO_TRADE");
+    expect(result.status.placesOrders).toBe(false);
   });
 
   it("OpenAI delivery failure records DELIVERY_FAILED and never mutates broker", async () => {
