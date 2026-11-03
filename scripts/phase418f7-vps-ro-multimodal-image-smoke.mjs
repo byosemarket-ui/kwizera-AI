@@ -323,8 +323,8 @@ async function main() {
       }
       const failCode = String(analyze.body?.error?.code ?? analyze.body?.code ?? "");
       if (analyze.body?.ok === true) break;
-      // Retry only cold-market / settle classes; other failures are terminal for this loop.
-      if (!/STALE_QUOTES|MARKET_INACTIVE|NO_RECENT|QUOTE_STALE|VERIFICATION_REQUIRED/i.test(failCode)) {
+      // Retry cold-market settle + transient in-flight / config races (post-deploy parallel smokes).
+      if (!/STALE_QUOTES|MARKET_INACTIVE|NO_RECENT|QUOTE_STALE|VERIFICATION_REQUIRED|ANALYSIS_IN_FLIGHT|CONFIG_CHANGED/i.test(failCode)) {
         break;
       }
     }
