@@ -3012,6 +3012,24 @@ export class AutomatedTradingService {
     return getCanonicalAnalysisHistoryStore().list(limit);
   }
 
+  /**
+   * Phase 4.18G.1 — AI analysis result intake status (never broker execution).
+   */
+  async getResultIntakeStatus() {
+    const { getResultIntakePublicStatus } = await import("./result-intake/index.js");
+    return getResultIntakePublicStatus();
+  }
+
+  async listResultIntakeHistory(limit = 12) {
+    const { getAtResultIntakeStore } = await import("./result-intake/index.js");
+    return getAtResultIntakeStore().list(limit);
+  }
+
+  async getOrderPreparationHandoff() {
+    const { getAtResultIntakeStore, toOrderPreparationHandoff } = await import("./result-intake/index.js");
+    return toOrderPreparationHandoff(getAtResultIntakeStore().latest());
+  }
+
   getAudit(limit = 40): AutomatedTradingAuditEvent[] {
     return this.store.getAudit(limit);
   }

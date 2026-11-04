@@ -1537,6 +1537,57 @@ export async function handleForexAutomatedTradingApi(
       }
     }
 
+    // Phase 4.18G.1 — AI analysis result intake (never places orders).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/result-intake/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const resultIntake = await service.getResultIntakeStatus();
+      sendJson(res, 200, {
+        ok: true,
+        resultIntake,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        analysisIsNotExecution: true,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/result-intake/history")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limit = Number(url.searchParams.get("limit") ?? 12);
+      sendJson(res, 200, {
+        ok: true,
+        history: await service.listResultIntakeHistory(Number.isFinite(limit) ? limit : 12),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/result-intake/handoff")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const handoff = await service.getOrderPreparationHandoff();
+      sendJson(res, 200, {
+        ok: true,
+        handoff,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        note: "Read-only order-preparation candidate. Not a broker order.",
+      });
+      return true;
+    }
+
     // Phase 54 — read-only trading decision validation (never places orders).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/decision/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {

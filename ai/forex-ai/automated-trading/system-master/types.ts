@@ -27,6 +27,7 @@ export type SystemMasterModuleId =
   | "openai_analysis"
   | "canonical_reconciliation"
   | "analysis_history"
+  | "result_intake"
   | "dashboard_status";
 
 /** Shared infrastructure NOT exclusively owned by System Master. */
@@ -49,6 +50,7 @@ export const AT_SYSTEM_MASTER_OWNED_MODULES: SystemMasterModuleId[] = [
   "openai_analysis",
   "canonical_reconciliation",
   "analysis_history",
+  "result_intake",
   "dashboard_status",
 ];
 

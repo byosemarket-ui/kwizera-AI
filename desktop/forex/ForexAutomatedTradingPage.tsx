@@ -504,6 +504,10 @@ export function ForexAutomatedTradingPage(props: {
   /** Phase 4.18D — canonical BUY/SELL analysis (read-only). */
   const [canonicalView, setCanonicalView] = useState<CanonicalAnalysisView | null>(null);
   const [canonicalBusy, setCanonicalBusy] = useState(false);
+  /** Phase 4.18G.1 — AI analysis result intake (not a broker order). */
+  const [resultIntakeLatest, setResultIntakeLatest] = useState<Record<string, unknown> | null>(null);
+  const [resultIntakeHistory, setResultIntakeHistory] = useState<Array<Record<string, unknown>>>([]);
+  const [resultIntakeNote, setResultIntakeNote] = useState<string | null>(null);
   /** Phase 4.18E — market evidence snapshot from last canonical run. */
   const [marketEvidenceSummary, setMarketEvidenceSummary] = useState<{
     completeness?: string;
@@ -719,7 +723,7 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, canonRes, masterRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, canonRes, masterRes, intakeRes, intakeHistRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
@@ -733,6 +737,8 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/automation/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/canonical-analysis/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/system-master/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/result-intake/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/result-intake/history?limit=8", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -842,6 +848,21 @@ export function ForexAutomatedTradingPage(props: {
       if (masterRes.ok && masterJson.ok && masterJson.systemMaster) setSystemMaster(masterJson.systemMaster);
       if (canonRes.ok && canonJson.ok && canonJson.canonical?.view) {
         setCanonicalView(canonJson.canonical.view);
+      }
+      const intakeJson = await intakeRes.json() as {
+        ok?: boolean;
+        resultIntake?: { latest?: Record<string, unknown> | null; note?: string };
+      };
+      const intakeHistJson = await intakeHistRes.json() as {
+        ok?: boolean;
+        history?: Array<Record<string, unknown>>;
+      };
+      if (intakeRes.ok && intakeJson.ok && intakeJson.resultIntake) {
+        setResultIntakeLatest(intakeJson.resultIntake.latest ?? null);
+        setResultIntakeNote(intakeJson.resultIntake.note ?? null);
+      }
+      if (intakeHistRes.ok && intakeHistJson.ok && Array.isArray(intakeHistJson.history)) {
+        setResultIntakeHistory(intakeHistJson.history);
       }
       if (demoRes.ok && demoJson) {
         const cats = demoJson.blockerCategories && typeof demoJson.blockerCategories === "object"
@@ -2619,6 +2640,127 @@ export function ForexAutomatedTradingPage(props: {
             Run analysis to load market evidence (historical movement, structure, MTF, live tick windows).
           </p>
         )}
+      </section>
+
+      <section
+        className="fx-auto-trading-panel"
+        data-fx-at-result-intake="true"
+        aria-label="AI analysis results and decision understanding"
+      >
+        <div className="fx-auto-trading-panel-head">
+          <h2 className="fx-auto-trading-h2">AI analysis results (Phase 4.18G.1)</h2>
+        </div>
+        <p className="fx-auto-trading-hint" style={{ marginTop: 0 }} data-fx-at-result-intake-banner="true">
+          Canonical decision understanding only — <strong>not a broker order</strong>.
+          {" "}
+          No Entry/SL/TP or position size in this stage. placesOrders=<strong>false</strong>.
+          {resultIntakeNote ? ` ${resultIntakeNote}` : ""}
+        </p>
+        {resultIntakeLatest ? (
+          <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+            <li data-fx-at-result-decision="true">
+              Decision: <strong>{String(resultIntakeLatest.decision ?? "—")}</strong>
+              {" · "}
+              Canonical: <strong>{String(resultIntakeLatest.canonicalDecision ?? "—")}</strong>
+              {" · "}
+              Outcome: <strong>{String(resultIntakeLatest.canonicalOutcome ?? "—")}</strong>
+              {" · "}
+              Intake: <strong>{String(resultIntakeLatest.intakeLifecycle ?? "—")}</strong>
+            </li>
+            <li data-fx-at-result-confidence="true">
+              Confidence:{" "}
+              <strong>
+                {resultIntakeLatest.directionalConfidencePct != null
+                  ? `${String(resultIntakeLatest.directionalConfidencePct)}%`
+                  : "—"}
+              </strong>
+              {" · "}
+              type <strong>{String(resultIntakeLatest.confidenceType ?? "ANALYSIS_CONFIDENCE")}</strong>
+              {" · "}
+              calibrated={String(resultIntakeLatest.isCalibratedWinProbability ?? false)}
+            </li>
+            <li data-fx-at-result-directions="true">
+              AI dir: <strong>{String(resultIntakeLatest.aiDirection ?? "—")}</strong>
+              {" · "}
+              Strategy: <strong>{String(resultIntakeLatest.strategyDirection ?? "—")}</strong>
+              {" · "}
+              Recon: <strong>{String(resultIntakeLatest.reconciliationStatus ?? "—")}</strong>
+              {" · "}
+              Validation: <strong>{String(resultIntakeLatest.validationStatus ?? "—")}</strong>
+            </li>
+            <li>
+              Instrument: <strong>{String(resultIntakeLatest.instrument ?? "—")}</strong>
+              {" · "}
+              TF: <strong>{String(resultIntakeLatest.primaryTimeframe ?? "—")}</strong>
+              {" · "}
+              MTF: <strong>{String(resultIntakeLatest.mtfAlignment ?? "—")}</strong>
+              {" · "}
+              {String(resultIntakeLatest.analyzedAtUtc ?? "—")}
+            </li>
+            <li data-fx-at-result-explanation="true">
+              Trend/momentum/vol:{" "}
+              <strong>{String(resultIntakeLatest.marketTrend ?? "—")}</strong>
+              {" / "}
+              <strong>{String(resultIntakeLatest.marketMomentum ?? "—")}</strong>
+              {" / "}
+              <strong>{String(resultIntakeLatest.volatility ?? "—")}</strong>
+              {" · "}
+              structure: <strong>{String(resultIntakeLatest.marketStructure ?? "—")}</strong>
+            </li>
+            {(Array.isArray(resultIntakeLatest.analysisReasons)
+              ? resultIntakeLatest.analysisReasons
+              : []
+            ).slice(0, 4).map((line) => (
+              <li key={String(line).slice(0, 40)}>{String(line)}</li>
+            ))}
+            {resultIntakeLatest.noTradeReason ? (
+              <li data-fx-at-result-no-trade="true">
+                NO_TRADE reason: <strong>{String(resultIntakeLatest.noTradeReason)}</strong>
+              </li>
+            ) : null}
+            <li data-fx-at-result-trace="true">
+              analysisId=<strong>{String(resultIntakeLatest.analysisId ?? "—")}</strong>
+              {" · "}
+              resultId=<strong>{String(resultIntakeLatest.resultId ?? "—")}</strong>
+              {" · "}
+              obs=<strong>{String(resultIntakeLatest.observationId ?? "—")}</strong>
+              {" · "}
+              image=<strong>{String(resultIntakeLatest.imageId ?? "—")}</strong>
+              {" · "}
+              hash=<strong>{String(resultIntakeLatest.imageHash ?? "—")}</strong>
+              {" · "}
+              model=<strong>{String(resultIntakeLatest.modelIdentifier ?? "—")}</strong>
+            </li>
+            <li>
+              Order-prep eligible:{" "}
+              <strong>{String(resultIntakeLatest.eligibleForOrderPreparation ?? false)}</strong>
+              {" — "}candidates only; quantity/risk calculated later.
+            </li>
+          </ul>
+        ) : (
+          <p className="fx-auto-trading-hint">No accepted analysis result intake yet.</p>
+        )}
+        {resultIntakeHistory.length > 0 ? (
+          <div data-fx-at-result-history="true" style={{ marginTop: "0.75rem" }}>
+            <h3 className="fx-auto-trading-h2" style={{ fontSize: "1rem" }}>Result history</h3>
+            <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+              {resultIntakeHistory.slice(0, 8).map((row) => (
+                <li key={String(row.resultId ?? row.analysisId)}>
+                  <strong>{String(row.decision ?? "—")}</strong>
+                  {" · "}
+                  {String(row.intakeLifecycle ?? "—")}
+                  {" · "}
+                  {String(row.instrument ?? "—")}
+                  {" · "}
+                  conf={row.directionalConfidencePct != null ? `${String(row.directionalConfidencePct)}%` : "—"}
+                  {" · "}
+                  {String(row.receivedAtUtc ?? row.analyzedAtUtc ?? "—")}
+                  {row.rejectionReason ? ` · ${String(row.rejectionReason)}` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       {status?.pipelineStatus || status?.pipelineStages?.length || status?.feedStatusBreakdown ? (

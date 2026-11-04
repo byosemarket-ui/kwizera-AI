@@ -87,6 +87,11 @@ export interface CanonicalAnalysisRunInput {
   openAiAnalysis?: AtOpenAiAnalysisResult | null;
   includeOpenAi?: boolean;
   nowMs?: number;
+  /**
+   * Phase 4.18G.1 — when true (default if persist), publish to result-intake manager.
+   * Set false for pure unit tests that do not want intake side effects.
+   */
+  ingestResultIntake?: boolean;
 }
 
 export interface CanonicalAnalysisDeps {
@@ -232,6 +237,56 @@ function blockedQuote(instrument: string, reason: string, nowIso: string): Canon
 /**
  * Pure orchestration entry — inject deps for unit tests / production bridge.
  */
+async function publishResultIntake(
+  result: CanonicalAnalysisResult,
+  openAi: AtOpenAiAnalysisResult | null | undefined,
+  enabled: boolean,
+): Promise<{
+  ingested: boolean;
+  duplicate: boolean;
+  skipped: boolean;
+  resultId: string | null;
+  intakeLifecycle: string | null;
+}> {
+  if (!enabled) {
+    return { ingested: false, duplicate: false, skipped: true, resultId: null, intakeLifecycle: null };
+  }
+  try {
+    const { ingestCanonicalAnalysisResult } = await import("../result-intake/index.js");
+    const chart = openAi?.chartImage ?? null;
+    const delivery = openAi?.evidenceDelivery ?? null;
+    const out = await ingestCanonicalAnalysisResult({
+      result,
+      enrichment: {
+        observationId: chart?.observationId ?? delivery?.observationId ?? null,
+        imageId: chart?.imageId ?? delivery?.imageId ?? null,
+        imageHash: chart?.imageHash ?? delivery?.imageHash ?? null,
+        expectedImageHash: delivery?.imageHash ?? chart?.imageHash ?? null,
+        imageSource: chart?.imageSourceLabel ?? chart?.source ?? null,
+        imageDeliveryStatus: delivery?.lifecycle ?? null,
+        includedImageBytesInRequest:
+          delivery?.includedImageBytesInRequest
+          ?? chart?.includedInOpenAiRequest
+          ?? null,
+        modelIdentifier: openAi?.modelUsed ?? openAi?.modelRequested ?? null,
+        openaiLifecycle: openAi?.lifecycle ?? null,
+        timeframeCoverage: openAi?.timeframes ?? null,
+        supportingEvidence: openAi?.keyEvidence ?? null,
+        conflictingEvidence: openAi?.counterEvidence ?? null,
+      },
+    });
+    return {
+      ingested: out.ok || out.duplicate,
+      duplicate: out.duplicate,
+      skipped: out.skipped,
+      resultId: out.record?.resultId ?? null,
+      intakeLifecycle: out.record?.intakeLifecycle ?? null,
+    };
+  } catch {
+    return { ingested: false, duplicate: false, skipped: false, resultId: null, intakeLifecycle: null };
+  }
+}
+
 export async function runCanonicalAnalysis(
   input: CanonicalAnalysisRunInput,
   deps: CanonicalAnalysisDeps,
@@ -241,6 +296,13 @@ export async function runCanonicalAnalysis(
   candleQuality: CandleQualityReport | null;
   marketEvidence: import("./market-evidence-builder.js").MarketEvidenceBundle | null;
   history: { saved: boolean; duplicate: boolean; writeError: string | null };
+  resultIntake: {
+    ingested: boolean;
+    duplicate: boolean;
+    skipped: boolean;
+    resultId: string | null;
+    intakeLifecycle: string | null;
+  };
   placesOrders: false;
   acceptsForExecution: false;
   mutatesBroker: false;
@@ -250,6 +312,7 @@ export async function runCanonicalAnalysis(
   const historyStore = deps.historyStore ?? getCanonicalAnalysisHistoryStore();
   const instrumentRaw = String(input.instrument ?? "").trim();
   const instrument = normalizeInstrumentId(instrumentRaw);
+  const shouldIngest = input.ingestResultIntake !== false && input.persist !== false;
 
   const fail = async (
     partial: Parameters<typeof reconcileAnalysis>[0],
@@ -259,6 +322,13 @@ export async function runCanonicalAnalysis(
     candleQuality: CandleQualityReport | null;
     marketEvidence: null;
     history: { saved: boolean; duplicate: boolean; writeError: string | null };
+    resultIntake: {
+      ingested: boolean;
+      duplicate: boolean;
+      skipped: boolean;
+      resultId: string | null;
+      intakeLifecycle: string | null;
+    };
     placesOrders: false;
     acceptsForExecution: false;
     mutatesBroker: false;
@@ -269,12 +339,14 @@ export async function runCanonicalAnalysis(
       const w = await historyStore.save(result);
       hist = { ...w, writeError: historyStore.lastWriteError };
     }
+    const resultIntake = await publishResultIntake(result, input.openAiAnalysis, shouldIngest);
     return {
       ok: result.direction != null,
       result,
       candleQuality: null,
       marketEvidence: null,
       history: hist,
+      resultIntake,
       placesOrders: false,
       acceptsForExecution: false,
       mutatesBroker: false,
@@ -570,12 +642,18 @@ export async function runCanonicalAnalysis(
     hist = { ...w, writeError: historyStore.lastWriteError };
   }
 
+  const openAiForIntake =
+    input.openAiAnalysis
+    ?? (typeof deps.getLatestOpenAi === "function" ? deps.getLatestOpenAi(instrument) : null);
+  const resultIntake = await publishResultIntake(result, openAiForIntake, shouldIngest);
+
   return {
     ok: result.direction != null,
     result,
     candleQuality,
     marketEvidence,
     history: hist,
+    resultIntake,
     placesOrders: false,
     acceptsForExecution: false,
     mutatesBroker: false,
