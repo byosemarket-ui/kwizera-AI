@@ -2899,40 +2899,40 @@ export function ForexAutomatedTradingPage(props: {
           AI ANALYSIS RESULT → CANONICAL DECISION → <strong>ORDER PROPOSAL</strong> → Broker execution (not this module).
           {" "}placesOrders=<strong>false</strong> · No Execute button.
         </p>
-        <ul className="fx-auto-trading-hint" style={{ margin: "0.5rem 0", paddingLeft: "1.1rem" }}>
+        <ul className="fx-auto-trading-hint" style={{ margin: "0.5rem 0", paddingLeft: "1.1rem" }} data-fx-at-proposal-capital-summary="true">
           <li>
-            Capital Allocation %:{" "}
-            <strong>
-              {status?.controls.capitalAllocationPercent != null
-                ? `${status.controls.capitalAllocationPercent}%`
-                : "unset"}
-            </strong>
-            {" · "}
-            Budget:{" "}
-            <strong>
-              {status?.controls.capitalAllocationBudget != null
-                ? fmtNum(status.controls.capitalAllocationBudget, 2)
-                : "—"}
-            </strong>
-            {" · "}
-            Equity:{" "}
+            <strong>CAPITAL</strong>
+            {" — "}Equity:{" "}
             <strong>
               {status?.controls.verifiedEquity != null
                 ? fmtNum(status.controls.verifiedEquity, 2)
                 : "—"}
             </strong>
-          </li>
-          <li>
-            Order Allocation (persisted):{" "}
+            {" · "}Strategy %:{" "}
+            <strong>
+              {status?.controls.capitalAllocationPercent != null
+                ? `${status.controls.capitalAllocationPercent}%`
+                : "unset"}
+            </strong>
+            {" · "}Budget:{" "}
+            <strong>
+              {status?.controls.capitalAllocationBudget != null
+                ? fmtNum(status.controls.capitalAllocationBudget, 2)
+                : "—"}
+            </strong>
+            {" · "}Order Allocation:{" "}
             <strong>
               {proposalAllocConfig?.individualOrderAllocation != null
                 ? String(proposalAllocConfig.individualOrderAllocation)
                 : "unset"}
             </strong>
-            {" · "}
-            Risk policy: <strong>25% of order allocation at SL</strong>
-            {" · "}
-            Owner max: <strong>0.01</strong>
+          </li>
+          <li>
+            <strong>RISK</strong>
+            {" — "}Target: <strong>20%</strong> of Order Allocation
+            {" · "}Hard max: <strong>25%</strong> (not raisable)
+            {" · "}Owner max qty: <strong>0.01</strong>
+            {" · "}Order Allocation ≠ loss at SL
           </li>
         </ul>
         <div
@@ -2994,93 +2994,101 @@ export function ForexAutomatedTradingPage(props: {
             Build proposal
           </button>
         </div>
-        {proposalLatest ? (
-          <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }} data-fx-at-proposal-latest="true">
-            <li>
-              Lifecycle: <strong>{String(proposalLatest.lifecycle ?? "—")}</strong>
-              {" · "}
-              Direction: <strong>{String(proposalLatest.direction ?? "—")}</strong>
-              {" · "}
-              id=<strong>{String(proposalLatest.proposalId ?? "—")}</strong>
-            </li>
-            <li>
-              Entry / SL / TP(3R):{" "}
-              <strong>
-                {String((proposalLatest.pricePlan as Record<string, unknown> | undefined)?.entryPrice ?? "—")}
-              </strong>
-              {" / "}
-              <strong>
-                {String((proposalLatest.pricePlan as Record<string, unknown> | undefined)?.stopLoss ?? "—")}
-              </strong>
-              {" / "}
-              <strong>
-                {String((proposalLatest.pricePlan as Record<string, unknown> | undefined)?.takeProfit ?? "—")}
-              </strong>
-            </li>
-            <li>
-              Qty:{" "}
-              <strong>
-                {String((proposalLatest.quantity as Record<string, unknown> | undefined)?.normalizedQuantity ?? "—")}
-              </strong>
-              {" · "}
-              Risk:{" "}
-              <strong>
-                {String((proposalLatest.capital as Record<string, unknown> | undefined)?.allowedRiskAmount ?? "—")}
-              </strong>
-              {" · "}
-              Projected SL loss:{" "}
-              <strong>
-                {String((proposalLatest.capital as Record<string, unknown> | undefined)?.projectedLossAtStopLoss ?? "—")}
-              </strong>
-              {" · "}
-              Remaining budget:{" "}
-              <strong>
-                {String((proposalLatest.capital as Record<string, unknown> | undefined)?.remainingStrategyBudget ?? "—")}
-              </strong>
-            </li>
-            <li>
-              Margin est / avail:{" "}
-              <strong>
-                {String((proposalLatest.quantity as Record<string, unknown> | undefined)?.estimatedMargin ?? "—")}
-              </strong>
-              {" / "}
-              <strong>
-                {String((proposalLatest.quantity as Record<string, unknown> | undefined)?.availableMargin ?? "—")}
-              </strong>
-              {" · "}
-              Exposure:{" "}
-              <strong>
-                {String((proposalLatest.quantity as Record<string, unknown> | undefined)?.projectedExposure ?? "—")}
-              </strong>
-            </li>
-            {Array.isArray(proposalLatest.blockers) && (proposalLatest.blockers as unknown[]).length > 0 ? (
-              <li data-fx-at-proposal-blockers="true">
-                Blockers:{" "}
-                {(proposalLatest.blockers as Array<{ code?: string; message?: string }>)
-                  .slice(0, 6)
-                  .map((b) => `${b.code ?? "?"}: ${b.message ?? ""}`)
-                  .join(" · ")}
-              </li>
-            ) : null}
-          </ul>
-        ) : (
+        {proposalLatest ? (() => {
+          const cap = (proposalLatest.capital ?? {}) as Record<string, unknown>;
+          const px = (proposalLatest.pricePlan ?? {}) as Record<string, unknown>;
+          const qty = (proposalLatest.quantity ?? {}) as Record<string, unknown>;
+          const blocked = String(proposalLatest.lifecycle) === "BLOCKED";
+          return (
+            <div data-fx-at-proposal-latest="true" style={{ marginTop: "0.5rem" }}>
+              <p className="fx-auto-trading-hint" style={{ margin: "0 0 0.5rem" }}>
+                Lifecycle: <strong>{String(proposalLatest.lifecycle ?? "—")}</strong>
+                {" · "}id=<strong>{String(proposalLatest.proposalId ?? "—")}</strong>
+                {" · "}policy=<strong>{String(cap.riskPolicyVersion ?? "—")}</strong>
+                {blocked ? (
+                  <span style={{ color: "var(--fx-danger, #b42318)", marginLeft: 8 }} data-fx-at-proposal-blocked-warn="true">
+                    BLOCKED — see reasons below
+                  </span>
+                ) : null}
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "0.75rem",
+                }}
+              >
+                <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }} data-fx-at-proposal-capital="true">
+                  <li><strong>CAPITAL</strong></li>
+                  <li>Equity: <strong>{cap.verifiedEquity != null ? String(cap.verifiedEquity) : "—"}</strong></li>
+                  <li>Strategy %: <strong>{cap.strategyAllocationPercent != null ? `${String(cap.strategyAllocationPercent)}%` : "—"}</strong></li>
+                  <li>Strategy budget: <strong>{cap.strategyAllocationBudget != null ? String(cap.strategyAllocationBudget) : "—"}</strong></li>
+                  <li>Order Allocation: <strong>{cap.individualOrderAllocation != null ? String(cap.individualOrderAllocation) : "—"}</strong></li>
+                  <li>Remaining budget: <strong>{cap.remainingStrategyBudget != null ? String(cap.remainingStrategyBudget) : "—"}</strong></li>
+                </ul>
+                <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }} data-fx-at-proposal-risk="true">
+                  <li><strong>RISK</strong></li>
+                  <li>Target %: <strong>{cap.riskTargetPercent != null ? `${String(cap.riskTargetPercent)}%` : "20%"}</strong></li>
+                  <li>Target amount: <strong>{cap.riskTargetAmount != null ? String(cap.riskTargetAmount) : "—"}</strong></li>
+                  <li>Max %: <strong>{cap.riskMaximumPercent != null ? `${String(cap.riskMaximumPercent)}%` : "25%"}</strong></li>
+                  <li>Max amount: <strong>{cap.maximumPermittedOrderLoss != null ? String(cap.maximumPermittedOrderLoss) : "—"}</strong></li>
+                  <li>Allowed risk: <strong>{cap.allowedRiskAmount != null ? String(cap.allowedRiskAmount) : "—"}</strong></li>
+                  <li>Projected loss @ SL: <strong>{cap.projectedLossAtStopLoss != null ? String(cap.projectedLossAtStopLoss) : "—"}</strong></li>
+                  <li>Validation: <strong>{String(cap.riskValidationStatus ?? "—")}</strong></li>
+                </ul>
+                <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }} data-fx-at-proposal-trade="true">
+                  <li><strong>TRADE</strong></li>
+                  <li>Direction: <strong>{String(proposalLatest.direction ?? "—")}</strong></li>
+                  <li>Entry: <strong>{px.entryPrice != null ? String(px.entryPrice) : "—"}</strong></li>
+                  <li>Stop Loss: <strong>{px.stopLoss != null ? String(px.stopLoss) : "—"}</strong></li>
+                  <li>Take Profit (3R planned): <strong>{px.takeProfit != null ? String(px.takeProfit) : "—"}</strong></li>
+                  <li>Planned R:R: <strong>{px.plannedRewardRiskRatio != null ? String(px.plannedRewardRiskRatio) : "—"}</strong></li>
+                  <li>Quantity: <strong>{qty.normalizedQuantity != null ? String(qty.normalizedQuantity) : "—"}</strong></li>
+                  <li>Contract: <strong>{qty.contractSize != null ? String(qty.contractSize) : "—"}</strong></li>
+                </ul>
+                <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }} data-fx-at-proposal-margin="true">
+                  <li><strong>MARGIN / EXPOSURE</strong></li>
+                  <li>Est. margin: <strong>{qty.estimatedMargin != null ? String(qty.estimatedMargin) : "—"}</strong></li>
+                  <li>Available: <strong>{qty.availableMargin != null ? String(qty.availableMargin) : "—"}</strong></li>
+                  <li>Utilization: <strong>{qty.projectedMarginUtilization != null ? String(qty.projectedMarginUtilization) : "—"}</strong></li>
+                  <li>Existing exposure: <strong>{qty.existingExposure != null ? String(qty.existingExposure) : "—"}</strong></li>
+                  <li>Projected exposure: <strong>{qty.projectedExposure != null ? String(qty.projectedExposure) : "—"}</strong></li>
+                </ul>
+              </div>
+              {Array.isArray(proposalLatest.blockers) && (proposalLatest.blockers as unknown[]).length > 0 ? (
+                <p className="fx-auto-trading-hint" style={{ color: "var(--fx-danger, #b42318)", marginTop: "0.75rem" }} data-fx-at-proposal-blockers="true">
+                  Blockers:{" "}
+                  {(proposalLatest.blockers as Array<{ code?: string; message?: string }>)
+                    .slice(0, 8)
+                    .map((b) => `${b.code ?? "?"}: ${b.message ?? ""}`)
+                    .join(" · ")}
+                </p>
+              ) : null}
+            </div>
+          );
+        })() : (
           <p className="fx-auto-trading-hint">No proposal yet. Requires eligible BUY/SELL handoff + Entry/SL.</p>
         )}
         {proposalHistory.length > 0 ? (
           <div data-fx-at-proposal-history="true" style={{ marginTop: "0.75rem" }}>
             <h3 className="fx-auto-trading-h2" style={{ fontSize: "1rem" }}>Proposal history</h3>
             <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
-              {proposalHistory.slice(0, 8).map((row) => (
-                <li key={String(row.proposalId)}>
-                  <strong>{String(row.lifecycle ?? "—")}</strong>
-                  {" · "}
-                  {String(row.direction ?? "—")}
-                  {" · "}
-                  {String(row.instrument ?? "—")}
-                  {" · "}
-                  {String(row.createdAtUtc ?? "—")}
-                </li>
-              ))}
+              {proposalHistory.slice(0, 8).map((row) => {
+                const c = (row.capital ?? {}) as Record<string, unknown>;
+                return (
+                  <li key={String(row.proposalId)}>
+                    <strong>{String(row.lifecycle ?? "—")}</strong>
+                    {" · "}
+                    {String(row.direction ?? "—")}
+                    {" · "}
+                    {String(row.instrument ?? "—")}
+                    {" · "}
+                    policy={String(c.riskPolicyVersion ?? "—")}
+                    {" · "}
+                    {String(row.createdAtUtc ?? "—")}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ) : null}

@@ -918,7 +918,7 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     if (fullSized.ok) {
       proposedQuantity = fullSized.quantity;
       proposedQuantityNote =
-        `Derived from order allocation (25% SL ceiling=$${fullSized.maxPermittedOrderLoss}); `
+        `Derived from order allocation (20% risk target / 25% hard max=$${fullSized.maxPermittedOrderLoss}); `
         + `unit=${fullSized.quantityUnit}; method=${fullSized.method}; `
         + `min=${fullSized.constraints.quantityMin} step=${fullSized.constraints.quantityStep}. `
         + `Not broker margin.`;

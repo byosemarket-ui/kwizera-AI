@@ -280,13 +280,15 @@ export type ProposeQuantityResult =
     estimatedStopLossRisk: number;
     riskPerUnit: number;
     maxPermittedLoss: number;
+    hardMaxLoss: number;
     method: "POINT_COST" | "CONTRACT_MULTIPLIER";
     quantityUnit: string;
   }
   | { ok: false; quantity: null; code: string; message: string };
 
 /**
- * Size quantity so estimated SL risk ≤ 25% of order allocation, using verified contract fields.
+ * Size quantity so estimated SL risk ≤ 20% risk target of order allocation
+ * (25% hard maximum still enforced after flooring).
  */
 export function proposeQuantityFromAllocation(input: {
   orderAllocation: number | null | undefined;
@@ -371,7 +373,9 @@ export function proposeQuantityFromAllocation(input: {
     };
   }
 
-  const maxPermittedLoss = alloc * 0.25;
+  // Size to 20% risk target; 25% remains the hard ceiling enforced after flooring.
+  const maxPermittedLoss = alloc * 0.20;
+  const hardMaxLoss = alloc * 0.25;
   const rawQty = maxPermittedLoss / riskPerUnit;
 
   // Phase 56.2.5 — never invent step=1 or min; resolve from BaseUnitSize + SDK min.
@@ -404,12 +408,20 @@ export function proposeQuantityFromAllocation(input: {
     };
   }
   const estimatedStopLossRisk = riskPerUnit * quantity;
-  if (estimatedStopLossRisk > maxPermittedLoss + 1e-8) {
+  if (estimatedStopLossRisk > hardMaxLoss + 1e-8) {
     return {
       ok: false,
       quantity: null,
       code: "PROPOSE_QTY_EXCEEDS_LOSS_LIMIT",
-      message: "Sized quantity would exceed 25% per-order loss limit — blocked.",
+      message: "Sized quantity would exceed hard maximum 25% per-order loss — blocked.",
+    };
+  }
+  if (estimatedStopLossRisk > maxPermittedLoss + 1e-8) {
+    return {
+      ok: false,
+      quantity: null,
+      code: "PROPOSE_QTY_EXCEEDS_RISK_TARGET",
+      message: "Sized quantity would exceed 20% risk target — blocked.",
     };
   }
   return {
@@ -418,6 +430,7 @@ export function proposeQuantityFromAllocation(input: {
     estimatedStopLossRisk,
     riskPerUnit,
     maxPermittedLoss,
+    hardMaxLoss,
     method,
     quantityUnit: c.quantityUnit,
   };

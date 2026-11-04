@@ -10,10 +10,18 @@ import {
   generateOrderProposalFromHandoff,
   getAtOrderProposalStore,
   OWNER_MAX_QUANTITY,
+  RISK_POLICY_ID,
+  RISK_POLICY_ID_LEGACY_25,
+  RISK_POLICY_VERSION,
+  RISK_POLICY_VERSION_LEGACY_25,
   resetAtOrderProposalStoreForTests,
   type AtOrderProposalRecord,
 } from "../../../../ai/forex-ai/automated-trading/order-proposal/index.js";
 import type { AtOrderPreparationHandoff } from "../../../../ai/forex-ai/automated-trading/result-intake/types.js";
+import {
+  computePerOrderRiskBreakdown,
+  evaluatePerOrderLossLimit,
+} from "../../../../ai/forex-ai/automated-trading/simulation-risk/capital-budget.js";
 import type { AtSimContractMetaInput } from "../../../../ai/forex-ai/automated-trading/simulation-risk/types.js";
 function handoff(dir: "BUY" | "SELL", overrides: Partial<AtOrderPreparationHandoff> = {}): AtOrderPreparationHandoff {
   return {
@@ -194,10 +202,13 @@ describe("Phase 4.18G.2 order proposal engine", () => {
     expect(record.pricePlan.takeProfit).toBe(1970);
   });
 
-  it("9. Risk amount = 25% of order allocation", () => {
+  it("9. Risk amount = 20% target / 25% hard max of order allocation", () => {
     const record = buildOrderProposal(baseReadyInput("BUY"));
-    expect(record.capital.allowedRiskAmount).toBe(125); // 500 * 0.25
-    expect(record.capital.riskPolicyId).toBe("PER_ORDER_ALLOCATION_25PCT_LOSS");
+    expect(record.capital.riskTargetAmount).toBe(100); // 500 * 0.20
+    expect(record.capital.maximumPermittedOrderLoss).toBe(125); // 500 * 0.25
+    expect(record.capital.allowedRiskAmount).toBe(100); // min(target, hardMax)
+    expect(record.capital.riskPolicyId).toBe("PER_ORDER_ALLOCATION_20TARGET_25MAX");
+    expect(record.capital.riskPolicyVersion).toBe("per-order-risk-v2-20target-25max");
   });
 
   it("10. Quantity uses contract specifications (floor-only)", () => {
@@ -405,5 +416,191 @@ describe("Phase 4.18G.2 order proposal engine", () => {
       contract: { ...fineContract(), verified: false },
     });
     expect(codes(record)).toContain("MISSING_INSTRUMENT_SPEC");
+  });
+
+  it("24. Historical proposals preserve original risk-policy version", () => {
+    const { record } = generateOrderProposalFromHandoff({ ...baseReadyInput("BUY"), persist: true }, tmp);
+    // Simulate a legacy stored record without rewriting its policy fields.
+    const store = getAtOrderProposalStore(tmp);
+    const legacy = {
+      ...record,
+      proposalId: "legacy-25-only",
+      idempotencyKey: "legacy-25-key",
+      capital: {
+        ...record.capital,
+        riskPolicyId: RISK_POLICY_ID_LEGACY_25,
+        riskPolicyVersion: RISK_POLICY_VERSION_LEGACY_25,
+        riskTargetAmount: null,
+        maximumPermittedOrderLoss: record.capital.allowedRiskAmount,
+      },
+    };
+    store.upsertProposal(legacy as AtOrderProposalRecord);
+    resetAtOrderProposalStoreForTests();
+    const reloaded = getAtOrderProposalStore(tmp);
+    const got = reloaded.get("legacy-25-only");
+    expect(got?.capital.riskPolicyVersion).toBe(RISK_POLICY_VERSION_LEGACY_25);
+    expect(got?.capital.riskPolicyId).toBe(RISK_POLICY_ID_LEGACY_25);
+    // New proposals still stamp v2.
+    expect(record.capital.riskPolicyVersion).toBe(RISK_POLICY_VERSION);
+    expect(record.capital.riskPolicyId).toBe(RISK_POLICY_ID);
+  });
+});
+
+describe("Phase 4.18G.2 per-order risk policy v2 (20% target / 25% hard max)", () => {
+  it.each([
+    [100, 20, 25],
+    [130, 26, 32.5],
+    [200, 40, 50],
+    [500, 100, 125],
+  ] as const)(
+    "$%s allocation → $%s risk target and $%s hard maximum",
+    (alloc, target, hardMax) => {
+      const bd = computePerOrderRiskBreakdown(alloc);
+      expect(bd.riskTargetAmount).toBe(target);
+      expect(bd.maximumPermittedOrderLoss).toBe(hardMax);
+      expect(bd.allowedRiskAmount).toBe(target);
+      expect(bd.riskTargetPercent).toBe(20);
+      expect(bd.riskMaximumPercent).toBe(25);
+    },
+  );
+
+  it("Projected loss equals risk target → PASS", () => {
+    const r = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 20 });
+    expect(r.ok && r.pass).toBe(true);
+    expect(r.code).toBe("PER_ORDER_LOSS_LIMIT_PASS");
+  });
+
+  it("Projected loss above 20% target but below 25% hard max → BLOCKED (target policy)", () => {
+    const r = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 22 });
+    expect(r.ok).toBe(true);
+    expect(r.pass).toBe(false);
+    expect(r.code).toBe("PER_ORDER_RISK_TARGET_EXCEEDED");
+  });
+
+  it("Projected loss above 25% hard maximum → BLOCKED", () => {
+    const r = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 26 });
+    expect(r.ok).toBe(true);
+    expect(r.pass).toBe(false);
+    expect(r.code).toBe("PER_ORDER_LOSS_LIMIT_EXCEEDED");
+  });
+
+  it("Ready proposal projected loss never exceeds allowed (20%) or hard max (25%)", () => {
+    const record = buildOrderProposal({
+      handoff: {
+        acceptedResultId: "res-r",
+        analysisId: "an-r",
+        instrument: "XAU/USD",
+        canonicalDirection: "BUY",
+        directionalConfidencePct: 60,
+        confidenceType: "ANALYSIS_CONFIDENCE",
+        isCalibratedWinProbability: false,
+        observationId: null,
+        imageId: null,
+        imageHash: null,
+        analyzedAtUtc: new Date().toISOString(),
+        resultExpiresAtUtc: new Date(Date.now() + 3600_000).toISOString(),
+        validationStatus: "VALID",
+        intakeLifecycle: "ACCEPTED",
+        evidenceReferences: {
+          reconciliationStatus: "ALIGNED",
+          canonicalOutcome: "BUY_CANDIDATE",
+          primaryTimeframe: "H1",
+          mtfAlignment: "ALIGNED",
+        },
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        note: "t",
+      },
+      entryPrice: 2000,
+      stopLoss: 1990,
+      verifiedEquity: 10_000,
+      accountCurrency: "USD",
+      equityFresh: true,
+      usableMargin: 8_000,
+      usedMargin: 0,
+      marginFresh: true,
+      strategyAllocationPercent: 10,
+      individualOrderAllocation: 200,
+      allocationCurrency: "USD",
+      existingCommittedExposure: 0,
+      contract: {
+        verified: true,
+        pointSize: 0.01,
+        tickSize: 0.01,
+        digits: 2,
+        quantityMin: 0.01,
+        quantityStep: 0.01,
+        quantityUnit: "contracts",
+        quantityUnitAmbiguous: false,
+        contractMultiplier: 1,
+        baseUnitSize: 0.01,
+        pipCostAccount: 0.01,
+        marginPerLotAccount: 50,
+        minStopDistance: null,
+        minStopDistanceVerified: false,
+        source: "test",
+        unavailableReason: null,
+      },
+      contractFresh: true,
+      sdkMinQuantity: 0.01,
+      marginPerUnitAccount: 50,
+      exposureAuthoritative: true,
+      existingExposure: 0,
+      systemMasterOn: true,
+      tradingEnabled: true,
+      emergencyEntryLock: false,
+    });
+    expect(record.lifecycle).toBe("PROPOSAL_READY");
+    expect(record.capital.riskTargetAmount).toBe(40);
+    expect(record.capital.maximumPermittedOrderLoss).toBe(50);
+    expect(record.capital.projectedLossAtStopLoss!).toBeLessThanOrEqual(
+      (record.capital.allowedRiskAmount ?? 0) + 1e-8,
+    );
+    expect(record.capital.projectedLossAtStopLoss!).toBeLessThanOrEqual(
+      (record.capital.maximumPermittedOrderLoss ?? 0) + 1e-8,
+    );
+    expect(record.capital.riskValidationStatus).toBe("PASS");
+  });
+
+  it("Canonical AI direction cannot override — NO_TRADE still blocked", () => {
+    const record = buildOrderProposal({
+      handoff: null,
+      canonicalDecision: "NO_TRADE",
+      entryPrice: 2000,
+      stopLoss: 1990,
+      verifiedEquity: 10_000,
+      accountCurrency: "USD",
+      equityFresh: true,
+      usableMargin: 8000,
+      marginFresh: true,
+      strategyAllocationPercent: 10,
+      individualOrderAllocation: 100,
+      contract: {
+        verified: true,
+        pointSize: 0.01,
+        tickSize: 0.01,
+        digits: 2,
+        quantityMin: 0.01,
+        quantityStep: 0.01,
+        quantityUnit: "contracts",
+        quantityUnitAmbiguous: false,
+        contractMultiplier: 1,
+        baseUnitSize: 0.01,
+        pipCostAccount: 0.01,
+        marginPerLotAccount: 50,
+        minStopDistance: null,
+        minStopDistanceVerified: false,
+        source: "t",
+        unavailableReason: null,
+      },
+      contractFresh: true,
+      exposureAuthoritative: true,
+      systemMasterOn: true,
+      tradingEnabled: true,
+      emergencyEntryLock: false,
+    });
+    expect(record.lifecycle).toBe("BLOCKED");
+    expect(record.blockers.map((b) => b.code)).toContain("NO_TRADE_NOT_ELIGIBLE");
   });
 });

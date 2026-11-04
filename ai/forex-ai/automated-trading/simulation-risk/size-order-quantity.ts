@@ -3,7 +3,11 @@
  * Simulation-only. Never invents margin, pip value, units, or stop distances.
  */
 
-import { computePerOrderLossLimit } from "./capital-budget.js";
+import {
+  computeAllowedRiskAmount,
+  computePerOrderLossLimit,
+  computePerOrderRiskTarget,
+} from "./capital-budget.js";
 import {
   ensureAmountInAccountCurrency,
   type ConversionRateSnapshot,
@@ -29,7 +33,12 @@ export type SizeOrderQuantityResult =
     quantity: number;
     quantityUnit: "contracts";
     estimatedStopLossRisk: number;
+    /** Hard 25% ceiling. */
     maxPermittedOrderLoss: number;
+    /** 20% risk target amount. */
+    riskTargetAmount: number;
+    /** min(target, hardMax) — sizing ceiling. */
+    allowedRiskAmount: number;
     riskPerUnit: number;
     requiredMargin: number | null;
     freeMargin: number | null;
@@ -295,8 +304,11 @@ export function sizeOrderQuantityFromAllocation(
     };
   }
 
+  const riskTargetAmount = computePerOrderRiskTarget(orderAllocationAccountCcy);
   const maxPermittedOrderLoss = computePerOrderLossLimit(orderAllocationAccountCcy);
-  const rawQty = maxPermittedOrderLoss / riskPerUnit;
+  const allowedRiskAmount = computeAllowedRiskAmount(orderAllocationAccountCcy);
+  // Size to the allowed risk (20% target), never to the hard max as a permission to raise risk.
+  const rawQty = allowedRiskAmount / riskPerUnit;
   const quantity = floorQuantityToStep(
     rawQty,
     constraints.quantityStep,
@@ -309,7 +321,8 @@ export function sizeOrderQuantityFromAllocation(
       quantityUnit: "contracts",
       code: "SIZE_QTY_BELOW_MIN_AFTER_FLOOR",
       message:
-        `Risk ceiling $${maxPermittedOrderLoss} cannot fund minimum ${constraints.quantityMin} `
+        `Allowed risk $${allowedRiskAmount} (target ${riskTargetAmount}, hard max ${maxPermittedOrderLoss}) `
+        + `cannot fund minimum ${constraints.quantityMin} `
         + `${constraints.quantityUnit} after flooring to step ${constraints.quantityStep}.`,
       constraints,
       notes,
@@ -323,7 +336,20 @@ export function sizeOrderQuantityFromAllocation(
       quantity: null,
       quantityUnit: "contracts",
       code: "SIZE_QTY_EXCEEDS_LOSS_LIMIT",
-      message: "Floored quantity would still exceed 25% per-order loss limit — blocked.",
+      message: "Floored quantity would exceed hard maximum 25% per-order loss — blocked.",
+      constraints,
+      notes,
+    };
+  }
+  if (estimatedStopLossRisk > allowedRiskAmount + 1e-8) {
+    return {
+      ok: false,
+      quantity: null,
+      quantityUnit: "contracts",
+      code: "SIZE_QTY_EXCEEDS_RISK_TARGET",
+      message:
+        "Floored quantity exceeds 20% risk target — blocked. "
+        + "Hard 25% maximum is not permission to raise risk above the target.",
       constraints,
       notes,
     };
@@ -364,13 +390,18 @@ export function sizeOrderQuantityFromAllocation(
         const need = marginPer! * fit;
         if (need <= freeMargin + 1e-8) {
           const refitRisk = riskPerUnit * fit;
-          if (refitRisk <= maxPermittedOrderLoss + 1e-8) {
+          if (
+            refitRisk <= allowedRiskAmount + 1e-8
+            && refitRisk <= maxPermittedOrderLoss + 1e-8
+          ) {
             return {
               ok: true,
               quantity: fit,
               quantityUnit: "contracts",
               estimatedStopLossRisk: refitRisk,
               maxPermittedOrderLoss,
+              riskTargetAmount,
+              allowedRiskAmount,
               riskPerUnit,
               requiredMargin: need,
               freeMargin,
@@ -408,6 +439,8 @@ export function sizeOrderQuantityFromAllocation(
     quantityUnit: "contracts",
     estimatedStopLossRisk,
     maxPermittedOrderLoss,
+    riskTargetAmount,
+    allowedRiskAmount,
     riskPerUnit,
     requiredMargin,
     freeMargin,

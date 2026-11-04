@@ -1,10 +1,33 @@
 /**
- * Phase 56.2.3 — Strategy capital allocation (1–100% of equity) and per-order 25% loss limit.
+ * Phase 56.2.3 / Step 2 risk policy —
+ * Strategy capital allocation (1–100% of equity) and per-order risk.
+ *
+ * Per-order risk (v2):
+ *   riskTargetAmount          = allocation × 0.20  (normal target)
+ *   maximumPermittedOrderLoss = allocation × 0.25  (hard safety ceiling — not UI-increasable)
+ *   allowedRiskAmount         = min(riskTarget, hardMax)  (= target under default percents)
+ *
  * Strategy budget ≠ broker margin ≠ estimated SL risk.
  */
 export const STRATEGY_ALLOCATION_PCT_MIN = 1;
 export const STRATEGY_ALLOCATION_PCT_MAX = 100;
+
+/** Normal per-order risk target as fraction of individual order allocation. */
+export const PER_ORDER_RISK_TARGET_FRACTION = 0.20;
+export const PER_ORDER_RISK_TARGET_PERCENT = 20;
+
+/**
+ * Absolute hard maximum loss as fraction of individual order allocation.
+ * Safety ceiling — must never be raised via ordinary configuration.
+ */
 export const PER_ORDER_LOSS_LIMIT_FRACTION = 0.25;
+export const PER_ORDER_RISK_MAXIMUM_PERCENT = 25;
+
+/** @deprecated Alias — prefer PER_ORDER_LOSS_LIMIT_FRACTION (hard ceiling). */
+export const PER_ORDER_HARD_MAX_FRACTION = PER_ORDER_LOSS_LIMIT_FRACTION;
+
+export const PER_ORDER_RISK_POLICY_VERSION = "per-order-risk-v2-20target-25max" as const;
+export const PER_ORDER_RISK_POLICY_VERSION_LEGACY_25 = "per-order-risk-v1-25pct-only" as const;
 
 export type StrategyPctValidation =
   | { ok: true; capitalAllocationPercent: number }
@@ -73,7 +96,6 @@ export function computeCapitalAllocationBudget(
   if (!pct.ok) return { ok: false, code: pct.code, message: pct.message };
   return {
     ok: true,
-    // Round to 8 dp to remove IEEE float noise (e.g. 19997.65 * 0.1).
     capitalAllocationBudget:
       Math.round(verifiedEquity * (capitalAllocationPercent / 100) * 1e8) / 1e8,
     equityUsed: verifiedEquity,
@@ -132,9 +154,7 @@ export function allocatePerOrderFromRemaining(input: {
     };
   }
   const requested = input.requestedPerOrderAllocation;
-  let perOrder: number;
   if (requested == null) {
-    // Default: do not auto-consume the entire remaining budget for one order.
     return {
       ok: false,
       code: "PER_ORDER_ALLOCATION_MISSING",
@@ -155,17 +175,64 @@ export function allocatePerOrderFromRemaining(input: {
       message: `Requested per-order allocation ${requested} exceeds remaining strategy budget ${remainingBefore}.`,
     };
   }
-  perOrder = requested;
   return {
     ok: true,
-    perOrderAllocation: perOrder,
+    perOrderAllocation: requested,
     remainingBefore,
-    remainingAfter: remainingBefore - perOrder,
+    remainingAfter: remainingBefore - requested,
   };
 }
 
+/** 20% risk target amount from individual order allocation. */
+export function computePerOrderRiskTarget(perOrderAllocation: number): number {
+  return perOrderAllocation * PER_ORDER_RISK_TARGET_FRACTION;
+}
+
+/**
+ * Hard maximum permitted order loss (25% of allocation).
+ * Safety ceiling — not an ordinary raisable setting.
+ */
 export function computePerOrderLossLimit(perOrderAllocation: number): number {
   return perOrderAllocation * PER_ORDER_LOSS_LIMIT_FRACTION;
+}
+
+/** Alias for hard maximum (same as computePerOrderLossLimit). */
+export function computeMaximumPermittedOrderLoss(perOrderAllocation: number): number {
+  return computePerOrderLossLimit(perOrderAllocation);
+}
+
+/**
+ * allowedRiskAmount = min(riskTarget, hardMaximum).
+ * With default 20/25 percents this equals the 20% target.
+ */
+export function computeAllowedRiskAmount(perOrderAllocation: number): number {
+  const target = computePerOrderRiskTarget(perOrderAllocation);
+  const hardMax = computePerOrderLossLimit(perOrderAllocation);
+  return Math.min(target, hardMax);
+}
+
+export interface PerOrderRiskBreakdown {
+  perOrderAllocation: number;
+  riskTargetPercent: typeof PER_ORDER_RISK_TARGET_PERCENT;
+  riskTargetAmount: number;
+  riskMaximumPercent: typeof PER_ORDER_RISK_MAXIMUM_PERCENT;
+  maximumPermittedOrderLoss: number;
+  allowedRiskAmount: number;
+  riskPolicyVersion: typeof PER_ORDER_RISK_POLICY_VERSION;
+}
+
+export function computePerOrderRiskBreakdown(perOrderAllocation: number): PerOrderRiskBreakdown {
+  const riskTargetAmount = computePerOrderRiskTarget(perOrderAllocation);
+  const maximumPermittedOrderLoss = computePerOrderLossLimit(perOrderAllocation);
+  return {
+    perOrderAllocation,
+    riskTargetPercent: PER_ORDER_RISK_TARGET_PERCENT,
+    riskTargetAmount,
+    riskMaximumPercent: PER_ORDER_RISK_MAXIMUM_PERCENT,
+    maximumPermittedOrderLoss,
+    allowedRiskAmount: Math.min(riskTargetAmount, maximumPermittedOrderLoss),
+    riskPolicyVersion: PER_ORDER_RISK_POLICY_VERSION,
+  };
 }
 
 export type PerOrderLossLimitResult =
@@ -174,8 +241,13 @@ export type PerOrderLossLimitResult =
     pass: boolean;
     perOrderAllocation: number;
     perOrderLossLimit: number;
+    riskTargetAmount: number;
+    allowedRiskAmount: number;
     estimatedStopLossRisk: number;
-    code: "PER_ORDER_LOSS_LIMIT_PASS" | "PER_ORDER_LOSS_LIMIT_EXCEEDED";
+    code:
+      | "PER_ORDER_LOSS_LIMIT_PASS"
+      | "PER_ORDER_LOSS_LIMIT_EXCEEDED"
+      | "PER_ORDER_RISK_TARGET_EXCEEDED";
     message: string;
   }
   | {
@@ -183,14 +255,17 @@ export type PerOrderLossLimitResult =
     pass: false;
     perOrderAllocation: number | null;
     perOrderLossLimit: number | null;
+    riskTargetAmount: number | null;
+    allowedRiskAmount: number | null;
     estimatedStopLossRisk: number | null;
     code: string;
     message: string;
   };
 
 /**
- * estimatedStopLossRisk <= perOrderAllocation * 0.25
- * Equality within 1e-8 passes.
+ * Enforce risk target (20%) and hard maximum (25%).
+ * Pass only when projected loss <= allowedRiskAmount (target under default policy).
+ * Hard-max exceed is a distinct failure code.
  */
 export function evaluatePerOrderLossLimit(input: {
   perOrderAllocation: number | null | undefined;
@@ -204,33 +279,69 @@ export function evaluatePerOrderLossLimit(input: {
       pass: false,
       perOrderAllocation: null,
       perOrderLossLimit: null,
+      riskTargetAmount: null,
+      allowedRiskAmount: null,
       estimatedStopLossRisk: typeof risk === "number" && Number.isFinite(risk) ? risk : null,
       code: "PER_ORDER_ALLOCATION_MISSING",
-      message: "Per-order allocation required to compute 25% loss limit.",
+      message: "Per-order allocation required to compute risk target / hard maximum.",
     };
   }
+  const breakdown = computePerOrderRiskBreakdown(alloc);
   if (typeof risk !== "number" || !Number.isFinite(risk) || risk < 0) {
     return {
       ok: false,
       pass: false,
       perOrderAllocation: alloc,
-      perOrderLossLimit: computePerOrderLossLimit(alloc),
+      perOrderLossLimit: breakdown.maximumPermittedOrderLoss,
+      riskTargetAmount: breakdown.riskTargetAmount,
+      allowedRiskAmount: breakdown.allowedRiskAmount,
       estimatedStopLossRisk: null,
       code: "PER_ORDER_LOSS_RISK_UNAVAILABLE",
-      message: "Estimated Stop Loss risk unavailable — 25% loss-limit check not fabricated.",
+      message: "Estimated Stop Loss risk unavailable — risk-limit check not fabricated.",
     };
   }
-  const limit = computePerOrderLossLimit(alloc);
-  const pass = risk <= limit + 1e-8;
+  if (risk > breakdown.maximumPermittedOrderLoss + 1e-8) {
+    return {
+      ok: true,
+      pass: false,
+      perOrderAllocation: alloc,
+      perOrderLossLimit: breakdown.maximumPermittedOrderLoss,
+      riskTargetAmount: breakdown.riskTargetAmount,
+      allowedRiskAmount: breakdown.allowedRiskAmount,
+      estimatedStopLossRisk: risk,
+      code: "PER_ORDER_LOSS_LIMIT_EXCEEDED",
+      message:
+        `Estimated SL risk ${risk} exceeds hard maximum ${breakdown.maximumPermittedOrderLoss} `
+        + `(${PER_ORDER_RISK_MAXIMUM_PERCENT}% of allocation ${alloc}).`,
+    };
+  }
+  if (risk > breakdown.allowedRiskAmount + 1e-8) {
+    return {
+      ok: true,
+      pass: false,
+      perOrderAllocation: alloc,
+      perOrderLossLimit: breakdown.maximumPermittedOrderLoss,
+      riskTargetAmount: breakdown.riskTargetAmount,
+      allowedRiskAmount: breakdown.allowedRiskAmount,
+      estimatedStopLossRisk: risk,
+      code: "PER_ORDER_RISK_TARGET_EXCEEDED",
+      message:
+        `Estimated SL risk ${risk} exceeds risk target ${breakdown.allowedRiskAmount} `
+        + `(${PER_ORDER_RISK_TARGET_PERCENT}% of allocation ${alloc}). Hard max `
+        + `${breakdown.maximumPermittedOrderLoss} is not permission to raise risk.`,
+    };
+  }
   return {
     ok: true,
-    pass,
+    pass: true,
     perOrderAllocation: alloc,
-    perOrderLossLimit: limit,
+    perOrderLossLimit: breakdown.maximumPermittedOrderLoss,
+    riskTargetAmount: breakdown.riskTargetAmount,
+    allowedRiskAmount: breakdown.allowedRiskAmount,
     estimatedStopLossRisk: risk,
-    code: pass ? "PER_ORDER_LOSS_LIMIT_PASS" : "PER_ORDER_LOSS_LIMIT_EXCEEDED",
-    message: pass
-      ? `Estimated SL risk ${risk} <= per-order loss limit ${limit} (25% of allocation ${alloc}).`
-      : `Estimated SL risk ${risk} exceeds per-order loss limit ${limit} (25% of allocation ${alloc}).`,
+    code: "PER_ORDER_LOSS_LIMIT_PASS",
+    message:
+      `Estimated SL risk ${risk} <= allowed risk ${breakdown.allowedRiskAmount} `
+      + `(target ${PER_ORDER_RISK_TARGET_PERCENT}%, hard max ${PER_ORDER_RISK_MAXIMUM_PERCENT}% of ${alloc}).`,
   };
 }

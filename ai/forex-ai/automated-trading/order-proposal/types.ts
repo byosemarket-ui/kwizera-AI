@@ -13,11 +13,18 @@ export const AT_ORDER_PROPOSAL_MAX_HISTORY = 80;
 export const OWNER_MAX_QUANTITY = 0.01;
 
 /**
- * Production risk policy (unchanged from simulation-risk capital-budget):
- * allowedRiskAmount = individualOrderAllocation × PER_ORDER_LOSS_LIMIT_FRACTION (0.25).
+ * Per-order risk policy v2:
+ *   riskTargetAmount = allocation × 0.20
+ *   maximumPermittedOrderLoss = allocation × 0.25 (hard ceiling)
+ *   allowedRiskAmount = min(target, hardMax)
  * Distinct from Capital Allocation % and Order Allocation.
  */
-export const RISK_POLICY_ID = "PER_ORDER_ALLOCATION_25PCT_LOSS" as const;
+export const RISK_POLICY_ID = "PER_ORDER_ALLOCATION_20TARGET_25MAX" as const;
+export const RISK_POLICY_ID_LEGACY_25 = "PER_ORDER_ALLOCATION_25PCT_LOSS" as const;
+export const RISK_POLICY_VERSION = "per-order-risk-v2-20target-25max" as const;
+export const RISK_POLICY_VERSION_LEGACY_25 = "per-order-risk-v1-25pct-only" as const;
+export const PER_ORDER_RISK_TARGET_PERCENT = 20 as const;
+export const PER_ORDER_RISK_MAXIMUM_PERCENT = 25 as const;
 
 export type AtOrderProposalLifecycle =
   | "RECEIVED"
@@ -46,6 +53,7 @@ export type AtOrderProposalBlockCode =
   | "MISSING_ACCOUNT_EQUITY"
   | "MISSING_MARGIN_DATA"
   | "RISK_LIMIT_EXCEEDED"
+  | "RISK_TARGET_EXCEEDED"
   | "ALLOCATION_BUDGET_EXCEEDED"
   | "INSUFFICIENT_AVAILABLE_MARGIN"
   | "EXPOSURE_LIMIT_EXCEEDED"
@@ -81,11 +89,26 @@ export interface AtOrderProposalCapitalSnapshot {
   existingCommittedExposure: number | null;
   pendingProposalReservations: number | null;
   remainingStrategyBudget: number | null;
-  /** B — max permitted loss if SL is reached (25% of order allocation under current policy). */
+  /** Risk target % (20) — intended max loss for this order. */
+  riskTargetPercent: typeof PER_ORDER_RISK_TARGET_PERCENT | number | null;
+  /** C — riskTargetAmount = orderAllocation × 0.20 */
+  riskTargetAmount: number | null;
+  /** Hard maximum risk % (25) — absolute ceiling. */
+  riskMaximumPercent: typeof PER_ORDER_RISK_MAXIMUM_PERCENT | number | null;
+  /** D — maximumPermittedOrderLoss = orderAllocation × 0.25 */
+  maximumPermittedOrderLoss: number | null;
+  /** allowedRiskAmount = min(riskTargetAmount, maximumPermittedOrderLoss) */
   allowedRiskAmount: number | null;
   projectedLossAtStopLoss: number | null;
   remainingRiskBudget: number | null;
-  riskPolicyId: typeof RISK_POLICY_ID;
+  /** Aggregate open/pending projected risk when known; null if no aggregate policy. */
+  aggregateOpenRisk: number | null;
+  pendingProposalRisk: number | null;
+  /** No strategy-level aggregate risk % is configured — null, not invented. */
+  aggregateRiskPercentPolicy: null;
+  riskValidationStatus: "PASS" | "FAIL" | "NOT_EVALUATED" | null;
+  riskPolicyId: string;
+  riskPolicyVersion: string;
   currency: string | null;
   configVersion: number | null;
   lastUpdateAtUtc: string | null;

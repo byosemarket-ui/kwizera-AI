@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import {
   allocatePerOrderFromRemaining,
   computeCapitalAllocationBudget,
-  computePerOrderLossLimit,
+  computePerOrderRiskBreakdown,
   validateStrategyAllocationPercent,
 } from "../simulation-risk/capital-budget.js";
 import {
@@ -25,7 +25,10 @@ import {
   AT_ORDER_PROPOSAL_PHASE,
   AT_ORDER_PROPOSAL_SCHEMA,
   OWNER_MAX_QUANTITY,
+  PER_ORDER_RISK_MAXIMUM_PERCENT,
+  PER_ORDER_RISK_TARGET_PERCENT,
   RISK_POLICY_ID,
+  RISK_POLICY_VERSION,
   type AtOrderProposalBlockCode,
   type AtOrderProposalBlocker,
   type AtOrderProposalRecord,
@@ -93,10 +96,19 @@ function emptyCapital(): AtOrderProposalRecord["capital"] {
     existingCommittedExposure: null,
     pendingProposalReservations: null,
     remainingStrategyBudget: null,
+    riskTargetPercent: PER_ORDER_RISK_TARGET_PERCENT,
+    riskTargetAmount: null,
+    riskMaximumPercent: PER_ORDER_RISK_MAXIMUM_PERCENT,
+    maximumPermittedOrderLoss: null,
     allowedRiskAmount: null,
     projectedLossAtStopLoss: null,
     remainingRiskBudget: null,
+    aggregateOpenRisk: null,
+    pendingProposalRisk: null,
+    aggregateRiskPercentPolicy: null,
+    riskValidationStatus: "NOT_EVALUATED",
     riskPolicyId: RISK_POLICY_ID,
+    riskPolicyVersion: RISK_POLICY_VERSION,
     currency: null,
     configVersion: null,
     lastUpdateAtUtc: null,
@@ -169,6 +181,8 @@ function mapSizerCode(code: string): AtOrderProposalBlockCode | string {
       return "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY";
     case "SIZE_QTY_EXCEEDS_LOSS_LIMIT":
       return "RISK_LIMIT_EXCEEDED";
+    case "SIZE_QTY_EXCEEDS_RISK_TARGET":
+      return "RISK_TARGET_EXCEEDED";
     case "FX_RATE_MISSING":
     case "FX_RATE_UNAVAILABLE":
     case "CONVERSION_RATE_MISSING":
@@ -452,7 +466,14 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
       } else {
         base.capital.allocatedAmount = resolved.perOrderAllocation;
         base.capital.remainingStrategyBudget = resolved.remainingAfter;
-        base.capital.allowedRiskAmount = computePerOrderLossLimit(resolved.perOrderAllocation);
+        const riskBd = computePerOrderRiskBreakdown(resolved.perOrderAllocation);
+        base.capital.riskTargetPercent = riskBd.riskTargetPercent;
+        base.capital.riskTargetAmount = riskBd.riskTargetAmount;
+        base.capital.riskMaximumPercent = riskBd.riskMaximumPercent;
+        base.capital.maximumPermittedOrderLoss = riskBd.maximumPermittedOrderLoss;
+        base.capital.allowedRiskAmount = riskBd.allowedRiskAmount;
+        base.capital.riskPolicyId = RISK_POLICY_ID;
+        base.capital.riskPolicyVersion = RISK_POLICY_VERSION;
       }
     }
   }
@@ -567,11 +588,20 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
     } else {
       takeProfit = tp.takeProfit;
       riskDistance = tp.stopDistance;
-      rewardDistance = 3 * tp.stopDistance;
+      rewardDistance = Math.abs(tp.takeProfit - entryPrice);
       if (tickSize != null && !priceOnTick(takeProfit, tickSize)) {
-        // proposeTakeProfit3RPrice already rounds to digits; if still off tick, block
         blockers.push(block("INVALID_PRICE_PRECISION", `Take Profit ${takeProfit} is not aligned to tick size ${tickSize}.`));
         takeProfit = null;
+      } else if (riskDistance > 0 && rewardDistance / riskDistance + 1e-9 < 3) {
+        // Tick/digit normalization must not silently shrink planned R:R below 3:1.
+        blockers.push(block(
+          "INVALID_PRICE_PRECISION",
+          `Normalized Take Profit yields R:R ${(rewardDistance / riskDistance).toFixed(4)} below required 3:1 — blocked.`,
+        ));
+        takeProfit = null;
+        rewardDistance = null;
+      } else {
+        rewardDistance = 3 * riskDistance;
       }
     }
   }
@@ -663,15 +693,45 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
 
     if (!sized.ok) {
       blockers.push(block(mapSizerCode(sized.code), sized.message));
+      base.capital.riskValidationStatus = "FAIL";
     } else {
       base.quantity.calculatedQuantity = sized.quantity;
       base.quantity.sizingMethod = sized.method;
       base.capital.projectedLossAtStopLoss = sized.estimatedStopLossRisk;
-      base.capital.allowedRiskAmount = sized.maxPermittedOrderLoss;
+      base.capital.riskTargetAmount = sized.riskTargetAmount;
+      base.capital.maximumPermittedOrderLoss = sized.maxPermittedOrderLoss;
+      base.capital.allowedRiskAmount = sized.allowedRiskAmount;
+      base.capital.riskTargetPercent = PER_ORDER_RISK_TARGET_PERCENT;
+      base.capital.riskMaximumPercent = PER_ORDER_RISK_MAXIMUM_PERCENT;
+      base.capital.riskPolicyId = RISK_POLICY_ID;
+      base.capital.riskPolicyVersion = RISK_POLICY_VERSION;
       base.capital.remainingStrategyBudget = sized.remainingStrategyBudgetAfter;
-      if (base.capital.allowedRiskAmount != null && sized.estimatedStopLossRisk != null) {
+      if (sized.allowedRiskAmount != null && sized.estimatedStopLossRisk != null) {
         base.capital.remainingRiskBudget =
-          base.capital.allowedRiskAmount - sized.estimatedStopLossRisk;
+          sized.allowedRiskAmount - sized.estimatedStopLossRisk;
+      }
+      // Pending proposal risk = this proposal's projected loss (aggregate % policy not configured).
+      base.capital.pendingProposalRisk = sized.estimatedStopLossRisk;
+      base.capital.aggregateOpenRisk =
+        finiteNonNeg(input.existingCommittedExposure) ? null : null;
+      base.capital.aggregateRiskPercentPolicy = null;
+
+      // Post-floor absolute enforcement (target + hard max).
+      if (sized.estimatedStopLossRisk > sized.maxPermittedOrderLoss + 1e-8) {
+        blockers.push(block(
+          "RISK_LIMIT_EXCEEDED",
+          `Projected loss ${sized.estimatedStopLossRisk} exceeds hard maximum ${sized.maxPermittedOrderLoss}.`,
+        ));
+        base.capital.riskValidationStatus = "FAIL";
+      } else if (sized.estimatedStopLossRisk > sized.allowedRiskAmount + 1e-8) {
+        blockers.push(block(
+          "RISK_TARGET_EXCEEDED",
+          `Projected loss ${sized.estimatedStopLossRisk} exceeds risk target ${sized.allowedRiskAmount}. `
+          + "Hard 25% is not permission to raise risk above the 20% target.",
+        ));
+        base.capital.riskValidationStatus = "FAIL";
+      } else {
+        base.capital.riskValidationStatus = "PASS";
       }
 
       // Floor-only already applied inside sizer; re-assert owner max 0.01
@@ -688,15 +748,27 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
             `Calculated quantity ${qty} exceeds owner maximum ${OWNER_MAX_QUANTITY}; cannot floor to a valid step within owner max.`,
           ));
           qty = null as unknown as number;
+          base.capital.riskValidationStatus = "FAIL";
         } else {
           qty = floored;
           base.notes.push(`Quantity capped to owner maximum ${OWNER_MAX_QUANTITY} (floor-only).`);
-          // Recompute projected loss at capped qty
           const riskPerUnit = sized.riskPerUnit;
           const projected = riskPerUnit * qty;
           base.capital.projectedLossAtStopLoss = projected;
+          base.capital.pendingProposalRisk = projected;
+          base.capital.remainingRiskBudget = sized.allowedRiskAmount - projected;
           if (projected > sized.maxPermittedOrderLoss + 1e-8) {
-            blockers.push(block("RISK_LIMIT_EXCEEDED", "Projected loss at owner-capped quantity exceeds permitted risk."));
+            blockers.push(block(
+              "RISK_LIMIT_EXCEEDED",
+              "Projected loss at owner-capped quantity exceeds hard maximum 25%.",
+            ));
+            base.capital.riskValidationStatus = "FAIL";
+          } else if (projected > sized.allowedRiskAmount + 1e-8) {
+            blockers.push(block(
+              "RISK_TARGET_EXCEEDED",
+              "Projected loss at owner-capped quantity exceeds 20% risk target.",
+            ));
+            base.capital.riskValidationStatus = "FAIL";
           }
         }
       }
