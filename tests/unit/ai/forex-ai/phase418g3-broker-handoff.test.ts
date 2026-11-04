@@ -556,8 +556,47 @@ describe("Phase 4.18G.3 broker handoff", () => {
       },
       { persist: true, storageRoot: tmp },
     );
+    expect(a.record.lifecycle).toBe("HANDOFF_READY");
     expect(b.duplicate).toBe(true);
     expect(b.record.provenance.handoffId).toBe(a.record.provenance.handoffId);
+  });
+
+  it("32b. BLOCKED handoff revalidates after System Master recovers", () => {
+    const proposal = readyProposal("BUY");
+    const blocked = validateProposalForBrokerHandoff(
+      {
+        proposal,
+        account: accountOk(),
+        instrument: instrumentOk(),
+        systemMasterOn: false,
+        instrumentFresh: true,
+        marginFresh: true,
+        accountConnected: true,
+        accountAuthenticated: true,
+      },
+      { persist: true, storageRoot: tmp },
+    );
+    expect(blocked.record.lifecycle).toBe("BLOCKED");
+    expect(codes(blocked.record)).toContain("SYSTEM_MASTER_OFF");
+
+    const recovered = validateProposalForBrokerHandoff(
+      {
+        proposal,
+        account: accountOk(),
+        instrument: instrumentOk(),
+        systemMasterOn: true,
+        instrumentFresh: true,
+        marginFresh: true,
+        accountConnected: true,
+        accountAuthenticated: true,
+      },
+      { persist: true, storageRoot: tmp },
+    );
+    expect(recovered.duplicate).toBe(false);
+    expect(recovered.record.lifecycle).toBe("HANDOFF_READY");
+    expect(codes(recovered.record)).not.toContain("SYSTEM_MASTER_OFF");
+    expect(recovered.record.provenance.handoffId).not.toBe(blocked.record.provenance.handoffId);
+    expect(blocked.record.lifecycle === "SUPERSEDED" || getAtBrokerHandoffStore(tmp).get(blocked.record.provenance.handoffId)?.lifecycle === "SUPERSEDED").toBe(true);
   });
 
   it("33. Expired handoff cannot be reused as ready", () => {

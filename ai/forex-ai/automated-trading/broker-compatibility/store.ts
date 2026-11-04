@@ -102,26 +102,31 @@ export class AtBrokerHandoffStore {
     const existingId = this.data.byIdempotencyKey[record.idempotencyKey];
     if (existingId) {
       const existing = this.get(existingId);
-      if (
-        existing
-        && (existing.lifecycle === "HANDOFF_READY"
-          || existing.lifecycle === "BLOCKED"
-          || existing.lifecycle === "VALIDATING"
-          || existing.lifecycle === "BROKER_COMPATIBLE"
-          || existing.lifecycle === "RECEIVED")
-      ) {
-        // Expired ready packages must not be reused as active.
-        if (existing.lifecycle === "HANDOFF_READY" && isHandoffExpired(existing)) {
+      /**
+       * Idempotency applies only to non-expired HANDOFF_READY packages for the same
+       * proposal version. BLOCKED/REJECTED/in-progress outcomes must be revalidated —
+       * otherwise a prior SYSTEM_MASTER_OFF (or stale margin/offer) would stick forever
+       * after gates recover (production closeout defect).
+       */
+      if (existing?.lifecycle === "HANDOFF_READY") {
+        if (isHandoffExpired(existing)) {
           existing.lifecycle = "EXPIRED";
           existing.updatedAtUtc = new Date().toISOString();
           existing.provenance.updatedAtUtc = existing.updatedAtUtc;
         } else {
           return { record: existing, duplicate: true };
         }
-      }
-      if (existing && existing.lifecycle === "HANDOFF_READY") {
+      } else if (
+        existing
+        && (existing.lifecycle === "BLOCKED"
+          || existing.lifecycle === "REJECTED"
+          || existing.lifecycle === "VALIDATING"
+          || existing.lifecycle === "BROKER_COMPATIBLE"
+          || existing.lifecycle === "RECEIVED")
+      ) {
         existing.lifecycle = "SUPERSEDED";
         existing.updatedAtUtc = new Date().toISOString();
+        existing.provenance.updatedAtUtc = existing.updatedAtUtc;
       }
     }
 
