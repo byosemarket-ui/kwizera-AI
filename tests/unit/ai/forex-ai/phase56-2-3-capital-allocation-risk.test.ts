@@ -251,19 +251,24 @@ describe("Phase 56.2.3 shared strategy budget", () => {
   });
 });
 
-describe("Phase 56.2.3 per-order 25% loss limit", () => {
-  it("limit equals 25% of per-order allocation", () => {
+describe("Phase 56.2.3 per-order 20% target / 25% hard max", () => {
+  it("hard maximum equals 25% of per-order allocation", () => {
     expect(PER_ORDER_LOSS_LIMIT_FRACTION).toBe(0.25);
     expect(computePerOrderLossLimit(100)).toBe(25);
   });
 
-  it("passes when risk below or equal to limit; blocks above", () => {
-    const below = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 20 });
-    expect(below.ok && below.pass).toBe(true);
-    const eq = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 25 });
-    expect(eq.ok && eq.pass).toBe(true);
-    const over = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 25.01 });
-    expect(over.ok && over.pass).toBe(false);
+  it("passes at/under 20% target; blocks above target; blocks above 25% hard max", () => {
+    const atTarget = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 20 });
+    expect(atTarget.ok && atTarget.pass).toBe(true);
+    const aboveTarget = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 22 });
+    expect(aboveTarget.ok && aboveTarget.pass).toBe(false);
+    expect(aboveTarget.code).toBe("PER_ORDER_RISK_TARGET_EXCEEDED");
+    const atHardMax = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 25 });
+    expect(atHardMax.ok && atHardMax.pass).toBe(false);
+    expect(atHardMax.code).toBe("PER_ORDER_RISK_TARGET_EXCEEDED");
+    const overHard = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 25.01 });
+    expect(overHard.ok && overHard.pass).toBe(false);
+    expect(overHard.code).toBe("PER_ORDER_LOSS_LIMIT_EXCEEDED");
   });
 
   it("blocks when allocation or risk missing / units ambiguous", () => {
