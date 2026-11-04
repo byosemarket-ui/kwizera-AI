@@ -14,6 +14,7 @@ export const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
 /** Approved same-origin API prefixes that may receive admin credentials. */
 export const FOREX_ADMIN_API_PREFIXES = [
   "/api/forex/",
+  "/api/forex-admin/",
   "/api/admin/",
 ] as const;
 

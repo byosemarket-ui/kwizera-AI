@@ -12,6 +12,12 @@ import type { TrainingCenter } from "../../ai/training-center/training-center";
 import type {
   ActivationRecord, DatasetVersion, TeachingEvaluation, TeachingRecord, TrainingJob,
 } from "../../ai/training-center/training-types";
+import {
+  buildForexAdminHeaders,
+  clearForexAdminToken,
+  getForexAdminToken,
+  saveForexAdminToken,
+} from "../forex/admin-access/forex-admin-token";
 
 export type AdminTrainingOverview = ReturnType<TrainingCenter["overview"]>;
 export type AdminTrainingCatalog = ReturnType<TrainingCenter["catalog"]>;
@@ -54,7 +60,10 @@ export interface AdminKnowledgeJob {
   updatedAt: string;
 }
 
-const ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
+/**
+ * Phase 60.0.16 — ACC uses the same central Forex Admin token service (localStorage).
+ * Do not maintain a parallel sessionStorage-only token copy.
+ */
 
 export class AdminApiError extends Error {
   status: number;
@@ -65,42 +74,27 @@ export class AdminApiError extends Error {
 }
 
 export function getStoredAdminToken(): string {
-  try {
-    return sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
-  } catch {
-    return "";
-  }
+  return getForexAdminToken();
 }
 
 export function setStoredAdminToken(token: string): void {
-  try {
-    const trimmed = token.trim();
-    if (trimmed) sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, trimmed);
-    else sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
-  } catch {
-    /* ignore */
+  const trimmed = token.trim();
+  if (!trimmed) {
+    clearForexAdminToken();
+    return;
   }
+  saveForexAdminToken(trimmed);
 }
 
 export function clearStoredAdminToken(): void {
-  setStoredAdminToken("");
-}
-
-function adminAuthHeaders(): Record<string, string> {
-  const token = getStoredAdminToken();
-  if (!token) return {};
-  return {
-    Authorization: `Bearer ${token}`,
-    "x-kwizera-admin-token": token,
-  };
+  clearForexAdminToken();
 }
 
 async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
-      ...adminAuthHeaders(),
+      ...buildForexAdminHeaders(path, { includeJsonContentType: true }),
       ...(init?.headers ?? {}),
     },
   });

@@ -94,6 +94,9 @@ describe("Phase 60.0.14 shared Forex Admin token service", () => {
     expect(ok["x-kwizera-admin-token"]).toBe("path-guard-token-value");
     expect(ok.Authorization).toBe("Bearer path-guard-token-value");
 
+    const forexAdmin = mod.buildForexAdminHeaders("/api/forex-admin/meta");
+    expect(forexAdmin["x-kwizera-admin-token"]).toBe("path-guard-token-value");
+
     const blocked = mod.buildForexAdminHeaders("https://api.binance.com/api/v3/ticker");
     expect(blocked["x-kwizera-admin-token"]).toBeUndefined();
     expect(blocked.Authorization).toBeUndefined();
@@ -154,5 +157,29 @@ describe("Phase 60.0.14 module migration contracts", () => {
     const service = read("ai/forex-ai/automated-trading/service.ts");
     expect(service).toContain("DisabledBrokerMutationAdapter");
     expect(service).toMatch(/placesOrders:\s*false/);
+  });
+
+  it("Admin Access verify is not reset by token generation; modules require server probe", () => {
+    const card = read("desktop/forex/admin-access/ForexAdminAccessCard.tsx");
+    // Must not reset verify on snapshot.generation (race that forced Local-only after Update).
+    expect(card).not.toMatch(/\[snapshot\.generation,\s*snapshot\.configured\]/);
+    expect(card).toContain("probeSeq");
+    expect(card).toContain("runFullVerify");
+    expect(card).toContain("result-intake");
+    expect(card).toContain("data-module-auth");
+    expect(card).toContain("server-unavailable");
+    expect(card).toContain("/api/forex/automated-trading/result-intake/status");
+    expect(card).toContain("/api/forex/automated-trading/result-intake/handoff");
+    // Connected is only after probe — not from shared-token indicator alone.
+    expect(card).toContain("Shared token alone is not Connected");
+  });
+
+  it("Admin Control Center shares the Forex admin token service (no parallel store)", () => {
+    const acc = read("desktop/admin-control-center/admin-api.ts");
+    expect(acc).toContain("getForexAdminToken");
+    expect(acc).toContain("saveForexAdminToken");
+    expect(acc).toContain("buildForexAdminHeaders");
+    expect(acc).not.toMatch(/sessionStorage\.getItem\(\s*ADMIN_TOKEN_STORAGE_KEY/);
+    expect(acc).not.toMatch(/sessionStorage\.setItem\(\s*ADMIN_TOKEN_STORAGE_KEY/);
   });
 });
