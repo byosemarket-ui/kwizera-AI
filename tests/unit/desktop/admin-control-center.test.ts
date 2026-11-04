@@ -195,7 +195,9 @@ describe("Admin UI talks to live Admin APIs", () => {
     expect(pages.ui).toContain("Go to API Access");
     expect(pages.client).toContain("/api/admin/features/resolve/");
     expect(pages.client).toContain("error?.message");
-    expect(pages.client).toContain("sessionStorage");
-    expect(pages.client).not.toContain("localStorage");
+    // Phase 60.0.16 — ACC shares Forex Admin token service (localStorage), not a parallel sessionStorage store.
+    expect(pages.client).toContain("getForexAdminToken");
+    expect(pages.client).toContain("buildForexAdminHeaders");
+    expect(pages.client).not.toMatch(/sessionStorage\.getItem\(\s*ADMIN_TOKEN_STORAGE_KEY/);
   });
 });
