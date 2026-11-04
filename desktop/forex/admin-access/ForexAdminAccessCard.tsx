@@ -49,6 +49,9 @@ export const FOREX_ADMIN_SHARED_MODULES: readonly ModuleProbeDef[] = [
   { id: "result-intake", label: "AI Analysis Result Intake", probePath: "/api/forex/automated-trading/result-intake/status" },
   { id: "result-intake-history", label: "Result Intake History", probePath: "/api/forex/automated-trading/result-intake/history?limit=4" },
   { id: "result-intake-handoff", label: "Result Intake Handoff", probePath: "/api/forex/automated-trading/result-intake/handoff" },
+  { id: "proposal-status", label: "Order Proposal Status", probePath: "/api/forex/automated-trading/proposal/status" },
+  { id: "proposal-allocation", label: "Proposal Allocation", probePath: "/api/forex/automated-trading/proposal/allocation" },
+  { id: "proposal-history", label: "Proposal History", probePath: "/api/forex/automated-trading/proposal/history?limit=4" },
 ] as const;
 
 type ModuleAuthRow = {

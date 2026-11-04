@@ -1588,6 +1588,147 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Step 2 — Risk / capital / proposal construction (path avoids /order/ EXECUTION_FORBIDDEN gate).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/proposal/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const proposal = await service.getProposalStatus();
+      sendJson(res, 200, {
+        ok: true,
+        proposal,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/proposal/history")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limit = Math.min(80, Math.max(1, Number(url.searchParams.get("limit") || 12) || 12));
+      const history = await service.listProposals(limit);
+      sendJson(res, 200, {
+        ok: true,
+        history,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/proposal/detail")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const id = String(url.searchParams.get("id") || "").trim();
+      if (!id) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "PROPOSAL_ID_REQUIRED", message: "Query id= is required." },
+        });
+        return true;
+      }
+      const record = await service.getProposal(id);
+      if (!record) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "PROPOSAL_NOT_FOUND", message: "Proposal not found." },
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        proposal: record,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/proposal/allocation")) {
+      if (req.method === "GET" || req.method === "HEAD") {
+        const config = await service.getProposalAllocationConfig();
+        sendJson(res, 200, {
+          ok: true,
+          config,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        });
+        return true;
+      }
+      if (req.method === "POST" || req.method === "PATCH") {
+        const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+        const result = await service.updateProposalAllocationConfig(body);
+        if (!result.ok) {
+          sendJson(res, 422, {
+            ok: false,
+            error: { code: result.code, message: result.message },
+            config: result.config,
+            placesOrders: false,
+            acceptsForExecution: false,
+            mutatesBroker: false,
+          });
+          return true;
+        }
+        sendJson(res, 200, {
+          ok: true,
+          config: result.config,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        });
+        return true;
+      }
+      sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET or POST." } });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/proposal/generate")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+      const result = await service.generateProposal({
+        entryPrice: body.entryPrice,
+        entryZoneLow: body.entryZoneLow,
+        entryZoneHigh: body.entryZoneHigh,
+        stopLoss: body.stopLoss,
+        individualOrderAllocation: body.individualOrderAllocation,
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+      });
+      if (!result.ok) {
+        sendJson(res, 409, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          proposal: result.proposal,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        proposal: result.proposal,
+        duplicate: result.duplicate,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        note: "ORDER PROPOSAL only — not submitted to broker.",
+      });
+      return true;
+    }
+
     // Phase 54 — read-only trading decision validation (never places orders).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/decision/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {

@@ -508,6 +508,14 @@ export function ForexAutomatedTradingPage(props: {
   const [resultIntakeLatest, setResultIntakeLatest] = useState<Record<string, unknown> | null>(null);
   const [resultIntakeHistory, setResultIntakeHistory] = useState<Array<Record<string, unknown>>>([]);
   const [resultIntakeNote, setResultIntakeNote] = useState<string | null>(null);
+  /** Step 2 — order proposal (risk/capital/construction; never broker execution). */
+  const [proposalLatest, setProposalLatest] = useState<Record<string, unknown> | null>(null);
+  const [proposalHistory, setProposalHistory] = useState<Array<Record<string, unknown>>>([]);
+  const [proposalAllocConfig, setProposalAllocConfig] = useState<Record<string, unknown> | null>(null);
+  const [proposalBusy, setProposalBusy] = useState(false);
+  const [proposalEntry, setProposalEntry] = useState("");
+  const [proposalStop, setProposalStop] = useState("");
+  const [proposalOrderAlloc, setProposalOrderAlloc] = useState("");
   /** Phase 4.18E — market evidence snapshot from last canonical run. */
   const [marketEvidenceSummary, setMarketEvidenceSummary] = useState<{
     completeness?: string;
@@ -723,7 +731,7 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, canonRes, masterRes, intakeRes, intakeHistRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, canonRes, masterRes, intakeRes, intakeHistRes, propRes, propHistRes, propAllocRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
@@ -739,6 +747,9 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/system-master/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/result-intake/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/result-intake/history?limit=8", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/proposal/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/proposal/history?limit=8", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/proposal/allocation", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -863,6 +874,27 @@ export function ForexAutomatedTradingPage(props: {
       }
       if (intakeHistRes.ok && intakeHistJson.ok && Array.isArray(intakeHistJson.history)) {
         setResultIntakeHistory(intakeHistJson.history);
+      }
+      const propJson = await propRes.json() as {
+        ok?: boolean;
+        proposal?: { latest?: Record<string, unknown> | null };
+      };
+      const propHistJson = await propHistRes.json() as {
+        ok?: boolean;
+        history?: Array<Record<string, unknown>>;
+      };
+      const propAllocJson = await propAllocRes.json() as {
+        ok?: boolean;
+        config?: Record<string, unknown>;
+      };
+      if (propRes.ok && propJson.ok && propJson.proposal) {
+        setProposalLatest(propJson.proposal.latest ?? null);
+      }
+      if (propHistRes.ok && propHistJson.ok && Array.isArray(propHistJson.history)) {
+        setProposalHistory(propHistJson.history);
+      }
+      if (propAllocRes.ok && propAllocJson.ok && propAllocJson.config) {
+        setProposalAllocConfig(propAllocJson.config);
       }
       if (demoRes.ok && demoJson) {
         const cats = demoJson.blockerCategories && typeof demoJson.blockerCategories === "object"
@@ -1135,6 +1167,98 @@ export function ForexAutomatedTradingPage(props: {
       expectedEnvironmentEpoch: status.environmentEpoch,
       patch,
     });
+  };
+
+  const saveProposalOrderAllocation = async () => {
+    const raw = proposalOrderAlloc.trim();
+    const body: Record<string, unknown> = {};
+    if (raw === "") {
+      body.individualOrderAllocation = null;
+    } else {
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n <= 0) {
+        setError("Order Allocation must be a finite amount greater than zero.");
+        return;
+      }
+      body.individualOrderAllocation = n;
+    }
+    setProposalBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/proposal/allocation", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        config?: Record<string, unknown>;
+        error?: { message?: string };
+      };
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || `Allocation save failed (${res.status})`);
+        return;
+      }
+      if (data.config) setProposalAllocConfig(data.config);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Allocation save failed");
+    } finally {
+      setProposalBusy(false);
+    }
+  };
+
+  const generateOrderProposal = async () => {
+    if (!status) return;
+    const entry = Number(proposalEntry);
+    const stop = Number(proposalStop);
+    if (!Number.isFinite(entry) || entry <= 0) {
+      setError("Proposal Entry price is required.");
+      return;
+    }
+    if (!Number.isFinite(stop) || stop <= 0) {
+      setError("Proposal Stop Loss is required.");
+      return;
+    }
+    const body: Record<string, unknown> = {
+      entryPrice: entry,
+      stopLoss: stop,
+      expectedEnvironmentEpoch: status.environmentEpoch,
+    };
+    const allocRaw = proposalOrderAlloc.trim();
+    if (allocRaw) {
+      const n = Number(allocRaw);
+      if (!Number.isFinite(n) || n <= 0) {
+        setError("Order Allocation must be a finite amount greater than zero.");
+        return;
+      }
+      body.individualOrderAllocation = n;
+    }
+    setProposalBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/proposal/generate", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        proposal?: Record<string, unknown>;
+        duplicate?: boolean;
+        error?: { message?: string };
+      };
+      if (!res.ok || !data.ok || !data.proposal) {
+        setError(data.error?.message || `Proposal generate failed (${res.status})`);
+        return;
+      }
+      setProposalLatest(data.proposal);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Proposal generate failed");
+    } finally {
+      setProposalBusy(false);
+    }
   };
 
   const saveCapitalAllocationPercent = async () => {
@@ -2756,6 +2880,205 @@ export function ForexAutomatedTradingPage(props: {
                   {" · "}
                   {String(row.receivedAtUtc ?? row.analyzedAtUtc ?? "—")}
                   {row.rejectionReason ? ` · ${String(row.rejectionReason)}` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </section>
+
+      <section
+        className="fx-auto-trading-panel"
+        data-fx-at-order-proposal="true"
+        aria-label="Order proposal risk and capital allocation"
+      >
+        <div className="fx-auto-trading-panel-head">
+          <h2 className="fx-auto-trading-h2">Order proposal (Step 2)</h2>
+        </div>
+        <p className="fx-auto-trading-hint" style={{ marginTop: 0 }} data-fx-at-proposal-banner="true">
+          AI ANALYSIS RESULT → CANONICAL DECISION → <strong>ORDER PROPOSAL</strong> → Broker execution (not this module).
+          {" "}placesOrders=<strong>false</strong> · No Execute button.
+        </p>
+        <ul className="fx-auto-trading-hint" style={{ margin: "0.5rem 0", paddingLeft: "1.1rem" }}>
+          <li>
+            Capital Allocation %:{" "}
+            <strong>
+              {status?.controls.capitalAllocationPercent != null
+                ? `${status.controls.capitalAllocationPercent}%`
+                : "unset"}
+            </strong>
+            {" · "}
+            Budget:{" "}
+            <strong>
+              {status?.controls.capitalAllocationBudget != null
+                ? fmtNum(status.controls.capitalAllocationBudget, 2)
+                : "—"}
+            </strong>
+            {" · "}
+            Equity:{" "}
+            <strong>
+              {status?.controls.verifiedEquity != null
+                ? fmtNum(status.controls.verifiedEquity, 2)
+                : "—"}
+            </strong>
+          </li>
+          <li>
+            Order Allocation (persisted):{" "}
+            <strong>
+              {proposalAllocConfig?.individualOrderAllocation != null
+                ? String(proposalAllocConfig.individualOrderAllocation)
+                : "unset"}
+            </strong>
+            {" · "}
+            Risk policy: <strong>25% of order allocation at SL</strong>
+            {" · "}
+            Owner max: <strong>0.01</strong>
+          </li>
+        </ul>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: "0.5rem",
+            alignItems: "end",
+            marginBottom: "0.75rem",
+          }}
+        >
+          <label className="fx-auto-trading-hint" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            Order Allocation
+            <input
+              className="fx-auto-trading-input"
+              value={proposalOrderAlloc}
+              onChange={(e) => setProposalOrderAlloc(e.target.value)}
+              inputMode="decimal"
+              placeholder="USD"
+              data-fx-at-proposal-order-alloc="true"
+            />
+          </label>
+          <label className="fx-auto-trading-hint" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            Entry
+            <input
+              className="fx-auto-trading-input"
+              value={proposalEntry}
+              onChange={(e) => setProposalEntry(e.target.value)}
+              inputMode="decimal"
+              data-fx-at-proposal-entry="true"
+            />
+          </label>
+          <label className="fx-auto-trading-hint" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            Stop Loss
+            <input
+              className="fx-auto-trading-input"
+              value={proposalStop}
+              onChange={(e) => setProposalStop(e.target.value)}
+              inputMode="decimal"
+              data-fx-at-proposal-sl="true"
+            />
+          </label>
+          <button
+            type="button"
+            className="fx-auto-trading-btn"
+            disabled={proposalBusy || busy}
+            onClick={() => void saveProposalOrderAllocation()}
+            data-fx-at-proposal-save-alloc="true"
+          >
+            Save allocation
+          </button>
+          <button
+            type="button"
+            className="fx-auto-trading-btn"
+            disabled={proposalBusy || busy}
+            onClick={() => void generateOrderProposal()}
+            data-fx-at-proposal-generate="true"
+          >
+            Build proposal
+          </button>
+        </div>
+        {proposalLatest ? (
+          <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }} data-fx-at-proposal-latest="true">
+            <li>
+              Lifecycle: <strong>{String(proposalLatest.lifecycle ?? "—")}</strong>
+              {" · "}
+              Direction: <strong>{String(proposalLatest.direction ?? "—")}</strong>
+              {" · "}
+              id=<strong>{String(proposalLatest.proposalId ?? "—")}</strong>
+            </li>
+            <li>
+              Entry / SL / TP(3R):{" "}
+              <strong>
+                {String((proposalLatest.pricePlan as Record<string, unknown> | undefined)?.entryPrice ?? "—")}
+              </strong>
+              {" / "}
+              <strong>
+                {String((proposalLatest.pricePlan as Record<string, unknown> | undefined)?.stopLoss ?? "—")}
+              </strong>
+              {" / "}
+              <strong>
+                {String((proposalLatest.pricePlan as Record<string, unknown> | undefined)?.takeProfit ?? "—")}
+              </strong>
+            </li>
+            <li>
+              Qty:{" "}
+              <strong>
+                {String((proposalLatest.quantity as Record<string, unknown> | undefined)?.normalizedQuantity ?? "—")}
+              </strong>
+              {" · "}
+              Risk:{" "}
+              <strong>
+                {String((proposalLatest.capital as Record<string, unknown> | undefined)?.allowedRiskAmount ?? "—")}
+              </strong>
+              {" · "}
+              Projected SL loss:{" "}
+              <strong>
+                {String((proposalLatest.capital as Record<string, unknown> | undefined)?.projectedLossAtStopLoss ?? "—")}
+              </strong>
+              {" · "}
+              Remaining budget:{" "}
+              <strong>
+                {String((proposalLatest.capital as Record<string, unknown> | undefined)?.remainingStrategyBudget ?? "—")}
+              </strong>
+            </li>
+            <li>
+              Margin est / avail:{" "}
+              <strong>
+                {String((proposalLatest.quantity as Record<string, unknown> | undefined)?.estimatedMargin ?? "—")}
+              </strong>
+              {" / "}
+              <strong>
+                {String((proposalLatest.quantity as Record<string, unknown> | undefined)?.availableMargin ?? "—")}
+              </strong>
+              {" · "}
+              Exposure:{" "}
+              <strong>
+                {String((proposalLatest.quantity as Record<string, unknown> | undefined)?.projectedExposure ?? "—")}
+              </strong>
+            </li>
+            {Array.isArray(proposalLatest.blockers) && (proposalLatest.blockers as unknown[]).length > 0 ? (
+              <li data-fx-at-proposal-blockers="true">
+                Blockers:{" "}
+                {(proposalLatest.blockers as Array<{ code?: string; message?: string }>)
+                  .slice(0, 6)
+                  .map((b) => `${b.code ?? "?"}: ${b.message ?? ""}`)
+                  .join(" · ")}
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          <p className="fx-auto-trading-hint">No proposal yet. Requires eligible BUY/SELL handoff + Entry/SL.</p>
+        )}
+        {proposalHistory.length > 0 ? (
+          <div data-fx-at-proposal-history="true" style={{ marginTop: "0.75rem" }}>
+            <h3 className="fx-auto-trading-h2" style={{ fontSize: "1rem" }}>Proposal history</h3>
+            <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+              {proposalHistory.slice(0, 8).map((row) => (
+                <li key={String(row.proposalId)}>
+                  <strong>{String(row.lifecycle ?? "—")}</strong>
+                  {" · "}
+                  {String(row.direction ?? "—")}
+                  {" · "}
+                  {String(row.instrument ?? "—")}
+                  {" · "}
+                  {String(row.createdAtUtc ?? "—")}
                 </li>
               ))}
             </ul>

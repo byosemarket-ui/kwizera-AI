@@ -3030,6 +3030,262 @@ export class AutomatedTradingService {
     return toOrderPreparationHandoff(getAtResultIntakeStore().latest());
   }
 
+  /**
+   * Step 2 — Order proposal status (risk/capital/construction). Never broker execution.
+   * API path uses /proposal/ (not /order/) to avoid EXECUTION_FORBIDDEN path gate.
+   */
+  async getProposalStatus() {
+    const { getOrderProposalPublicStatus } = await import("./order-proposal/index.js");
+    return getOrderProposalPublicStatus();
+  }
+
+  async listProposals(limit = 12) {
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    return getAtOrderProposalStore().list(limit);
+  }
+
+  async getProposal(proposalId: string) {
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    return getAtOrderProposalStore().get(String(proposalId || "").trim());
+  }
+
+  async getProposalAllocationConfig() {
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const store = getAtOrderProposalStore();
+    const state = this.store.getState();
+    const env = state.environments[state.selectedEnvironment];
+    const cfg = store.getAllocationConfig();
+    return {
+      ...cfg,
+      strategyAllocationPercent: env.controls.capitalAllocationPercent,
+      strategyAllocationBudget:
+        env.lastVerification?.account?.equity != null
+        && env.controls.capitalAllocationPercent != null
+          ? Math.round(
+            env.lastVerification.account.equity
+              * (env.controls.capitalAllocationPercent / 100)
+              * 1e8,
+          ) / 1e8
+          : null,
+      verifiedEquity: env.lastVerification?.account?.equity ?? null,
+      accountCurrency: env.lastVerification?.account?.accountCurrency ?? null,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+    };
+  }
+
+  async updateProposalAllocationConfig(raw: unknown) {
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const body = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const store = getAtOrderProposalStore();
+    const state = this.store.getState();
+    const env = state.environments[state.selectedEnvironment];
+
+    // Strategy % continues to live in AT controls — never reset on deploy via this path.
+    if ("capitalAllocationPercent" in body || "strategyAllocationPercent" in body) {
+      const rawPct = body.strategyAllocationPercent ?? body.capitalAllocationPercent;
+      let pctPatch: number | null | undefined;
+      if (rawPct === null) {
+        pctPatch = null;
+      } else if (rawPct !== undefined) {
+        const n = Number(rawPct);
+        if (!Number.isFinite(n) || n < 1 || n > 100) {
+          return {
+            ok: false as const,
+            code: "INVALID_STRATEGY_ALLOCATION_PCT",
+            message: "strategyAllocationPercent must be a finite number from 1 to 100, or null to clear.",
+            config: await this.getProposalAllocationConfig(),
+          };
+        }
+        pctPatch = n;
+      }
+      if (pctPatch !== undefined) {
+        const ctrl = await this.updateControls({
+          environment: state.selectedEnvironment,
+          patch: { capitalAllocationPercent: pctPatch },
+        });
+        if (!ctrl.ok) {
+          return {
+            ok: false as const,
+            code: ctrl.code,
+            message: ctrl.message,
+            config: await this.getProposalAllocationConfig(),
+          };
+        }
+      }
+    }
+
+    const patch: {
+      individualOrderAllocation?: number | null;
+      allocationCurrency?: string | null;
+      strategyAllocationPercentSnapshot?: number | null;
+      currency?: string | null;
+    } = {};
+    if ("individualOrderAllocation" in body) {
+      const rawAlloc = body.individualOrderAllocation;
+      if (rawAlloc === null || rawAlloc === "") {
+        patch.individualOrderAllocation = null;
+      } else {
+        const n = Number(rawAlloc);
+        if (!Number.isFinite(n) || n <= 0) {
+          return {
+            ok: false as const,
+            code: "PER_ORDER_ALLOCATION_INVALID",
+            message: "individualOrderAllocation must be a finite positive number, or null to clear.",
+            config: await this.getProposalAllocationConfig(),
+          };
+        }
+        patch.individualOrderAllocation = n;
+      }
+    }
+    if (typeof body.allocationCurrency === "string") {
+      patch.allocationCurrency = body.allocationCurrency;
+    }
+    const fresh = this.store.getState();
+    const freshEnv = fresh.environments[fresh.selectedEnvironment];
+    patch.strategyAllocationPercentSnapshot = freshEnv.controls.capitalAllocationPercent;
+    patch.currency = freshEnv.lastVerification?.account?.accountCurrency ?? env.lastVerification?.account?.accountCurrency ?? null;
+    store.updateAllocationConfig(patch);
+    return {
+      ok: true as const,
+      config: await this.getProposalAllocationConfig(),
+    };
+  }
+
+  async generateProposal(input: {
+    entryPrice?: unknown;
+    entryZoneLow?: unknown;
+    entryZoneHigh?: unknown;
+    stopLoss?: unknown;
+    individualOrderAllocation?: unknown;
+    expectedEnvironmentEpoch?: unknown;
+  } = {}) {
+    const {
+      generateOrderProposalFromHandoff,
+      getAtOrderProposalStore,
+    } = await import("./order-proposal/index.js");
+    const { getAtResultIntakeStore, toOrderPreparationHandoff } = await import("./result-intake/index.js");
+    const { getAtSystemMasterStore, toSystemMasterPublicStatus } = await import("./system-master/index.js");
+
+    const state = this.store.getState();
+    const expectedEpoch = Number(input.expectedEnvironmentEpoch);
+    if (
+      Number.isFinite(expectedEpoch)
+      && Math.floor(expectedEpoch) !== state.environmentEpoch
+    ) {
+      return {
+        ok: false as const,
+        code: "STALE_EPOCH",
+        message: "Stale environment epoch — refresh status and retry.",
+        proposal: null,
+        duplicate: false,
+      };
+    }
+
+    const env = state.environments[state.selectedEnvironment];
+    const verification = env.lastVerification;
+    const account = verification?.account;
+    const inst = verification?.instrument;
+    const handoff = toOrderPreparationHandoff(getAtResultIntakeStore().latest());
+    const master = toSystemMasterPublicStatus(getAtSystemMasterStore().get());
+    const systemMasterOn = master.ownerState === "ON" && master.masterEnabled === true;
+
+    const num = (v: unknown): number | null | undefined => {
+      if (v === undefined) return undefined;
+      if (v === null || v === "") return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const equity =
+      account?.equity != null && Number.isFinite(account.equity) && account.equity > 0
+        ? account.equity
+        : null;
+    const equityFresh = Boolean(account?.isFresh && equity != null && account.fields?.equity);
+    const marginFresh = Boolean(
+      account?.isFresh
+      && account?.usableMargin != null
+      && Number.isFinite(account.usableMargin)
+      && account.fields?.usableMargin,
+    );
+
+    const contractVerified = Boolean(
+      inst?.contractVerified
+      && inst.pointSize != null
+      && Number.isFinite(inst.pointSize)
+      && inst.pointSize > 0,
+    );
+    const contract = contractVerified && inst
+      ? {
+        verified: true as const,
+        pointSize: inst.pointSize ?? null,
+        tickSize: inst.pointSize ?? null,
+        digits: null,
+        quantityMin: inst.quantityMin ?? null,
+        quantityStep: inst.quantityStep ?? null,
+        quantityUnit: inst.quantityUnit ?? "contracts",
+        quantityUnitAmbiguous: inst.quantityUnit !== "contracts",
+        contractMultiplier: inst.contractMultiplier ?? null,
+        baseUnitSize: inst.baseUnitSize ?? null,
+        pipCostAccount: inst.pipCostAccount ?? null,
+        marginPerLotAccount: inst.marginPerLotAccount ?? null,
+        minStopDistance: null,
+        minStopDistanceVerified: false,
+        source: inst.contractSource ?? "lastVerification.instrument",
+        unavailableReason: inst.unavailableReason ?? null,
+      }
+      : null;
+
+    const allocCfg = getAtOrderProposalStore().getAllocationConfig();
+    const perOrder =
+      num(input.individualOrderAllocation) !== undefined
+        ? num(input.individualOrderAllocation)
+        : allocCfg.individualOrderAllocation;
+
+    const { record, duplicate } = generateOrderProposalFromHandoff({
+      handoff,
+      entryPrice: num(input.entryPrice) ?? null,
+      entryZoneLow: num(input.entryZoneLow) ?? null,
+      entryZoneHigh: num(input.entryZoneHigh) ?? null,
+      stopLoss: num(input.stopLoss) ?? null,
+      verifiedEquity: equity,
+      accountCurrency: account?.accountCurrency ?? null,
+      equityFresh,
+      usableMargin: account?.usableMargin ?? null,
+      usedMargin: account?.usedMargin ?? null,
+      marginFresh,
+      accountIdMasked: account?.accountIdMasked ?? state.environments[state.selectedEnvironment].lastVerifiedAccountId,
+      strategyAllocationPercent: env.controls.capitalAllocationPercent,
+      individualOrderAllocation: perOrder ?? null,
+      allocationCurrency: allocCfg.allocationCurrency,
+      existingCommittedExposure: 0,
+      contract,
+      contractFresh: contractVerified && equityFresh,
+      sdkMinQuantity: inst?.quantityMin ?? null,
+      legacyLotStep: inst?.quantityStep ?? null,
+      marginPerUnitAccount: inst?.marginPerLotAccount ?? null,
+      exposureAuthoritative: true,
+      existingExposure: 0,
+      systemMasterOn,
+      // Trading remains DISABLED for broker execution; proposal construction is analysis-only.
+      tradingEnabled: true,
+      emergencyEntryLock: env.controls.emergencyEntryLock,
+      environment: state.selectedEnvironment,
+      timeframe: handoff?.evidenceReferences?.primaryTimeframe ?? null,
+      persist: true,
+    });
+
+    return {
+      ok: true as const,
+      proposal: record,
+      duplicate,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+    };
+  }
+
   getAudit(limit = 40): AutomatedTradingAuditEvent[] {
     return this.store.getAudit(limit);
   }
