@@ -3399,7 +3399,51 @@ export class AutomatedTradingService {
         offerId: offerFromRow || offerFromQuote || null,
       };
     });
-    const discovery = discover001LotCompatibleInstruments(rows);
+    const discovery = discover001LotCompatibleInstruments(rows, { incompatibleSampleLimit: 80 });
+    // Score every row once for targeted lookups (compatible list alone may be empty).
+    const { scoreInstrumentFor001Lots } = await import("./order-execution/discover-001-lot-instruments.js");
+    const scoredAll = rows.map((r) => ({
+      row: r,
+      score: scoreInstrumentFor001Lots(r, OWNER_MAX_LOTS_001),
+    }));
+    const mapScore = (c: (typeof scoredAll)[number]["score"], offerId: string | null) => ({
+      symbol: c.providerSymbol,
+      displaySymbol: c.displaySymbol,
+      offerId,
+      instrumentType: c.instrumentType,
+      tradingStatus: c.tradingStatus,
+      contractSize: c.liveFields.baseUnitSize,
+      quantityUnit: "contracts" as const,
+      minimumQuantity: c.liveFields.minQuantity,
+      quantityStep: c.liveFields.amountStep,
+      tickSize: c.liveFields.pointSize,
+      pipSize: c.liveFields.pointSize,
+      marginPerLot: c.liveFields.mmrPerLot,
+      conversionFormula: discovery.formula,
+      amountAtOwnerMax: c.contract.amountConversion.amount,
+      amountConversionOk: c.contract.amountConversion.ok,
+      amountConversionCode: c.contract.amountConversion.code,
+      minLotsFromBroker: c.contract.minLotsFromBroker,
+      ownerMaxBelowBrokerMin: c.contract.ownerMaxBelowBrokerMin,
+      compatible001Lot: c.compatible001Lot,
+      blockers: c.blockers,
+    });
+    const integerAmountCandidates = scoredAll
+      .filter((x) => x.score.contract.amountConversion.ok)
+      .map((x) => mapScore(x.score, x.row.offerId))
+      .slice(0, 40);
+    const majorNames = [
+      "EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "USD/CHF",
+      "EUR/JPY", "EUR/GBP", "XAU/USD", "XAG/USD", "US30", "NAS100", "SPX500",
+    ];
+    const majors = majorNames.map((sym) => {
+      const hit = scoredAll.find((x) => norm(x.row.providerSymbol) === norm(sym)
+        || norm(String(x.row.displaySymbol ?? "")) === norm(sym)
+        || norm(String(x.row.canonicalSymbol ?? "")) === norm(sym));
+      return hit
+        ? mapScore(hit.score, hit.row.offerId)
+        : { symbol: sym, offerId: null, found: false as const, blockers: ["NOT_IN_CATALOG"] };
+    });
     const selected = this.store.getState().environments[
       this.store.getState().selectedEnvironment
     ]?.lastVerification?.instrument ?? null;
@@ -3408,10 +3452,8 @@ export class AutomatedTradingService {
       ?? (selected?.symbol
         ? offerBySym.get(norm(String(selected.symbol))) ?? null
         : null);
-    const selectedScore = selected?.symbol
-      ? discovery.compatible.find((c) => norm(c.providerSymbol) === norm(String(selected.symbol)))
-        ?? discovery.incompatibleSample.find((c) => norm(c.providerSymbol) === norm(String(selected.symbol)))
-        ?? null
+    const selectedHit = selected?.symbol
+      ? scoredAll.find((x) => norm(x.row.providerSymbol) === norm(String(selected.symbol)))
       : null;
     return {
       ok: listed.ok !== false,
@@ -3421,29 +3463,10 @@ export class AutomatedTradingService {
       compatibleCount: discovery.compatible.length,
       compatible: discovery.compatible.map((c) => {
         const row = rows.find((r) => norm(String(r.providerSymbol)) === norm(c.providerSymbol));
-        const amount = c.contract.amountConversion.amount;
-        return {
-          symbol: c.providerSymbol,
-          displaySymbol: c.displaySymbol,
-          offerId: row?.offerId ?? null,
-          instrumentType: c.instrumentType,
-          tradingStatus: c.tradingStatus,
-          contractSize: c.liveFields.baseUnitSize,
-          quantityUnit: "contracts",
-          minimumQuantity: c.liveFields.minQuantity,
-          quantityStep: c.liveFields.amountStep,
-          tickSize: c.liveFields.pointSize,
-          pipSize: c.liveFields.pointSize,
-          marginPerLot: c.liveFields.mmrPerLot,
-          conversionFormula: discovery.formula,
-          amountAtOwnerMax: amount,
-          amountConversionOk: c.contract.amountConversion.ok,
-          amountConversionCode: c.contract.amountConversion.code,
-          minLotsFromBroker: c.contract.minLotsFromBroker,
-          compatible001Lot: c.compatible001Lot,
-          blockers: c.blockers,
-        };
+        return mapScore(c, row?.offerId ?? null);
       }),
+      integerAmountCandidates,
+      majors,
       incompatibleSample: discovery.incompatibleSample.slice(0, 15).map((c) => {
         const row = rows.find((r) => norm(String(r.providerSymbol)) === norm(c.providerSymbol));
         return {
@@ -3467,13 +3490,13 @@ export class AutomatedTradingService {
           quantityStep: selected.quantityStep,
           quantityUnit: selected.quantityUnit,
           marginPerLotAccount: selected.marginPerLotAccount,
-          score: selectedScore
+          score: selectedHit
             ? {
-              compatible001Lot: selectedScore.compatible001Lot,
-              blockers: selectedScore.blockers,
-              amountAtOwnerMax: selectedScore.contract.amountConversion.amount,
-              amountConversionCode: selectedScore.contract.amountConversion.code,
-              minLotsFromBroker: selectedScore.contract.minLotsFromBroker,
+              compatible001Lot: selectedHit.score.compatible001Lot,
+              blockers: selectedHit.score.blockers,
+              amountAtOwnerMax: selectedHit.score.contract.amountConversion.amount,
+              amountConversionCode: selectedHit.score.contract.amountConversion.code,
+              minLotsFromBroker: selectedHit.score.contract.minLotsFromBroker,
             }
             : null,
         }
