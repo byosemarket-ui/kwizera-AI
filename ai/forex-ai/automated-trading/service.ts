@@ -3268,9 +3268,10 @@ export class AutomatedTradingService {
       exposureAuthoritative: true,
       existingExposure: 0,
       systemMasterOn,
-      // Trading remains DISABLED for broker execution; proposal construction is analysis-only.
+      // Execution posture stays DISABLED / emergency-locked elsewhere.
+      // Proposal construction is analysis-only and must not be gated as if it were a broker submit.
       tradingEnabled: true,
-      emergencyEntryLock: env.controls.emergencyEntryLock,
+      emergencyEntryLock: false,
       environment: state.selectedEnvironment,
       timeframe: handoff?.evidenceReferences?.primaryTimeframe ?? null,
       persist: true,
