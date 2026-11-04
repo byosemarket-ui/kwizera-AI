@@ -86,6 +86,16 @@ node_modules/
 /data/forexconnect/genuine-ticks.json.bak
 
 # ---------------------------------------------------------------------------
+# Local audit dumps, screenshots, one-off patch helpers (never production source)
+# ---------------------------------------------------------------------------
+/artifacts/
+
+# ---------------------------------------------------------------------------
+# Local KWIZERA runtime storage clone in the workspace (not source of truth)
+# ---------------------------------------------------------------------------
+/.kwizera-storage/
+
+# ---------------------------------------------------------------------------
 # OS, editor scratch, caches
 # ---------------------------------------------------------------------------
 Thumbs.db

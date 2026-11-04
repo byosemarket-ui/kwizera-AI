@@ -34,6 +34,19 @@ function asText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? value as Record<string, unknown> : {};
+}
+
+/** The customer's offer text wherever the workspace stored it (the PMV form saves it under specifications.offer). */
+export function offerTextFromProject(productInformation: unknown, campaignInformation?: unknown): string {
+  const info = asRecord(productInformation);
+  return asText(info.promotionMessage)
+    || asText(info.promotion)
+    || asText(asRecord(info.specifications).offer)
+    || asText(asRecord(campaignInformation).promotionDetails);
+}
+
 /**
  * Price, promotion, and destination data are optional.
  * Never invent values. Discount is only shown when the numbers support it.
@@ -108,14 +121,18 @@ export function formatPrice(amount: number, currency: string): string {
 
 export function priceSceneCopy(commercial: ConfirmedCommercial): { oldPrice?: string; newPrice?: string; saveLabel?: string } {
   const { currentPrice, originalPrice, currency, discountPercentage } = commercial.pricing;
-  if (currentPrice == null) return {};
-  const newPrice = formatPrice(currentPrice, currency);
-  if (originalPrice != null && originalPrice > currentPrice && discountPercentage) {
+  const offer = commercial.promotion?.message?.trim() ?? "";
+  const newPrice = currentPrice != null ? formatPrice(currentPrice, currency) : undefined;
+  if (currentPrice != null && originalPrice != null && originalPrice > currentPrice && discountPercentage) {
+    const repeatsDiscount = new RegExp(`\\b${discountPercentage}\\s*%`).test(offer);
     return {
       oldPrice: formatPrice(originalPrice, currency),
       newPrice,
-      saveLabel: `SAVE ${discountPercentage}%`,
+      saveLabel: `SAVE ${discountPercentage}%${offer && !repeatsDiscount ? ` · ${offer}` : ""}`.slice(0, 60),
     };
   }
-  return { newPrice };
+  return {
+    ...(newPrice ? { newPrice } : {}),
+    ...(offer ? { saveLabel: offer.slice(0, 60) } : {}),
+  };
 }

@@ -1,5 +1,5 @@
 import type { CreativePlan, PlanScene } from "../creative-planning/creative-planning-manager.js";
-import { buildConfirmedCommercial, priceSceneCopy, type ConfirmedCommercial } from "../creative-planning/commercial.js";
+import { buildConfirmedCommercial, offerTextFromProject, priceSceneCopy, type ConfirmedCommercial } from "../creative-planning/commercial.js";
 import type { CreativeProject } from "../creative-workspace/creative-workspace-manager.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import { profileForPlatform, type VideoPlatformProfile } from "./platform-profiles.js";
@@ -243,6 +243,7 @@ export function buildTimelineFromPlan(
     phone: project.productInformation?.phone ?? project.productInformation?.contact,
     email: project.productInformation?.email,
     cta: project.productInformation?.callToAction ?? project.productInformation?.cta,
+    promotionMessage: offerTextFromProject(project.productInformation, project.campaignInformation),
   });
   const scenes = [...plan.scenes].sort((a, b) => a.order - b.order);
   let cursor = 0;

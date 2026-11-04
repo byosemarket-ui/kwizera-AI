@@ -26,7 +26,9 @@ import type { VideoTimelineClip } from "../../../../ai/video-production/types.ts
 import { sceneTextLayers } from "../../../../ai/video-production/plan-to-timeline.ts";
 import { runDeterministicQualityReview } from "../../../../ai/video-production/ai-quality-review.ts";
 import { sanitizeRenderText } from "../../../../ai/video-production/ffmpeg-sanitize.ts";
-import { stackedTop } from "../../../../ai/typography/drawtext-integration.ts";
+import { isDarkDrawtextColor, stackedTop } from "../../../../ai/typography/drawtext-integration.ts";
+import { buildConfirmedCommercial, offerTextFromProject, priceSceneCopy } from "../../../../ai/creative-planning/commercial.ts";
+import { sceneRoleTexts } from "../../../../ai/typography/from-plan.ts";
 
 const END_CARD_MS = 5_000;
 
@@ -404,6 +406,47 @@ describe("rendered text keeps customer facts intact", () => {
       ], image: {} }],
     } as never, [font]);
     expect(decision.scenes[0]!.items.map((item) => item.role).sort()).toEqual(["discount", "previousPrice", "price"]);
+  });
+});
+
+describe("the customer's offer reaches the video", () => {
+  const commercial = (offer: string, originalPrice?: number) => buildConfirmedCommercial({
+    productName: "Urban Runner", currentPrice: 25_000, originalPrice, currency: "RWF",
+    promotionMessage: offerTextFromProject({ specifications: { offer } }),
+  });
+
+  it("reads the offer where the PMV form stores it", () => {
+    expect(offerTextFromProject({ specifications: { offer: "20% OFF" } })).toBe("20% OFF");
+    expect(offerTextFromProject({}, { promotionDetails: "Free delivery" })).toBe("Free delivery");
+    expect(offerTextFromProject(undefined)).toBe("");
+  });
+
+  it("shows an offer without an old price, verbatim", () => {
+    expect(priceSceneCopy(commercial("Free delivery in Kigali"))).toEqual({ newPrice: "25,000 RWF", saveLabel: "Free delivery in Kigali" });
+  });
+
+  it("does not repeat the discount the prices already show, but keeps extra offer text", () => {
+    expect(priceSceneCopy(commercial("20% OFF", 31_250)).saveLabel).toBe("SAVE 20%");
+    expect(priceSceneCopy(commercial("Free delivery", 31_250)).saveLabel).toBe("SAVE 20% · Free delivery");
+  });
+
+  it("never invents an offer", () => {
+    expect(priceSceneCopy(commercial("")).saveLabel).toBeUndefined();
+  });
+});
+
+describe("typography copy is not duplicated on screen", () => {
+  it("keeps one of a headline and a supporting line that say the same thing", () => {
+    const text = "Lightweight everyday running sneakers with a cushioned sole.";
+    const roles = sceneRoleTexts({ purpose: "VISUAL_EXPLORATION", copy: { headline: text, supportingText: text } } as never);
+    expect(roles).toEqual([{ role: "headline", text }]);
+  });
+
+  it("customer fact lines get a panel that contrasts with the text colour", () => {
+    expect(isDarkDrawtextColor("black")).toBe(true);
+    expect(isDarkDrawtextColor("0x1A1A1A")).toBe(true);
+    expect(isDarkDrawtextColor("0xFFD966")).toBe(false);
+    expect(isDarkDrawtextColor("white")).toBe(false);
   });
 });
 

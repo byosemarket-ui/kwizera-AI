@@ -101,6 +101,16 @@ function layerColor(layer: VideoTextLayer): string {
   return "white";
 }
 
+/** Customer facts must stay legible on any photo, so their panel takes the opposite tone of the text. */
+export function isDarkDrawtextColor(color: string): boolean {
+  if (color === "black") return true;
+  if (color === "white") return false;
+  const hex = /^0x([0-9a-f]{6})/i.exec(color)?.[1];
+  if (!hex) return false;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b! < 128;
+}
+
 function legacyY(layer: VideoTextLayer, plan: VideoRenderPlan, bottomIndex: number): string {
   if (layer.position === "center") return "(h-text_h)/2";
   if (layer.position === "top") return `h*${plan.aspectRatio === "9:16" ? "0.12" : "0.08"}`;
@@ -174,11 +184,14 @@ export async function buildDrawtextFilter(
     const nx = layer.typography?.normalizedX ?? 0.5;
     const ny = layer.typography?.normalizedY
       ?? (layer.position === "bottom" ? 0.86 : layer.position === "center" ? 0.5 : 0.12);
-    const contrast = contrastDrawtextExtras(
-      layer.typography?.contrastStrategy ?? "outline",
-      scale,
-      layer.typography?.panelColor ?? "black",
-    );
+    const factLine = layer.kind === "price" || layer.kind === "price_was" || layer.kind === "price_save" || layer.kind === "cta";
+    const contrast = factLine
+      ? contrastDrawtextExtras("panel", scale, isDarkDrawtextColor(color) ? "white" : "black")
+      : contrastDrawtextExtras(
+        layer.typography?.contrastStrategy ?? "outline",
+        scale,
+        layer.typography?.panelColor ?? "black",
+      );
     const xExpr = hasTypography ? drawtextX(alignment, nx) : "(w-text_w)/2";
     const lineGap = Math.max(2, Math.round(fontSize * 1.22));
     const topNy = hasTypography ? stackedTop(bands, ny, lines.length * lineGap, plan.height) : ny;

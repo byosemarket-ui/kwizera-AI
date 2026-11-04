@@ -1,5 +1,5 @@
 import type { CreativePlan, PlanScene } from "../creative-planning/creative-planning-manager.js";
-import { buildConfirmedCommercial, priceSceneCopy, type ConfirmedCommercial } from "../creative-planning/commercial.js";
+import { buildConfirmedCommercial, offerTextFromProject, priceSceneCopy, type ConfirmedCommercial } from "../creative-planning/commercial.js";
 import type { CreativeProject } from "../creative-workspace/creative-workspace-manager.js";
 import type { TypographyComposeInput, TextRole } from "./types.js";
 
@@ -49,7 +49,10 @@ export function sceneRoleTexts(
   } else if (scene.copy?.priceOffer?.trim()) {
     items.push({ role: "price", text: scene.copy.priceOffer.trim() });
   }
-  return items.slice(0, 3);
+  const stem = (value: string) => value.replace(/(\.{3}|…)\s*$/u, "").trim().toLowerCase();
+  const distinct = items.filter((item, index) => !items.some((other, otherIndex) =>
+    otherIndex !== index && stem(other.text).startsWith(stem(item.text)) && (stem(other.text) !== stem(item.text) || otherIndex < index)));
+  return distinct.slice(0, 3);
 }
 
 export function composeInputFromProject(input: {
@@ -80,6 +83,7 @@ export function composeInputFromProject(input: {
     phone: (input.project.productInformation as { phone?: string }).phone
       ?? (input.project.brandInformation as { phone?: string }).phone,
     cta: input.project.campaignInformation.callToAction,
+    promotionMessage: offerTextFromProject(input.project.productInformation, input.project.campaignInformation),
   });
   const scenes = [...input.plan.scenes].sort((a, b) => a.order - b.order).map((scene, index) => ({
     sceneId: scene.id,

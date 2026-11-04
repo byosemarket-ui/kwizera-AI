@@ -1,7 +1,7 @@
 import type { CreativeProject } from "../creative-workspace/creative-workspace-manager.js";
 import { extractBrandIdentity } from "../creative-workspace/brand-identity.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
-import { buildConfirmedCommercial } from "../creative-planning/commercial.js";
+import { buildConfirmedCommercial, offerTextFromProject } from "../creative-planning/commercial.js";
 import type { VideoPlatformProfile } from "./platform-profiles.js";
 import type { ProbedVideo } from "./ffmpeg-renderer.js";
 import type { VideoProject, VideoRenderValidation, VideoTimelineClip } from "./types.js";
@@ -23,7 +23,7 @@ export function buildCommercialFromProject(project: CreativeProject) {
     phone: brand.phone || info.phone || info.contact,
     email: brand.email || info.email,
     cta: brand.cta || info.callToAction || info.cta,
-    promotionMessage: info.promotionMessage ?? info.promotion,
+    promotionMessage: offerTextFromProject(info, project.campaignInformation),
   });
 }
 
