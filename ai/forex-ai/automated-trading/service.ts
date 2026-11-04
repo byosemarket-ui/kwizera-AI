@@ -3287,6 +3287,178 @@ export class AutomatedTradingService {
     };
   }
 
+  /**
+   * Step 3 — Broker compatibility / handoff (never submits broker orders).
+   * API namespace: /handoff/* (avoids /order/ EXECUTION_FORBIDDEN gate).
+   */
+  async getHandoffStatus() {
+    const { getBrokerHandoffPublicStatus } = await import("./broker-compatibility/index.js");
+    return getBrokerHandoffPublicStatus();
+  }
+
+  async listHandoffs(limit = 12) {
+    const { getAtBrokerHandoffStore } = await import("./broker-compatibility/index.js");
+    return getAtBrokerHandoffStore().list(limit);
+  }
+
+  async getHandoff(handoffId: string) {
+    const { getAtBrokerHandoffStore } = await import("./broker-compatibility/index.js");
+    return getAtBrokerHandoffStore().get(String(handoffId || "").trim());
+  }
+
+  async getHandoffInstrumentSpecs() {
+    const state = this.store.getState();
+    const env = state.environments[state.selectedEnvironment];
+    const inst = env.lastVerification?.instrument ?? null;
+    return {
+      instrument: inst,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      note: "Read-only verified instrument snapshot. Offer ID may be absent until separately resolved.",
+    };
+  }
+
+  async getHandoffAccountCompatibility() {
+    const state = this.store.getState();
+    const env = state.environments[state.selectedEnvironment];
+    const account = env.lastVerification?.account ?? null;
+    return {
+      account,
+      accountConnected: Boolean(env.lastVerification),
+      accountAuthenticated: Boolean(env.lastVerifiedAccountId),
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      note: "Read-only account compatibility snapshot from last verification.",
+    };
+  }
+
+  async validateHandoff(input: {
+    proposalId?: unknown;
+    offerId?: unknown;
+    protectionAttachVerified?: unknown;
+    maxExposureLimit?: unknown;
+    expectedEnvironmentEpoch?: unknown;
+  } = {}) {
+    const {
+      validateProposalForBrokerHandoff,
+      getAtBrokerHandoffStore,
+      isHandoffExpired,
+      toFutureExecutionContract,
+    } = await import("./broker-compatibility/index.js");
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const { getAtSystemMasterStore, toSystemMasterPublicStatus } = await import("./system-master/index.js");
+
+    const state = this.store.getState();
+    const expectedEpoch = Number(input.expectedEnvironmentEpoch);
+    if (
+      Number.isFinite(expectedEpoch)
+      && Math.floor(expectedEpoch) !== state.environmentEpoch
+    ) {
+      return {
+        ok: false as const,
+        code: "STALE_EPOCH",
+        message: "Stale environment epoch — refresh status and retry.",
+        handoff: null,
+        futureContract: null,
+        duplicate: false,
+      };
+    }
+
+    const proposalId = input.proposalId != null ? String(input.proposalId).trim() : "";
+    const propStore = getAtOrderProposalStore();
+    const proposal = proposalId
+      ? propStore.get(proposalId)
+      : propStore.latest();
+
+    const env = state.environments[state.selectedEnvironment];
+    const verification = env.lastVerification;
+    const account = verification?.account ?? null;
+    const inst = verification?.instrument ?? null;
+    const master = toSystemMasterPublicStatus(getAtSystemMasterStore().get());
+    const systemMasterOn = master.ownerState === "ON" && master.masterEnabled === true;
+
+    const offerId =
+      input.offerId != null && String(input.offerId).trim()
+        ? String(input.offerId).trim()
+        : null;
+
+    const { record, duplicate, futureContract } = validateProposalForBrokerHandoff(
+      {
+        proposal,
+        account: account
+          ? {
+            accountIdMasked: account.accountIdMasked,
+            accountCurrency: account.accountCurrency,
+            equity: account.equity,
+            usedMargin: account.usedMargin,
+            usableMargin: account.usableMargin,
+            isFresh: account.isFresh,
+            fetchedAtUtc: account.fetchedAtUtc,
+            environment: account.environment,
+          }
+          : null,
+        instrument: inst
+          ? {
+            symbol: inst.symbol,
+            offerId,
+            instrumentType: inst.instrumentType,
+            baseAsset: inst.baseAsset,
+            quoteAsset: inst.quoteAsset,
+            pointSize: inst.pointSize,
+            pipCostAccount: inst.pipCostAccount,
+            contractMultiplier: inst.contractMultiplier,
+            baseUnitSize: inst.baseUnitSize,
+            quantityMin: inst.quantityMin,
+            quantityStep: inst.quantityStep,
+            quantityUnit: inst.quantityUnit,
+            marginPerLotAccount: inst.marginPerLotAccount,
+            contractVerified: inst.contractVerified,
+            contractSource: inst.contractSource,
+            unavailableReason: inst.unavailableReason,
+          }
+          : null,
+        market: verification?.market
+          ? {
+            bid: verification.market.bid,
+            ask: verification.market.ask,
+            marketSession: verification.market.marketSession,
+          }
+          : null,
+        accountConnected: Boolean(verification),
+        accountAuthenticated: Boolean(env.lastVerifiedAccountId),
+        instrumentFresh: Boolean(inst?.contractVerified && account?.isFresh),
+        marginFresh: Boolean(account?.isFresh && account.fields?.usableMargin),
+        systemMasterOn,
+        protectionAttachVerified: input.protectionAttachVerified === true,
+        existingExposure: 0,
+        maxExposureLimit:
+          input.maxExposureLimit != null && Number.isFinite(Number(input.maxExposureLimit))
+            ? Number(input.maxExposureLimit)
+            : null,
+      },
+      { persist: true },
+    );
+
+    // Soft expire check for returned ready packages
+    if (record.lifecycle === "HANDOFF_READY" && isHandoffExpired(record)) {
+      record.lifecycle = "EXPIRED";
+      getAtBrokerHandoffStore().upsertHandoff(record);
+    }
+
+    return {
+      ok: true as const,
+      handoff: record,
+      futureContract: toFutureExecutionContract(record),
+      duplicate,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      note: "Validation/handoff only — no broker order submitted.",
+    };
+  }
+
   getAudit(limit = 40): AutomatedTradingAuditEvent[] {
     return this.store.getAudit(limit);
   }

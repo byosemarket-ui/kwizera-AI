@@ -516,6 +516,11 @@ export function ForexAutomatedTradingPage(props: {
   const [proposalEntry, setProposalEntry] = useState("");
   const [proposalStop, setProposalStop] = useState("");
   const [proposalOrderAlloc, setProposalOrderAlloc] = useState("");
+  /** Step 3 — broker compatibility / handoff (never broker execution). */
+  const [handoffLatest, setHandoffLatest] = useState<Record<string, unknown> | null>(null);
+  const [handoffHistory, setHandoffHistory] = useState<Array<Record<string, unknown>>>([]);
+  const [handoffBusy, setHandoffBusy] = useState(false);
+  const [handoffOfferId, setHandoffOfferId] = useState("");
   /** Phase 4.18E — market evidence snapshot from last canonical run. */
   const [marketEvidenceSummary, setMarketEvidenceSummary] = useState<{
     completeness?: string;
@@ -731,7 +736,7 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, canonRes, masterRes, intakeRes, intakeHistRes, propRes, propHistRes, propAllocRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, canonRes, masterRes, intakeRes, intakeHistRes, propRes, propHistRes, propAllocRes, handoffRes, handoffHistRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
@@ -750,6 +755,8 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/proposal/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/proposal/history?limit=8", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/proposal/allocation", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/handoff/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/handoff/history?limit=8", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -895,6 +902,20 @@ export function ForexAutomatedTradingPage(props: {
       }
       if (propAllocRes.ok && propAllocJson.ok && propAllocJson.config) {
         setProposalAllocConfig(propAllocJson.config);
+      }
+      const handoffJson = await handoffRes.json() as {
+        ok?: boolean;
+        handoff?: { latest?: Record<string, unknown> | null };
+      };
+      const handoffHistJson = await handoffHistRes.json() as {
+        ok?: boolean;
+        history?: Array<Record<string, unknown>>;
+      };
+      if (handoffRes.ok && handoffJson.ok && handoffJson.handoff) {
+        setHandoffLatest(handoffJson.handoff.latest ?? null);
+      }
+      if (handoffHistRes.ok && handoffHistJson.ok && Array.isArray(handoffHistJson.history)) {
+        setHandoffHistory(handoffHistJson.history);
       }
       if (demoRes.ok && demoJson) {
         const cats = demoJson.blockerCategories && typeof demoJson.blockerCategories === "object"
@@ -1205,6 +1226,39 @@ export function ForexAutomatedTradingPage(props: {
       setError(err instanceof Error ? err.message : "Allocation save failed");
     } finally {
       setProposalBusy(false);
+    }
+  };
+
+  const validateBrokerHandoff = async () => {
+    if (!status) return;
+    setHandoffBusy(true);
+    setError(null);
+    try {
+      const body: Record<string, unknown> = {
+        expectedEnvironmentEpoch: status.environmentEpoch,
+      };
+      if (proposalLatest?.proposalId) body.proposalId = proposalLatest.proposalId;
+      if (handoffOfferId.trim()) body.offerId = handoffOfferId.trim();
+      const res = await fetch("/api/forex/automated-trading/handoff/validate", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        handoff?: Record<string, unknown>;
+        error?: { message?: string };
+      };
+      if (!res.ok || !data.ok || !data.handoff) {
+        setError(data.error?.message || `Handoff validate failed (${res.status})`);
+        return;
+      }
+      setHandoffLatest(data.handoff);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Handoff validate failed");
+    } finally {
+      setHandoffBusy(false);
     }
   };
 
@@ -3086,6 +3140,134 @@ export function ForexAutomatedTradingPage(props: {
                     policy={String(c.riskPolicyVersion ?? "—")}
                     {" · "}
                     {String(row.createdAtUtc ?? "—")}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
+      </section>
+
+      <section
+        className="fx-auto-trading-panel"
+        data-fx-at-broker-handoff="true"
+        aria-label="Broker compatibility validation and handoff"
+      >
+        <div className="fx-auto-trading-panel-head">
+          <h2 className="fx-auto-trading-h2">Broker validation &amp; handoff (Step 3)</h2>
+        </div>
+        <p className="fx-auto-trading-hint" style={{ marginTop: 0 }} data-fx-at-handoff-banner="true">
+          ORDER PROPOSAL → <strong>BROKER VALIDATION</strong> → <strong>HANDOFF READY</strong> → Broker execution (disabled).
+          {" "}placesOrders=<strong>false</strong> · No Execute button · No FXCM submit.
+        </p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: "0.5rem",
+            alignItems: "end",
+            marginBottom: "0.75rem",
+          }}
+        >
+          <label className="fx-auto-trading-hint" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            Offer ID (required)
+            <input
+              className="fx-auto-trading-input"
+              value={handoffOfferId}
+              onChange={(e) => setHandoffOfferId(e.target.value)}
+              placeholder="FXCM offer id"
+              data-fx-at-handoff-offer="true"
+            />
+          </label>
+          <button
+            type="button"
+            className="fx-auto-trading-btn"
+            disabled={handoffBusy || busy}
+            onClick={() => void validateBrokerHandoff()}
+            data-fx-at-handoff-validate="true"
+          >
+            Validate handoff
+          </button>
+        </div>
+        {handoffLatest ? (() => {
+          const prov = (handoffLatest.provenance ?? {}) as Record<string, unknown>;
+          const acct = (handoffLatest.account ?? {}) as Record<string, unknown>;
+          const inst = (handoffLatest.instrument ?? {}) as Record<string, unknown>;
+          const dir = (handoffLatest.directionOrder ?? {}) as Record<string, unknown>;
+          const prot = (handoffLatest.protection ?? {}) as Record<string, unknown>;
+          const blocked = String(handoffLatest.lifecycle) === "BLOCKED";
+          return (
+            <div data-fx-at-handoff-latest="true">
+              <p className="fx-auto-trading-hint" style={{ margin: "0 0 0.5rem" }}>
+                Status: <strong>{String(handoffLatest.lifecycle ?? "—")}</strong>
+                {" · "}validation=<strong>{String(handoffLatest.validationStatus ?? "—")}</strong>
+                {" · "}id=<strong>{String(prov.handoffId ?? "—")}</strong>
+                {" · "}proposal=<strong>{String(prov.proposalId ?? "—")}</strong>
+                {blocked ? (
+                  <span style={{ color: "var(--fx-danger, #b42318)", marginLeft: 8 }}>BLOCKED</span>
+                ) : null}
+              </p>
+              <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+                <li>
+                  Account: <strong>{String(acct.accountReference ?? "—")}</strong>
+                  {" · "}{String(acct.accountCurrency ?? "—")}
+                  {" · "}fresh={String(acct.accountDataFresh ?? "—")}
+                </li>
+                <li>
+                  Instrument: <strong>{String(inst.symbol ?? "—")}</strong>
+                  {" · "}offer=<strong>{String(inst.offerId ?? "—")}</strong>
+                  {" · "}unit=<strong>{String(inst.amountUnit ?? "—")}</strong>
+                  {" · "}min/step=<strong>{String(inst.minimumAmount ?? "—")}/{String(inst.amountStep ?? "—")}</strong>
+                </li>
+                <li>
+                  BUY/SELL: <strong>{String(dir.brokerBuySell ?? "—")}</strong>
+                  {" · "}type=<strong>{String(dir.orderType ?? "—")}</strong>
+                  {" · "}TIF=<strong>{String(dir.timeInForce ?? "—")}</strong>
+                  {" · "}amount=<strong>{String(dir.amount ?? "—")}</strong>
+                  {" · "}qty=<strong>{String(dir.normalizedQuantity ?? "—")}</strong>
+                </li>
+                <li>
+                  Entry/SL/TP: <strong>{String(dir.entryPrice ?? "—")}</strong>
+                  {" / "}
+                  <strong>{String(dir.stopLoss ?? "—")}</strong>
+                  {" / "}
+                  <strong>{String(dir.takeProfit ?? "—")}</strong>
+                </li>
+                <li>
+                  Protection: <strong>{String(prot.protectionCompatibilityStatus ?? "—")}</strong>
+                  {" · "}{String(prot.requiredProtectionWorkflow ?? "—")}
+                </li>
+                <li>
+                  orderId=<strong>null</strong> · tradeId=<strong>null</strong> (never invented)
+                </li>
+              </ul>
+              {Array.isArray(handoffLatest.blockers) && (handoffLatest.blockers as unknown[]).length > 0 ? (
+                <p className="fx-auto-trading-hint" style={{ color: "var(--fx-danger, #b42318)" }} data-fx-at-handoff-blockers="true">
+                  Blockers:{" "}
+                  {(handoffLatest.blockers as Array<{ code?: string; message?: string }>)
+                    .slice(0, 8)
+                    .map((b) => `${b.code ?? "?"}: ${b.message ?? ""}`)
+                    .join(" · ")}
+                </p>
+              ) : null}
+            </div>
+          );
+        })() : (
+          <p className="fx-auto-trading-hint">No handoff yet. Build a PROPOSAL_READY proposal, supply Offer ID, then Validate.</p>
+        )}
+        {handoffHistory.length > 0 ? (
+          <div data-fx-at-handoff-history="true" style={{ marginTop: "0.75rem" }}>
+            <h3 className="fx-auto-trading-h2" style={{ fontSize: "1rem" }}>Handoff history</h3>
+            <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+              {handoffHistory.slice(0, 8).map((row) => {
+                const p = (row.provenance ?? {}) as Record<string, unknown>;
+                return (
+                  <li key={String(p.handoffId ?? row.idempotencyKey)}>
+                    <strong>{String(row.lifecycle ?? "—")}</strong>
+                    {" · "}
+                    {String(p.instrument ?? "—")}
+                    {" · "}
+                    {String(p.createdAtUtc ?? "—")}
                   </li>
                 );
               })}

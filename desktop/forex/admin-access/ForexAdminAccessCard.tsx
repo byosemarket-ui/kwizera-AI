@@ -52,6 +52,9 @@ export const FOREX_ADMIN_SHARED_MODULES: readonly ModuleProbeDef[] = [
   { id: "proposal-status", label: "Order Proposal Status", probePath: "/api/forex/automated-trading/proposal/status" },
   { id: "proposal-allocation", label: "Proposal Allocation", probePath: "/api/forex/automated-trading/proposal/allocation" },
   { id: "proposal-history", label: "Proposal History", probePath: "/api/forex/automated-trading/proposal/history?limit=4" },
+  { id: "handoff-status", label: "Broker Handoff Status", probePath: "/api/forex/automated-trading/handoff/status" },
+  { id: "handoff-account", label: "Handoff Account Compat", probePath: "/api/forex/automated-trading/handoff/account" },
+  { id: "handoff-history", label: "Handoff History", probePath: "/api/forex/automated-trading/handoff/history?limit=4" },
 ] as const;
 
 type ModuleAuthRow = {

@@ -1729,6 +1729,128 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Step 3 — Broker compatibility / handoff (never submits orders; path avoids /order/).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/handoff/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const handoff = await service.getHandoffStatus();
+      sendJson(res, 200, {
+        ok: true,
+        handoff,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/handoff/history")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limit = Math.min(80, Math.max(1, Number(url.searchParams.get("limit") || 12) || 12));
+      const history = await service.listHandoffs(limit);
+      sendJson(res, 200, {
+        ok: true,
+        history,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/handoff/detail")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const id = String(url.searchParams.get("id") || "").trim();
+      if (!id) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "HANDOFF_ID_REQUIRED", message: "Query id= is required." },
+        });
+        return true;
+      }
+      const record = await service.getHandoff(id);
+      if (!record) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "HANDOFF_NOT_FOUND", message: "Handoff not found." },
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        handoff: record,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/handoff/instrument")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const specs = await service.getHandoffInstrumentSpecs();
+      sendJson(res, 200, { ok: true, ...specs });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/handoff/account")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const account = await service.getHandoffAccountCompatibility();
+      sendJson(res, 200, { ok: true, ...account });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/handoff/validate")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+      const result = await service.validateHandoff({
+        proposalId: body.proposalId,
+        offerId: body.offerId,
+        protectionAttachVerified: body.protectionAttachVerified,
+        maxExposureLimit: body.maxExposureLimit,
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+      });
+      if (!result.ok) {
+        sendJson(res, 409, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          handoff: result.handoff,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        handoff: result.handoff,
+        futureContract: result.futureContract,
+        duplicate: result.duplicate,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        note: result.note,
+      });
+      return true;
+    }
+
     // Phase 54 — read-only trading decision validation (never places orders).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/decision/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
