@@ -2564,6 +2564,31 @@ export class AutomatedTradingService {
       } catch {
         instruments = [];
       }
+      // Fill OfferID from live Offers quotes when catalog rows omit it (read-only; never invent).
+      try {
+        const quotes = await bridge.pollQuotes();
+        if (Array.isArray(quotes) && quotes.length > 0 && instruments.length > 0) {
+          const bySym = new Map<string, string>();
+          const norm = (s: string) => s.replace(/[\s/_-]/g, "").toUpperCase();
+          for (const q of quotes) {
+            const oid = q.offerId != null ? String(q.offerId).trim() : "";
+            if (!oid) continue;
+            for (const key of [q.providerSymbol, q.canonicalSymbol, q.displaySymbol]) {
+              if (key) bySym.set(norm(String(key)), oid);
+            }
+          }
+          instruments = instruments.map((row) => {
+            if (row.offerId != null && String(row.offerId).trim()) return row;
+            const hit =
+              bySym.get(norm(String(row.providerSymbol ?? "")))
+              ?? bySym.get(norm(String(row.canonicalSymbol ?? "")))
+              ?? bySym.get(norm(String(row.displaySymbol ?? "")));
+            return hit ? { ...row, offerId: hit } : row;
+          });
+        }
+      } catch {
+        /* quotes optional for OfferID enrichment */
+      }
 
       let marketInput: Parameters<typeof assembleVerificationResult>[0]["marketInput"] = null;
       if (instrumentSymbol) {
@@ -3315,7 +3340,151 @@ export class AutomatedTradingService {
       placesOrders: false as const,
       acceptsForExecution: false as const,
       mutatesBroker: false as const,
-      note: "Read-only verified instrument snapshot. Offer ID may be absent until separately resolved.",
+      note:
+        "Read-only verified instrument snapshot. Offer ID comes from ForexConnect Offers "
+        + "catalog/quotes when present — never invented.",
+    };
+  }
+
+  /**
+   * Step 3 closeout — read-only scan of ForexConnect instruments for owner 0.01-lot compatibility.
+   * Path avoids /order/; never mutates broker.
+   */
+  async scanHandoffCompatibleInstruments() {
+    const { getForexConnectBridge } = await import("../../market-data/forexconnect/client.js");
+    const {
+      discover001LotCompatibleInstruments,
+      OWNER_MAX_LOTS_001,
+    } = await import("./order-execution/discover-001-lot-instruments.js");
+    const bridge = getForexConnectBridge();
+    const listed = await bridge.listInstruments();
+    let quotes: Awaited<ReturnType<typeof bridge.pollQuotes>> = [];
+    try {
+      quotes = await bridge.pollQuotes();
+    } catch {
+      quotes = [];
+    }
+    const offerBySym = new Map<string, string>();
+    const norm = (s: string) => s.replace(/[\s/_-]/g, "").toUpperCase();
+    for (const q of quotes) {
+      const oid = q.offerId != null ? String(q.offerId).trim() : "";
+      if (!oid) continue;
+      for (const key of [q.providerSymbol, q.canonicalSymbol, q.displaySymbol]) {
+        if (key) offerBySym.set(norm(String(key)), oid);
+      }
+    }
+    const instruments = Array.isArray(listed.instruments) ? listed.instruments : [];
+    const rows = instruments.map((i) => {
+      const offerFromRow = i.offerId != null ? String(i.offerId).trim() : "";
+      const offerFromQuote =
+        offerBySym.get(norm(String(i.providerSymbol ?? "")))
+        ?? offerBySym.get(norm(String(i.canonicalSymbol ?? "")))
+        ?? offerBySym.get(norm(String(i.displaySymbol ?? "")))
+        ?? "";
+      return {
+        providerSymbol: i.providerSymbol,
+        displaySymbol: i.displaySymbol,
+        canonicalSymbol: i.canonicalSymbol,
+        instrumentType: i.instrumentTypeLabel ?? (i.instrumentType != null ? String(i.instrumentType) : null),
+        tradingStatus: i.tradingStatus != null ? String(i.tradingStatus) : null,
+        baseUnitSize: i.baseUnitSize ?? null,
+        minQuantity: i.minQuantity ?? null,
+        lotStep: i.lotStep ?? null,
+        pointSize: i.pointSize ?? null,
+        pipCost: i.pipCost ?? null,
+        mmrPerLot: i.mmrPerLot ?? null,
+        condDistStop: i.condDistStop ?? null,
+        condDistAvailable: i.condDistAvailable ?? null,
+        evidenceSource: "live_broker" as const,
+        offerId: offerFromRow || offerFromQuote || null,
+      };
+    });
+    const discovery = discover001LotCompatibleInstruments(rows);
+    const selected = this.store.getState().environments[
+      this.store.getState().selectedEnvironment
+    ]?.lastVerification?.instrument ?? null;
+    const selectedOffer =
+      selected?.offerId
+      ?? (selected?.symbol
+        ? offerBySym.get(norm(String(selected.symbol))) ?? null
+        : null);
+    const selectedScore = selected?.symbol
+      ? discovery.compatible.find((c) => norm(c.providerSymbol) === norm(String(selected.symbol)))
+        ?? discovery.incompatibleSample.find((c) => norm(c.providerSymbol) === norm(String(selected.symbol)))
+        ?? null
+      : null;
+    return {
+      ok: listed.ok !== false,
+      formula: discovery.formula,
+      requestedLots: OWNER_MAX_LOTS_001,
+      scanned: discovery.scanned,
+      compatibleCount: discovery.compatible.length,
+      compatible: discovery.compatible.map((c) => {
+        const row = rows.find((r) => norm(String(r.providerSymbol)) === norm(c.providerSymbol));
+        const amount = c.contract.amountConversion.amount;
+        return {
+          symbol: c.providerSymbol,
+          displaySymbol: c.displaySymbol,
+          offerId: row?.offerId ?? null,
+          instrumentType: c.instrumentType,
+          tradingStatus: c.tradingStatus,
+          contractSize: c.liveFields.baseUnitSize,
+          quantityUnit: "contracts",
+          minimumQuantity: c.liveFields.minQuantity,
+          quantityStep: c.liveFields.amountStep,
+          tickSize: c.liveFields.pointSize,
+          pipSize: c.liveFields.pointSize,
+          marginPerLot: c.liveFields.mmrPerLot,
+          conversionFormula: discovery.formula,
+          amountAtOwnerMax: amount,
+          amountConversionOk: c.contract.amountConversion.ok,
+          amountConversionCode: c.contract.amountConversion.code,
+          minLotsFromBroker: c.contract.minLotsFromBroker,
+          compatible001Lot: c.compatible001Lot,
+          blockers: c.blockers,
+        };
+      }),
+      incompatibleSample: discovery.incompatibleSample.slice(0, 15).map((c) => {
+        const row = rows.find((r) => norm(String(r.providerSymbol)) === norm(c.providerSymbol));
+        return {
+          symbol: c.providerSymbol,
+          offerId: row?.offerId ?? null,
+          baseUnitSize: c.liveFields.baseUnitSize,
+          minQuantity: c.liveFields.minQuantity,
+          mmrPerLot: c.liveFields.mmrPerLot,
+          amountAtOwnerMax: c.contract.amountConversion.amount,
+          amountConversionCode: c.contract.amountConversion.code,
+          minLotsFromBroker: c.contract.minLotsFromBroker,
+          blockers: c.blockers,
+        };
+      }),
+      selectedInstrument: selected
+        ? {
+          symbol: selected.symbol,
+          offerId: selectedOffer,
+          baseUnitSize: selected.baseUnitSize,
+          quantityMin: selected.quantityMin,
+          quantityStep: selected.quantityStep,
+          quantityUnit: selected.quantityUnit,
+          marginPerLotAccount: selected.marginPerLotAccount,
+          score: selectedScore
+            ? {
+              compatible001Lot: selectedScore.compatible001Lot,
+              blockers: selectedScore.blockers,
+              amountAtOwnerMax: selectedScore.contract.amountConversion.amount,
+              amountConversionCode: selectedScore.contract.amountConversion.code,
+              minLotsFromBroker: selectedScore.contract.minLotsFromBroker,
+            }
+            : null,
+        }
+        : null,
+      summary: discovery.summary,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      note:
+        "Read-only Offers/TradingSettings scan. compatible001Lot requires integer AMOUNT at 0.01 lots, "
+        + "broker min ≤ 0.01 lots, and authoritative MMR. Never places orders.",
     };
   }
 
@@ -3379,10 +3548,16 @@ export class AutomatedTradingService {
     const master = toSystemMasterPublicStatus(getAtSystemMasterStore().get());
     const systemMasterOn = master.ownerState === "ON" && master.masterEnabled === true;
 
-    const offerId =
+    const offerFromBody =
       input.offerId != null && String(input.offerId).trim()
         ? String(input.offerId).trim()
         : null;
+    const offerFromInstrument =
+      inst?.offerId != null && String(inst.offerId).trim()
+        ? String(inst.offerId).trim()
+        : null;
+    // Prefer explicit client offerId, else verified instrument OfferID from ForexConnect catalog/quotes.
+    const offerId = offerFromBody ?? offerFromInstrument;
 
     const { record, duplicate, futureContract } = validateProposalForBrokerHandoff(
       {

@@ -97,6 +97,8 @@ export interface VerifiedInstrumentPublic {
   instrumentType: string | null;
   baseAsset: string | null;
   quoteAsset: string | null;
+  /** Authoritative Offers OfferID when ForexConnect catalog/quotes expose it — never invented. */
+  offerId: string | null;
   pointSize: number | null;
   pipCostAccount: number | null;
   contractMultiplier: number | null;
@@ -195,6 +197,7 @@ export function emptyInstrument(symbol: string | null = null): VerifiedInstrumen
     instrumentType: null,
     baseAsset: null,
     quoteAsset: null,
+    offerId: null,
     pointSize: null,
     pipCostAccount: null,
     contractMultiplier: null,

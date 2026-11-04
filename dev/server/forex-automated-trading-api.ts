@@ -1804,6 +1804,22 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/handoff/compatible-instruments")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const scan = await service.scanHandoffCompatibleInstruments();
+      sendJson(res, 200, {
+        ok: true,
+        ...scan,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      });
+      return true;
+    }
+
     if (isAtPath(url.pathname, "/api/forex/automated-trading/handoff/account")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });

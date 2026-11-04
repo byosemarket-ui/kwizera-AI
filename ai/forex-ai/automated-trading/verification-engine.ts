@@ -323,6 +323,7 @@ export function verifyInstrumentMetadata(
     // Margin gap alone does not revoke ELIGIBLE when sizing fields verified — recorded as soft blocker.
   }
 
+  const offerIdRaw = hit.offerId != null ? String(hit.offerId).trim() : "";
   return {
     instrument: {
       symbol: hit.providerSymbol,
@@ -333,6 +334,7 @@ export function verifyInstrumentMetadata(
       instrumentType: hit.instrumentTypeLabel ?? (hit.instrumentType != null ? String(hit.instrumentType) : null),
       baseAsset: hit.baseAsset,
       quoteAsset: hit.quoteAsset,
+      offerId: offerIdRaw || null,
       pointSize: spec.pointSize,
       pipCostAccount: spec.pipCostAccount,
       contractMultiplier: spec.contractMultiplier,

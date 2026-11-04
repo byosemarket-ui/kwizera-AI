@@ -187,6 +187,30 @@ describe("Phase 52 verification pure helpers", () => {
     expect(r.instrument.contractVerified).toBe(true);
   });
 
+  it("preserves ForexConnect OfferID on verified instrument (never invents)", () => {
+    const withOffer = verifyInstrumentMetadata("EUR/USD", [{ ...eurUsd, offerId: "42" }]);
+    expect(withOffer.instrument.offerId).toBe("42");
+    const without = verifyInstrumentMetadata("EUR/USD", [{ ...eurUsd, offerId: null }]);
+    expect(without.instrument.offerId).toBeNull();
+  });
+
+  it("XAU-style baseUnitSize=1 minQuantity=1 is incompatible with owner 0.01 lots at integer AMOUNT", async () => {
+    const { scoreInstrumentFor001Lots } = await import(
+      "../../../../ai/forex-ai/automated-trading/order-execution/discover-001-lot-instruments.js"
+    );
+    const xau = scoreInstrumentFor001Lots({
+      providerSymbol: "XAU/USD",
+      baseUnitSize: 1,
+      minQuantity: 1,
+      mmrPerLot: 4.42,
+      evidenceSource: "live_broker",
+    });
+    expect(xau.compatible001Lot).toBe(false);
+    expect(xau.contract.ownerMaxBelowBrokerMin).toBe(true);
+    expect(xau.contract.amountConversion.ok).toBe(false);
+    expect(xau.contract.amountConversion.code).toBe("AMOUNT_NOT_INTEGER");
+  });
+
   it("does not label unchanged receipt heartbeats as LIVE", () => {
     const liveish = buildMarketFromQuote({
       bid: 1.1,
@@ -291,9 +315,9 @@ describe("Phase 52 static contracts", () => {
     expect(read("ai/forex-ai/automated-trading/service.ts")).not.toMatch(
       /placeOrder|submitOrder|createOrder|closePosition/,
     );
-    // Banner tracks the current AT phase (52+). Execution remains unimplemented.
-    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/PHASE 5[2-9](\.\d+)?/);
-    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/NOT IMPLEMENTED/i);
+    // Banner must keep global broker execution disabled (phase label may advance).
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/GLOBAL BROKER EXECUTION DISABLED/i);
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/Phase 4\.\d+/i);
     expect(read("desktop/forex/ForexAutomatedTradingPage.tsx")).toContain("data-fx-at-verification");
     expect(read("desktop/forex/ForexAutomatedTradingPage.tsx")).toContain("data-fx-at-readiness");
     expect(read("desktop/forex/ForexShell.tsx")).toContain("ForexAutomatedTradingPage");
