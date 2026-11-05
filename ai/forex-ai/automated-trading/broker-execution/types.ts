@@ -58,6 +58,7 @@ export type AtBrokerExecutionBlockCode =
   | "CAPITAL_NOT_CONFIGURED"
   | "SYSTEM_MASTER_IS_NOT_EXECUTION_AUTH"
   | "MUTATION_GATES_NOT_PHASE1"
+  | "AUDIT_PERSIST_FAILED"
   | "UNKNOWN";
 
 export interface AtBrokerExecutionBlocker {
@@ -65,12 +66,20 @@ export interface AtBrokerExecutionBlocker {
   message: string;
 }
 
+export type AtBrokerExecutionAuditDecision = "ALLOW" | "DENY";
+
 export interface AtBrokerExecutionAuditEvent {
   id: string;
   atUtc: string;
   actor: string;
   action: string;
   detail: string;
+  /** Present on Phase 1.1+ events; null for legacy rows (never invented on load). */
+  correlationId: string | null;
+  /** Present on Phase 1.1+ events; null for legacy rows. */
+  decision: AtBrokerExecutionAuditDecision | null;
+  /** Present on Phase 1.1+ events; null for legacy rows. */
+  reasonCode: string | null;
   handoffId: string | null;
   proposalId: string | null;
   lifecycle: AtBrokerExecutionLifecycle | null;
@@ -149,6 +158,13 @@ export interface AtBrokerExecutionPublicStatus {
   handoffReadyIsNotExecutionPermission: true;
   phase1SubmitImplemented: false;
   phaseNote: string;
+  /** Documented GET-status audit policy — never floods durable audit from polling. */
+  auditPolicy: {
+    statusGetWritesAudit: false;
+    statusGetDocumentsDenialsOnPayload: true;
+    stateChangingAttemptsWriteAudit: true;
+    deniedLifecycleTransitionsWriteAudit: true;
+  };
   prerequisites: {
     capitalAllocationConfigured: boolean | null;
     compatibleInstrumentAtOwnerMax: boolean | null;
@@ -156,3 +172,17 @@ export interface AtBrokerExecutionPublicStatus {
     demoMutationGates: "NOT_EVALUATED_PHASE1";
   };
 }
+
+export type AtBrokerExecutionAuditAppendResult =
+  | {
+    ok: true;
+    persisted: true;
+    event: AtBrokerExecutionAuditEvent;
+  }
+  | {
+    ok: false;
+    persisted: false;
+    code: "AUDIT_PERSIST_FAILED";
+    message: string;
+    event: AtBrokerExecutionAuditEvent | null;
+  };

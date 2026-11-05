@@ -3373,9 +3373,12 @@ export class AutomatedTradingService {
     return getAtBrokerExecutionStore().listAudit(limit);
   }
 
-  async requestBrokerExecutionMasterOn(actor = "admin") {
+  async requestBrokerExecutionMasterOn(actor = "admin", correlationId?: string) {
     const { getAtBrokerExecutionStore } = await import("./broker-execution/index.js");
-    return getAtBrokerExecutionStore().requestEnableExecutionMaster(String(actor || "admin"));
+    return getAtBrokerExecutionStore().requestEnableExecutionMaster(
+      String(actor || "admin"),
+      correlationId,
+    );
   }
 
   async getHandoffInstrumentSpecs() {

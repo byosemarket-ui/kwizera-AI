@@ -82,6 +82,21 @@ Phase 1 persists the machine and **never leaves** `IDLE` / `AUTHORIZATION_REQUIR
 
 ---
 
+## 3.1 Audit policy (Phase 1.1 hardening)
+
+| Source | Durable audit? | Notes |
+|--------|----------------|-------|
+| GET `/broker-engine/status` | **No** | Evaluates authorization for payload blockers only — no per-poll audit rows |
+| POST `/broker-engine/request-master-on` | **Yes (DENY)** | Structured event; persist failure → `AUDIT_PERSIST_FAILED` |
+| Denied lifecycle transition | **Yes (DENY)** | Includes correlationId + reasonCode |
+| Allowed Phase 1 transition / intent record | **Yes** | Still `activatesMutation=false` / no submit |
+
+Legacy audit rows without `correlationId` / `decision` / `reasonCode` load as `null` (never invented).
+
+See `ai/forex-ai/automated-trading/broker-execution/audit-policy.ts`.
+
+---
+
 ## 4. Authorization model
 
 Execution requires **all** of the following (fail-closed):

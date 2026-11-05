@@ -1,3 +1,4 @@
+import { AT_BROKER_EXECUTION_AUDIT_POLICY } from "./audit-policy.js";
 import { evaluateExecutionAuthorization } from "./authorization.js";
 import { getAtBrokerExecutionStore } from "./store.js";
 import {
@@ -63,6 +64,15 @@ export function getBrokerExecutionPublicStatus(input?: {
     handoffReadyIsNotExecutionPermission: true,
     phase1SubmitImplemented: false,
     phaseNote: foundation.phaseNote,
+    auditPolicy: {
+      statusGetWritesAudit: AT_BROKER_EXECUTION_AUDIT_POLICY.statusGetWritesAudit,
+      statusGetDocumentsDenialsOnPayload:
+        AT_BROKER_EXECUTION_AUDIT_POLICY.statusGetDocumentsDenialsOnPayload,
+      stateChangingAttemptsWriteAudit:
+        AT_BROKER_EXECUTION_AUDIT_POLICY.stateChangingAttemptsWriteAudit,
+      deniedLifecycleTransitionsWriteAudit:
+        AT_BROKER_EXECUTION_AUDIT_POLICY.deniedLifecycleTransitionsWriteAudit,
+    },
     prerequisites: {
       capitalAllocationConfigured:
         input?.capitalAllocationPercent != null

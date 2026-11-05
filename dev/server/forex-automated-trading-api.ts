@@ -1770,10 +1770,21 @@ export async function handleForexAutomatedTradingApi(
         return true;
       }
       // Phase 1 deliberately rejects enabling Execution Master.
-      const result = await service.requestBrokerExecutionMasterOn("admin-api");
-      sendJson(res, 403, {
+      // AUDIT_PERSIST_FAILED remains fail-closed (Master stays OFF).
+      let body: Record<string, unknown> = {};
+      try {
+        const raw = await readJsonBody(req, 4_000);
+        if (raw && typeof raw === "object") body = raw as Record<string, unknown>;
+      } catch {
+        body = {};
+      }
+      const correlationId = String(body.correlationId || "").trim() || undefined;
+      const result = await service.requestBrokerExecutionMasterOn("admin-api", correlationId);
+      const status = result.code === "AUDIT_PERSIST_FAILED" ? 500 : 403;
+      sendJson(res, status, {
         ok: false,
         error: { code: result.code, message: result.message },
+        correlationId: result.correlationId,
         brokerEngine: result.foundation,
         placesOrders: false,
         acceptsForExecution: false,
