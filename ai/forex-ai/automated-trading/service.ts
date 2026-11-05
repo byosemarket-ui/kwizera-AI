@@ -3339,6 +3339,45 @@ export class AutomatedTradingService {
     return getAtBrokerHandoffStore().get(String(handoffId || "").trim());
   }
 
+  /**
+   * Broker Execution Engine — Phase 1 foundation status only.
+   * API namespace: /broker-engine/* (avoids /order|/submit|/execute EXECUTION_FORBIDDEN gate).
+   * Never places orders; Execution Master remains OFF.
+   */
+  async getBrokerExecutionStatus() {
+    const { getBrokerExecutionPublicStatus } = await import("./broker-execution/index.js");
+    const { getAtSystemMasterStore } = await import("./system-master/index.js");
+    const { toSystemMasterPublicStatus } = await import("./system-master/types.js");
+    const { getAtBrokerHandoffStore } = await import("./broker-compatibility/index.js");
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const state = this.store.getState();
+    const env = state.environments[state.selectedEnvironment];
+    const master = toSystemMasterPublicStatus(getAtSystemMasterStore().get());
+    const handoff = getAtBrokerHandoffStore().latest();
+    const alloc = getAtOrderProposalStore().getAllocationConfig();
+    return getBrokerExecutionPublicStatus({
+      environment: state.selectedEnvironment,
+      emergencyEntryLock: env.controls.emergencyEntryLock === true,
+      handoffLifecycle: handoff?.lifecycle ?? null,
+      handoffId: handoff?.provenance?.handoffId ?? null,
+      proposalId: handoff?.provenance?.proposalId ?? null,
+      quantityLots: handoff?.directionOrder?.normalizedQuantity ?? null,
+      capitalAllocationPercent: env.controls.capitalAllocationPercent,
+      individualOrderAllocation: alloc.individualOrderAllocation,
+      systemMasterOn: master.ownerState === "ON" && master.masterEnabled === true,
+    });
+  }
+
+  async listBrokerExecutionAudit(limit = 40) {
+    const { getAtBrokerExecutionStore } = await import("./broker-execution/index.js");
+    return getAtBrokerExecutionStore().listAudit(limit);
+  }
+
+  async requestBrokerExecutionMasterOn(actor = "admin") {
+    const { getAtBrokerExecutionStore } = await import("./broker-execution/index.js");
+    return getAtBrokerExecutionStore().requestEnableExecutionMaster(String(actor || "admin"));
+  }
+
   async getHandoffInstrumentSpecs() {
     const state = this.store.getState();
     const env = state.environments[state.selectedEnvironment];

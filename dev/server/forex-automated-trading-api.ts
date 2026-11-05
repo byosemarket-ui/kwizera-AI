@@ -1729,6 +1729,59 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Broker Execution Engine Phase 1 — foundation status only (path avoids /order|/submit|/execute).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-engine/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const brokerEngine = await service.getBrokerExecutionStatus();
+      sendJson(res, 200, {
+        ok: true,
+        brokerEngine,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        note: "Phase 1 foundation only — no broker submission.",
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-engine/audit")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limit = Math.min(80, Math.max(1, Number(url.searchParams.get("limit") || 40) || 40));
+      const audit = await service.listBrokerExecutionAudit(limit);
+      sendJson(res, 200, {
+        ok: true,
+        audit,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-engine/request-master-on")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      // Phase 1 deliberately rejects enabling Execution Master.
+      const result = await service.requestBrokerExecutionMasterOn("admin-api");
+      sendJson(res, 403, {
+        ok: false,
+        error: { code: result.code, message: result.message },
+        brokerEngine: result.foundation,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      });
+      return true;
+    }
+
     // Step 3 — Broker compatibility / handoff (never submits orders; path avoids /order/).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/handoff/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
