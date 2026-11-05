@@ -3172,6 +3172,14 @@ export class AutomatedTradingService {
     patch.strategyAllocationPercentSnapshot = freshEnv.controls.capitalAllocationPercent;
     patch.currency = freshEnv.lastVerification?.account?.accountCurrency ?? env.lastVerification?.account?.accountCurrency ?? null;
     store.updateAllocationConfig(patch);
+    if (store.lastWriteError) {
+      return {
+        ok: false as const,
+        code: "ALLOCATION_PERSIST_FAILED",
+        message: `Allocation config could not be persisted: ${store.lastWriteError}`,
+        config: await this.getProposalAllocationConfig(),
+      };
+    }
     return {
       ok: true as const,
       config: await this.getProposalAllocationConfig(),
@@ -3393,6 +3401,7 @@ export class AutomatedTradingService {
         pointSize: i.pointSize ?? null,
         pipCost: i.pipCost ?? null,
         mmrPerLot: i.mmrPerLot ?? null,
+        mmrSource: (i as { mmrSource?: string | null }).mmrSource ?? null,
         condDistStop: i.condDistStop ?? null,
         condDistAvailable: i.condDistAvailable ?? null,
         evidenceSource: "live_broker" as const,
@@ -3401,7 +3410,10 @@ export class AutomatedTradingService {
     });
     const discovery = discover001LotCompatibleInstruments(rows, { incompatibleSampleLimit: 80 });
     // Score every row once for targeted lookups (compatible list alone may be empty).
-    const { scoreInstrumentFor001Lots } = await import("./order-execution/discover-001-lot-instruments.js");
+    const {
+      scoreInstrumentFor001Lots,
+      classify001LotScore,
+    } = await import("./order-execution/discover-001-lot-instruments.js");
     const scoredAll = rows.map((r) => ({
       row: r,
       score: scoreInstrumentFor001Lots(r, OWNER_MAX_LOTS_001),
@@ -3426,8 +3438,18 @@ export class AutomatedTradingService {
       minLotsFromBroker: c.contract.minLotsFromBroker,
       ownerMaxBelowBrokerMin: c.contract.ownerMaxBelowBrokerMin,
       compatible001Lot: c.compatible001Lot,
+      classification: classify001LotScore(c, offerId),
       blockers: c.blockers,
     });
+    const classificationCounts = { ...discovery.classificationCounts };
+    // Re-count with Offer ID awareness (discovery path has no offerId).
+    for (const key of Object.keys(classificationCounts) as Array<keyof typeof classificationCounts>) {
+      classificationCounts[key] = 0;
+    }
+    for (const x of scoredAll) {
+      classificationCounts[classify001LotScore(x.score, x.row.offerId)] += 1;
+    }
+    const mmrPresent = scoredAll.filter((x) => x.score.liveFields.mmrPerLot != null).length;
     const integerAmountCandidates = scoredAll
       .filter((x) => x.score.contract.amountConversion.ok)
       .map((x) => mapScore(x.score, x.row.offerId))
@@ -3502,12 +3524,19 @@ export class AutomatedTradingService {
         }
         : null,
       summary: discovery.summary,
+      mmrCoverage: {
+        present: mmrPresent,
+        missing: Math.max(0, scoredAll.length - mmrPresent),
+        total: scoredAll.length,
+      },
+      classificationCounts,
       placesOrders: false as const,
       acceptsForExecution: false as const,
       mutatesBroker: false as const,
       note:
-        "Read-only Offers/TradingSettings scan. compatible001Lot requires integer AMOUNT at 0.01 lots, "
-        + "broker min ≤ 0.01 lots, and authoritative MMR. Never places orders.",
+        "Read-only Offers/TradingSettings scan (Offers-row MMR fallback when TradingSettings get_mmr is null). "
+        + "compatible001Lot requires integer AMOUNT at 0.01 lots, broker min ≤ 0.01 lots, and authoritative MMR. "
+        + "Never places orders.",
     };
   }
 

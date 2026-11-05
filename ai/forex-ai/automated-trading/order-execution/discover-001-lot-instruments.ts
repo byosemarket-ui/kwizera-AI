@@ -57,6 +57,17 @@ export interface Instrument001LotScore {
   blockers: string[];
 }
 
+/** Transparent catalog classification for owner 0.01-lot RO scans. */
+export type Instrument001LotClassification =
+  | "VERIFIED_COMPATIBLE_AT_0_01"
+  | "VERIFIED_INCOMPATIBLE_QUANTITY"
+  | "VERIFIED_INCOMPATIBLE_MARGIN"
+  | "MMR_MISSING"
+  | "QUANTITY_METADATA_MISSING"
+  | "OFFER_ID_MISSING"
+  | "OTHER_BLOCKER"
+  | "NOT_VERIFIED";
+
 export interface Discover001LotInstrumentsResult {
   requestedLots: number;
   formula: "amount = baseUnitSize * lots";
@@ -65,7 +76,65 @@ export interface Discover001LotInstrumentsResult {
   incompatibleSample: Instrument001LotScore[];
   missingSpecsCount: number;
   missingMmrCount: number;
+  classificationCounts: Record<Instrument001LotClassification, number>;
   summary: string;
+}
+
+const QUANTITY_BLOCKERS = new Set([
+  "AMOUNT_NOT_INTEGER",
+  "AMOUNT_BELOW_MIN_QUANTITY",
+  "REQUESTED_LOTS_BELOW_BROKER_MIN",
+  "OWNER_MAX_LOTS_BELOW_BROKER_MIN",
+  "AMOUNT_NOT_ALIGNED_TO_STEP",
+  "BASE_UNIT_SIZE_UNKNOWN",
+  "MIN_QUANTITY_UNVERIFIED",
+]);
+
+/**
+ * Classify one scored instrument for the 0.01-lot catalog audit.
+ * Priority: compatible → quantity metadata → quantity rule → MMR → margin → offerId → other.
+ */
+export function classify001LotScore(
+  score: Instrument001LotScore,
+  offerId?: string | null,
+): Instrument001LotClassification {
+  if (score.compatible001Lot) return "VERIFIED_COMPATIBLE_AT_0_01";
+  if (score.blockers.includes("EVIDENCE_NOT_LIVE")) return "NOT_VERIFIED";
+  const missingQtyMeta =
+    score.liveFields.baseUnitSize == null
+    || score.liveFields.minQuantity == null
+    || score.blockers.includes("BASE_UNIT_SIZE_UNKNOWN")
+    || score.blockers.includes("MIN_QUANTITY_UNVERIFIED");
+  if (missingQtyMeta) return "QUANTITY_METADATA_MISSING";
+  if (score.blockers.some((b) => QUANTITY_BLOCKERS.has(b))) {
+    return "VERIFIED_INCOMPATIBLE_QUANTITY";
+  }
+  if (
+    score.liveFields.mmrPerLot == null
+    || score.blockers.includes("MMR_PER_LOT_UNVERIFIED")
+  ) {
+    return "MMR_MISSING";
+  }
+  if (score.blockers.some((b) => /MARGIN|MMR|EXPOSURE/i.test(b))) {
+    return "VERIFIED_INCOMPATIBLE_MARGIN";
+  }
+  if (offerId == null || String(offerId).trim() === "") {
+    return "OFFER_ID_MISSING";
+  }
+  return "OTHER_BLOCKER";
+}
+
+function emptyClassificationCounts(): Record<Instrument001LotClassification, number> {
+  return {
+    VERIFIED_COMPATIBLE_AT_0_01: 0,
+    VERIFIED_INCOMPATIBLE_QUANTITY: 0,
+    VERIFIED_INCOMPATIBLE_MARGIN: 0,
+    MMR_MISSING: 0,
+    QUANTITY_METADATA_MISSING: 0,
+    OFFER_ID_MISSING: 0,
+    OTHER_BLOCKER: 0,
+    NOT_VERIFIED: 0,
+  };
 }
 
 function finitePositive(n: unknown): n is number {
@@ -164,6 +233,10 @@ export function discover001LotCompatibleInstruments(
     s.liveFields.baseUnitSize == null || s.liveFields.minQuantity == null
   ).length;
   const missingMmrCount = scores.filter((s) => s.liveFields.mmrPerLot == null).length;
+  const classificationCounts = emptyClassificationCounts();
+  for (const s of scores) {
+    classificationCounts[classify001LotScore(s)] += 1;
+  }
 
   return {
     requestedLots: OWNER_MAX_LOTS_001,
@@ -173,6 +246,7 @@ export function discover001LotCompatibleInstruments(
     incompatibleSample: incompatible.slice(0, sampleLimit),
     missingSpecsCount,
     missingMmrCount,
+    classificationCounts,
     summary: compatible.length > 0
       ? `COMPATIBLE=${compatible.length} of ${scores.length} (requestedLots=${requestedLots})`
       : `NONE_COMPATIBLE scanned=${scores.length} missingSpecs=${missingSpecsCount} missingMmr=${missingMmrCount}`,

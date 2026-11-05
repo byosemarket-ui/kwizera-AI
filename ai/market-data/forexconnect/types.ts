@@ -41,8 +41,12 @@ export interface ForexConnectInstrument {
   /**
    * Phase 47A — TradingSettingsProvider get_mmr absolute margin for 1 lot
    * (account/counter currency amount — not a decimal rate).
+   * May also come from Offers-row MMR fallback when TradingSettings is null.
    */
   mmrPerLot?: number | null;
+  /** Provenance for mmrPerLot: trading_settings | offers_row (never invented). */
+  mmrSource?: "trading_settings" | "offers_row" | string | null;
+  mmrProbe?: Record<string, unknown> | null;
   /**
    * Phase 56.2.5 — TradingSettings getMinQuantity (CFD → contracts).
    * Not a fractional step.

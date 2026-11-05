@@ -902,6 +902,12 @@ export function ForexAutomatedTradingPage(props: {
       }
       if (propAllocRes.ok && propAllocJson.ok && propAllocJson.config) {
         setProposalAllocConfig(propAllocJson.config);
+        const savedOrderAlloc = propAllocJson.config.individualOrderAllocation;
+        setProposalOrderAlloc(
+          savedOrderAlloc == null || savedOrderAlloc === undefined
+            ? ""
+            : String(savedOrderAlloc),
+        );
       }
       const handoffJson = await handoffRes.json() as {
         ok?: boolean;
@@ -5247,10 +5253,30 @@ export function ForexAutomatedTradingPage(props: {
             <div className="fx-auto-trading-panel-head">
               <h2 className="fx-auto-trading-h2">Capital Allocation &amp; Risk Limits</h2>
               <p className="fx-auto-trading-hint">
-                Overall strategy budget from verified equity (1–100%). Not margin. Not the amount spent on every order.
-                Per-order max estimated SL loss = 25% of that order’s allocation. Saving never enables execution.
+                Owner must set both values before proposals can form: (1) Strategy Capital Allocation % here (1–100 of verified equity),
+                and (2) Individual Order Allocation (USD amount) in the Order Proposal panel. Values are never auto-filled.
+                Per-order max estimated SL loss = 25% of that order’s allocation (target 20%). Saving never enables execution.
               </p>
             </div>
+            <dl className="fx-auto-config-grid" data-fx-at-capital-owner-status="true" style={{ marginBottom: "0.75rem" }}>
+              <div>
+                <dt>Capital allocation status</dt>
+                <dd data-fx-at-capital-config-status="true">
+                  {status.controls.capitalAllocationPercent != null
+                    && proposalAllocConfig?.individualOrderAllocation != null
+                    ? "CONFIGURED"
+                    : "NOT_CONFIGURED"}
+                </dd>
+              </div>
+              <div>
+                <dt>Required owner fields</dt>
+                <dd>
+                  capitalAllocationPercent (1–100)
+                  {" · "}
+                  individualOrderAllocation (&gt; 0 USD)
+                </dd>
+              </div>
+            </dl>
             <div className="fx-auto-token-row" style={{ flexWrap: "wrap", gap: "0.5rem", alignItems: "end" }}>
               <label>
                 Strategy allocation %

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  classify001LotScore,
   discover001LotCompatibleInstruments,
   scoreInstrumentFor001Lots,
   OWNER_MAX_LOTS_001,
@@ -225,6 +226,67 @@ describe("Phase 4.10 discover 0.01-lot instruments (mock fixtures)", () => {
     });
     expect(wrong.ok).toBe(false);
     expect(wrong.blockers).toContain("AMOUNT_NOT_INTEGER");
+  });
+
+  it("classifies catalog rows into transparent 0.01-lot buckets (mock)", () => {
+    expect(classify001LotScore(scoreInstrumentFor001Lots({
+      providerSymbol: "EUR/USD",
+      baseUnitSize: 100,
+      minQuantity: 1,
+      mmrPerLot: 50,
+      evidenceSource: "mock_fixture",
+    }, OWNER_MAX_LOTS_001), "1")).toBe("VERIFIED_COMPATIBLE_AT_0_01");
+
+    expect(classify001LotScore(scoreInstrumentFor001Lots({
+      providerSymbol: "XAU/USD",
+      baseUnitSize: 1,
+      minQuantity: 1,
+      mmrPerLot: 4.79,
+      evidenceSource: "mock_fixture",
+    }, OWNER_MAX_LOTS_001), "4001")).toBe("VERIFIED_INCOMPATIBLE_QUANTITY");
+
+    expect(classify001LotScore(scoreInstrumentFor001Lots({
+      providerSymbol: "MOCK/NOMMR",
+      baseUnitSize: 100,
+      minQuantity: 1,
+      mmrPerLot: null,
+      evidenceSource: "mock_fixture",
+    }, OWNER_MAX_LOTS_001), "9")).toBe("MMR_MISSING");
+
+    expect(classify001LotScore(scoreInstrumentFor001Lots({
+      providerSymbol: "MOCK/NOSPEC",
+      baseUnitSize: null,
+      minQuantity: null,
+      mmrPerLot: 10,
+      evidenceSource: "mock_fixture",
+    }, OWNER_MAX_LOTS_001), "9")).toBe("QUANTITY_METADATA_MISSING");
+
+    const r = discover001LotCompatibleInstruments([
+      {
+        providerSymbol: "EUR/USD",
+        baseUnitSize: 100,
+        minQuantity: 1,
+        mmrPerLot: 50,
+        evidenceSource: "mock_fixture",
+      },
+      {
+        providerSymbol: "XAU/USD",
+        baseUnitSize: 1,
+        minQuantity: 1,
+        mmrPerLot: 4.79,
+        evidenceSource: "mock_fixture",
+      },
+      {
+        providerSymbol: "MOCK/NOMMR",
+        baseUnitSize: 100,
+        minQuantity: 1,
+        mmrPerLot: null,
+        evidenceSource: "mock_fixture",
+      },
+    ]);
+    expect(r.classificationCounts.VERIFIED_COMPATIBLE_AT_0_01).toBe(1);
+    expect(r.classificationCounts.VERIFIED_INCOMPATIBLE_QUANTITY).toBe(1);
+    expect(r.classificationCounts.MMR_MISSING).toBe(1);
   });
 
   it("compatible quantity still fails when usable margin insufficient (mock)", () => {

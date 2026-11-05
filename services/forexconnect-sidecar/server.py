@@ -635,8 +635,25 @@ def _normalize_offer(
     ts = trading if isinstance(trading, dict) else {}
     base_unit_size = _finite(ts.get("baseUnitSize"))
     mmr_per_lot = _finite(ts.get("mmrPerLot"))
+    mmr_source = "trading_settings" if (mmr_per_lot is not None and mmr_per_lot > 0) else None
+    # Offers-row MMR fallback — only when TradingSettings get_mmr did not yield a
+    # finite positive value. Never invent; never copy another instrument's MMR.
+    if mmr_per_lot is None or mmr_per_lot <= 0:
+        offers_mmr = _finite(
+            _row_get(row, "mmr", "MMR", "get_mmr", "getMMR", "MarginRequirement")
+        )
+        if offers_mmr is not None and offers_mmr > 0:
+            mmr_per_lot = offers_mmr
+            mmr_source = "offers_row"
     lot_step = _finite(ts.get("lotStep"))
     min_quantity = _finite(ts.get("minQuantity"))
+    mmr_probe = ts.get("mmrProbe") if isinstance(ts.get("mmrProbe"), dict) else {}
+    if isinstance(mmr_probe, dict):
+        mmr_probe = {
+            **mmr_probe,
+            "mmrSource": mmr_source,
+            "offersFallbackUsed": mmr_source == "offers_row",
+        }
     return {
         "provider": "FOREXCONNECT",
         "providerSymbol": provider_symbol,
@@ -661,7 +678,8 @@ def _normalize_offer(
         "digits": digits_n,
         "baseUnitSize": base_unit_size,
         "mmrPerLot": mmr_per_lot,
-        "mmrProbe": ts.get("mmrProbe"),
+        "mmrSource": mmr_source,
+        "mmrProbe": mmr_probe if mmr_probe else ts.get("mmrProbe"),
         "minQuantity": min_quantity,
         "lotStep": lot_step,
         "condDistStop": ts.get("condDistStop"),
