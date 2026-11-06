@@ -155,3 +155,31 @@ node ./node_modules/vitest/vitest.mjs run --pool=forks --maxWorkers=1 \
 ```
 
 Combined Stage 2 release gate: **144 passed / 0 failed**.
+
+---
+
+## 12. Production verification (post-deploy)
+
+**Git / GitHub / VPS SHA:** `4042c3d48618f8aa27cee50a5a08c17c197bd29a`  
+**Endpoint:** `GET /api/deployment` → `deployedCommit` matches; `verifiedLive=true`; `result=success`.
+
+Authenticated read-only smoke (admin token from operator.env; token never logged):
+
+| Endpoint | Result |
+|----------|--------|
+| `GET /api/forex/automated-trading/risk-intelligence` | `schemaVersion=kwizera.risk-intelligence.v1`, `stage=STAGE_2_LIVE_READ_ONLY`, DEMO, FC connected |
+| Account | `VERIFIED` (USD; balance/equity/margins present; fresh) |
+| Exposure | `VERIFIED` (complete empty open-trades → 0 lots authoritative) |
+| Daily PnL | `VERIFIED` (`accounts.dayPl`, UTC trading day) |
+| Drawdown | `VERIFIED` (equity vs UTC day-start equity) |
+| Spread quote | `VERIFIED` (bid/ask present) |
+| Spread limit | `NOT_CONFIGURED` (`SPREAD_LIMIT_NOT_CONFIGURED` — expected) |
+| `POST …/broker-engine/precheck` | `allowed=false`, embeds live `riskIntelligence`; exposure/daily/drawdown/account_fresh consume live RO data |
+| Safety stamps | `placesOrders=false`, `acceptsForExecution=false`, `mutatesBroker=false`, `executionAuthorized=false` |
+| Execution Master | OFF |
+| Emergency Lock | ON |
+| `masterEnable` | false |
+| `automaticEntry` | OFF / DISABLED |
+| Owner max lots | `0.01` |
+
+No broker mutation invoked. Stage 2 stops here (no order-submission adapter).
