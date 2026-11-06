@@ -3459,6 +3459,48 @@ export class AutomatedTradingService {
         ? (market as { priceChangeAgeMs: number }).priceChangeAgeMs
         : null);
 
+    const instrumentSymbol = env.selectedInstrument
+      ?? handoff?.instrument?.symbol
+      ?? proposal?.instrument
+      ?? null;
+
+    // Stage 2 — live read-only risk intelligence (never mutates broker).
+    const { fetchLiveRiskIntelligence, readConfiguredMaxSpreadAbsolute } = await import(
+      "./risk-intelligence/index.js"
+    );
+    const configuredSpread = readConfiguredMaxSpreadAbsolute(
+      input.maxSpreadAbsolute === undefined ? undefined : input.maxSpreadAbsolute,
+    );
+    const riskIntel = await fetchLiveRiskIntelligence({
+      environment: state.selectedEnvironment,
+      instrument: instrumentSymbol,
+      expectedAccountIdMasked: account?.accountIdMasked ?? null,
+      baseUnitSize: inst?.baseUnitSize ?? null,
+      contractVerified: inst?.contractVerified === true,
+      bid,
+      ask,
+      quoteAgeMs: quoteAgeMs != null && Number.isFinite(quoteAgeMs)
+        ? quoteAgeMs
+        : (market?.priceChangeAgeMs ?? null),
+      maxSpreadAbsolute: input.maxSpreadAbsolute === undefined
+        ? undefined
+        : input.maxSpreadAbsolute,
+      persistDaily: true,
+    });
+
+    const verificationAccount = account
+      ? {
+        equity: account.equity ?? null,
+        balance: account.balance ?? null,
+        usableMargin: account.usableMargin ?? null,
+        usedMargin: account.usedMargin ?? null,
+        currency: account.accountCurrency ?? null,
+        accountIdMasked: account.accountIdMasked ?? null,
+        fetchedAtMs: Number.isFinite(fetchedAtMs as number) ? (fetchedAtMs as number) : null,
+        isFresh: account.isFresh ?? null,
+      }
+      : null;
+
     const precheckInput = {
       handoff,
       proposal,
@@ -3479,25 +3521,18 @@ export class AutomatedTradingService {
         mutatesBroker: false as const,
         lifecycle: foundation.lifecycle,
       },
-      account: account
-        ? {
-          equity: account.equity ?? null,
-          balance: account.balance ?? null,
-          usableMargin: account.usableMargin ?? null,
-          usedMargin: account.usedMargin ?? null,
-          currency: account.accountCurrency ?? null,
-          accountIdMasked: account.accountIdMasked ?? null,
-          fetchedAtMs: Number.isFinite(fetchedAtMs as number) ? (fetchedAtMs as number) : null,
-          isFresh: account.isFresh ?? null,
-        }
-        : null,
+      // Prefer live RO account snapshot when validated; else last verification (still fail-closed if stale/missing).
+      account: riskIntel.precheckAccount ?? verificationAccount,
       market: {
-        bid,
-        ask,
-        spread,
-        quoteAgeMs: quoteAgeMs != null && Number.isFinite(quoteAgeMs)
-          ? quoteAgeMs
-          : (market?.priceChangeAgeMs ?? null),
+        bid: riskIntel.spread.bid ?? bid,
+        ask: riskIntel.spread.ask ?? ask,
+        spread: riskIntel.spread.spread
+          ?? spread,
+        quoteAgeMs: riskIntel.spread.quoteAgeMs != null
+          ? riskIntel.spread.quoteAgeMs
+          : (quoteAgeMs != null && Number.isFinite(quoteAgeMs)
+            ? quoteAgeMs
+            : (market?.priceChangeAgeMs ?? null)),
         tradingEligible: live?.tradingEligible
           ?? (market?.marketSession != null
             ? market.marketSession === "ACTIVE"
@@ -3505,18 +3540,9 @@ export class AutomatedTradingService {
         marketClosed: market?.marketSession != null
           ? market.marketSession === "INACTIVE"
           : null,
-        instrument: env.selectedInstrument ?? handoff?.instrument?.symbol ?? proposal?.instrument ?? null,
+        instrument: instrumentSymbol,
       },
-      // Exposure / daily PnL / drawdown: require authoritative caller data.
-      // Without RO trades telemetry, fail closed inside the validator.
-      exposure: {
-        openExposureLots: null,
-        openPositionCount: null,
-        exposureAuthoritative: false,
-        duplicateTradeSuspected: null,
-        dayRealizedPnlAccount: null,
-        dayStartEquity: null,
-      },
+      exposure: riskIntel.precheckExposure,
       instrumentContract: inst
         ? {
           baseUnitSize: inst.baseUnitSize ?? null,
@@ -3527,33 +3553,78 @@ export class AutomatedTradingService {
         }
         : null,
       riskLimits: {
-        maxSpreadAbsolute:
-          input.maxSpreadAbsolute === null
-            ? null
-            : (typeof input.maxSpreadAbsolute === "number" && Number.isFinite(input.maxSpreadAbsolute)
-              ? input.maxSpreadAbsolute
-              : null),
+        maxSpreadAbsolute: configuredSpread.value,
       },
     };
 
     const applyLifecycle = input.applyLifecycle !== false;
     if (applyLifecycle) {
-      return applyPreExecutionValidation({
+      const applied = await applyPreExecutionValidation({
         ...precheckInput,
         actor: "admin-api",
         correlationId: input.correlationId,
       });
+      return {
+        ...applied,
+        riskIntelligence: riskIntel,
+        placesOrders: false as const,
+        acceptsForExecution: false as const,
+        mutatesBroker: false as const,
+        executionAuthorized: false as const,
+      };
     }
     return {
       validation: runPreExecutionValidation(precheckInput),
       lifecycleBefore: foundation.lifecycle,
       lifecycleAfter: foundation.lifecycle,
       transition: { ok: true as const },
+      riskIntelligence: riskIntel,
       placesOrders: false as const,
       acceptsForExecution: false as const,
       mutatesBroker: false as const,
       executionAuthorized: false as const,
     };
+  }
+
+  /**
+   * Stage 2 — Live read-only risk intelligence snapshot.
+   * Never places, modifies, cancels, or closes broker orders.
+   */
+  async getRiskIntelligenceSnapshot(input: {
+    maxSpreadAbsolute?: number | null;
+  } = {}) {
+    const { fetchLiveRiskIntelligence } = await import("./risk-intelligence/index.js");
+    const state = this.store.getState();
+    const env = state.environments[state.selectedEnvironment];
+    const verification = env.lastVerification;
+    const account = verification?.account ?? null;
+    const market = verification?.market ?? null;
+    const inst = verification?.instrument ?? null;
+    const live = verification
+      ? (verification as { liveOfferFreshness?: {
+        bid?: number | null;
+        ask?: number | null;
+        effectivePriceChangeAgeMs?: number | null;
+      } | null }).liveOfferFreshness
+      : null;
+    const bid = live?.bid ?? market?.bid ?? null;
+    const ask = live?.ask ?? market?.ask ?? null;
+    const quoteAgeMs = live?.effectivePriceChangeAgeMs
+      ?? (market && typeof (market as { priceChangeAgeMs?: number }).priceChangeAgeMs === "number"
+        ? (market as { priceChangeAgeMs: number }).priceChangeAgeMs
+        : null);
+    return fetchLiveRiskIntelligence({
+      environment: state.selectedEnvironment,
+      instrument: env.selectedInstrument ?? null,
+      expectedAccountIdMasked: account?.accountIdMasked ?? null,
+      baseUnitSize: inst?.baseUnitSize ?? null,
+      contractVerified: inst?.contractVerified === true,
+      bid,
+      ask,
+      quoteAgeMs,
+      maxSpreadAbsolute: input.maxSpreadAbsolute,
+      persistDaily: true,
+    });
   }
 
   async getHandoffInstrumentSpecs() {

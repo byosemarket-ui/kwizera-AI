@@ -1819,7 +1819,7 @@ export async function handleForexAutomatedTradingApi(
         maxSpreadAbsolute:
           body.maxSpreadAbsolute === null
             ? null
-            : (typeof body.maxSpreadAbsolute === "number" ? body.maxSpreadAbsolute : null),
+            : (typeof body.maxSpreadAbsolute === "number" ? body.maxSpreadAbsolute : undefined),
       });
       sendJson(res, 200, {
         ok: true,
@@ -1831,6 +1831,31 @@ export async function handleForexAutomatedTradingApi(
         note:
           "Phase 2 pre-execution validation only. "
           + "Does not authorize or submit broker orders. Execution Master remains OFF.",
+      });
+      return true;
+    }
+
+    // Stage 2 — Live read-only risk intelligence (never mutates broker).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/risk-intelligence")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const maxSpreadRaw = url.searchParams.get("maxSpreadAbsolute");
+      const maxSpreadAbsolute = maxSpreadRaw == null || maxSpreadRaw === ""
+        ? undefined
+        : (Number.isFinite(Number(maxSpreadRaw)) ? Number(maxSpreadRaw) : null);
+      const snapshot = await service.getRiskIntelligenceSnapshot({ maxSpreadAbsolute });
+      sendJson(res, 200, {
+        ok: true,
+        riskIntelligence: snapshot,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        executionAuthorized: false,
+        note:
+          "Stage 2 live read-only risk intelligence. "
+          + "Does not place, modify, cancel, or close broker orders.",
       });
       return true;
     }
