@@ -201,6 +201,12 @@ export interface AtOrderProposalRecord {
   placesOrders: false;
   acceptsForExecution: false;
   mutatesBroker: false;
+  /**
+   * Stage 5 — optional auditable per-order risk record.
+   * Present when generated via automated per-order risk engine.
+   * Typed loosely here to avoid circular imports; consumers use PerOrderRiskRecord.
+   */
+  perOrderRisk?: import("../per-order-risk/types.js").PerOrderRiskRecord;
 }
 
 export interface AtOrderProposalAllocationConfig {

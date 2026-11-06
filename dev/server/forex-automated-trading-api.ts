@@ -1705,6 +1705,7 @@ export async function handleForexAutomatedTradingApi(
         stopLoss: body.stopLoss,
         individualOrderAllocation: body.individualOrderAllocation,
         expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+        autoLevels: body.autoLevels,
       });
       if (!result.ok) {
         sendJson(res, 409, {
@@ -1720,6 +1721,9 @@ export async function handleForexAutomatedTradingApi(
       sendJson(res, 200, {
         ok: true,
         proposal: result.proposal,
+        perOrderRisk: "perOrderRisk" in result ? result.perOrderRisk ?? null : null,
+        allocationId: "allocationId" in result ? result.allocationId ?? null : null,
+        levelsAutoDerived: "levelsAutoDerived" in result ? result.levelsAutoDerived === true : false,
         duplicate: result.duplicate,
         proposalOnly: result.proposalOnly === true,
         executionAuthorized: false,
@@ -1731,6 +1735,20 @@ export async function handleForexAutomatedTradingApi(
           result.note
           ?? "ORDER PROPOSAL only — not submitted to broker. PROPOSAL_READY is not execution authorization.",
       });
+      return true;
+    }
+
+    // Stage 5 — per-order risk monitoring (read-only; never submits).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/per-order-risk")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limitRaw = Number(url.searchParams.get("limit") || 40);
+      const result = await service.listPerOrderRiskRecords(
+        Number.isFinite(limitRaw) ? limitRaw : 40,
+      );
+      sendJson(res, 200, result);
       return true;
     }
 

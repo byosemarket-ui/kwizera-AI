@@ -3193,13 +3193,17 @@ export class AutomatedTradingService {
     stopLoss?: unknown;
     individualOrderAllocation?: unknown;
     expectedEnvironmentEpoch?: unknown;
+    /** Stage 5 — when true (default), auto-derive Entry/SL from quote + structure/ATR. */
+    autoLevels?: unknown;
   } = {}) {
     const {
-      generateOrderProposalFromHandoff,
       getAtOrderProposalStore,
     } = await import("./order-proposal/index.js");
     const { getAtResultIntakeStore, toOrderPreparationHandoff } = await import("./result-intake/index.js");
     const { getAtSystemMasterStore, toSystemMasterPublicStatus } = await import("./system-master/index.js");
+    const {
+      runAutomatedPerOrderRiskEngine,
+    } = await import("./per-order-risk/index.js");
 
     const state = this.store.getState();
     const expectedEpoch = Number(input.expectedEnvironmentEpoch);
@@ -3220,9 +3224,11 @@ export class AutomatedTradingService {
     const verification = env.lastVerification;
     const account = verification?.account;
     const inst = verification?.instrument;
+    const market = verification?.market;
     const handoff = toOrderPreparationHandoff(getAtResultIntakeStore().latest());
     const master = toSystemMasterPublicStatus(getAtSystemMasterStore().get());
     const systemMasterOn = master.ownerState === "ON" && master.masterEnabled === true;
+    const analysis = this.analysisEngine.getLatest();
 
     const num = (v: unknown): number | null | undefined => {
       if (v === undefined) return undefined;
@@ -3249,12 +3255,16 @@ export class AutomatedTradingService {
       && Number.isFinite(inst.pointSize)
       && inst.pointSize > 0,
     );
+    const digits =
+      typeof inst?.pointSize === "number" && inst.pointSize > 0
+        ? Math.max(0, Math.round(-Math.log10(inst.pointSize)))
+        : null;
     const contract = contractVerified && inst
       ? {
         verified: true as const,
         pointSize: inst.pointSize ?? null,
         tickSize: inst.pointSize ?? null,
-        digits: null,
+        digits,
         quantityMin: inst.quantityMin ?? null,
         quantityStep: inst.quantityStep ?? null,
         quantityUnit: inst.quantityUnit ?? "contracts",
@@ -3276,12 +3286,70 @@ export class AutomatedTradingService {
         ? num(input.individualOrderAllocation)
         : allocCfg.individualOrderAllocation;
 
-    const { record, duplicate } = generateOrderProposalFromHandoff({
+    const bid = market?.bid != null && Number.isFinite(market.bid) ? market.bid : null;
+    const ask = market?.ask != null && Number.isFinite(market.ask) ? market.ask : null;
+    const mid = bid != null && ask != null ? (bid + ask) / 2 : null;
+    const quoteFresh = Boolean(market && (market as { feedStatus?: string }).feedStatus === "LIVE"
+      && bid != null && ask != null);
+    const spreadAtCalculation = bid != null && ask != null ? ask - bid : null;
+
+    // Stage 4 approved policy resolve (read-only; never invents limits).
+    let spreadPolicyStatus: string | null = null;
+    let slippagePolicyStatus: string | null = null;
+    try {
+      const { resolveSpreadLimit, resolveSlippageLimit } = await import("./risk-policy/index.js");
+      const instrumentKey = String(
+        handoff?.instrument ?? inst?.symbol ?? env.selectedInstrument ?? "",
+      ).trim();
+      if (instrumentKey) {
+        const spread = resolveSpreadLimit({ instrument: instrumentKey });
+        const slippage = resolveSlippageLimit({ instrument: instrumentKey });
+        spreadPolicyStatus = spread.status;
+        slippagePolicyStatus = slippage.status;
+      }
+    } catch {
+      spreadPolicyStatus = "UNAVAILABLE";
+      slippagePolicyStatus = "UNAVAILABLE";
+    }
+
+    // ATR from latest canonical analysis history when available (never invented).
+    let atrValue: number | null = null;
+    let atrMethod: string | null = null;
+    try {
+      const { getCanonicalAnalysisHistoryStore } = await import("./analysis/index.js");
+      const latestCanon = getCanonicalAnalysisHistoryStore().latest();
+      if (
+        latestCanon
+        && typeof latestCanon.atrValue === "number"
+        && Number.isFinite(latestCanon.atrValue)
+        && latestCanon.atrValue > 0
+      ) {
+        atrValue = latestCanon.atrValue;
+        atrMethod = latestCanon.atrMethod ?? "SMA_OF_TR";
+      }
+    } catch {
+      atrValue = null;
+      atrMethod = null;
+    }
+
+    const autoLevels = input.autoLevels !== false && input.autoLevels !== "false";
+    const pendingReservations = getAtOrderProposalStore().activeReservationTotal();
+
+    const engineResult = runAutomatedPerOrderRiskEngine({
       handoff,
       entryPrice: num(input.entryPrice) ?? null,
       entryZoneLow: num(input.entryZoneLow) ?? null,
       entryZoneHigh: num(input.entryZoneHigh) ?? null,
       stopLoss: num(input.stopLoss) ?? null,
+      autoLevels,
+      bid,
+      ask,
+      mid,
+      quoteFresh,
+      supportLevels: analysis?.supportLevels ?? [],
+      resistanceLevels: analysis?.resistanceLevels ?? [],
+      atrValue,
+      atrMethod,
       verifiedEquity: equity,
       accountCurrency: account?.accountCurrency ?? null,
       equityFresh,
@@ -3293,6 +3361,7 @@ export class AutomatedTradingService {
       individualOrderAllocation: perOrder ?? null,
       allocationCurrency: allocCfg.allocationCurrency,
       existingCommittedExposure: 0,
+      pendingProposalReservations: pendingReservations,
       contract,
       contractFresh: contractVerified && equityFresh,
       sdkMinQuantity: inst?.quantityMin ?? null,
@@ -3301,20 +3370,27 @@ export class AutomatedTradingService {
       exposureAuthoritative: true,
       existingExposure: 0,
       systemMasterOn,
-      // Pass authoritative controls (never hardcode permissive values).
-      // Proposal construction remains analysis-only: engine records control observations
-      // without treating PROPOSAL_READY as execution authorization. Phase 2 precheck enforces locks.
       tradingEnabled: env.controls.masterEnable === true,
       emergencyEntryLock: env.controls.emergencyEntryLock === true,
       environment: state.selectedEnvironment,
       timeframe: handoff?.evidenceReferences?.primaryTimeframe ?? null,
-      persist: true,
+      marketDataTimestampUtc: verification?.verifiedAtUtc ?? null,
+      spreadAtCalculation,
+      spreadPolicyStatus,
+      slippagePolicyStatus,
+      contractMetadataVersion: inst?.contractSource ?? null,
     });
+
+    // Persist Stage 5 proposal + risk record directly (do not rebuild — preserves auto levels / 3R).
+    const { record, duplicate } = getAtOrderProposalStore().upsertProposal(engineResult.proposal);
 
     return {
       ok: true as const,
       proposal: record,
+      perOrderRisk: record.perOrderRisk ?? engineResult.perOrderRisk,
       duplicate,
+      allocationId: engineResult.allocationId,
+      levelsAutoDerived: engineResult.levelsAutoDerived,
       proposalOnly: true as const,
       executionAuthorized: false as const,
       controlsObserved: {
@@ -3326,9 +3402,64 @@ export class AutomatedTradingService {
       acceptsForExecution: false as const,
       mutatesBroker: false as const,
       note:
-        "ORDER PROPOSAL only — not broker execution. "
-        + "PROPOSAL_READY does not authorize submission. "
+        "STAGE 5 ORDER PROPOSAL — automated per-order risk calculation only. "
+        + "Not broker execution. PROPOSAL_READY does not authorize submission. "
         + "Phase 2 precheck + Execution Master + owner authorization required later.",
+    };
+  }
+
+  /**
+   * Stage 5 — list recent proposals with per-order risk records (read-only monitoring).
+   */
+  async listPerOrderRiskRecords(limit = 40) {
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const { resolveDisplayCategory } = await import("./per-order-risk/index.js");
+    const rows = getAtOrderProposalStore().list(Math.max(1, Math.min(200, limit)));
+    return {
+      ok: true as const,
+      stage: "STAGE_5_AUTOMATED_PER_ORDER_RISK_ENGINE" as const,
+      records: rows.map((p) => {
+        const risk = p.perOrderRisk ?? null;
+        return {
+          proposalId: p.proposalId,
+          instrument: p.instrument,
+          direction: p.direction,
+          lifecycle: p.lifecycle,
+          displayCategory: risk?.displayCategory ?? resolveDisplayCategory(p),
+          capitalAllocation: risk?.capitalAllocation ?? p.capital.allocatedAmount,
+          operatingRiskPercent: risk?.operatingRiskPercent ?? p.capital.riskTargetPercent,
+          hardMaximumRiskPercent: risk?.hardMaximumRiskPercent ?? p.capital.riskMaximumPercent,
+          maximumAllowedMonetaryLoss: risk?.maximumAllowedMonetaryLoss ?? p.capital.maximumPermittedOrderLoss,
+          plannedMonetaryRisk: risk?.plannedMonetaryRisk ?? p.capital.allowedRiskAmount,
+          actualModeledMonetaryRisk: risk?.actualModeledMonetaryRisk ?? p.capital.projectedLossAtStopLoss,
+          entryPrice: risk?.entryPrice ?? p.pricePlan.entryPrice,
+          stopLoss: risk?.stopLossPrice ?? p.pricePlan.stopLoss,
+          takeProfit: risk?.takeProfitPrice ?? p.pricePlan.takeProfit,
+          expectedMonetaryProfit: risk?.expectedMonetaryProfit ?? null,
+          actualRewardToRiskRatio: risk?.actualRewardToRiskRatio ?? p.pricePlan.plannedRewardRiskRatio,
+          calculatedQuantity: risk?.calculatedQuantity ?? p.quantity.normalizedQuantity,
+          contractSize: risk?.contractSize ?? p.quantity.contractSize,
+          marginVerificationStatus: risk?.marginVerificationStatus ?? null,
+          spreadPolicyStatus: risk?.spreadPolicyStatus ?? null,
+          slippagePolicyStatus: risk?.slippagePolicyStatus ?? null,
+          validationResult: risk?.validationResult ?? p.capital.riskValidationStatus,
+          rejectionReasons: risk?.rejectionReasons
+            ?? p.blockers.map((b) => ({ code: b.code, message: b.message })),
+          riskCalculationTimestampUtc: risk?.riskCalculationTimestampUtc ?? p.updatedAtUtc,
+          allocationId: risk?.allocationId ?? null,
+          placesOrders: false as const,
+          acceptsForExecution: false as const,
+          mutatesBroker: false as const,
+          executionAuthorized: false as const,
+        };
+      }),
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      executionAuthorized: false as const,
+      note:
+        "Stage 5 read-only per-order risk monitoring. Modeled SL risk ≠ guaranteed realized loss. "
+        + "No broker submission or modification from this endpoint.",
     };
   }
 

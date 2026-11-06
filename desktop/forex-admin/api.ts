@@ -775,6 +775,21 @@ export const forexRiskApi = {
     ),
 };
 
+/** Stage 5 — per-order risk monitoring (read-only; never submits). */
+export const atPerOrderRiskApi = {
+  list: (limit = 40) =>
+    request<{
+      ok: true;
+      stage: string;
+      records: Array<Record<string, unknown>>;
+      placesOrders: false;
+      acceptsForExecution: false;
+      mutatesBroker: false;
+      executionAuthorized: false;
+      note: string;
+    }>(`/api/forex/automated-trading/per-order-risk?limit=${Math.max(1, Math.min(200, limit))}`),
+};
+
 /** Stage 4 — AT instrument risk limits (propose / approve; never invents thresholds; no orders). */
 export const atRiskPolicyApi = {
   get: () =>
