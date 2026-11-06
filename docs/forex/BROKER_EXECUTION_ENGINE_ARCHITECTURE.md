@@ -1,7 +1,7 @@
 # Broker Execution Engine — Architecture & Phased Plan
 
 **Baseline SHA at design start:** `498068d9`  
-**Module phase:** Phase 1 foundation only (this document + safety-only code).  
+**Module phase:** Phase 1 foundation ✅ + Phase 2 pre-execution validator ✅ (still no submit).  
 **Hard rule:** Phases 1–7 never submit DEMO or LIVE broker orders. Phase 8 requires explicit owner approval of one named DEMO test order.
 
 ---
@@ -145,9 +145,15 @@ Admin auth: existing `requireForexAdmin`.
 - Execution Master default OFF; no mutation; no DEMO submit.  
 - Tests: defaults fail-closed; status stamps; forbidden transitions.
 
-### Phase 2 — Final pre-execution validator
-- Revalidate handoff/proposal/account/instrument/qty/risk/margin/locks/duplicates.  
-- Acceptance: every failed check blocks; HANDOFF_READY alone insufficient.
+### Phase 2 — Final pre-execution validator ✅
+- Pure `runPreExecutionValidation` in `broker-execution/precheck.ts`.  
+- Revalidates handoff/proposal/account/instrument/qty/risk/margin/locks/duplicates/spread.  
+- Reads **authoritative** AT controls (`emergencyEntryLock`, `masterEnable`, `automaticEntry`).  
+- Lifecycle: domain fail → `PRECHECK_BLOCKED`; otherwise → `AUTHORIZATION_REQUIRED`.  
+- **Never** transitions to `READY_TO_SUBMIT`. `allowed=true` still never authorizes submit; Execution Master OFF remains a hard block.  
+- API: `POST /api/forex/automated-trading/broker-engine/precheck`.  
+- Acceptance: every failed/missing/stale mandatory check blocks; `HANDOFF_READY` alone insufficient.  
+- Proposal generate no longer hardcodes `tradingEnabled:true` / `emergencyEntryLock:false`.
 
 ### Phase 3 — FXCM adapter boundary
 - Document exact sidecar `create_order_request` / TRUE_MARKET_OPEN params.  

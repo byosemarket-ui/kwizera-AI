@@ -364,11 +364,34 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
   if (input.systemMasterOn === false) {
     blockers.push(block("SYSTEM_MASTER_OFF", "System Master is OFF — new proposal processing blocked."));
   }
+  // Proposal-only semantics: tradingEnabled / emergencyEntryLock are observed for audit notes
+  // but do NOT block proposal construction. Pre-execution validator (Phase 2) enforces them
+  // for any future execution eligibility. PROPOSAL_READY never means acceptsForExecution.
   if (input.tradingEnabled === false) {
-    blockers.push(block("TRADING_DISABLED", "Trading is DISABLED — proposal construction blocked."));
+    base.notes.push(
+      "CONTROLS_OBSERVED: tradingEnabled/masterEnable=false (Trading DISABLED). "
+        + "Proposal-only — not an execution gate here; Phase 2 precheck enforces safe trading state.",
+    );
+  } else if (input.tradingEnabled === true) {
+    base.notes.push(
+      "CONTROLS_OBSERVED: tradingEnabled/masterEnable=true at proposal time. "
+        + "Does not authorize broker submission; acceptsForExecution remains false.",
+    );
   }
   if (input.emergencyEntryLock === true) {
-    blockers.push(block("EMERGENCY_LOCK", "Emergency entry lock is ON — proposal construction blocked."));
+    base.notes.push(
+      "CONTROLS_OBSERVED: emergencyEntryLock=ON. Proposal construction is analysis-only; "
+        + "Phase 2 pre-execution validator hard-blocks while lock is ON.",
+    );
+  } else if (input.emergencyEntryLock === false) {
+    base.notes.push(
+      "CONTROLS_OBSERVED: emergencyEntryLock=OFF at proposal time. "
+        + "Still not execution permission — Execution Master / precheck / owner auth required later.",
+    );
+  } else {
+    base.notes.push(
+      "CONTROLS_OBSERVED: emergencyEntryLock unknown/null at proposal time — Phase 2 precheck will fail closed.",
+    );
   }
 
   if (canonicalDecision === "NO_TRADE") {

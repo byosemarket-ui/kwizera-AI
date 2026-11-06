@@ -1721,10 +1721,15 @@ export async function handleForexAutomatedTradingApi(
         ok: true,
         proposal: result.proposal,
         duplicate: result.duplicate,
+        proposalOnly: result.proposalOnly === true,
+        executionAuthorized: false,
+        controlsObserved: result.controlsObserved ?? null,
         placesOrders: false,
         acceptsForExecution: false,
         mutatesBroker: false,
-        note: "ORDER PROPOSAL only — not submitted to broker.",
+        note:
+          result.note
+          ?? "ORDER PROPOSAL only — not submitted to broker. PROPOSAL_READY is not execution authorization.",
       });
       return true;
     }
@@ -1789,6 +1794,43 @@ export async function handleForexAutomatedTradingApi(
         placesOrders: false,
         acceptsForExecution: false,
         mutatesBroker: false,
+      });
+      return true;
+    }
+
+    // Phase 2 — Final pre-execution validator (never submits; path avoids /order|/submit|/execute).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-engine/precheck")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      let body: Record<string, unknown> = {};
+      try {
+        const raw = await readJsonBody(req, 8_000);
+        if (raw && typeof raw === "object") body = raw as Record<string, unknown>;
+      } catch {
+        body = {};
+      }
+      const result = await service.runBrokerPrecheck({
+        handoffId: typeof body.handoffId === "string" ? body.handoffId : null,
+        proposalId: typeof body.proposalId === "string" ? body.proposalId : null,
+        applyLifecycle: body.applyLifecycle !== false,
+        correlationId: typeof body.correlationId === "string" ? body.correlationId : undefined,
+        maxSpreadAbsolute:
+          body.maxSpreadAbsolute === null
+            ? null
+            : (typeof body.maxSpreadAbsolute === "number" ? body.maxSpreadAbsolute : null),
+      });
+      sendJson(res, 200, {
+        ok: true,
+        precheck: result,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        executionAuthorized: false,
+        note:
+          "Phase 2 pre-execution validation only. "
+          + "Does not authorize or submit broker orders. Execution Master remains OFF.",
       });
       return true;
     }

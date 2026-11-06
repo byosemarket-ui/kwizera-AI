@@ -57,10 +57,10 @@ function defaultFoundation(nowMs = Date.now()): AtBrokerExecutionFoundationPersi
     mutatesBroker: false,
     brokerExecution: "DISABLED",
     phaseNote:
-      "Broker Execution Engine Phase 1: architecture + safety foundation. "
+      "Broker Execution Engine Phase 1–2: foundation + pre-execution validator. "
       + "placesOrders=false, acceptsForExecution=false, mutatesBroker=false. "
       + "System Master does not authorize execution. HANDOFF_READY is not permission to submit. "
-      + "GET status does not write durable audit (see audit-policy).",
+      + "Phase 2 precheck never enables submission. GET status does not write durable audit.",
   };
 }
 
@@ -421,6 +421,33 @@ export class AtBrokerExecutionStore {
       };
     }
     return { ok: true, foundation: this.get(), correlationId: corr };
+  }
+
+  /**
+   * Bind active handoff/proposal ids after Phase 2 precheck.
+   * Never enables mutation, arming, or Execution Master.
+   */
+  bindActiveIds(input: {
+    handoffId: string | null;
+    proposalId: string | null;
+    actor?: string;
+  }): AtBrokerExecutionFoundationPersisted {
+    if (typeof input.handoffId === "string" && input.handoffId.trim()) {
+      this.data.activeHandoffId = input.handoffId.trim();
+    }
+    if (typeof input.proposalId === "string" && input.proposalId.trim()) {
+      this.data.activeProposalId = input.proposalId.trim();
+    }
+    this.data.executionMasterEnabled = false;
+    this.data.armedForSubmission = false;
+    this.data.placesOrders = false;
+    this.data.acceptsForExecution = false;
+    this.data.mutatesBroker = false;
+    this.data.brokerExecution = "DISABLED";
+    this.data.updatedAtUtc = new Date().toISOString();
+    this.data.updatedBy = String(input.actor || "precheck");
+    this.persist();
+    return this.get();
   }
 
   listAudit(limit = 40): AtBrokerExecutionAuditEvent[] {

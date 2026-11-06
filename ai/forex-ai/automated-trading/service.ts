@@ -3301,10 +3301,11 @@ export class AutomatedTradingService {
       exposureAuthoritative: true,
       existingExposure: 0,
       systemMasterOn,
-      // Execution posture stays DISABLED / emergency-locked elsewhere.
-      // Proposal construction is analysis-only and must not be gated as if it were a broker submit.
-      tradingEnabled: true,
-      emergencyEntryLock: false,
+      // Pass authoritative controls (never hardcode permissive values).
+      // Proposal construction remains analysis-only: engine records control observations
+      // without treating PROPOSAL_READY as execution authorization. Phase 2 precheck enforces locks.
+      tradingEnabled: env.controls.masterEnable === true,
+      emergencyEntryLock: env.controls.emergencyEntryLock === true,
       environment: state.selectedEnvironment,
       timeframe: handoff?.evidenceReferences?.primaryTimeframe ?? null,
       persist: true,
@@ -3314,9 +3315,20 @@ export class AutomatedTradingService {
       ok: true as const,
       proposal: record,
       duplicate,
+      proposalOnly: true as const,
+      executionAuthorized: false as const,
+      controlsObserved: {
+        masterEnable: env.controls.masterEnable === true,
+        automaticEntry: env.controls.automaticEntry === true,
+        emergencyEntryLock: env.controls.emergencyEntryLock === true,
+      },
       placesOrders: false as const,
       acceptsForExecution: false as const,
       mutatesBroker: false as const,
+      note:
+        "ORDER PROPOSAL only — not broker execution. "
+        + "PROPOSAL_READY does not authorize submission. "
+        + "Phase 2 precheck + Execution Master + owner authorization required later.",
     };
   }
 
@@ -3379,6 +3391,169 @@ export class AutomatedTradingService {
       String(actor || "admin"),
       correlationId,
     );
+  }
+
+  /**
+   * Phase 2 — Final pre-execution validator.
+   * Revalidates latest (or specified) handoff + proposal against live controls.
+   * Never submits, never arms, never enables Execution Master.
+   */
+  async runBrokerPrecheck(input: {
+    handoffId?: string | null;
+    proposalId?: string | null;
+    applyLifecycle?: boolean;
+    correlationId?: string;
+    maxSpreadAbsolute?: number | null;
+  } = {}) {
+    const {
+      applyPreExecutionValidation,
+      runPreExecutionValidation,
+      getAtBrokerExecutionStore,
+    } = await import("./broker-execution/index.js");
+    const { getAtBrokerHandoffStore } = await import("./broker-compatibility/index.js");
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+
+    const state = this.store.getState();
+    const env = state.environments[state.selectedEnvironment];
+    const verification = env.lastVerification;
+    const account = verification?.account ?? null;
+    const market = verification?.market ?? null;
+    const inst = verification?.instrument ?? null;
+    const live = verification
+      ? (verification as { liveOfferFreshness?: {
+        bid?: number | null;
+        ask?: number | null;
+        effectivePriceChangeAgeMs?: number | null;
+        tradingEligible?: boolean | null;
+        tradingEligibilityCode?: string | null;
+      } | null }).liveOfferFreshness
+      : null;
+
+    const handoffStore = getAtBrokerHandoffStore();
+    const proposalStore = getAtOrderProposalStore();
+    const wantedHandoffId = String(input.handoffId || "").trim() || null;
+    const wantedProposalId = String(input.proposalId || "").trim() || null;
+    const handoff = wantedHandoffId
+      ? handoffStore.get(wantedHandoffId)
+      : handoffStore.latest();
+    const proposalFromId = wantedProposalId
+      ? proposalStore.get(wantedProposalId)
+      : null;
+    const proposal = proposalFromId
+      ?? (handoff?.provenance?.proposalId
+        ? proposalStore.get(handoff.provenance.proposalId)
+        : null)
+      ?? proposalStore.latest();
+
+    const foundation = getAtBrokerExecutionStore().get();
+    const fetchedAtMs = account?.fetchedAtUtc
+      ? Date.parse(account.fetchedAtUtc)
+      : (env.lastVerifiedAtUtc ? Date.parse(env.lastVerifiedAtUtc) : null);
+
+    const bid = live?.bid ?? market?.bid ?? null;
+    const ask = live?.ask ?? market?.ask ?? null;
+    const spread = market?.spread
+      ?? (bid != null && ask != null && Number.isFinite(bid) && Number.isFinite(ask) ? ask - bid : null);
+    const quoteAgeMs = live?.effectivePriceChangeAgeMs
+      ?? (market && typeof (market as { priceChangeAgeMs?: number }).priceChangeAgeMs === "number"
+        ? (market as { priceChangeAgeMs: number }).priceChangeAgeMs
+        : null);
+
+    const precheckInput = {
+      handoff,
+      proposal,
+      expectedHandoffId: wantedHandoffId,
+      expectedProposalId: wantedProposalId || handoff?.provenance?.proposalId || null,
+      environment: state.selectedEnvironment,
+      controls: {
+        emergencyEntryLock: env.controls.emergencyEntryLock,
+        masterEnable: env.controls.masterEnable,
+        automaticEntry: env.controls.automaticEntry,
+        positionManagement: env.controls.positionManagement,
+      },
+      foundation: {
+        executionMasterEnabled: foundation.executionMasterEnabled,
+        armedForSubmission: foundation.armedForSubmission,
+        placesOrders: false as const,
+        acceptsForExecution: false as const,
+        mutatesBroker: false as const,
+        lifecycle: foundation.lifecycle,
+      },
+      account: account
+        ? {
+          equity: account.equity ?? null,
+          balance: account.balance ?? null,
+          usableMargin: account.usableMargin ?? null,
+          usedMargin: account.usedMargin ?? null,
+          currency: account.accountCurrency ?? null,
+          accountIdMasked: account.accountIdMasked ?? null,
+          fetchedAtMs: Number.isFinite(fetchedAtMs as number) ? (fetchedAtMs as number) : null,
+          isFresh: account.isFresh ?? null,
+        }
+        : null,
+      market: {
+        bid,
+        ask,
+        spread,
+        quoteAgeMs: quoteAgeMs != null && Number.isFinite(quoteAgeMs)
+          ? quoteAgeMs
+          : (market?.priceChangeAgeMs ?? null),
+        tradingEligible: live?.tradingEligible
+          ?? (market?.marketSession != null
+            ? market.marketSession === "ACTIVE"
+            : null),
+        marketClosed: market?.marketSession != null
+          ? market.marketSession === "INACTIVE"
+          : null,
+        instrument: env.selectedInstrument ?? handoff?.instrument?.symbol ?? proposal?.instrument ?? null,
+      },
+      // Exposure / daily PnL / drawdown: require authoritative caller data.
+      // Without RO trades telemetry, fail closed inside the validator.
+      exposure: {
+        openExposureLots: null,
+        openPositionCount: null,
+        exposureAuthoritative: false,
+        duplicateTradeSuspected: null,
+        dayRealizedPnlAccount: null,
+        dayStartEquity: null,
+      },
+      instrumentContract: inst
+        ? {
+          baseUnitSize: inst.baseUnitSize ?? null,
+          minQuantity: inst.quantityMin ?? null,
+          quantityStep: inst.quantityStep ?? null,
+          mmrPerLot: inst.marginPerLotAccount ?? null,
+          contractVerified: inst.contractVerified === true,
+        }
+        : null,
+      riskLimits: {
+        maxSpreadAbsolute:
+          input.maxSpreadAbsolute === null
+            ? null
+            : (typeof input.maxSpreadAbsolute === "number" && Number.isFinite(input.maxSpreadAbsolute)
+              ? input.maxSpreadAbsolute
+              : null),
+      },
+    };
+
+    const applyLifecycle = input.applyLifecycle !== false;
+    if (applyLifecycle) {
+      return applyPreExecutionValidation({
+        ...precheckInput,
+        actor: "admin-api",
+        correlationId: input.correlationId,
+      });
+    }
+    return {
+      validation: runPreExecutionValidation(precheckInput),
+      lifecycleBefore: foundation.lifecycle,
+      lifecycleAfter: foundation.lifecycle,
+      transition: { ok: true as const },
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      executionAuthorized: false as const,
+    };
   }
 
   async getHandoffInstrumentSpecs() {
