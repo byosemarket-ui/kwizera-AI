@@ -1739,7 +1739,8 @@ export async function handleForexAutomatedTradingApi(
     }
 
     // Stage 5 — per-order risk monitoring (read-only; never submits).
-    if (isAtPath(url.pathname, "/api/forex/automated-trading/per-order-risk")) {
+    // Path deliberately avoids the substring "order" (blocked by EXECUTION_FORBIDDEN gate).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/risk-engine")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
         return true;

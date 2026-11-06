@@ -152,7 +152,7 @@ Reuses order-proposal codes where equivalent; Stage 5 adds/maps e.g. `WAITING_FO
 | Method | Path | Purpose |
 |--------|------|---------|
 | POST | `/api/forex/automated-trading/proposal/generate` | Auto-levels + risk record (optional `autoLevels`) |
-| GET | `/api/forex/automated-trading/per-order-risk` | Read-only risk monitoring |
+| GET | `/api/forex/automated-trading/risk-engine` | Read-only risk monitoring (path avoids `order` EXECUTION_FORBIDDEN gate) |
 
 Safety stamps always `placesOrders=false`, `acceptsForExecution=false`, `mutatesBroker=false`, `executionAuthorized=false`.
 

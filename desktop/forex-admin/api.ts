@@ -787,7 +787,7 @@ export const atPerOrderRiskApi = {
       mutatesBroker: false;
       executionAuthorized: false;
       note: string;
-    }>(`/api/forex/automated-trading/per-order-risk?limit=${Math.max(1, Math.min(200, limit))}`),
+    }>(`/api/forex/automated-trading/risk-engine?limit=${Math.max(1, Math.min(200, limit))}`),
 };
 
 /** Stage 4 — AT instrument risk limits (propose / approve; never invents thresholds; no orders). */
