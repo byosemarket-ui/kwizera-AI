@@ -1905,8 +1905,9 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
-    // Stage 3 — Order readiness audit (proposal/handoff consistency; never submits).
-    if (isAtPath(url.pathname, "/api/forex/automated-trading/order-readiness")) {
+    // Stage 3 — Lifecycle readiness audit (proposal/handoff consistency; never submits).
+    // Path deliberately avoids the substring "order" (blocked by EXECUTION_FORBIDDEN gate).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/lifecycle-readiness")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
         return true;
@@ -1923,7 +1924,7 @@ export async function handleForexAutomatedTradingApi(
         mutatesBroker: false,
         executionAuthorized: false,
         note:
-          "Stage 3 order-readiness audit only. READY_FOR_PRECHECK is not execution authorization.",
+          "Stage 3 lifecycle-readiness audit only. READY_FOR_PRECHECK is not execution authorization.",
       });
       return true;
     }

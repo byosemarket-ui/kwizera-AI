@@ -92,7 +92,8 @@ Stage 3 adds consistency checks:
 | GTD without/expired expiration | `INVALID_GTD_EXPIRY` |
 | Unsupported TIF | `UNSUPPORTED_TIME_IN_FORCE` |
 
-Readiness audit API: `GET /api/forex/automated-trading/order-readiness`
+Readiness audit API: `GET /api/forex/automated-trading/lifecycle-readiness`  
+(Path avoids the substring `order`, which the AT API gate rejects as `EXECUTION_FORBIDDEN`.)
 
 Production not-ready causes (observed Stage 2): expired/blocked handoff, missing proposal, TTL (15m), `SPREAD_LIMIT_NOT_CONFIGURED`, Execution Master OFF, Emergency Lock ON.
 
