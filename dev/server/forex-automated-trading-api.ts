@@ -1820,6 +1820,10 @@ export async function handleForexAutomatedTradingApi(
           body.maxSpreadAbsolute === null
             ? null
             : (typeof body.maxSpreadAbsolute === "number" ? body.maxSpreadAbsolute : undefined),
+        maxSlippageAbsolute:
+          body.maxSlippageAbsolute === null
+            ? null
+            : (typeof body.maxSlippageAbsolute === "number" ? body.maxSlippageAbsolute : undefined),
       });
       sendJson(res, 200, {
         ok: true,
@@ -1831,6 +1835,95 @@ export async function handleForexAutomatedTradingApi(
         note:
           "Phase 2 pre-execution validation only. "
           + "Does not authorize or submit broker orders. Execution Master remains OFF.",
+      });
+      return true;
+    }
+
+    // Stage 3 — Risk policy configuration (read / audited write; never mutates broker).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/risk-policy")) {
+      if (req.method === "GET" || req.method === "HEAD") {
+        const riskPolicy = await service.getRiskPolicyDocument();
+        sendJson(res, 200, {
+          ok: true,
+          riskPolicy,
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+          executionAuthorized: false,
+          note:
+            "Stage 3 risk-policy document. Limits remain NOT_CONFIGURED until owner-approved values are set. "
+            + "No invented thresholds. No broker mutation.",
+        });
+        return true;
+      }
+      if (req.method !== "POST" && req.method !== "PUT" && req.method !== "PATCH") {
+        sendJson(res, 405, {
+          ok: false,
+          error: { code: "METHOD_NOT_ALLOWED", message: "Use GET or POST/PUT/PATCH." },
+        });
+        return true;
+      }
+      let body: Record<string, unknown> = {};
+      try {
+        const raw = await readJsonBody(req, 8_000);
+        if (raw && typeof raw === "object") body = raw as Record<string, unknown>;
+      } catch {
+        body = {};
+      }
+      const instrument = typeof body.instrument === "string" ? body.instrument : "";
+      const kind = body.kind === "slippage" ? "slippage" : "spread";
+      const clear = body.clear === true || body.value === null;
+      const value = typeof body.value === "number" ? body.value : null;
+      const pricePrecision = typeof body.pricePrecision === "number" ? body.pricePrecision : null;
+      const result = await service.updateRiskPolicy({
+        instrument,
+        kind,
+        value: clear ? null : value,
+        clear,
+        actor: typeof body.actor === "string" ? body.actor : "admin-api",
+        pricePrecision,
+      });
+      if (!result.ok) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: result.status, message: result.reason },
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        riskPolicy: result.document,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        executionAuthorized: false,
+        note: "Stage 3 risk-policy updated (audited). Does not enable execution or mutate broker.",
+      });
+      return true;
+    }
+
+    // Stage 3 — Order readiness audit (proposal/handoff consistency; never submits).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/order-readiness")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const readiness = await service.getOrderReadinessAudit({
+        handoffId: url.searchParams.get("handoffId"),
+        proposalId: url.searchParams.get("proposalId"),
+      });
+      sendJson(res, 200, {
+        ok: true,
+        readiness,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        executionAuthorized: false,
+        note:
+          "Stage 3 order-readiness audit only. READY_FOR_PRECHECK is not execution authorization.",
       });
       return true;
     }

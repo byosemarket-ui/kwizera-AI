@@ -669,6 +669,7 @@ function precheckBase(
     },
     riskLimits: {
       maxSpreadAbsolute: risk.spread.maxSpreadAbsolute,
+      maxSlippageAbsolute: 0.01,
     },
     nowMs: NOW,
     ...over,

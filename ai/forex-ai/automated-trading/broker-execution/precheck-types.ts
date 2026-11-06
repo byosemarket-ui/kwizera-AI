@@ -75,7 +75,15 @@ export type AtPrecheckReasonCode =
   | "SPREAD_LIMIT_NOT_CONFIGURED"
   | "SPREAD_DATA_UNAVAILABLE"
   | "EXCESSIVE_SPREAD"
+  | "SPREAD_POLICY_INVALID"
   | "SLIPPAGE_LIMIT_NOT_CONFIGURED"
+  | "SLIPPAGE_POLICY_INVALID"
+  | "SLIPPAGE_DATA_UNAVAILABLE"
+  | "EXCESSIVE_SLIPPAGE"
+  | "ACCOUNT_IDENTITY_MISMATCH"
+  | "STALE_PROPOSAL_SNAPSHOT"
+  | "INVALID_GTD_EXPIRY"
+  | "UNSUPPORTED_TIME_IN_FORCE"
   | "RISK_CONFIG_MISSING"
   | "LIVE_ENVIRONMENT_FORBIDDEN"
   | "PHASE2_SUBMIT_FORBIDDEN"
@@ -126,6 +134,8 @@ export interface AtPrecheckRiskLimits {
   maxDrawdownFractionOfDayStartEquity: number | null;
   /** Optional; when null → SPREAD_LIMIT_NOT_CONFIGURED (fail closed). */
   maxSpreadAbsolute: number | null;
+  /** Optional; when null → SLIPPAGE_LIMIT_NOT_CONFIGURED (fail closed). Absolute |entry−executable|. */
+  maxSlippageAbsolute: number | null;
   accountMaxAgeMs: number;
   quoteMaxAgeMs: number;
 }
@@ -246,6 +256,7 @@ export function defaultPrecheckRiskLimits(): AtPrecheckRiskLimits {
     maxDailyLossAccount: 25,
     maxDrawdownFractionOfDayStartEquity: 0.03,
     maxSpreadAbsolute: null,
+    maxSlippageAbsolute: null,
     accountMaxAgeMs: 15_000,
     quoteMaxAgeMs: 5_000,
   };

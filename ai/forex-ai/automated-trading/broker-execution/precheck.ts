@@ -4,6 +4,11 @@
  */
 import { evaluateProtectiveGeometry } from "../broker-intent/protective-geometry.js";
 import { evaluateBrokerQuantityContract } from "../order-execution/broker-quantity-contract.js";
+import {
+  attestProposedOrderMargin,
+  executableMarketPrice,
+  measureSlippageAbsolute,
+} from "../risk-policy/index.js";
 import { validateBidAsk } from "../verification-engine.js";
 import {
   AT_BROKER_PRECHECK_DEFAULT_TTL_MS,
@@ -56,6 +61,9 @@ function mergeLimits(partial?: Partial<AtPrecheckRiskLimits> | null): AtPrecheck
     maxSpreadAbsolute: partial.maxSpreadAbsolute === null
       ? null
       : (finitePositive(partial.maxSpreadAbsolute) ? partial.maxSpreadAbsolute : base.maxSpreadAbsolute),
+    maxSlippageAbsolute: partial.maxSlippageAbsolute === null
+      ? null
+      : (finitePositive(partial.maxSlippageAbsolute) ? partial.maxSlippageAbsolute : base.maxSlippageAbsolute),
     accountMaxAgeMs: finitePositive(partial.accountMaxAgeMs) ? partial.accountMaxAgeMs : base.accountMaxAgeMs,
     quoteMaxAgeMs: finitePositive(partial.quoteMaxAgeMs) ? partial.quoteMaxAgeMs : base.quoteMaxAgeMs,
   };
@@ -626,6 +634,70 @@ export function runPreExecutionValidation(
       ));
     }
 
+    // Stage 3 — TIF / GTD expiry consistency.
+    const tif = String(
+      proposal.brokerPrep?.timeInForce
+      ?? handoff?.directionOrder?.timeInForce
+      ?? "",
+    ).trim().toUpperCase();
+    if (tif === "GTD") {
+      const exp = proposal.brokerPrep?.expiration
+        ?? handoff?.directionOrder?.expiration
+        ?? null;
+      const expMs = exp ? Date.parse(String(exp)) : NaN;
+      if (!Number.isFinite(expMs)) {
+        checks.push(check(
+          "tif_expiry",
+          "proposal",
+          "FAIL",
+          "INVALID_GTD_EXPIRY",
+          "GTD requires a valid expiration timestamp.",
+        ));
+      } else if (expMs <= nowMs) {
+        checks.push(check(
+          "tif_expiry",
+          "proposal",
+          "FAIL",
+          "INVALID_GTD_EXPIRY",
+          `GTD expiration ${exp} is in the past.`,
+        ));
+      } else {
+        checks.push(check(
+          "tif_expiry",
+          "proposal",
+          "PASS",
+          "GTD_EXPIRY_OK",
+          "GTD expiration is in the future.",
+        ));
+      }
+    } else if (tif && tif !== "GTC" && tif !== "IOC" && tif !== "FOK") {
+      checks.push(check(
+        "tif_expiry",
+        "proposal",
+        "FAIL",
+        "UNSUPPORTED_TIME_IN_FORCE",
+        `Unsupported timeInForce=${tif}.`,
+      ));
+    }
+
+    // Stage 3 — proposal version vs handoff snapshot consistency.
+    if (
+      handoff?.provenance?.updatedAtUtc
+      && proposal.updatedAtUtc
+    ) {
+      const pMs = Date.parse(proposal.updatedAtUtc);
+      const hMs = Date.parse(handoff.provenance.updatedAtUtc);
+      if (Number.isFinite(pMs) && Number.isFinite(hMs) && pMs > hMs + 1_000) {
+        checks.push(check(
+          "proposal_snapshot",
+          "proposal",
+          "FAIL",
+          "STALE_PROPOSAL_SNAPSHOT",
+          "Proposal updatedAt is newer than handoff — re-validate handoff against current proposal version.",
+        ));
+      }
+    }
+
     const qty = proposal.quantity?.normalizedQuantity
       ?? handoff?.directionOrder?.normalizedQuantity
       ?? null;
@@ -866,24 +938,41 @@ export function runPreExecutionValidation(
         "Available margin missing.",
       ));
     } else {
-      const required = proposal?.quantity?.estimatedMargin
-        ?? handoff?.riskCapital?.requiredMargin
+      const lots = proposal?.quantity?.normalizedQuantity
+        ?? handoff?.directionOrder?.normalizedQuantity
         ?? null;
-      if (required != null && Number.isFinite(required) && account.usableMargin < required) {
-        checks.push(check(
-          "margin",
-          "account",
-          "FAIL",
-          "INSUFFICIENT_AVAILABLE_MARGIN",
-          `Usable margin ${account.usableMargin} < required ${required}.`,
-        ));
-      } else if (required == null) {
+      const attestation = attestProposedOrderMargin({
+        usableMargin: account.usableMargin,
+        proposalEstimatedMargin: proposal?.quantity?.estimatedMargin ?? null,
+        handoffRequiredMargin: handoff?.riskCapital?.requiredMargin ?? null,
+        mmrPerLot: input.instrumentContract?.mmrPerLot ?? null,
+        lots,
+        contractVerified: input.instrumentContract?.contractVerified === true,
+        baseUnitSize: input.instrumentContract?.baseUnitSize ?? null,
+      });
+      if (attestation.status === "UNAVAILABLE") {
         checks.push(check(
           "margin",
           "account",
           "FAIL",
           "MISSING_MARGIN_DATA",
-          "Required margin unknown — cannot attest sufficiency.",
+          attestation.reason ?? "Required margin unknown — cannot attest sufficiency.",
+        ));
+      } else if (attestation.status === "INVALID") {
+        checks.push(check(
+          "margin",
+          "account",
+          "FAIL",
+          "MISSING_MARGIN_DATA",
+          attestation.reason ?? "Required margin invalid.",
+        ));
+      } else if (attestation.status === "INSUFFICIENT") {
+        checks.push(check(
+          "margin",
+          "account",
+          "FAIL",
+          "INSUFFICIENT_AVAILABLE_MARGIN",
+          attestation.reason ?? "Usable margin below required.",
         ));
       } else {
         checks.push(check(
@@ -891,7 +980,31 @@ export function runPreExecutionValidation(
           "account",
           "PASS",
           "MARGIN_SUFFICIENT",
-          "Available margin covers estimated requirement.",
+          attestation.reason ?? "Available margin covers attested requirement.",
+        ));
+      }
+    }
+
+    // Account identity consistency (proposal vs live snapshot).
+    const acctRef = proposal?.brokerPrep?.accountReference ?? null;
+    if (acctRef && account.accountIdMasked) {
+      const refDigits = String(acctRef).replace(/\D/g, "").slice(-4);
+      const liveDigits = String(account.accountIdMasked).replace(/\D/g, "").slice(-4);
+      if (refDigits && liveDigits && refDigits !== liveDigits && acctRef !== account.accountIdMasked) {
+        checks.push(check(
+          "account_identity",
+          "account",
+          "FAIL",
+          "ACCOUNT_IDENTITY_MISMATCH",
+          "Proposal accountReference does not match live account identity.",
+        ));
+      } else {
+        checks.push(check(
+          "account_identity",
+          "account",
+          "PASS",
+          "ACCOUNT_IDENTITY_OK",
+          "Proposal account identity matches live snapshot.",
         ));
       }
     }
@@ -1155,15 +1268,7 @@ export function runPreExecutionValidation(
         "SPREAD_LIMIT_NOT_CONFIGURED",
         `Spread ${spread} observed but maxSpreadAbsolute is not configured — fail closed (no invented limit).`,
       ));
-      checks.push(check(
-        "slippage_limit",
-        "spread",
-        "FAIL",
-        "SLIPPAGE_LIMIT_NOT_CONFIGURED",
-        "No authoritative slippage limit configured — capability incomplete; fail closed.",
-        false,
-      ));
-      warnings.push("Spread/slippage limits are not configured in AT — do not invent thresholds.");
+      warnings.push("Spread limit is not configured in AT — do not invent thresholds.");
     } else if (spread > limits.maxSpreadAbsolute + 1e-12) {
       checks.push(check(
         "spread_limit",
@@ -1180,6 +1285,65 @@ export function runPreExecutionValidation(
         "SPREAD_OK",
         `Spread ${spread} ≤ max ${limits.maxSpreadAbsolute}.`,
       ));
+    }
+
+    // Stage 3 — mandatory slippage policy (entry vs executable market price).
+    const entryForSlip = proposal?.pricePlan?.entryPrice
+      ?? handoff?.directionOrder?.entryPrice
+      ?? null;
+    const dirForSlip = (proposal?.canonicalDecision === "BUY" || proposal?.canonicalDecision === "SELL")
+      ? proposal.canonicalDecision
+      : (handoff?.directionOrder?.canonicalDecision === "BUY"
+        || handoff?.directionOrder?.canonicalDecision === "SELL"
+        ? handoff.directionOrder.canonicalDecision
+        : null);
+    if (limits.maxSlippageAbsolute == null) {
+      checks.push(check(
+        "slippage_limit",
+        "spread",
+        "FAIL",
+        "SLIPPAGE_LIMIT_NOT_CONFIGURED",
+        "No authoritative maxSlippageAbsolute configured — fail closed (no invented limit).",
+      ));
+    } else {
+      const exec = executableMarketPrice(dirForSlip, market.bid, market.ask);
+      if (!exec.ok) {
+        checks.push(check(
+          "slippage_limit",
+          "spread",
+          "FAIL",
+          "SLIPPAGE_DATA_UNAVAILABLE",
+          exec.reason,
+        ));
+      } else {
+        const measured = measureSlippageAbsolute(entryForSlip, exec.price);
+        if (!measured.ok) {
+          checks.push(check(
+            "slippage_limit",
+            "spread",
+            "FAIL",
+            "SLIPPAGE_DATA_UNAVAILABLE",
+            measured.reason,
+          ));
+        } else if (measured.slippage > limits.maxSlippageAbsolute + 1e-12) {
+          checks.push(check(
+            "slippage_limit",
+            "spread",
+            "FAIL",
+            "EXCESSIVE_SLIPPAGE",
+            `Slippage ${measured.slippage} exceeds max ${limits.maxSlippageAbsolute} `
+              + `(|entry−executable|; executable=${exec.price}).`,
+          ));
+        } else {
+          checks.push(check(
+            "slippage_limit",
+            "spread",
+            "PASS",
+            "SLIPPAGE_OK",
+            `Slippage ${measured.slippage} ≤ max ${limits.maxSlippageAbsolute}.`,
+          ));
+        }
+      }
     }
   }
 

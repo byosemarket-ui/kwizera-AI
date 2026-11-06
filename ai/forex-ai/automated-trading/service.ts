@@ -3404,6 +3404,7 @@ export class AutomatedTradingService {
     applyLifecycle?: boolean;
     correlationId?: string;
     maxSpreadAbsolute?: number | null;
+    maxSlippageAbsolute?: number | null;
   } = {}) {
     const {
       applyPreExecutionValidation,
@@ -3465,12 +3466,23 @@ export class AutomatedTradingService {
       ?? null;
 
     // Stage 2 — live read-only risk intelligence (never mutates broker).
-    const { fetchLiveRiskIntelligence, readConfiguredMaxSpreadAbsolute } = await import(
-      "./risk-intelligence/index.js"
-    );
-    const configuredSpread = readConfiguredMaxSpreadAbsolute(
-      input.maxSpreadAbsolute === undefined ? undefined : input.maxSpreadAbsolute,
-    );
+    const { fetchLiveRiskIntelligence } = await import("./risk-intelligence/index.js");
+    // Stage 3 — instrument risk-policy resolution (no invented thresholds).
+    const {
+      resolveSpreadLimit,
+      resolveSlippageLimit,
+      auditOrderReadiness,
+      attestProposedOrderMargin,
+      getAtRiskPolicyStore,
+    } = await import("./risk-policy/index.js");
+    const configuredSpread = resolveSpreadLimit({
+      instrument: instrumentSymbol,
+      requestOverride: input.maxSpreadAbsolute === undefined ? undefined : input.maxSpreadAbsolute,
+    });
+    const configuredSlippage = resolveSlippageLimit({
+      instrument: instrumentSymbol,
+      requestOverride: input.maxSlippageAbsolute === undefined ? undefined : input.maxSlippageAbsolute,
+    });
     const riskIntel = await fetchLiveRiskIntelligence({
       environment: state.selectedEnvironment,
       instrument: instrumentSymbol,
@@ -3482,9 +3494,7 @@ export class AutomatedTradingService {
       quoteAgeMs: quoteAgeMs != null && Number.isFinite(quoteAgeMs)
         ? quoteAgeMs
         : (market?.priceChangeAgeMs ?? null),
-      maxSpreadAbsolute: input.maxSpreadAbsolute === undefined
-        ? undefined
-        : input.maxSpreadAbsolute,
+      maxSpreadAbsolute: configuredSpread.value,
       persistDaily: true,
     });
 
@@ -3554,7 +3564,34 @@ export class AutomatedTradingService {
         : null,
       riskLimits: {
         maxSpreadAbsolute: configuredSpread.value,
+        maxSlippageAbsolute: configuredSlippage.value,
       },
+    };
+
+    const marginAttestation = attestProposedOrderMargin({
+      usableMargin: (riskIntel.precheckAccount ?? verificationAccount)?.usableMargin ?? null,
+      proposalEstimatedMargin: proposal?.quantity?.estimatedMargin ?? null,
+      handoffRequiredMargin: handoff?.riskCapital?.requiredMargin ?? null,
+      mmrPerLot: inst?.marginPerLotAccount ?? null,
+      lots: proposal?.quantity?.normalizedQuantity
+        ?? handoff?.directionOrder?.normalizedQuantity
+        ?? null,
+      contractVerified: inst?.contractVerified === true,
+      baseUnitSize: inst?.baseUnitSize ?? null,
+    });
+    const orderReadiness = auditOrderReadiness({
+      proposal,
+      handoff,
+      liveAccountIdMasked: (riskIntel.precheckAccount ?? verificationAccount)?.accountIdMasked ?? null,
+      quoteAgeMs: precheckInput.market.quoteAgeMs,
+      nowMs: Date.now(),
+    });
+    const riskPolicy = {
+      document: getAtRiskPolicyStore().get(),
+      resolvedSpread: configuredSpread,
+      resolvedSlippage: configuredSlippage,
+      marginAttestation,
+      orderReadiness,
     };
 
     const applyLifecycle = input.applyLifecycle !== false;
@@ -3567,6 +3604,7 @@ export class AutomatedTradingService {
       return {
         ...applied,
         riskIntelligence: riskIntel,
+        riskPolicy,
         placesOrders: false as const,
         acceptsForExecution: false as const,
         mutatesBroker: false as const,
@@ -3579,11 +3617,93 @@ export class AutomatedTradingService {
       lifecycleAfter: foundation.lifecycle,
       transition: { ok: true as const },
       riskIntelligence: riskIntel,
+      riskPolicy,
       placesOrders: false as const,
       acceptsForExecution: false as const,
       mutatesBroker: false as const,
       executionAuthorized: false as const,
     };
+  }
+
+  /**
+   * Stage 3 — risk-policy document (read-only snapshot).
+   * Never mutates broker; never invents numeric thresholds.
+   */
+  async getRiskPolicyDocument() {
+    const { getAtRiskPolicyStore } = await import("./risk-policy/index.js");
+    return getAtRiskPolicyStore().get();
+  }
+
+  /**
+   * Stage 3 — set/clear instrument spread or slippage policy (audited; admin-only at API).
+   * Rejects invalid values; does not invent defaults.
+   */
+  async updateRiskPolicy(input: {
+    instrument: string;
+    kind: "spread" | "slippage";
+    value?: number | null;
+    clear?: boolean;
+    actor?: string;
+    pricePrecision?: number | null;
+  }) {
+    const { getAtRiskPolicyStore } = await import("./risk-policy/index.js");
+    const store = getAtRiskPolicyStore();
+    const clear = input.clear === true || input.value == null;
+    if (input.kind === "spread") {
+      return store.setSpread({
+        instrument: input.instrument,
+        maxSpreadAbsolute: clear ? null : input.value,
+        clear,
+        actor: input.actor,
+        pricePrecision: input.pricePrecision,
+      });
+    }
+    return store.setSlippage({
+      instrument: input.instrument,
+      maxSlippageAbsolute: clear ? null : input.value,
+      clear,
+      actor: input.actor,
+    });
+  }
+
+  /**
+   * Stage 3 — order readiness audit (proposal/handoff consistency).
+   * Never authorizes submission.
+   */
+  async getOrderReadinessAudit(input: {
+    handoffId?: string | null;
+    proposalId?: string | null;
+  } = {}) {
+    const { getAtBrokerHandoffStore } = await import("./broker-compatibility/index.js");
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const { auditOrderReadiness } = await import("./risk-policy/index.js");
+    const state = this.store.getState();
+    const env = state.environments[state.selectedEnvironment];
+    const wantedHandoffId = String(input.handoffId || "").trim() || null;
+    const wantedProposalId = String(input.proposalId || "").trim() || null;
+    const handoff = wantedHandoffId
+      ? getAtBrokerHandoffStore().get(wantedHandoffId)
+      : getAtBrokerHandoffStore().latest();
+    const proposal = wantedProposalId
+      ? getAtOrderProposalStore().get(wantedProposalId)
+      : (handoff?.provenance?.proposalId
+        ? getAtOrderProposalStore().get(handoff.provenance.proposalId)
+        : getAtOrderProposalStore().latest());
+    const market = env.lastVerification?.market ?? null;
+    const live = env.lastVerification
+      ? (env.lastVerification as { liveOfferFreshness?: { effectivePriceChangeAgeMs?: number | null } | null })
+        .liveOfferFreshness
+      : null;
+    return auditOrderReadiness({
+      proposal,
+      handoff,
+      liveAccountIdMasked: env.lastVerification?.account?.accountIdMasked ?? null,
+      quoteAgeMs: live?.effectivePriceChangeAgeMs
+        ?? (market && typeof (market as { priceChangeAgeMs?: number }).priceChangeAgeMs === "number"
+          ? (market as { priceChangeAgeMs: number }).priceChangeAgeMs
+          : null),
+      nowMs: Date.now(),
+    });
   }
 
   /**
@@ -3594,6 +3714,7 @@ export class AutomatedTradingService {
     maxSpreadAbsolute?: number | null;
   } = {}) {
     const { fetchLiveRiskIntelligence } = await import("./risk-intelligence/index.js");
+    const { resolveSpreadLimit } = await import("./risk-policy/index.js");
     const state = this.store.getState();
     const env = state.environments[state.selectedEnvironment];
     const verification = env.lastVerification;
@@ -3613,16 +3734,21 @@ export class AutomatedTradingService {
       ?? (market && typeof (market as { priceChangeAgeMs?: number }).priceChangeAgeMs === "number"
         ? (market as { priceChangeAgeMs: number }).priceChangeAgeMs
         : null);
+    const instrumentSymbol = env.selectedInstrument ?? null;
+    const spreadLimit = resolveSpreadLimit({
+      instrument: instrumentSymbol,
+      requestOverride: input.maxSpreadAbsolute === undefined ? undefined : input.maxSpreadAbsolute,
+    });
     return fetchLiveRiskIntelligence({
       environment: state.selectedEnvironment,
-      instrument: env.selectedInstrument ?? null,
+      instrument: instrumentSymbol,
       expectedAccountIdMasked: account?.accountIdMasked ?? null,
       baseUnitSize: inst?.baseUnitSize ?? null,
       contractVerified: inst?.contractVerified === true,
       bid,
       ask,
       quoteAgeMs,
-      maxSpreadAbsolute: input.maxSpreadAbsolute,
+      maxSpreadAbsolute: spreadLimit.value,
       persistDaily: true,
     });
   }

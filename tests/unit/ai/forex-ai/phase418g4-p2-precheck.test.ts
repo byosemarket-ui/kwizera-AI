@@ -331,6 +331,7 @@ function baseInput(over: Partial<AtPreExecutionValidationInput> = {}): AtPreExec
     },
     riskLimits: {
       maxSpreadAbsolute: 0.001,
+      maxSlippageAbsolute: 0.01,
     },
     nowMs,
     ...over,
