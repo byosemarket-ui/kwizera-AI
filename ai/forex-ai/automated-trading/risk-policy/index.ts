@@ -1,5 +1,5 @@
 /**
- * Stage 3 — Risk policy configuration & order readiness (read-only / fail-closed).
+ * Stage 3/4 — Risk policy configuration, approval & order readiness.
  */
 export * from "./types.js";
 export * from "./validate.js";

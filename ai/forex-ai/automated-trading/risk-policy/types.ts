@@ -1,10 +1,11 @@
 /**
- * Stage 3 — Risk policy configuration & order readiness contracts.
- * Never invents numeric thresholds. Never mutates broker state.
+ * Stage 3/4 — Risk policy & approval contracts.
+ * Stage 4 adds propose ≠ approve. Never invents numeric thresholds. Never mutates broker.
  */
 
 export const RISK_POLICY_SCHEMA = "kwizera.at-risk-policy.v1" as const;
-export const RISK_POLICY_STAGE = "STAGE_3_RISK_POLICY_ORDER_READINESS" as const;
+/** Stage id reflects latest workflow (Stage 4 approval) while schema remains v1-compatible. */
+export const RISK_POLICY_STAGE = "STAGE_4_RISK_LIMITS_CONFIGURATION_APPROVAL" as const;
 
 export const STAGE3_TRACKED_INSTRUMENTS = [
   "EUR/USD",
@@ -15,57 +16,117 @@ export const STAGE3_TRACKED_INSTRUMENTS = [
 
 export type Stage3TrackedInstrument = (typeof STAGE3_TRACKED_INSTRUMENTS)[number];
 
+/** Resolve/precheck field status (only APPROVED active values become VERIFIED). */
 export type RiskPolicyFieldStatus =
   | "VERIFIED"
   | "NOT_CONFIGURED"
   | "INVALID"
   | "UNAVAILABLE";
 
+/** Stage 4 approval workflow status for a limit slot. */
+export type RiskLimitApprovalState =
+  | "NOT_CONFIGURED"
+  | "PENDING_APPROVAL"
+  | "APPROVED"
+  | "REJECTED"
+  | "INVALID";
+
 export type SlippageBasis = "entry_vs_executable";
+
+export type RiskPolicyAuditAction =
+  | "CREATE_EMPTY"
+  | "SET_SPREAD"
+  | "CLEAR_SPREAD"
+  | "SET_SLIPPAGE"
+  | "CLEAR_SLIPPAGE"
+  | "REJECT_INVALID"
+  | "PROPOSE_SPREAD"
+  | "PROPOSE_SLIPPAGE"
+  | "APPROVE_SPREAD"
+  | "APPROVE_SLIPPAGE"
+  | "REJECT_SPREAD"
+  | "REJECT_SLIPPAGE"
+  | "CLEAR_PROPOSED_SPREAD"
+  | "CLEAR_PROPOSED_SLIPPAGE"
+  | "ROLLBACK_SPREAD"
+  | "ROLLBACK_SLIPPAGE";
 
 export interface RiskPolicyAuditEntry {
   atUtc: string;
   actor: string;
-  action:
-    | "CREATE_EMPTY"
-    | "SET_SPREAD"
-    | "CLEAR_SPREAD"
-    | "SET_SLIPPAGE"
-    | "CLEAR_SLIPPAGE"
-    | "REJECT_INVALID";
+  action: RiskPolicyAuditAction;
   instrument: string | null;
+  kind?: "spread" | "slippage" | null;
   detail: string;
   previousValue: number | null;
   nextValue: number | null;
+  policyVersion: number | null;
+  configVersion: number | null;
+}
+
+export interface RiskLimitProposal {
+  value: number;
+  units: "absolute_price";
+  pricePrecision: number | null;
+  proposedAtUtc: string;
+  proposedBy: string;
+  note: string | null;
+}
+
+/** Snapshot of a previously approved active value (for rollback). */
+export interface RiskLimitApprovedRevision {
+  value: number;
+  units: "absolute_price";
+  pricePrecision: number | null;
+  approvedAtUtc: string;
+  approvedBy: string;
+  configVersion: number;
+  documentVersion: number;
 }
 
 export interface InstrumentSpreadPolicy {
   instrument: string;
-  /** Absolute price units (same scale as bid/ask). Null until owner-approved. */
+  /** Active approved absolute spread limit. Null until APPROVED. */
   maxSpreadAbsolute: number | null;
   units: "absolute_price";
-  /** Decimal places used for display/validation when known; never invented. */
   pricePrecision: number | null;
+  /** Resolve status: VERIFIED only when approvalState=APPROVED and value valid. */
   status: RiskPolicyFieldStatus;
+  approvalState: RiskLimitApprovalState;
   reason: string | null;
+  configVersion: number;
+  createdAtUtc: string;
+  updatedAtUtc: string;
   approvedAtUtc: string | null;
   approvedBy: string | null;
+  effectiveAtUtc: string | null;
+  proposed: RiskLimitProposal | null;
+  history: RiskLimitApprovedRevision[];
 }
 
 export interface InstrumentSlippagePolicy {
   instrument: string;
-  /** Absolute price distance |entry − executable|. Null until owner-approved. */
   maxSlippageAbsolute: number | null;
   units: "absolute_price";
   basis: SlippageBasis;
+  pricePrecision: number | null;
   status: RiskPolicyFieldStatus;
+  approvalState: RiskLimitApprovalState;
   reason: string | null;
+  configVersion: number;
+  createdAtUtc: string;
+  updatedAtUtc: string;
   approvedAtUtc: string | null;
   approvedBy: string | null;
+  effectiveAtUtc: string | null;
+  proposed: RiskLimitProposal | null;
+  history: RiskLimitApprovedRevision[];
 }
 
 export interface InstrumentRiskPolicy {
   instrument: string;
+  /** Documented absolute-price precision guidance (never used as invented limit). */
+  documentedPricePrecision: number | null;
   spread: InstrumentSpreadPolicy;
   slippage: InstrumentSlippagePolicy;
 }
@@ -87,17 +148,21 @@ export interface ResolvedSpreadLimit {
   value: number | null;
   source: "request" | "instrument_policy" | "env" | null;
   status: RiskPolicyFieldStatus;
+  approvalState: RiskLimitApprovalState | null;
   reason: string | null;
   instrument: string | null;
+  configVersion: number | null;
 }
 
 export interface ResolvedSlippageLimit {
   value: number | null;
   source: "request" | "instrument_policy" | null;
   status: RiskPolicyFieldStatus;
+  approvalState: RiskLimitApprovalState | null;
   reason: string | null;
   instrument: string | null;
   basis: SlippageBasis;
+  configVersion: number | null;
 }
 
 export type MarginAttestationStatus =
@@ -147,3 +212,11 @@ export interface OrderReadinessAudit {
   executionAuthorized: false;
   note: string;
 }
+
+/** Documented precision guidance for tracked instruments (display/docs only). */
+export const INSTRUMENT_PRICE_PRECISION_GUIDANCE: Record<Stage3TrackedInstrument, number> = {
+  "EUR/USD": 5,
+  "GBP/USD": 5,
+  "USD/JPY": 3,
+  "XAU/USD": 2,
+};

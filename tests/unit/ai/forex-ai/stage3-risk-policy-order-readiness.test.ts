@@ -379,16 +379,23 @@ describe("Stage 3 — spread policy", () => {
 
   it("accepts valid approved spread policy and resolves it", () => {
     const store = tempStore();
-    const set = store.setSpread({
+    const proposed = store.proposeSpread({
       instrument: "EUR/USD",
       maxSpreadAbsolute: 0.0003,
-      actor: "owner",
+      actor: "editor",
       pricePrecision: 5,
+    });
+    expect(proposed.ok).toBe(true);
+    const set = store.approveSpread({
+      instrument: "EUR/USD",
+      actor: "owner",
+      confirm: true,
     });
     expect(set.ok).toBe(true);
     if (!set.ok) return;
     expect(set.document.instruments["EUR/USD"].spread.status).toBe("VERIFIED");
-    expect(set.document.audit.some((a) => a.action === "SET_SPREAD")).toBe(true);
+    expect(set.document.instruments["EUR/USD"].spread.approvalState).toBe("APPROVED");
+    expect(set.document.audit.some((a) => a.action === "APPROVE_SPREAD")).toBe(true);
     const resolved = resolveSpreadLimit({ instrument: "EUR/USD", store });
     expect(resolved.source).toBe("instrument_policy");
     expect(resolved.value).toBe(0.0003);
@@ -434,7 +441,8 @@ describe("Stage 3 — slippage policy", () => {
 
   it("uses approved slippage limit against entry vs ask for BUY", () => {
     const store = tempStore();
-    store.setSlippage({ instrument: "EUR/USD", maxSlippageAbsolute: 0.00005, actor: "owner" });
+    store.proposeSlippage({ instrument: "EUR/USD", maxSlippageAbsolute: 0.00005, actor: "editor" });
+    store.approveSlippage({ instrument: "EUR/USD", actor: "owner", confirm: true });
     expect(resolveSlippageLimit({ instrument: "EUR/USD", store }).value).toBe(0.00005);
     // entry 1.1 vs ask ~1.1001 → slip ~0.0001 > 0.00005
     const result = runPreExecutionValidation(basePrecheck({

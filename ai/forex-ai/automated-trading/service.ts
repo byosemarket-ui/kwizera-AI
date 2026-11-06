@@ -3626,7 +3626,7 @@ export class AutomatedTradingService {
   }
 
   /**
-   * Stage 3 — risk-policy document (read-only snapshot).
+   * Stage 3/4 — risk-policy document (read-only snapshot).
    * Never mutates broker; never invents numeric thresholds.
    */
   async getRiskPolicyDocument() {
@@ -3634,35 +3634,118 @@ export class AutomatedTradingService {
     return getAtRiskPolicyStore().get();
   }
 
+  async getRiskPolicyHistory(limit = 80) {
+    const { getAtRiskPolicyStore } = await import("./risk-policy/index.js");
+    return getAtRiskPolicyStore().getHistory(limit);
+  }
+
   /**
-   * Stage 3 — set/clear instrument spread or slippage policy (audited; admin-only at API).
-   * Rejects invalid values; does not invent defaults.
+   * Stage 4 — propose / approve / reject / rollback / clear instrument limits.
+   * Propose does NOT activate. Approve requires confirm=true.
    */
   async updateRiskPolicy(input: {
     instrument: string;
     kind: "spread" | "slippage";
+    action?:
+      | "propose"
+      | "approve"
+      | "reject"
+      | "rollback"
+      | "clear";
     value?: number | null;
     clear?: boolean;
+    confirm?: boolean;
+    reason?: string;
+    note?: string | null;
     actor?: string;
     pricePrecision?: number | null;
+    expectedVersion?: number | null;
   }) {
     const { getAtRiskPolicyStore } = await import("./risk-policy/index.js");
     const store = getAtRiskPolicyStore();
-    const clear = input.clear === true || input.value == null;
+    const action = input.clear === true
+      ? "clear"
+      : (input.action || "propose");
+    const actor = input.actor;
+    const expectedVersion = input.expectedVersion;
+
     if (input.kind === "spread") {
-      return store.setSpread({
+      if (action === "approve") {
+        return store.approveSpread({
+          instrument: input.instrument,
+          actor,
+          confirm: input.confirm === true,
+          expectedVersion,
+        });
+      }
+      if (action === "reject") {
+        return store.rejectSpread({
+          instrument: input.instrument,
+          actor,
+          reason: input.reason,
+          expectedVersion,
+        });
+      }
+      if (action === "rollback") {
+        return store.rollbackSpread({
+          instrument: input.instrument,
+          actor,
+          expectedVersion,
+        });
+      }
+      if (action === "clear") {
+        return store.clearSpread({
+          instrument: input.instrument,
+          actor,
+          expectedVersion,
+        });
+      }
+      return store.proposeSpread({
         instrument: input.instrument,
-        maxSpreadAbsolute: clear ? null : input.value,
-        clear,
-        actor: input.actor,
+        maxSpreadAbsolute: input.value,
+        actor,
         pricePrecision: input.pricePrecision,
+        note: input.note,
+        expectedVersion,
       });
     }
-    return store.setSlippage({
+
+    if (action === "approve") {
+      return store.approveSlippage({
+        instrument: input.instrument,
+        actor,
+        confirm: input.confirm === true,
+        expectedVersion,
+      });
+    }
+    if (action === "reject") {
+      return store.rejectSlippage({
+        instrument: input.instrument,
+        actor,
+        reason: input.reason,
+        expectedVersion,
+      });
+    }
+    if (action === "rollback") {
+      return store.rollbackSlippage({
+        instrument: input.instrument,
+        actor,
+        expectedVersion,
+      });
+    }
+    if (action === "clear") {
+      return store.clearSlippage({
+        instrument: input.instrument,
+        actor,
+        expectedVersion,
+      });
+    }
+    return store.proposeSlippage({
       instrument: input.instrument,
-      maxSlippageAbsolute: clear ? null : input.value,
-      clear,
-      actor: input.actor,
+      maxSlippageAbsolute: input.value,
+      actor,
+      note: input.note,
+      expectedVersion,
     });
   }
 

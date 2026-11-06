@@ -775,6 +775,50 @@ export const forexRiskApi = {
     ),
 };
 
+/** Stage 4 — AT instrument risk limits (propose / approve; never invents thresholds; no orders). */
+export const atRiskPolicyApi = {
+  get: () =>
+    request<{
+      ok: true;
+      riskPolicy: {
+        schemaVersion: string;
+        stage: string;
+        version: number;
+        updatedAtUtc: string;
+        instruments: Record<string, {
+          instrument: string;
+          documentedPricePrecision: number | null;
+          spread: Record<string, unknown>;
+          slippage: Record<string, unknown>;
+        }>;
+        audit: Array<Record<string, unknown>>;
+        placesOrders: false;
+        acceptsForExecution: false;
+        mutatesBroker: false;
+        note: string;
+      };
+      placesOrders: false;
+      note: string;
+    }>("/api/forex/automated-trading/risk-policy"),
+  history: (limit = 40) =>
+    request<{
+      ok: true;
+      history: Array<Record<string, unknown>>;
+      placesOrders: false;
+    }>(`/api/forex/automated-trading/risk-policy/history?limit=${Math.max(1, Math.min(200, limit))}`),
+  mutate: (body: Record<string, unknown>) =>
+    request<{
+      ok: true;
+      riskPolicy: Record<string, unknown>;
+      action?: string;
+      placesOrders: false;
+      note: string;
+    }>("/api/forex/automated-trading/risk-policy", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
 /** Phase 24 — Intelligence control center (config / diagnostics / health). */
 export const forexIntelligenceApi = {
   health: (probe = true) =>

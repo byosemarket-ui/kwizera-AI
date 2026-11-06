@@ -1839,7 +1839,27 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
-    // Stage 3 — Risk policy configuration (read / audited write; never mutates broker).
+    // Stage 4 — Risk policy history (read-only audit trail).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/risk-policy/history")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit") || 80) || 80));
+      const history = await service.getRiskPolicyHistory(limit);
+      sendJson(res, 200, {
+        ok: true,
+        history,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        executionAuthorized: false,
+        note: "Stage 4 risk-policy audit history. Read-only.",
+      });
+      return true;
+    }
+
+    // Stage 4 — Risk policy configuration / approval (never mutates broker; propose ≠ approve).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/risk-policy")) {
       if (req.method === "GET" || req.method === "HEAD") {
         const riskPolicy = await service.getRiskPolicyDocument();
@@ -1851,7 +1871,7 @@ export async function handleForexAutomatedTradingApi(
           mutatesBroker: false,
           executionAuthorized: false,
           note:
-            "Stage 3 risk-policy document. Limits remain NOT_CONFIGURED until owner-approved values are set. "
+            "Stage 4 risk-policy document. Proposed values are inactive until explicit approve with confirm=true. "
             + "No invented thresholds. No broker mutation.",
         });
         return true;
@@ -1872,19 +1892,37 @@ export async function handleForexAutomatedTradingApi(
       }
       const instrument = typeof body.instrument === "string" ? body.instrument : "";
       const kind = body.kind === "slippage" ? "slippage" : "spread";
-      const clear = body.clear === true || body.value === null;
+      const actionRaw = typeof body.action === "string" ? body.action.trim().toLowerCase() : "";
+      const action = (
+        actionRaw === "approve"
+        || actionRaw === "reject"
+        || actionRaw === "rollback"
+        || actionRaw === "clear"
+        || actionRaw === "propose"
+      )
+        ? actionRaw
+        : (body.clear === true ? "clear" : "propose");
       const value = typeof body.value === "number" ? body.value : null;
       const pricePrecision = typeof body.pricePrecision === "number" ? body.pricePrecision : null;
+      const expectedVersion = typeof body.expectedVersion === "number" ? body.expectedVersion : null;
       const result = await service.updateRiskPolicy({
         instrument,
         kind,
-        value: clear ? null : value,
-        clear,
+        action,
+        value,
+        clear: action === "clear",
+        confirm: body.confirm === true,
+        reason: typeof body.reason === "string" ? body.reason : undefined,
+        note: typeof body.note === "string" ? body.note : null,
         actor: typeof body.actor === "string" ? body.actor : "admin-api",
         pricePrecision,
+        expectedVersion,
       });
       if (!result.ok) {
-        sendJson(res, 400, {
+        const status = result.status === "VERSION_CONFLICT"
+          ? 409
+          : (result.status === "CONFIRMATION_REQUIRED" ? 400 : 400);
+        sendJson(res, status, {
           ok: false,
           error: { code: result.status, message: result.reason },
           placesOrders: false,
@@ -1896,11 +1934,17 @@ export async function handleForexAutomatedTradingApi(
       sendJson(res, 200, {
         ok: true,
         riskPolicy: result.document,
+        action,
         placesOrders: false,
         acceptsForExecution: false,
         mutatesBroker: false,
         executionAuthorized: false,
-        note: "Stage 3 risk-policy updated (audited). Does not enable execution or mutate broker.",
+        note:
+          action === "approve"
+            ? "Stage 4 policy approved (audited). Does not enable execution or mutate broker."
+            : action === "propose"
+              ? "Stage 4 proposal recorded (pending). Not active until approve+confirm."
+              : "Stage 4 risk-policy updated (audited). Does not enable execution or mutate broker.",
       });
       return true;
     }

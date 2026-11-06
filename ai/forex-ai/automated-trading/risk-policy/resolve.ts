@@ -1,5 +1,6 @@
 /**
- * Stage 3 — resolve spread/slippage limits for precheck (fail-closed; no invented values).
+ * Stage 3/4 — resolve spread/slippage limits for precheck.
+ * Only APPROVED active values from instrument policy are used (pending/rejected ignored).
  */
 import { readConfiguredMaxSpreadAbsolute } from "../risk-intelligence/gather.js";
 import { getAtRiskPolicyStore } from "./store.js";
@@ -9,12 +10,10 @@ import { normalizeInstrumentSymbol, validateAbsolutePriceLimit } from "./validat
 export function resolveSpreadLimit(input: {
   instrument?: string | null;
   requestOverride?: number | null;
-  /** Injectable store for tests. */
   store?: { getInstrument: (instrument: string | null | undefined) => ReturnType<ReturnType<typeof getAtRiskPolicyStore>["getInstrument"]> };
 }): ResolvedSpreadLimit {
   const instrument = normalizeInstrumentSymbol(input.instrument);
 
-  // 1) Explicit request override (precheck/risk-intel query/body).
   if (input.requestOverride !== undefined) {
     const fromReq = readConfiguredMaxSpreadAbsolute(input.requestOverride);
     if (fromReq.source === "request" && fromReq.value != null) {
@@ -22,8 +21,10 @@ export function resolveSpreadLimit(input: {
         value: fromReq.value,
         source: "request",
         status: "VERIFIED",
-        reason: null,
+        approvalState: "APPROVED",
+        reason: "Request override (explicit for this call only).",
         instrument,
+        configVersion: null,
       };
     }
     if (input.requestOverride === null) {
@@ -31,57 +32,106 @@ export function resolveSpreadLimit(input: {
         value: null,
         source: null,
         status: "NOT_CONFIGURED",
+        approvalState: "NOT_CONFIGURED",
         reason: fromReq.reason,
         instrument,
+        configVersion: null,
       };
     }
   }
 
-  // 2) Instrument-specific persisted policy (owner-approved).
   if (instrument) {
     const store = input.store ?? getAtRiskPolicyStore();
     const pol = store.getInstrument(instrument);
     if (pol?.spread) {
-      if (pol.spread.status === "VERIFIED" && pol.spread.maxSpreadAbsolute != null) {
+      if (pol.spread.approvalState === "PENDING_APPROVAL") {
+        // Pending must not activate; fall through to active approved if any.
+        if (pol.spread.status === "VERIFIED" && pol.spread.maxSpreadAbsolute != null) {
+          const v = validateAbsolutePriceLimit(pol.spread.maxSpreadAbsolute);
+          if (v.ok) {
+            return {
+              value: v.value,
+              source: "instrument_policy",
+              status: "VERIFIED",
+              approvalState: "APPROVED",
+              reason: "Active approved spread remains in force while a new proposal is pending.",
+              instrument,
+              configVersion: pol.spread.configVersion,
+            };
+          }
+        }
+        return {
+          value: null,
+          source: "instrument_policy",
+          status: "NOT_CONFIGURED",
+          approvalState: "PENDING_APPROVAL",
+          reason: "PENDING_APPROVAL — proposed spread is not active until approved.",
+          instrument,
+          configVersion: pol.spread.configVersion,
+        };
+      }
+      if (pol.spread.approvalState === "REJECTED") {
+        return {
+          value: null,
+          source: "instrument_policy",
+          status: "NOT_CONFIGURED",
+          approvalState: "REJECTED",
+          reason: pol.spread.reason || "Rejected spread proposal — no active approved limit.",
+          instrument,
+          configVersion: pol.spread.configVersion,
+        };
+      }
+      if (pol.spread.approvalState === "INVALID" || pol.spread.status === "INVALID") {
+        return {
+          value: null,
+          source: "instrument_policy",
+          status: "INVALID",
+          approvalState: "INVALID",
+          reason: pol.spread.reason || "Spread policy invalid.",
+          instrument,
+          configVersion: pol.spread.configVersion,
+        };
+      }
+      if (
+        pol.spread.approvalState === "APPROVED"
+        && pol.spread.status === "VERIFIED"
+        && pol.spread.maxSpreadAbsolute != null
+      ) {
         const v = validateAbsolutePriceLimit(pol.spread.maxSpreadAbsolute);
         if (v.ok) {
           return {
             value: v.value,
             source: "instrument_policy",
             status: "VERIFIED",
+            approvalState: "APPROVED",
             reason: null,
             instrument,
+            configVersion: pol.spread.configVersion,
           };
         }
         return {
           value: null,
           source: "instrument_policy",
           status: "INVALID",
+          approvalState: "INVALID",
           reason: v.reason,
           instrument,
-        };
-      }
-      if (pol.spread.status === "INVALID") {
-        return {
-          value: null,
-          source: "instrument_policy",
-          status: "INVALID",
-          reason: pol.spread.reason,
-          instrument,
+          configVersion: pol.spread.configVersion,
         };
       }
     }
   }
 
-  // 3) Global env fallback (non-instrument-specific; still explicit owner/ops config).
   const fromEnv = readConfiguredMaxSpreadAbsolute(undefined);
   if (fromEnv.source === "env" && fromEnv.value != null) {
     return {
       value: fromEnv.value,
       source: "env",
       status: "VERIFIED",
+      approvalState: "APPROVED",
       reason: "Global KWIZERA_AT_MAX_SPREAD_ABSOLUTE (not instrument-specific).",
       instrument,
+      configVersion: null,
     };
   }
   if (fromEnv.reason && String(process.env.KWIZERA_AT_MAX_SPREAD_ABSOLUTE ?? "").trim()) {
@@ -89,8 +139,10 @@ export function resolveSpreadLimit(input: {
       value: null,
       source: "env",
       status: "INVALID",
+      approvalState: "INVALID",
       reason: fromEnv.reason,
       instrument,
+      configVersion: null,
     };
   }
 
@@ -98,12 +150,13 @@ export function resolveSpreadLimit(input: {
     value: null,
     source: null,
     status: "NOT_CONFIGURED",
+    approvalState: "NOT_CONFIGURED",
     reason:
       instrument
-        ? `SPREAD_LIMIT_NOT_CONFIGURED for ${instrument} — approve instrument maxSpreadAbsolute `
-          + "(absolute price units) via risk-policy API, or set request/env override."
+        ? `SPREAD_LIMIT_NOT_CONFIGURED for ${instrument} — propose then approve via risk-policy API.`
         : "SPREAD_LIMIT_NOT_CONFIGURED — instrument unknown and no request/env override.",
     instrument,
+    configVersion: null,
   };
 }
 
@@ -121,9 +174,11 @@ export function resolveSlippageLimit(input: {
         value: null,
         source: null,
         status: "NOT_CONFIGURED",
+        approvalState: "NOT_CONFIGURED",
         reason: "Request explicitly cleared maxSlippageAbsolute.",
         instrument,
         basis,
+        configVersion: null,
       };
     }
     const v = validateAbsolutePriceLimit(input.requestOverride);
@@ -132,18 +187,22 @@ export function resolveSlippageLimit(input: {
         value: v.value,
         source: "request",
         status: "VERIFIED",
-        reason: null,
+        approvalState: "APPROVED",
+        reason: "Request override (explicit for this call only).",
         instrument,
         basis,
+        configVersion: null,
       };
     }
     return {
       value: null,
       source: "request",
       status: v.status,
+      approvalState: v.status === "INVALID" ? "INVALID" : "NOT_CONFIGURED",
       reason: v.reason,
       instrument,
       basis,
+      configVersion: null,
     };
   }
 
@@ -151,35 +210,84 @@ export function resolveSlippageLimit(input: {
     const store = input.store ?? getAtRiskPolicyStore();
     const pol = store.getInstrument(instrument);
     if (pol?.slippage) {
-      if (pol.slippage.status === "VERIFIED" && pol.slippage.maxSlippageAbsolute != null) {
+      if (pol.slippage.approvalState === "PENDING_APPROVAL") {
+        if (pol.slippage.status === "VERIFIED" && pol.slippage.maxSlippageAbsolute != null) {
+          const v = validateAbsolutePriceLimit(pol.slippage.maxSlippageAbsolute);
+          if (v.ok) {
+            return {
+              value: v.value,
+              source: "instrument_policy",
+              status: "VERIFIED",
+              approvalState: "APPROVED",
+              reason: "Active approved slippage remains in force while a new proposal is pending.",
+              instrument,
+              basis,
+              configVersion: pol.slippage.configVersion,
+            };
+          }
+        }
+        return {
+          value: null,
+          source: "instrument_policy",
+          status: "NOT_CONFIGURED",
+          approvalState: "PENDING_APPROVAL",
+          reason: "PENDING_APPROVAL — proposed slippage is not active until approved.",
+          instrument,
+          basis,
+          configVersion: pol.slippage.configVersion,
+        };
+      }
+      if (pol.slippage.approvalState === "REJECTED") {
+        return {
+          value: null,
+          source: "instrument_policy",
+          status: "NOT_CONFIGURED",
+          approvalState: "REJECTED",
+          reason: pol.slippage.reason || "Rejected slippage proposal — no active approved limit.",
+          instrument,
+          basis,
+          configVersion: pol.slippage.configVersion,
+        };
+      }
+      if (pol.slippage.approvalState === "INVALID" || pol.slippage.status === "INVALID") {
+        return {
+          value: null,
+          source: "instrument_policy",
+          status: "INVALID",
+          approvalState: "INVALID",
+          reason: pol.slippage.reason || "Slippage policy invalid.",
+          instrument,
+          basis,
+          configVersion: pol.slippage.configVersion,
+        };
+      }
+      if (
+        pol.slippage.approvalState === "APPROVED"
+        && pol.slippage.status === "VERIFIED"
+        && pol.slippage.maxSlippageAbsolute != null
+      ) {
         const v = validateAbsolutePriceLimit(pol.slippage.maxSlippageAbsolute);
         if (v.ok) {
           return {
             value: v.value,
             source: "instrument_policy",
             status: "VERIFIED",
+            approvalState: "APPROVED",
             reason: null,
             instrument,
             basis,
+            configVersion: pol.slippage.configVersion,
           };
         }
         return {
           value: null,
           source: "instrument_policy",
           status: "INVALID",
+          approvalState: "INVALID",
           reason: v.reason,
           instrument,
           basis,
-        };
-      }
-      if (pol.slippage.status === "INVALID") {
-        return {
-          value: null,
-          source: "instrument_policy",
-          status: "INVALID",
-          reason: pol.slippage.reason,
-          instrument,
-          basis,
+          configVersion: pol.slippage.configVersion,
         };
       }
     }
@@ -189,12 +297,13 @@ export function resolveSlippageLimit(input: {
     value: null,
     source: null,
     status: "NOT_CONFIGURED",
+    approvalState: "NOT_CONFIGURED",
     reason:
       instrument
-        ? `SLIPPAGE_LIMIT_NOT_CONFIGURED for ${instrument} — approve maxSlippageAbsolute `
-          + "(absolute |entry−executable|; BUY→ask, SELL→bid)."
+        ? `SLIPPAGE_LIMIT_NOT_CONFIGURED for ${instrument} — propose then approve via risk-policy API.`
         : "SLIPPAGE_LIMIT_NOT_CONFIGURED — instrument unknown and no request override.",
     instrument,
     basis,
+    configVersion: null,
   };
 }
