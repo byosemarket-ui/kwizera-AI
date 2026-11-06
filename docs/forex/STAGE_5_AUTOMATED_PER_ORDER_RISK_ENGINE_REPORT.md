@@ -194,7 +194,15 @@ npx vitest run tests/unit/ai/forex-ai/stage5-per-order-risk-engine.test.ts
 
 ## 22. Production release information
 
-See final Stage 5 implementation report (commit SHA, deploy SHA, health checks) after release steps complete.
+| Item | Value |
+|------|-------|
+| Feature commit | `026340df36d660b68ba0f78d42f360b78d063875` |
+| Path-fix commit (tip) | `072b592023f6cff0d2d57f81f1b02eac0d7ebc95` |
+| GitHub push | `main` (`026340df` → `072b5920`) |
+| Production `deployedCommit` | `072b592023f6cff0d2d57f81f1b02eac0d7ebc95` |
+| Deployment | `result=success`, `verifiedLive=true` |
+| Health | `healthy` / `runtimeReady=true` |
+| Risk-engine API | `GET /api/forex/automated-trading/risk-engine` → auth-gated; authenticated `ok=true`, stage stamp present, safety stamps false |
 
 ---
 
