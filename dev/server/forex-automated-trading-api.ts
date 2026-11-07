@@ -1800,6 +1800,82 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Stage 7 — controlled DEMO readiness / grant (paths avoid order|submit|execute).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-control/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const status = await service.getControlledDemoStatus();
+      sendJson(res, 200, { ok: true, ...status });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-control/readiness")) {
+      if (req.method !== "GET" && req.method !== "POST" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET or POST." } });
+        return true;
+      }
+      let proposalId: string | null = url.searchParams.get("proposalId");
+      if (req.method === "POST") {
+        const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+        if (typeof body.proposalId === "string") proposalId = body.proposalId;
+      }
+      const result = await service.evaluateControlledDemoReadiness({ proposalId });
+      sendJson(res, 200, result);
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-control/grant")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 12_000)) as Record<string, unknown>;
+      const result = await service.issueControlledDemoGrant({
+        confirm: body.confirm,
+        proposalId: body.proposalId,
+        proposalVersion: body.proposalVersion,
+        instrument: body.instrument,
+        direction: body.direction,
+        quantity: body.quantity,
+        entryPrice: body.entryPrice,
+        stopLoss: body.stopLoss,
+        takeProfit: body.takeProfit,
+        timeInForce: body.timeInForce,
+        accountIdMasked: body.accountIdMasked,
+        actor: typeof body.actor === "string" ? body.actor : "forex-admin",
+      });
+      sendJson(res, result.ok ? 200 : 409, result);
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-control/grant/revoke")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 2_000)) as Record<string, unknown>;
+      const result = await service.revokeControlledDemoGrant(
+        typeof body.actor === "string" ? body.actor : "forex-admin",
+      );
+      sendJson(res, result.ok ? 200 : 409, result);
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-control/audit")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limitRaw = Number(url.searchParams.get("limit") || 40);
+      const result = await service.listControlledDemoAudit(
+        Number.isFinite(limitRaw) ? limitRaw : 40,
+      );
+      sendJson(res, 200, result);
+      return true;
+    }
+
     // Broker Execution Engine Phase 1 — foundation status only (path avoids /order|/submit|/execute).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-engine/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {

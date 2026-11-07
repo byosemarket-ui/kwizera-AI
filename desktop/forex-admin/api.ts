@@ -808,6 +808,31 @@ export const atDemoAdapterApi = {
     }),
 };
 
+/** Stage 7 — controlled DEMO readiness / grant (never mutates broker). */
+export const atControlledDemoApi = {
+  status: () =>
+    request<Record<string, unknown>>("/api/forex/automated-trading/demo-control/status"),
+  readiness: (body: Record<string, unknown> = {}) =>
+    request<Record<string, unknown>>("/api/forex/automated-trading/demo-control/readiness", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  issueGrant: (body: Record<string, unknown>) =>
+    request<Record<string, unknown>>("/api/forex/automated-trading/demo-control/grant", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  revokeGrant: (body: Record<string, unknown> = {}) =>
+    request<Record<string, unknown>>("/api/forex/automated-trading/demo-control/grant/revoke", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  audit: (limit = 40) =>
+    request<{ ok: true; audit: Array<Record<string, unknown>> }>(
+      `/api/forex/automated-trading/demo-control/audit?limit=${Math.max(1, Math.min(200, limit))}`,
+    ),
+};
+
 /** Stage 4 — AT instrument risk limits (propose / approve; never invents thresholds; no orders). */
 export const atRiskPolicyApi = {
   get: () =>

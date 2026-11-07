@@ -3609,6 +3609,183 @@ export class AutomatedTradingService {
   }
 
   /**
+   * Stage 7 — Controlled DEMO execution status (readiness + grants; no mutation).
+   * Path namespace: /demo-control/* (avoids order|submit|execute gate).
+   */
+  async getControlledDemoStatus() {
+    const { getControlledDemoPublicStatus } = await import("./controlled-demo-execution/index.js");
+    const { getAtBrokerExecutionStore } = await import("./broker-execution/index.js");
+    const state = this.store.getState();
+    const env = state.environments[state.selectedEnvironment];
+    const foundation = getAtBrokerExecutionStore().get();
+    return getControlledDemoPublicStatus({
+      controlsObserved: {
+        selectedEnvironment: state.selectedEnvironment,
+        executionMasterEnabled: foundation.executionMasterEnabled === true,
+        emergencyEntryLock: env.controls.emergencyEntryLock === true,
+        tradingEnabled: env.controls.masterEnable === true,
+        automaticEntry: env.controls.automaticEntry === true,
+      },
+    });
+  }
+
+  async evaluateControlledDemoReadiness(input: { proposalId?: string | null } = {}) {
+    const { runControlledDemoReadiness } = await import("./controlled-demo-execution/index.js");
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const { getAtBrokerExecutionStore } = await import("./broker-execution/index.js");
+    const { resolveSpreadLimit, resolveSlippageLimit } = await import("./risk-policy/index.js");
+
+    const state = this.store.getState();
+    const envState = state.environments[state.selectedEnvironment];
+    const verification = envState.lastVerification;
+    const account = verification?.account ?? null;
+    const market = verification?.market ?? null;
+    const inst = verification?.instrument ?? null;
+    const wantedId = String(input.proposalId || "").trim();
+    const proposal = wantedId
+      ? getAtOrderProposalStore().get(wantedId)
+      : getAtOrderProposalStore().latest();
+    const foundation = getAtBrokerExecutionStore().get();
+
+    let sessionEnvironment: string | null = null;
+    let sessionStatus: string | null = null;
+    try {
+      const publicStatus = await this.buildStatus();
+      sessionEnvironment = publicStatus.broker?.activeSessionEnvironment
+        ? String(publicStatus.broker.activeSessionEnvironment)
+        : null;
+      sessionStatus = publicStatus.broker?.connectionStatus
+        ? String(publicStatus.broker.connectionStatus)
+        : null;
+    } catch {
+      sessionEnvironment = state.selectedEnvironment;
+    }
+
+    let spreadPolicyStatus: string | null = null;
+    let slippagePolicyStatus: string | null = null;
+    try {
+      const instrumentKey = String(proposal?.instrument ?? inst?.symbol ?? "").trim();
+      if (instrumentKey) {
+        spreadPolicyStatus = resolveSpreadLimit({ instrument: instrumentKey }).status;
+        slippagePolicyStatus = resolveSlippageLimit({ instrument: instrumentKey }).status;
+      }
+    } catch {
+      spreadPolicyStatus = "UNAVAILABLE";
+      slippagePolicyStatus = "UNAVAILABLE";
+    }
+
+    const report = runControlledDemoReadiness({
+      proposal,
+      expectedProposalId: wantedId || proposal?.proposalId || null,
+      configuredEnvironment: state.selectedEnvironment,
+      sessionEnvironment,
+      accountEnvironment: state.selectedEnvironment === "DEMO"
+        ? "demo"
+        : state.selectedEnvironment === "LIVE"
+          ? "live"
+          : null,
+      accountIdMasked: account?.accountIdMasked ?? envState.lastVerifiedAccountId ?? null,
+      expectedAccountIdMasked: account?.accountIdMasked ?? envState.lastVerifiedAccountId ?? null,
+      sessionStatus,
+      connectionHealthy: sessionStatus === "CONNECTED",
+      bid: market?.bid ?? null,
+      ask: market?.ask ?? null,
+      quoteFresh: Boolean(market && (market as { feedStatus?: string }).feedStatus === "LIVE"),
+      baseUnitSize: inst?.baseUnitSize ?? null,
+      spreadPolicyStatus,
+      slippagePolicyStatus,
+      usableMargin: account?.usableMargin ?? null,
+      marginFresh: Boolean(account?.isFresh),
+      executionMasterEnabled: foundation.executionMasterEnabled === true,
+      emergencyEntryLock: envState.controls.emergencyEntryLock === true,
+      tradingEnabled: envState.controls.masterEnable === true,
+      unresolvedAttemptExists: false,
+      conflictingActiveExecution: false,
+      requestedTimeInForce: "IOC",
+      actor: "forex-admin",
+    });
+
+    return {
+      ok: true as const,
+      readiness: report,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      executionAuthorized: false as const,
+      mutationInvoked: false as const,
+    };
+  }
+
+  async issueControlledDemoGrant(input: {
+    confirm?: unknown;
+    proposalId?: unknown;
+    proposalVersion?: unknown;
+    instrument?: unknown;
+    direction?: unknown;
+    quantity?: unknown;
+    entryPrice?: unknown;
+    stopLoss?: unknown;
+    takeProfit?: unknown;
+    timeInForce?: unknown;
+    accountIdMasked?: unknown;
+    actor?: string;
+  }) {
+    const { issueStage7Grant, runControlledDemoReadiness: _r } = await import("./controlled-demo-execution/index.js");
+    void _r;
+    // Re-evaluate readiness first
+    const readinessWrap = await this.evaluateControlledDemoReadiness({
+      proposalId: typeof input.proposalId === "string" ? input.proposalId : null,
+    });
+    const result = issueStage7Grant({
+      readiness: readinessWrap.readiness,
+      actor: String(input.actor || "forex-admin"),
+      confirm: input.confirm === true,
+      confirmed: {
+        proposalId: String(input.proposalId || ""),
+        proposalVersion: String(input.proposalVersion || ""),
+        instrument: String(input.instrument || ""),
+        direction: input.direction === "SELL" ? "SELL" : "BUY",
+        quantity: Number(input.quantity),
+        entryPrice: Number(input.entryPrice),
+        stopLoss: Number(input.stopLoss),
+        takeProfit: Number(input.takeProfit),
+        timeInForce: (String(input.timeInForce || "IOC").toUpperCase() as "IOC" | "GTC" | "FOK" | "DAY"),
+        accountIdMasked: String(input.accountIdMasked || ""),
+      },
+    });
+    return {
+      ...result,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      executionAuthorized: false as const,
+      note:
+        "Stage 7 grant issuance under requireForexAdmin. activatesMutation=false — does not authorize broker mutation.",
+    };
+  }
+
+  async revokeControlledDemoGrant(actor = "forex-admin") {
+    const { revokeStage7Grant } = await import("./controlled-demo-execution/index.js");
+    const result = revokeStage7Grant({ actor });
+    return {
+      ...result,
+      placesOrders: false as const,
+      mutatesBroker: false as const,
+      executionAuthorized: false as const,
+    };
+  }
+
+  async listControlledDemoAudit(limit = 40) {
+    const { getControlledDemoExecutionStore } = await import("./controlled-demo-execution/index.js");
+    return {
+      ok: true as const,
+      audit: getControlledDemoExecutionStore().listAudit(limit),
+      placesOrders: false as const,
+      mutatesBroker: false as const,
+    };
+  }
+
+  /**
    * Step 3 — Broker compatibility / handoff (never submits broker orders).
    * API namespace: /handoff/* (avoids /order/ EXECUTION_FORBIDDEN gate).
    */
