@@ -72,4 +72,14 @@ Verified against `mutation_demo.py`:
 
 No live DEMO submission; no LIVE path; attached protection assumed only when both SL and TP present on constructed payload; post-fill attach path documented in sidecar but not exercised; reconciliation for unknown broker results designed but not live-submitted.
 
+## 7. Production release
+
+| Item | Value |
+|------|-------|
+| Commit | `e4e5ac07bee548c66dc6ff5d1564756861fdc3bf` |
+| Deployed | `e4e5ac07bee548c66dc6ff5d1564756861fdc3bf` (`verifiedLive=true`) |
+| Health | `healthy` / `runtimeReady=true` |
+| Adapter status | `submissionMode=DISABLED`, stamps false, Execution Master false, Emergency Lock true |
+| Dry-run | `mutationPortCalls=0`, `verifiedBrokerAcceptance=false` |
+
 Await owner authorization before any actual DEMO submission (Stage 7+).
