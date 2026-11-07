@@ -137,6 +137,7 @@ import {
   getForexAdminToken,
   saveForexAdminToken,
 } from "../forex/admin-access/forex-admin-token";
+import { buildForexOwnerHeaders } from "../forex/admin-access/forex-owner-token";
 
 /** Same storage key as the shared Forex Admin Access service. */
 export const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
@@ -839,6 +840,16 @@ export const atControlledDemoApi = {
     ),
 };
 
+/** Stage 7.2 — owner capability status (no secrets). */
+export const atOwnerAuthApi = {
+  status: () =>
+    request<{
+      ok: true;
+      owner: Record<string, unknown>;
+      permissionLevel: string;
+    }>("/api/forex/automated-trading/owner-auth/status"),
+};
+
 /** Stage 4 — AT instrument risk limits (propose / approve; never invents thresholds; no orders). */
 export const atRiskPolicyApi = {
   get: () =>
@@ -861,6 +872,7 @@ export const atRiskPolicyApi = {
         mutatesBroker: false;
         note: string;
       };
+      ownerAuthorization?: Record<string, unknown>;
       placesOrders: false;
       note: string;
     }>("/api/forex/automated-trading/risk-policy"),
@@ -870,7 +882,7 @@ export const atRiskPolicyApi = {
       history: Array<Record<string, unknown>>;
       placesOrders: false;
     }>(`/api/forex/automated-trading/risk-policy/history?limit=${Math.max(1, Math.min(200, limit))}`),
-  mutate: (body: Record<string, unknown>) =>
+  mutate: (body: Record<string, unknown>, opts?: { ownerAction?: boolean }) =>
     request<{
       ok: true;
       riskPolicy: Record<string, unknown>;
@@ -880,6 +892,7 @@ export const atRiskPolicyApi = {
     }>("/api/forex/automated-trading/risk-policy", {
       method: "POST",
       body: JSON.stringify(body),
+      headers: opts?.ownerAction ? buildForexOwnerHeaders() : undefined,
     }),
 };
 

@@ -8,7 +8,8 @@ import {
   AUTOMATED_EXECUTION_BANNER,
   getAutomatedTradingService,
 } from "../../ai/forex-ai/automated-trading/index.js";
-import { requireForexAdmin } from "./forex-admin-auth.js";
+import { requireForexAdmin, requireForexOwner } from "./forex-admin-auth.js";
+import { getOwnerAuthPublicStatus } from "../../ai/admin-control-plane/owner-auth-boundary.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -1831,6 +1832,9 @@ export async function handleForexAutomatedTradingApi(
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
         return true;
       }
+      // Stage 7.2 — one-time grants require distinct system owner (not ordinary Forex Admin).
+      const ownerGate = requireForexOwner(req, res, sendJson, url.pathname);
+      if (!ownerGate.ok) return true;
       const body = (await readJsonBody(req, 12_000)) as Record<string, unknown>;
       const result = await service.issueControlledDemoGrant({
         confirm: body.confirm,
@@ -1844,9 +1848,13 @@ export async function handleForexAutomatedTradingApi(
         takeProfit: body.takeProfit,
         timeInForce: body.timeInForce,
         accountIdMasked: body.accountIdMasked,
-        actor: typeof body.actor === "string" ? body.actor : "forex-admin",
+        actor: ownerGate.decision.actorId || "system-owner",
       });
-      sendJson(res, result.ok ? 200 : 409, result);
+      sendJson(res, result.ok ? 200 : 409, {
+        ...result,
+        correlationId: ownerGate.correlationId,
+        ownerActor: ownerGate.decision.actorId,
+      });
       return true;
     }
 
@@ -2012,19 +2020,43 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Stage 7.2 — owner authorization public status (no secrets).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/owner-auth/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const owner = getOwnerAuthPublicStatus();
+      sendJson(res, 200, {
+        ok: true,
+        owner,
+        permissionLevel: owner.ownerConfigured ? "OWNER_CAPABILITY_CONFIGURED" : "ADMIN_ONLY",
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        executionAuthorized: false,
+        note:
+          "Stage 7.2 owner capability status. Configuration uses server-side KWIZERA_OWNER_API_TOKEN. "
+          + "Client owner/role headers are never trusted.",
+      });
+      return true;
+    }
+
     // Stage 4 — Risk policy configuration / approval (never mutates broker; propose ≠ approve).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/risk-policy")) {
       if (req.method === "GET" || req.method === "HEAD") {
         const riskPolicy = await service.getRiskPolicyDocument();
+        const owner = getOwnerAuthPublicStatus();
         sendJson(res, 200, {
           ok: true,
           riskPolicy,
+          ownerAuthorization: owner,
           placesOrders: false,
           acceptsForExecution: false,
           mutatesBroker: false,
           executionAuthorized: false,
           note:
-            "Stage 4 risk-policy document. Proposed values are inactive until explicit approve with confirm=true. "
+            "Stage 4 risk-policy document. Proposed values are inactive until explicit OWNER approve with confirm=true. "
             + "No invented thresholds. No broker mutation.",
         });
         return true;
@@ -2058,6 +2090,17 @@ export async function handleForexAutomatedTradingApi(
       const value = typeof body.value === "number" ? body.value : null;
       const pricePrecision = typeof body.pricePrecision === "number" ? body.pricePrecision : null;
       const expectedVersion = typeof body.expectedVersion === "number" ? body.expectedVersion : null;
+
+      // Stage 7.2 — approve / reject / rollback / clear require distinct owner token.
+      let ownerActor: string | null = null;
+      let correlationId: string | null = null;
+      if (action === "approve" || action === "reject" || action === "rollback" || action === "clear") {
+        const ownerGate = requireForexOwner(req, res, sendJson, url.pathname);
+        if (!ownerGate.ok) return true;
+        ownerActor = ownerGate.decision.actorId;
+        correlationId = ownerGate.correlationId;
+      }
+
       const result = await service.updateRiskPolicy({
         instrument,
         kind,
@@ -2067,9 +2110,15 @@ export async function handleForexAutomatedTradingApi(
         confirm: body.confirm === true,
         reason: typeof body.reason === "string" ? body.reason : undefined,
         note: typeof body.note === "string" ? body.note : null,
-        actor: typeof body.actor === "string" ? body.actor : "admin-api",
+        actor: ownerActor
+          || (typeof body.actor === "string" ? body.actor : "admin-api"),
         pricePrecision,
         expectedVersion,
+        correlationId,
+        invalidateExecutionGrants: action === "approve"
+          || action === "reject"
+          || action === "rollback"
+          || action === "clear",
       });
       if (!result.ok) {
         const status = result.status === "VERSION_CONFLICT"
@@ -2078,6 +2127,7 @@ export async function handleForexAutomatedTradingApi(
         sendJson(res, status, {
           ok: false,
           error: { code: result.status, message: result.reason },
+          correlationId,
           placesOrders: false,
           acceptsForExecution: false,
           mutatesBroker: false,
@@ -2088,15 +2138,17 @@ export async function handleForexAutomatedTradingApi(
         ok: true,
         riskPolicy: result.document,
         action,
+        correlationId,
+        ownerActor,
         placesOrders: false,
         acceptsForExecution: false,
         mutatesBroker: false,
         executionAuthorized: false,
         note:
           action === "approve"
-            ? "Stage 4 policy approved (audited). Does not enable execution or mutate broker."
+            ? "Stage 4/7.2 policy approved by system owner (audited). Does not enable execution or mutate broker."
             : action === "propose"
-              ? "Stage 4 proposal recorded (pending). Not active until approve+confirm."
+              ? "Stage 4 proposal recorded (pending). Not active until owner approve+confirm."
               : "Stage 4 risk-policy updated (audited). Does not enable execution or mutate broker.",
       });
       return true;

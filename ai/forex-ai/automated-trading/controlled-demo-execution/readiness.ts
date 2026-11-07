@@ -71,6 +71,8 @@ export interface Stage7ReadinessInput {
   executionMasterEnabled: boolean;
   emergencyEntryLock: boolean;
   tradingEnabled: boolean;
+  /** Stage 7.2 — distinct owner capability must be configured server-side. */
+  ownerIdentityConfigured?: boolean | null;
   activeGrant: Stage7ExecutionGrant | null;
   unresolvedAttemptExists: boolean;
   conflictingActiveExecution: boolean;
@@ -341,6 +343,25 @@ export function evaluateControlledDemoReadiness(
     push(blockers, "CONFLICTING_ACTIVE_EXECUTION", gates.noConflictingExecution.detail, "SAFETY");
   }
 
+  // Stage 7.2 — owner capability configured (distinct from Forex Admin)
+  const ownerConfigured = input.ownerIdentityConfigured === true;
+  gates.ownerAuthorization = gate(
+    "ownerAuthorization",
+    ownerConfigured,
+    "OWNER_AUTHORIZATION_NOT_CONFIGURED",
+    ownerConfigured
+      ? "Distinct system-owner capability is configured server-side."
+      : "System-owner identity not configured or not distinct from Admin — Stage 7 readiness blocked.",
+  );
+  if (!ownerConfigured) {
+    push(
+      blockers,
+      "OWNER_AUTHORIZATION_NOT_CONFIGURED",
+      gates.ownerAuthorization.detail,
+      "AUTHORIZATION",
+    );
+  }
+
   // Controls
   const emOk = input.executionMasterEnabled === true;
   gates.executionMaster = gate(
@@ -446,7 +467,7 @@ export function evaluateControlledDemoReadiness(
   ];
   const technicalPassFinal = technicalGateNames.every((n) => gates[n]?.pass === true);
   const controlsPass = emOk && lockCleared && tradingOk;
-  const authorizationPass = grantOk;
+  const authorizationPass = grantOk && ownerConfigured;
   // allGatesPass for actual submission would need mutation enabled — always false in Stage 7
   const allGatesPass = false;
 

@@ -3,7 +3,12 @@
  * Propose ≠ approve. Never invents thresholds. No execution controls.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { atRiskPolicyApi } from "./api";
+import { atOwnerAuthApi, atRiskPolicyApi } from "./api";
+import {
+  getForexOwnerToken,
+  maskForexOwnerToken,
+  saveForexOwnerToken,
+} from "../forex/admin-access/forex-owner-token";
 
 const INSTRUMENTS = ["EUR/USD", "GBP/USD", "USD/JPY", "XAU/USD"] as const;
 
@@ -72,6 +77,9 @@ export function ForexAdminAtRiskLimitsPanel() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [ownerStatus, setOwnerStatus] = useState<Record<string, unknown> | null>(null);
+  const [ownerTokenDraft, setOwnerTokenDraft] = useState("");
+  const [ownerMasked, setOwnerMasked] = useState<string | null>(maskForexOwnerToken(getForexOwnerToken()));
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -84,13 +92,18 @@ export function ForexAdminAtRiskLimitsPanel() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [pol, hist] = await Promise.all([
+      const [pol, hist, owner] = await Promise.all([
         atRiskPolicyApi.get(),
         atRiskPolicyApi.history(30),
+        atOwnerAuthApi.status().catch(() => null),
       ]);
       if (!mounted.current) return;
       setDoc(pol.riskPolicy as unknown as PolicyDoc);
       setHistory(hist.history || []);
+      setOwnerStatus((owner as { owner?: Record<string, unknown> } | null)?.owner
+        || (pol as { ownerAuthorization?: Record<string, unknown> }).ownerAuthorization
+        || null);
+      setOwnerMasked(maskForexOwnerToken(getForexOwnerToken()));
     } catch (err) {
       if (!mounted.current) return;
       setError(err instanceof Error ? err.message : "Failed to load AT risk policy.");
@@ -127,7 +140,15 @@ export function ForexAdminAtRiskLimitsPanel() {
       if (action === "approve") {
         body.confirm = true;
       }
-      const res = await atRiskPolicyApi.mutate(body);
+      const ownerAction = action === "approve" || action === "reject"
+        || action === "rollback" || action === "clear";
+      if (ownerAction && !getForexOwnerToken()) {
+        throw new Error(
+          "Owner-only action. Enter the server KWIZERA_OWNER_API_TOKEN in the Owner session field first "
+          + "(distinct from the Admin token).",
+        );
+      }
+      const res = await atRiskPolicyApi.mutate(body, { ownerAction });
       if (!mounted.current) return;
       setDoc(res.riskPolicy as unknown as PolicyDoc);
       setMessage(res.note || `Action ${action} succeeded.`);
@@ -155,12 +176,64 @@ export function ForexAdminAtRiskLimitsPanel() {
 
   return (
     <section className="fxa-card" data-forex-admin-at-risk-limits>
-      <h2>AT risk limits (Stage 4)</h2>
+      <h2>AT risk limits (Stage 4 / 7.2)</h2>
       <p className="fxa-muted">
         Instrument-specific absolute spread/slippage limits for Automated Trading precheck.
-        Propose a value, then approve explicitly. Pending values are not active.
-        Units: absolute price (same scale as bid/ask). No invented thresholds. No order submission.
+        Forex Admin may propose. Approve / reject / rollback / clear require system-owner token.
+        Pending values are not active. Units: absolute price (same scale as bid/ask).
+        Slippage is measured vs executable-side price (entry_vs_executable). No invented thresholds.
+        No order submission. Does not enable Execution Master.
       </p>
+      <dl className="fxa-dl">
+        <dt>Owner capability</dt>
+        <dd>
+          configured={String(ownerStatus?.ownerConfigured ?? "—")}; distinct=
+          {String(ownerStatus?.ownerDistinctFromAdmin ?? "—")}; principal=
+          {String(ownerStatus?.principalId ?? "—")}
+        </dd>
+        <dt>Permission model</dt>
+        <dd>Admin: propose · Owner: approve/reject/rollback/clear</dd>
+        <dt>Owner session token</dt>
+        <dd>
+          {ownerMasked ? `present (${ownerMasked})` : "not set in this browser tab"}
+          <div className="fxa-row" style={{ gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+            <input
+              type="password"
+              autoComplete="off"
+              value={ownerTokenDraft}
+              onChange={(e) => setOwnerTokenDraft(e.target.value)}
+              placeholder="KWIZERA_OWNER_API_TOKEN (session only)"
+              style={{ minWidth: 220 }}
+              disabled={busy}
+            />
+            <button
+              type="button"
+              className="fxa-btn-secondary"
+              disabled={busy}
+              onClick={() => {
+                const r = saveForexOwnerToken(ownerTokenDraft);
+                setOwnerMasked(r.masked);
+                setOwnerTokenDraft("");
+                setMessage(r.ok ? "Owner session token saved for this tab." : "Failed to save owner token.");
+              }}
+            >
+              Save owner token
+            </button>
+            <button
+              type="button"
+              className="fxa-btn-secondary"
+              disabled={busy}
+              onClick={() => {
+                saveForexOwnerToken("");
+                setOwnerMasked(null);
+                setMessage("Owner session token cleared.");
+              }}
+            >
+              Clear owner token
+            </button>
+          </div>
+        </dd>
+      </dl>
 
       <div className="fxa-row" style={{ gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
         <label>
@@ -271,16 +344,18 @@ export function ForexAdminAtRiskLimitsPanel() {
             className="fxa-btn"
             disabled={busy || slot?.approvalState !== "PENDING_APPROVAL"}
             onClick={onApprove}
+            title="Owner-only"
           >
-            Approve…
+            Owner approve…
           </button>
           <button
             type="button"
             className="fxa-btn-secondary"
             disabled={busy || slot?.approvalState !== "PENDING_APPROVAL"}
-            onClick={() => void runAction("reject", { reason: "Rejected from Forex Admin UI." })}
+            onClick={() => void runAction("reject", { reason: "Rejected by system owner from Forex Admin UI." })}
+            title="Owner-only"
           >
-            Reject
+            Owner reject
           </button>
           <button
             type="button"
@@ -290,8 +365,9 @@ export function ForexAdminAtRiskLimitsPanel() {
               if (!window.confirm(`Roll back ${kind} for ${instrument} to previous approved value?`)) return;
               void runAction("rollback");
             }}
+            title="Owner-only"
           >
-            Rollback
+            Owner rollback
           </button>
           <button
             type="button"
@@ -301,8 +377,9 @@ export function ForexAdminAtRiskLimitsPanel() {
               if (!window.confirm(`Clear active and proposed ${kind} for ${instrument}?`)) return;
               void runAction("clear");
             }}
+            title="Owner-only"
           >
-            Clear
+            Owner clear
           </button>
         </div>
       </div>

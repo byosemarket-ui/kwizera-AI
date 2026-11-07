@@ -3699,6 +3699,8 @@ export class AutomatedTradingService {
       executionMasterEnabled: foundation.executionMasterEnabled === true,
       emergencyEntryLock: envState.controls.emergencyEntryLock === true,
       tradingEnabled: envState.controls.masterEnable === true,
+      ownerIdentityConfigured: (await import("../../admin-control-plane/owner-auth-boundary.js"))
+        .isOwnerIdentityConfigured(),
       unresolvedAttemptExists: false,
       conflictingActiveExecution: false,
       requestedTimeInForce: "IOC",
@@ -3825,12 +3827,19 @@ export class AutomatedTradingService {
     }
 
     const s7 = getControlledDemoExecutionStore();
+    const {
+      isOwnerIdentityConfigured,
+      getOwnerAuthPublicStatus,
+    } = await import("../../admin-control-plane/owner-auth-boundary.js");
+    const ownerStatus = getOwnerAuthPublicStatus();
+    const ownerConfigured = isOwnerIdentityConfigured();
     const report = runDemoExecutionReadinessAudit({
-      ownerIdentityConfigured: false,
+      ownerIdentityConfigured: ownerConfigured,
+      // Admin access never proves owner — even when owner is configured.
       requireForexAdminProvesOwner: false,
-      ownerAuthEvidenceNote:
-        "assertAdminAccess accepts Admin API token (production) or admin role headers (non-prod modes). "
-        + "No distinct KWIZERA system-owner principal is configured or enforced for DEMO mutation authorization.",
+      ownerAuthEvidenceNote: ownerConfigured
+        ? `${ownerStatus.note} Sensitive policy approve/reject/rollback and Stage 7 grants require x-kwizera-owner-token.`
+        : ownerStatus.note,
       policyDocumentVersion: policyDoc.version ?? null,
       policiesByInstrument,
       proposal,
@@ -4217,6 +4226,9 @@ export class AutomatedTradingService {
     actor?: string;
     pricePrecision?: number | null;
     expectedVersion?: number | null;
+    correlationId?: string | null;
+    /** Stage 7.2 — policy mutations invalidate Stage 7 grants. */
+    invalidateExecutionGrants?: boolean;
   }) {
     const { getAtRiskPolicyStore } = await import("./risk-policy/index.js");
     const store = getAtRiskPolicyStore();
@@ -4226,84 +4238,115 @@ export class AutomatedTradingService {
     const actor = input.actor;
     const expectedVersion = input.expectedVersion;
 
+    let result:
+      | { ok: true; document: unknown }
+      | { ok: false; status: string; reason: string };
+
     if (input.kind === "spread") {
       if (action === "approve") {
-        return store.approveSpread({
+        result = store.approveSpread({
           instrument: input.instrument,
           actor,
           confirm: input.confirm === true,
           expectedVersion,
         });
-      }
-      if (action === "reject") {
-        return store.rejectSpread({
+      } else if (action === "reject") {
+        result = store.rejectSpread({
           instrument: input.instrument,
           actor,
           reason: input.reason,
           expectedVersion,
         });
-      }
-      if (action === "rollback") {
-        return store.rollbackSpread({
+      } else if (action === "rollback") {
+        result = store.rollbackSpread({
           instrument: input.instrument,
           actor,
           expectedVersion,
         });
-      }
-      if (action === "clear") {
-        return store.clearSpread({
+      } else if (action === "clear") {
+        result = store.clearSpread({
           instrument: input.instrument,
           actor,
           expectedVersion,
         });
+      } else {
+        result = store.proposeSpread({
+          instrument: input.instrument,
+          maxSpreadAbsolute: input.value,
+          actor,
+          pricePrecision: input.pricePrecision,
+          note: input.note,
+          expectedVersion,
+        });
       }
-      return store.proposeSpread({
-        instrument: input.instrument,
-        maxSpreadAbsolute: input.value,
-        actor,
-        pricePrecision: input.pricePrecision,
-        note: input.note,
-        expectedVersion,
-      });
-    }
-
-    if (action === "approve") {
-      return store.approveSlippage({
+    } else if (action === "approve") {
+      result = store.approveSlippage({
         instrument: input.instrument,
         actor,
         confirm: input.confirm === true,
         expectedVersion,
       });
-    }
-    if (action === "reject") {
-      return store.rejectSlippage({
+    } else if (action === "reject") {
+      result = store.rejectSlippage({
         instrument: input.instrument,
         actor,
         reason: input.reason,
         expectedVersion,
       });
-    }
-    if (action === "rollback") {
-      return store.rollbackSlippage({
+    } else if (action === "rollback") {
+      result = store.rollbackSlippage({
         instrument: input.instrument,
         actor,
         expectedVersion,
       });
-    }
-    if (action === "clear") {
-      return store.clearSlippage({
+    } else if (action === "clear") {
+      result = store.clearSlippage({
         instrument: input.instrument,
         actor,
         expectedVersion,
       });
+    } else {
+      result = store.proposeSlippage({
+        instrument: input.instrument,
+        maxSlippageAbsolute: input.value,
+        actor,
+        note: input.note,
+        expectedVersion,
+      });
     }
-    return store.proposeSlippage({
-      instrument: input.instrument,
-      maxSlippageAbsolute: input.value,
-      actor,
-      note: input.note,
-      expectedVersion,
-    });
+
+    if (result.ok && input.invalidateExecutionGrants) {
+      try {
+        const {
+          getControlledDemoExecutionStore,
+          revokeStage7Grant,
+        } = await import("./controlled-demo-execution/index.js");
+        const s7 = getControlledDemoExecutionStore();
+        if (s7.activeGrant()) {
+          revokeStage7Grant({
+            actor: String(actor || "system-owner"),
+            correlationId: input.correlationId ?? null,
+          });
+        }
+        s7.appendAudit({
+          atUtc: new Date().toISOString(),
+          actor: String(actor || "system"),
+          action: "POLICY_CHANGE_INVALIDATED_GRANT",
+          detail:
+            `Risk policy ${action} on ${input.kind}/${input.instrument} invalidated Stage 7 grants `
+            + `(correlationId=${input.correlationId ?? "null"}).`,
+          correlationId: input.correlationId ?? null,
+          proposalId: null,
+          grantId: null,
+          attemptId: null,
+          blockerCodes: [],
+        });
+      } catch {
+        /* grant store optional during early boot */
+      }
+    }
+
+    return result;
   }
 
   /**

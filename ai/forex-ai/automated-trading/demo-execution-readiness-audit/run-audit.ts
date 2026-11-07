@@ -117,29 +117,36 @@ export function runDemoExecutionReadinessAudit(input: Stage71AuditInput): Stage7
   const findings: Stage71Finding[] = [];
 
   // --- AUDIT 1 Owner authorization ---
-  if (!input.requireForexAdminProvesOwner || !input.ownerIdentityConfigured) {
+  // requireForexAdmin never proves owner. PASS only when distinct owner capability is configured.
+  if (!input.ownerIdentityConfigured) {
     findings.push(finding({
       category: "OWNER_AUTHORIZATION",
       status: "NOT_VERIFIED",
       code: "OWNER_AUTHORIZATION_NOT_VERIFIED",
       message:
-        "requireForexAdmin proves Forex Admin / Admin API token access, not a distinct system-owner principal. "
+        "Distinct system-owner capability is not configured. "
+        + "requireForexAdmin remains Admin-only and does not prove owner. "
         + input.ownerAuthEvidenceNote,
-      evidenceSource: "dev/server/forex-admin-auth.ts + ai/admin-control-plane/admin-auth-boundary.ts",
-      evidenceKind: "SOURCE_CODE",
+      evidenceSource: "ai/admin-control-plane/owner-auth-boundary.ts",
+      evidenceKind: "RUNTIME_CONTROLS",
       remediation:
-        "Introduce an explicit owner principal/capability distinct from Forex Admin before authorizing DEMO mutation. "
-        + "Do not treat admin token alone as owner execution authority.",
+        "Set a distinct KWIZERA_OWNER_API_TOKEN (≠ KWIZERA_ADMIN_API_TOKEN) on the server. "
+        + "Owner actions require x-kwizera-owner-token; client owner/role headers are ignored.",
+      details: { requireForexAdminProvesOwner: input.requireForexAdminProvesOwner === true },
     }, nowIso));
   } else {
     findings.push(finding({
       category: "OWNER_AUTHORIZATION",
       status: "PASS",
       code: "OWNER_AUTHORIZATION_VERIFIED",
-      message: "Distinct owner authorization is configured and enforced server-side.",
-      evidenceSource: "owner identity configuration",
-      evidenceKind: "SOURCE_CODE",
+      message:
+        "Distinct system-owner capability is configured server-side and enforced for sensitive actions. "
+        + "Ordinary Forex Admin is not silently promoted. "
+        + input.ownerAuthEvidenceNote,
+      evidenceSource: "owner-auth-boundary + requireForexOwner gates",
+      evidenceKind: "RUNTIME_CONTROLS",
       remediation: "None.",
+      details: { requireForexAdminProvesOwner: false },
     }, nowIso));
   }
 
