@@ -790,6 +790,24 @@ export const atPerOrderRiskApi = {
     }>(`/api/forex/automated-trading/risk-engine?limit=${Math.max(1, Math.min(200, limit))}`),
 };
 
+/** Stage 6 — FXCM DEMO adapter (status / dry-run; never mutates broker). */
+export const atDemoAdapterApi = {
+  status: () =>
+    request<Record<string, unknown>>("/api/forex/automated-trading/demo-adapter/status"),
+  history: (limit = 40) =>
+    request<{
+      ok: true;
+      attempts: Array<Record<string, unknown>>;
+      placesOrders: false;
+      note: string;
+    }>(`/api/forex/automated-trading/demo-adapter/history?limit=${Math.max(1, Math.min(80, limit))}`),
+  dryRun: (body: Record<string, unknown> = {}) =>
+    request<Record<string, unknown>>("/api/forex/automated-trading/demo-adapter/dry-run", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
 /** Stage 4 — AT instrument risk limits (propose / approve; never invents thresholds; no orders). */
 export const atRiskPolicyApi = {
   get: () =>

@@ -1753,6 +1753,53 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Stage 6 — FXCM DEMO adapter (status / dry-run / history). Paths avoid order|submit|execute.
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-adapter/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const status = await service.getDemoAdapterStatus();
+      sendJson(res, 200, {
+        ok: true,
+        ...status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        executionAuthorized: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-adapter/history")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limitRaw = Number(url.searchParams.get("limit") || 40);
+      const result = await service.listDemoAdapterAttempts(
+        Number.isFinite(limitRaw) ? limitRaw : 40,
+      );
+      sendJson(res, 200, result);
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-adapter/dry-run")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+      const result = await service.dryRunDemoAdapter({
+        proposalId: typeof body.proposalId === "string" ? body.proposalId : null,
+        idempotencyKey: typeof body.idempotencyKey === "string" ? body.idempotencyKey : null,
+        clientClaimedEnvironment:
+          typeof body.clientClaimedEnvironment === "string" ? body.clientClaimedEnvironment : null,
+      });
+      sendJson(res, result.ok ? 200 : 409, result);
+      return true;
+    }
+
     // Broker Execution Engine Phase 1 — foundation status only (path avoids /order|/submit|/execute).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-engine/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {

@@ -3464,6 +3464,151 @@ export class AutomatedTradingService {
   }
 
   /**
+   * Stage 6 — FXCM DEMO adapter status (non-submitting).
+   * Path namespace: /demo-adapter/* (avoids order|submit|execute EXECUTION_FORBIDDEN gate).
+   */
+  async getDemoAdapterStatus() {
+    const { getDemoAdapterPublicStatus } = await import("./demo-submission-adapter/index.js");
+    const { getAtBrokerExecutionStore } = await import("./broker-execution/index.js");
+    const state = this.store.getState();
+    const env = state.environments[state.selectedEnvironment];
+    const foundation = getAtBrokerExecutionStore().get();
+    const status = getDemoAdapterPublicStatus();
+    return {
+      ...status,
+      controlsObserved: {
+        selectedEnvironment: state.selectedEnvironment,
+        masterEnable: env.controls.masterEnable === true,
+        automaticEntry: env.controls.automaticEntry === true,
+        emergencyEntryLock: env.controls.emergencyEntryLock === true,
+        executionMasterEnabled: foundation.executionMasterEnabled === true,
+        armedForSubmission: foundation.armedForSubmission === true,
+      },
+      note:
+        status.note
+        + " Execution Master remains OFF; Emergency Lock remains observed; no ForexConnect mutation.",
+    };
+  }
+
+  async listDemoAdapterAttempts(limit = 40) {
+    const { getDemoSubmissionAdapterStore } = await import("./demo-submission-adapter/index.js");
+    const rows = getDemoSubmissionAdapterStore().list(Math.max(1, Math.min(80, limit)));
+    return {
+      ok: true as const,
+      stage: "STAGE_6_FXCM_DEMO_SUBMISSION_ADAPTER" as const,
+      attempts: rows,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      executionAuthorized: false as const,
+      note: "Stage 6 attempt history — dry-run / blocked only. No broker acknowledgements from live mutation.",
+    };
+  }
+
+  /**
+   * Stage 6 — Dry-run FXCM payload construction against Stage 5 proposal.
+   * Never calls ForexConnect mutation / create_order_request / send_request.
+   */
+  async dryRunDemoAdapter(input: {
+    proposalId?: string | null;
+    idempotencyKey?: string | null;
+    clientClaimedEnvironment?: string | null;
+  } = {}) {
+    const {
+      runDemoAdapterDryRun,
+      createAssertNeverCalledPort,
+    } = await import("./demo-submission-adapter/index.js");
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const { getAtBrokerHandoffStore } = await import("./broker-compatibility/index.js");
+    const { getAtBrokerExecutionStore } = await import("./broker-execution/index.js");
+
+    const state = this.store.getState();
+    const envState = state.environments[state.selectedEnvironment];
+    const verification = envState.lastVerification;
+    const account = verification?.account ?? null;
+    const market = verification?.market ?? null;
+    const inst = verification?.instrument ?? null;
+    const proposalStore = getAtOrderProposalStore();
+    const wantedId = String(input.proposalId || "").trim();
+    const proposal = wantedId ? proposalStore.get(wantedId) : proposalStore.latest();
+    const handoff = getAtBrokerHandoffStore().latest();
+    const foundation = getAtBrokerExecutionStore().get();
+
+    // Session environment from ForexConnect profiles / bridge status
+    let sessionEnvironment: string | null = null;
+    let sessionStatus: string | null = null;
+    try {
+      const publicStatus = await this.buildStatus();
+      sessionEnvironment = publicStatus.broker?.activeSessionEnvironment
+        ? String(publicStatus.broker.activeSessionEnvironment)
+        : null;
+      sessionStatus = publicStatus.broker?.connectionStatus
+        ? String(publicStatus.broker.connectionStatus)
+        : null;
+    } catch {
+      sessionEnvironment = state.selectedEnvironment;
+      sessionStatus = null;
+    }
+
+    const mutationPort = createAssertNeverCalledPort();
+    const result = runDemoAdapterDryRun({
+      proposal,
+      expectedProposalId: wantedId || proposal?.proposalId || null,
+      configuredEnvironment: state.selectedEnvironment,
+      sessionEnvironment,
+      accountEnvironment: state.selectedEnvironment === "DEMO" ? "demo" : state.selectedEnvironment === "LIVE" ? "live" : null,
+      accountIdMasked: account?.accountIdMasked
+        ?? envState.lastVerifiedAccountId
+        ?? null,
+      expectedAccountIdMasked: account?.accountIdMasked
+        ?? envState.lastVerifiedAccountId
+        ?? null,
+      sessionStatus,
+      offerId: inst && "offerId" in (inst as object)
+        ? String((inst as { offerId?: unknown }).offerId ?? "") || null
+        : null,
+      baseUnitSize: inst?.baseUnitSize ?? null,
+      bid: market?.bid ?? null,
+      ask: market?.ask ?? null,
+      handoffId: handoff?.provenance?.handoffId ?? null,
+      handoffProposalId: handoff?.provenance?.proposalId ?? null,
+      executionMasterEnabled: foundation.executionMasterEnabled === true,
+      emergencyEntryLock: envState.controls.emergencyEntryLock === true,
+      tradingEnabled: envState.controls.masterEnable === true,
+      freshFinalPrecheckPass: false,
+      perSubmissionGrant: null,
+      idempotencyKey: input.idempotencyKey,
+      clientClaimedEnvironment: input.clientClaimedEnvironment,
+      mutationPort,
+      persist: true,
+    });
+
+    if (mutationPort.calls.length > 0) {
+      return {
+        ok: false as const,
+        code: "MUTATION_PORT_INVOKED",
+        message: "Stage 6 invariant violated — mutation port was called during dry-run.",
+        result: null,
+        placesOrders: false as const,
+        acceptsForExecution: false as const,
+        mutatesBroker: false as const,
+        executionAuthorized: false as const,
+      };
+    }
+
+    return {
+      ok: true as const,
+      dryRun: result,
+      mutationPortCalls: 0,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      executionAuthorized: false as const,
+      note: result.note,
+    };
+  }
+
+  /**
    * Step 3 — Broker compatibility / handoff (never submits broker orders).
    * API namespace: /handoff/* (avoids /order/ EXECUTION_FORBIDDEN gate).
    */
