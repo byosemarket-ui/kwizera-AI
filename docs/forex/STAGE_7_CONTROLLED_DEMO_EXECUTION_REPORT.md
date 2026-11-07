@@ -133,4 +133,35 @@ Path namespace avoids `/order|submit|execute/` EXECUTION_FORBIDDEN gate.
 
 ## 11. Production release
 
-Filled after commit / Actions / deploy / runtime verification.
+| Item | Value |
+|------|-------|
+| Commit | `e22703be240fb7972e45e9ebc4278d6a2764297e` |
+| Deployed | `e22703be240fb7972e45e9ebc4278d6a2764297e` (`verifiedLive=true`, `result=success`) |
+| Deploy timestamp (UTC) | `2026-11-07T09:33:21.513Z` |
+| Auth `/demo-control/status` | HTTP 200; `submissionEnabled=false`; `mutatesBroker=false`; `executionAuthorized=false`; `mutationPortWired=false` |
+| Unauth `/demo-control/status` | HTTP 403 |
+| Readiness | HTTP 200; `STAGE_7_MUTATION_DISABLED` present; `allGatesPass=false` |
+| Execution Master | OFF (`false`) |
+| Emergency Lock | ON (`true`) |
+| Active grant | none |
+| Broker mutation calls | 0 (no mutation endpoint invoked; Stage 7 paths are read/grant-only) |
+| Broker order submitted | **No** |
+
+### Tests (local, pre-push)
+
+| Suite | Result |
+|-------|--------|
+| `stage7-controlled-demo-execution.test.ts` | 33/33 PASS |
+| `stage6-demo-submission-adapter.test.ts` | 20/20 PASS |
+| `stage5-per-order-risk-engine.test.ts` | 25/25 PASS |
+
+### GitHub Actions
+
+Production deploy completed successfully for `e22703be` (runtime `/api/deployment` evidence). Local `gh` resolves to the wrong npm package (`node_modules/gh`), so Actions listing via CLI was unavailable in this environment; deploy verification used production deployment endpoint instead.
+
+---
+
+## 12. Explicit safety statement
+
+**No broker order was submitted during Stage 7 development, testing, or production verification.**  
+`create_order_request` / `send_request` were not invoked. Execution Master remained OFF. Emergency Lock remained ON. No mutation-activating grant was issued.
