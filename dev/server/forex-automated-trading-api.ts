@@ -1876,6 +1876,17 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Stage 7.1 — read-only DEMO execution readiness audit (no mutation / no grant).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-control/readiness-audit")) {
+      if (req.method !== "GET" && req.method !== "POST" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET or POST." } });
+        return true;
+      }
+      const result = await service.runDemoExecutionReadinessAudit();
+      sendJson(res, 200, result);
+      return true;
+    }
+
     // Broker Execution Engine Phase 1 — foundation status only (path avoids /order|/submit|/execute).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-engine/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {

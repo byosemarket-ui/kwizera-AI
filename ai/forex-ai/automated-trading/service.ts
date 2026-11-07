@@ -3786,6 +3786,110 @@ export class AutomatedTradingService {
   }
 
   /**
+   * Stage 7.1 — DEMO execution readiness audit (read-only).
+   * Path: /demo-control/readiness-audit — never mutates broker / never issues grants.
+   */
+  async runDemoExecutionReadinessAudit() {
+    const { runDemoExecutionReadinessAudit } = await import("./demo-execution-readiness-audit/index.js");
+    const { getAtRiskPolicyStore } = await import("./risk-policy/index.js");
+    const { STAGE71_TRACKED_INSTRUMENTS } = await import("./demo-execution-readiness-audit/index.js");
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const { getAtBrokerExecutionStore } = await import("./broker-execution/index.js");
+    const { getControlledDemoExecutionStore } = await import("./controlled-demo-execution/index.js");
+
+    const state = this.store.getState();
+    const envState = state.environments[state.selectedEnvironment];
+    const verification = envState.lastVerification;
+    const account = verification?.account ?? null;
+    const market = verification?.market ?? null;
+    const foundation = getAtBrokerExecutionStore().get();
+    const proposal = getAtOrderProposalStore().latest();
+    const policyDoc = getAtRiskPolicyStore().get();
+    const policiesByInstrument: Record<string, ReturnType<ReturnType<typeof getAtRiskPolicyStore>["getInstrument"]>> = {};
+    for (const inst of STAGE71_TRACKED_INSTRUMENTS) {
+      policiesByInstrument[inst] = getAtRiskPolicyStore().getInstrument(inst);
+    }
+
+    let sessionEnvironment: string | null = null;
+    let sessionStatus: string | null = null;
+    try {
+      const publicStatus = await this.buildStatus();
+      sessionEnvironment = publicStatus.broker?.activeSessionEnvironment
+        ? String(publicStatus.broker.activeSessionEnvironment)
+        : null;
+      sessionStatus = publicStatus.broker?.connectionStatus
+        ? String(publicStatus.broker.connectionStatus)
+        : null;
+    } catch {
+      sessionEnvironment = state.selectedEnvironment;
+    }
+
+    const s7 = getControlledDemoExecutionStore();
+    const report = runDemoExecutionReadinessAudit({
+      ownerIdentityConfigured: false,
+      requireForexAdminProvesOwner: false,
+      ownerAuthEvidenceNote:
+        "assertAdminAccess accepts Admin API token (production) or admin role headers (non-prod modes). "
+        + "No distinct KWIZERA system-owner principal is configured or enforced for DEMO mutation authorization.",
+      policyDocumentVersion: policyDoc.version ?? null,
+      policiesByInstrument,
+      proposal,
+      configuredEnvironment: state.selectedEnvironment,
+      sessionEnvironment,
+      accountEnvironment: state.selectedEnvironment === "DEMO"
+        ? "demo"
+        : state.selectedEnvironment === "LIVE"
+          ? "live"
+          : null,
+      accountIdMasked: account?.accountIdMasked ?? envState.lastVerifiedAccountId ?? null,
+      sessionStatus,
+      usableMargin: account?.usableMargin ?? null,
+      accountBalance: account?.balance ?? null,
+      accountEquity: account?.equity ?? null,
+      marginFresh: account?.isFresh === true,
+      proposedOrderMarginRequirement: proposal?.perOrderRisk?.marginRequirement
+        ?? proposal?.quantity.estimatedMargin
+        ?? null,
+      proposedOrderMarginSource: proposal?.perOrderRisk?.marginVerificationStatus === "VERIFIED"
+        ? "proposal.perOrderRisk.marginRequirement (Stage 5 modeled; not independent live FXCM order-margin probe)"
+        : "estimatedMargin / unverified",
+      // Stage 5 margin VERIFIED is modeled attestation — not independent live proposed-order margin probe.
+      proposedOrderMarginAuthoritative: false,
+      quoteFresh: Boolean(market && (market as { feedStatus?: string }).feedStatus === "LIVE"),
+      quoteTimestampUtc: market && "asOfUtc" in (market as object)
+        ? String((market as { asOfUtc?: string }).asOfUtc ?? "")
+        : null,
+      executionMasterEnabled: foundation.executionMasterEnabled === true,
+      emergencyEntryLock: envState.controls.emergencyEntryLock === true,
+      tradingEnabled: envState.controls.masterEnable === true,
+      activeGrantPresent: s7.activeGrant() != null,
+      submissionPathwayWired: false,
+      protectionSourceCodeConfirmed: true,
+      protectionBrokerReadOnlyConfirmed: false,
+      protectionFixtureOnly: true,
+      protectionLiveVerified: false,
+      reconciliationAttemptPersistence: true,
+      reconciliationIdempotencyUnique: true,
+      reconciliationDuplicateSafe: true,
+      reconciliationReadOnlyLookupWired: false,
+      reconciliationUnknownBlocksRetry: true,
+      reconciliationLiveBrokerLookupVerified: false,
+      baselineCommitHint: "e22703be240fb7972e45e9ebc4278d6a2764297e",
+    });
+
+    return {
+      ok: true as const,
+      audit: report,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      executionAuthorized: false as const,
+      mutationInvoked: false as const,
+      note: "Stage 7.1 read-only audit. No grant issued. No broker mutation.",
+    };
+  }
+
+  /**
    * Step 3 — Broker compatibility / handoff (never submits broker orders).
    * API namespace: /handoff/* (avoids /order/ EXECUTION_FORBIDDEN gate).
    */

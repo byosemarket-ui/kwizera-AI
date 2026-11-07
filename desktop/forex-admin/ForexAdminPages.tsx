@@ -37,6 +37,7 @@ import { ForexAdminAtRiskLimitsPanel } from "./ForexAdminAtRiskLimitsPanel";
 import { ForexAdminPerOrderRiskPanel } from "./ForexAdminPerOrderRiskPanel";
 import { ForexAdminDemoAdapterPanel } from "./ForexAdminDemoAdapterPanel";
 import { ForexAdminControlledDemoPanel } from "./ForexAdminControlledDemoPanel";
+import { ForexAdminDemoReadinessAuditPanel } from "./ForexAdminDemoReadinessAuditPanel";
 import { ForexAdminRiskSettingsPanel } from "./ForexAdminRiskSettingsPanel";
 
 const KNOWLEDGE_TYPES = [
@@ -922,6 +923,7 @@ export function ForexAdminSettingsPage() {
       <ForexAdminPerOrderRiskPanel />
       <ForexAdminDemoAdapterPanel />
       <ForexAdminControlledDemoPanel />
+      <ForexAdminDemoReadinessAuditPanel />
     </div>
   );
 }

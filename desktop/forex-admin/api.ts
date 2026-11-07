@@ -808,6 +808,12 @@ export const atDemoAdapterApi = {
     }),
 };
 
+/** Stage 7.1 — read-only DEMO execution readiness audit (never mutates broker). */
+export const atDemoReadinessAuditApi = {
+  run: () =>
+    request<Record<string, unknown>>("/api/forex/automated-trading/demo-control/readiness-audit"),
+};
+
 /** Stage 7 — controlled DEMO readiness / grant (never mutates broker). */
 export const atControlledDemoApi = {
   status: () =>
