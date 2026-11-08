@@ -115,3 +115,8 @@ export {
   type EvidenceIntegrityReport,
   type EvidenceIntegrityStatus,
 } from "./evidence-integrity.js";
+export {
+  getCanonicalPipelineVerificationPlan,
+  classifyProposalProvenanceLabel,
+  MARKET_OPEN_MAX_QUOTE_AGE_MS,
+} from "./market-open-verification-plan.js";

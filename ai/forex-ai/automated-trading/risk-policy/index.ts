@@ -6,6 +6,7 @@ export * from "./validate.js";
 export * from "./margin.js";
 export * from "./readiness.js";
 export * from "./resolve.js";
+export * from "./observation-evidence.js";
 export {
   AtRiskPolicyStore,
   getAtRiskPolicyStore,

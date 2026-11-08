@@ -4,7 +4,12 @@
  */
 export * from "./types.js";
 export { evaluateTimeInForce, normalizeTimeInForce } from "./tif.js";
+export {
+  getTifBrokerCapabilityMatrix,
+  summarizeTifBrokerGaps,
+} from "./tif-broker-matrix.js";
 export { verifyPostFillProtection } from "./protection.js";
+export { getControlledDemoProtectionTestPlan } from "./protection-demo-test-plan.js";
 export {
   evaluateControlledDemoReadiness,
   type Stage7ReadinessInput,

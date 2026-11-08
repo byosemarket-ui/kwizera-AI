@@ -18,6 +18,10 @@ export {
   parseBrokerAcknowledgementFixture,
 } from "./acknowledgement.js";
 export {
+  planUnknownResultReconciliation,
+  applyReadOnlyBrokerObservation,
+} from "./unknown-result-reconcile.js";
+export {
   NoopMutationPort,
   AssertNeverCalledMutationPort,
   getDefaultMutationPort,

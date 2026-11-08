@@ -3,6 +3,8 @@ export * from "./validate-decision.js";
 export * from "./map-lots.js";
 export * from "./lots-to-broker-amount.js";
 export * from "./broker-quantity-contract.js";
+export * from "./xau-owner-lot-compatibility.js";
+export * from "./margin-ro-metadata.js";
 export * from "./discover-001-lot-instruments.js";
 export * from "./normalize-broker-order-status.js";
 export * from "./build-demo-open-request-contract.js";
