@@ -120,3 +120,9 @@ export {
   classifyProposalProvenanceLabel,
   MARKET_OPEN_MAX_QUOTE_AGE_MS,
 } from "./market-open-verification-plan.js";
+export {
+  classifyMarketDataMode,
+  normalizeDataModeLabel,
+  type MarketDataMode,
+  type DataModeClassification,
+} from "./data-mode.js";

@@ -10,3 +10,10 @@ export {
   generateOrderProposalFromHandoff,
   type GenerateOrderProposalInput,
 } from "./manager.js";
+export {
+  buildCanonicalPipelineReport,
+  validateProposalPriceCompleteness,
+  STAGE2_CANONICAL_PIPELINE_SCHEMA,
+  type CanonicalPipelineReport,
+  type ProposalDisplayStatus,
+} from "./canonical-pipeline-report.js";
