@@ -30,10 +30,21 @@ import {
   type VerifiedMarketQuotePublic,
 } from "./verification-types.js";
 
+/**
+ * Normalize ForexConnect environment tokens from either the structured
+ * `environment` field (`demo`/`live`) or display labels (`FXCM DEMO` / `FXCM Real`).
+ * Prefer calling with `environment` before `environmentLabel` at call sites.
+ */
 function uiEnvFromFc(raw: string | null | undefined): AutomatedTradingEnvironment | null {
   const v = String(raw ?? "").trim().toLowerCase();
+  if (!v) return null;
+  // Exact SDK / sidecar tokens first.
   if (v === "demo") return "DEMO";
   if (v === "live" || v === "real") return "LIVE";
+  // Display labels (e.g. "FXCM DEMO", "FXCM Real") — word-boundary only so
+  // substrings like "random" never match.
+  if (/\bdemo\b/.test(v)) return "DEMO";
+  if (/\b(live|real)\b/.test(v)) return "LIVE";
   return null;
 }
 
@@ -215,7 +226,7 @@ export function mapAccountMetadata(snapshot: ForexAccountSnapshot): VerifiedAcco
 
   return {
     accountIdMasked: snapshot.accountIdMasked ?? maskAccountId(snapshot.accountId),
-    environment: uiEnvFromFc(snapshot.environmentLabel ?? snapshot.environment),
+    environment: uiEnvFromFc(snapshot.environment ?? snapshot.environmentLabel),
     accountCurrency: currencyOk ? String(snapshot.accountCurrency).toUpperCase() : null,
     balance: fields.balance ? balanceParsed.value : null,
     equity,

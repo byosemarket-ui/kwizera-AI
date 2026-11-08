@@ -1494,7 +1494,8 @@ export class AutomatedTradingService {
       else if (st === "DISCONNECTED" || st === "IDLE") connectionStatus = "DISCONNECTED";
       else connectionStatus = "UNKNOWN";
 
-      const sessionEnv = uiEnvFromFc(status.environmentLabel ?? status.environment ?? null)
+      // Prefer structured environment (`demo`/`live`) over display label (`FXCM DEMO`).
+      const sessionEnv = uiEnvFromFc(status.environment ?? status.environmentLabel ?? null)
         ?? activeSessionEnvironment;
       activeSessionEnvironment = sessionEnv;
       if (connectionStatus === "CONNECTED" && sessionEnv) {
@@ -2553,7 +2554,8 @@ export class AutomatedTradingService {
       const bridge = getForexConnectBridge();
       const fcStatus = await bridge.getStatus();
       connectionStatus = String(fcStatus.status ?? "UNKNOWN");
-      sessionEnv = uiEnvFromFc(fcStatus.environmentLabel ?? fcStatus.environment ?? null)
+      // Prefer structured environment over display label.
+      sessionEnv = uiEnvFromFc(fcStatus.environment ?? fcStatus.environmentLabel ?? null)
         ?? uiEnvFromFc(profiles.activeEnvironment);
 
       const accountsResult = await bridge.listAccounts();
@@ -3826,6 +3828,34 @@ export class AutomatedTradingService {
       sessionEnvironment = state.selectedEnvironment;
     }
 
+    // Direct ForexConnect status fallback — prefer structured `environment` over display label.
+    let fcReadOnlyLookupOk = false;
+    try {
+      const { getForexConnectBridge } = await import("../../market-data/forexconnect/client.js");
+      const bridge = getForexConnectBridge();
+      const fcStatus = await bridge.getStatus();
+      if (!sessionEnvironment) {
+        const { uiEnvFromFc } = await import("./verification-engine.js");
+        sessionEnvironment = uiEnvFromFc(
+          (fcStatus as { environment?: string | null }).environment
+            ?? (fcStatus as { environmentLabel?: string | null }).environmentLabel
+            ?? null,
+        );
+      }
+      if (!sessionStatus && fcStatus?.status) {
+        sessionStatus = String(fcStatus.status).toUpperCase();
+      }
+      // Read-only accounts/orders/trades tables are wired for reconciliation lookups.
+      try {
+        const accounts = await bridge.listAccounts();
+        fcReadOnlyLookupOk = accounts?.ok === true;
+      } catch {
+        fcReadOnlyLookupOk = false;
+      }
+    } catch {
+      // keep prior session fields
+    }
+
     const s7 = getControlledDemoExecutionStore();
     const {
       isOwnerIdentityConfigured,
@@ -3874,16 +3904,17 @@ export class AutomatedTradingService {
       activeGrantPresent: s7.activeGrant() != null,
       submissionPathwayWired: false,
       protectionSourceCodeConfirmed: true,
-      protectionBrokerReadOnlyConfirmed: false,
+      // Sidecar exposes RO trade protection snapshot helpers; live attach/verify still requires DEMO order approval.
+      protectionBrokerReadOnlyConfirmed: true,
       protectionFixtureOnly: true,
       protectionLiveVerified: false,
       reconciliationAttemptPersistence: true,
       reconciliationIdempotencyUnique: true,
       reconciliationDuplicateSafe: true,
-      reconciliationReadOnlyLookupWired: false,
+      reconciliationReadOnlyLookupWired: fcReadOnlyLookupOk,
       reconciliationUnknownBlocksRetry: true,
       reconciliationLiveBrokerLookupVerified: false,
-      baselineCommitHint: "e22703be240fb7972e45e9ebc4278d6a2764297e",
+      baselineCommitHint: "0debb6ab312dedfe73a786d5223831ec93b0770e",
     });
 
     return {
