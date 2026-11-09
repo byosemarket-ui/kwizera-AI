@@ -4270,21 +4270,31 @@ export class AutomatedTradingService {
     try {
       const bridge = getForexConnectBridge();
       const tradesResult = await bridge.listTrades();
+      const closedResult = await bridge.listClosedTrades();
       const trades = Array.isArray((tradesResult as { trades?: unknown[] })?.trades)
         ? (tradesResult as { trades: unknown[] }).trades
         : [];
-      const closed = Array.isArray((tradesResult as { closedTrades?: unknown[] })?.closedTrades)
-        ? (tradesResult as { closedTrades: unknown[] }).closedTrades
+      const closed = Array.isArray((closedResult as { closedTrades?: unknown[] })?.closedTrades)
+        ? (closedResult as { closedTrades: unknown[] }).closedTrades
         : [];
+      const persistedFills = STAGE3_TRACKED_INSTRUMENTS.reduce(
+        (n, inst) => n + store.getSlippageFills(inst).length,
+        0,
+      );
       fillAudit = {
-        tradesOk: (tradesResult as { ok?: boolean })?.ok !== false,
+        tradesOk: (tradesResult as { ok?: boolean })?.ok !== false
+          && (closedResult as { ok?: boolean })?.ok !== false,
         tradeCount: trades.length,
         closedTradeCount: closed.length,
-        usableFillEvidenceCount: 0,
+        usableFillEvidenceCount: persistedFills,
         note:
-          trades.length + closed.length === 0
-            ? "No open/closed trades returned — WAITING_FOR_CONTROLLED_DEMO_EVIDENCE for slippage."
-            : "Trades present but Stage 1 requires explicit fill fields (reference, execution, direction, ids); none mapped without inventing values.",
+          trades.length + closed.length === 0 && persistedFills === 0
+            ? "No open trades, no current-trading-day closed trades, and no persisted BROKER_EXECUTION fills — "
+              + "WAITING_FOR_CONTROLLED_DEMO_EVIDENCE for slippage. ClosedTrades is not an all-time ledger."
+            : persistedFills > 0
+              ? `Persisted Stage 1 fill evidence count=${persistedFills}; open=${trades.length}; closed(day)=${closed.length}.`
+              : "Trades/closed-trades present but Stage 1 requires explicit fill fields "
+                + "(reference, execution, direction, ids); none mapped without inventing values.",
       };
       for (const inst of STAGE3_TRACKED_INSTRUMENTS) {
         slippageFillsByInstrument[inst] = store.getSlippageFills(inst);
@@ -4295,7 +4305,7 @@ export class AutomatedTradingService {
         tradeCount: 0,
         closedTradeCount: 0,
         usableFillEvidenceCount: 0,
-        note: "listTrades failed or unavailable — treat as no fill evidence (fail closed).",
+        note: "listTrades/listClosedTrades failed or unavailable — treat as no fill evidence (fail closed).",
       };
       for (const inst of STAGE3_TRACKED_INSTRUMENTS) {
         slippageFillsByInstrument[inst] = store.getSlippageFills(inst);
@@ -4334,12 +4344,28 @@ export class AutomatedTradingService {
     );
 
     const evidenceDoc = store.get();
+    const { buildStage1Part3SlippageDemoPlan } = await import("./risk-policy/stage1-part3-slippage-demo-plan.js");
+    let usableMarginUsd: number | null = null;
+    try {
+      const status = await this.buildStatus();
+      const acct = (status as {
+        verification?: { account?: { usableMargin?: number | null } };
+        selectedEnvState?: { lastVerification?: { account?: { usableMargin?: number | null } } };
+      });
+      const u = acct.verification?.account?.usableMargin
+        ?? acct.selectedEnvState?.lastVerification?.account?.usableMargin
+        ?? null;
+      usableMarginUsd = typeof u === "number" && Number.isFinite(u) && u >= 0 ? u : null;
+    } catch {
+      usableMarginUsd = null;
+    }
     return {
       ...report,
       drafts,
       slippageSummaries,
       fillAudit,
       slippageWorkflow: getSlippageEvidenceCollectionWorkflow(),
+      controlledDemoSlippagePlan: buildStage1Part3SlippageDemoPlan({ usableMarginUsd }),
       evidenceMeta: {
         collectionStartedAtUtc: evidenceDoc.collectionStartedAtUtc,
         collectionLastTickAtUtc: evidenceDoc.collectionLastTickAtUtc,

@@ -91,10 +91,19 @@ export function draftSpreadRecommendation(input: {
   }
 
   const maxSpread = sorted.length ? sorted[sorted.length - 1]! : null;
+  const precision = documentedPrecision(input.instrument);
+  // Round draft to documented instrument precision so float noise (e.g. 0.300…1819)
+  // does not diverge from the owner-facing absolute_price policy value.
+  const recommended =
+    sufficient && maxSpread != null && precision != null
+      ? Number(maxSpread.toFixed(precision))
+      : sufficient
+        ? maxSpread
+        : null;
   return {
     instrument: input.instrument,
     units: "absolute_price",
-    pricePrecision: documentedPrecision(input.instrument),
+    pricePrecision: precision,
     validObservationCount: spreads.length,
     minRequired: MIN_LIVE_SPREAD_OBSERVATIONS_FOR_RECOMMENDATION,
     sufficient,
@@ -106,9 +115,10 @@ export function draftSpreadRecommendation(input: {
     observationTimeRange: { fromUtc: times[0] ?? null, toUtc: times[times.length - 1] ?? null },
     providers,
     evidenceQuality: sufficient ? "ADEQUATE_FOR_DRAFT" : "INSUFFICIENT",
-    recommendedMaxSpreadAbsolute: sufficient ? maxSpread : null,
+    recommendedMaxSpreadAbsolute: recommended,
     recommendationBasis: sufficient
-      ? "Draft = max observed LIVE absolute spread across ≥20 independent samples (owner may choose differently)."
+      ? "Draft = max observed LIVE absolute spread across ≥20 independent samples, "
+        + "rounded to documented instrument precision (owner may choose differently)."
       : null,
     autoApproved: false,
     mayActivateWithoutOwner: false,

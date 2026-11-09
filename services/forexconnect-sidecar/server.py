@@ -443,13 +443,21 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
                 try:
                     raw = getattr(tsp, meth)(instrument, acc_arg)
                     parsed = _finite(raw)
-                    mmr_probe["tried"].append({
+                    # Stage 1 Part 3 — record non-positive raw MMR for provenance
+                    # (never invent; GBP/USD & USD/JPY may return 0.0 from DEMO).
+                    tried_entry: dict[str, Any] = {
                         "method": meth,
                         "present": True,
                         "accountArgType": type(acc_arg).__name__,
                         "rawType": type(raw).__name__,
                         "finitePositive": bool(parsed is not None and parsed > 0),
-                    })
+                    }
+                    if parsed is None or parsed <= 0:
+                        try:
+                            tried_entry["rawValue"] = float(raw) if isinstance(raw, (int, float)) else repr(raw)[:48]
+                        except Exception:
+                            tried_entry["rawValue"] = repr(raw)[:48]
+                    mmr_probe["tried"].append(tried_entry)
                     if parsed is not None and parsed > 0:
                         # Absolute margin amount for 1 lot — not a rate.
                         out["mmrPerLot"] = parsed
