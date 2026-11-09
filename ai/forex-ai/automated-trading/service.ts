@@ -4483,6 +4483,89 @@ export class AutomatedTradingService {
   }
 
   /**
+   * Stage 3 — read-only margin/position feasibility for the four tracked instruments.
+   * Uses ForexConnect listInstruments + account snapshot. Never mutates broker.
+   */
+  async getStage3PositionFeasibilityReport(input?: {
+    marketClosed?: boolean | null;
+    spreadPolicyByInstrument?: Partial<Record<string, string>>;
+    slippagePolicyByInstrument?: Partial<Record<string, string>>;
+    dataModeByInstrument?: Partial<Record<string, string>>;
+  }) {
+    const { getForexConnectBridge } = await import("../../market-data/forexconnect/client.js");
+    const { buildStage3FeasibilityFromInstrumentCatalog } = await import(
+      "./order-execution/stage3-live-ro.js"
+    );
+    const { resolveSpreadLimit, resolveSlippageLimit } = await import("./risk-policy/index.js");
+    const bridge = getForexConnectBridge();
+    const listed = await bridge.listInstruments();
+    const instruments = Array.isArray(listed.instruments) ? listed.instruments : [];
+    let usableMargin: number | null = null;
+    let accountBalance: number | null = null;
+    let accountEquity: number | null = null;
+    let accountCurrency: string | null = null;
+    let accountFresh: boolean | null = null;
+    try {
+      const accounts = await bridge.listAccounts();
+      const row = Array.isArray(accounts.accounts) ? accounts.accounts[0] : null;
+      if (accounts.ok && row) {
+        usableMargin = typeof row.usableMargin === "number" ? row.usableMargin : null;
+        accountBalance = typeof row.balance === "number" ? row.balance : null;
+        accountEquity = typeof row.equity === "number" ? row.equity : null;
+        accountCurrency = row.accountCurrency ?? null;
+        accountFresh = true;
+      } else {
+        accountFresh = false;
+      }
+    } catch {
+      accountFresh = false;
+    }
+    const spreadPolicyByInstrument = { ...(input?.spreadPolicyByInstrument ?? {}) };
+    const slippagePolicyByInstrument = { ...(input?.slippagePolicyByInstrument ?? {}) };
+    for (const inst of ["EUR/USD", "GBP/USD", "USD/JPY", "XAU/USD"] as const) {
+      if (spreadPolicyByInstrument[inst] == null) {
+        spreadPolicyByInstrument[inst] = resolveSpreadLimit({ instrument: inst }).status;
+      }
+      if (slippagePolicyByInstrument[inst] == null) {
+        slippagePolicyByInstrument[inst] = resolveSlippageLimit({ instrument: inst }).status;
+      }
+    }
+    const report = buildStage3FeasibilityFromInstrumentCatalog({
+      instruments: instruments.map((i) => ({
+        providerSymbol: i.providerSymbol,
+        displaySymbol: i.displaySymbol,
+        canonicalSymbol: i.canonicalSymbol,
+        baseUnitSize: i.baseUnitSize ?? null,
+        minQuantity: i.minQuantity ?? null,
+        lotStep: i.lotStep ?? null,
+        pointSize: i.pointSize ?? null,
+        pipCost: i.pipCost ?? null,
+        mmrPerLot: i.mmrPerLot ?? null,
+      })),
+      usableMargin,
+      accountBalance,
+      accountEquity,
+      accountCurrency,
+      accountFresh,
+      observedAtUtc: new Date().toISOString(),
+      evidenceSource: listed.ok !== false ? "live_broker" : "cached",
+      sourceAuthoritative: listed.ok !== false,
+      spreadPolicyByInstrument,
+      slippagePolicyByInstrument,
+      dataModeByInstrument: input?.dataModeByInstrument,
+      marketClosed: input?.marketClosed,
+    });
+    return {
+      ...report,
+      catalogOk: listed.ok !== false,
+      catalogCount: instruments.length,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+    };
+  }
+
+  /**
    * Step 3 closeout — read-only scan of ForexConnect instruments for owner 0.01-lot compatibility.
    * Path avoids /order/; never mutates broker.
    */
