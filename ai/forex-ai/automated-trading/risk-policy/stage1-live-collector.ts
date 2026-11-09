@@ -35,6 +35,8 @@ export interface Stage1CollectTickReport {
   startedAtUtc: string;
   finishedAtUtc: string;
   marketOpenHeuristic: boolean | null;
+  /** DEMO market-data session restore outcome for this tick (never enables trading). */
+  sessionRestore: string | null;
   instruments: Stage1InstrumentTickResult[];
   acceptedThisTick: number;
   placesOrders: false;
@@ -91,6 +93,39 @@ export async function collectStage1SpreadTick(input?: {
   const { getForexConnectBridge } = await import("../../../market-data/forexconnect/client.js");
   const live = getForexConnectLiveCandleService();
   const bridge = getForexConnectBridge();
+
+  // Deploy/restart can leave the sidecar DISCONNECTED even when DEMO credentials remain valid.
+  // Restore the DEMO market-data session only — never enable trading or submit orders.
+  let sessionRestore: string | null = null;
+  try {
+    const status = await bridge.getStatus();
+    if (String(status?.status || "").toUpperCase() !== "CONNECTED") {
+      const { getForexConnectSessionService, maybeRestoreDemoSession } = await import(
+        "../../../market-data/forexconnect/session.js"
+      );
+      const session = await getForexConnectSessionService();
+      const restored = await maybeRestoreDemoSession(session, { force: true });
+      sessionRestore = restored?.ok
+        ? (restored.attempted ? "DEMO_SESSION_RESTORED" : "DEMO_SESSION_ALREADY_OK")
+        : `DEMO_SESSION_RESTORE_FAILED:${String(restored?.note || "").slice(0, 120)}`;
+      if (!restored?.ok) {
+        try {
+          await session.activate("demo", { confirmSwitch: true });
+          sessionRestore = "DEMO_SESSION_ACTIVATED";
+        } catch (err) {
+          sessionRestore = err instanceof Error
+            ? `DEMO_SESSION_ACTIVATE_FAILED:${err.message.slice(0, 120)}`
+            : "DEMO_SESSION_ACTIVATE_FAILED";
+        }
+      }
+    } else {
+      sessionRestore = "ALREADY_CONNECTED";
+    }
+  } catch (err) {
+    sessionRestore = err instanceof Error
+      ? `SESSION_CHECK_FAILED:${err.message.slice(0, 120)}`
+      : "SESSION_CHECK_FAILED";
+  }
 
   const subscribeCodes: Partial<Record<Stage3TrackedInstrument, string | null>> = {};
   if (ensure) {
@@ -211,6 +246,7 @@ export async function collectStage1SpreadTick(input?: {
     startedAtUtc,
     finishedAtUtc: new Date().toISOString(),
     marketOpenHeuristic: instruments.some((i) => i.tradingStatus === "O") ? true : null,
+    sessionRestore,
     instruments,
     acceptedThisTick,
     placesOrders: false,
@@ -219,7 +255,7 @@ export async function collectStage1SpreadTick(input?: {
     brokerExecution: "DISABLED",
     note:
       "One read-only Offers poll. Independent LIVE samples require ≥5s gap and changing bid/ask. "
-      + "Does not approve policies or submit orders.",
+      + "Restores DEMO market-data session when DISCONNECTED. Does not approve policies or submit orders.",
   };
 }
 

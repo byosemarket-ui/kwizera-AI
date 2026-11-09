@@ -50,13 +50,26 @@ function sleep(ms) {
 
 const started = new Date().toISOString();
 const tickLog = [];
-let ensureOnce = true;
+
+// Reconnect DEMO market-data session if deploy/restart left ForexConnect DISCONNECTED.
+{
+  const st = await req("GET", "/api/forex/providers/forexconnect/status");
+  if (String(st.json?.status || "").toUpperCase() !== "CONNECTED") {
+    await req("POST", "/api/forex/providers/forexconnect/connect", {
+      environment: "demo",
+      confirmSwitch: true,
+    });
+    await sleep(1500);
+  }
+}
 
 for (let i = 0; i < maxTicks; i++) {
+  // Keep ensure=true every tick until quotes are present for all four instruments.
+  // (Post-deploy DISCONNECT left first-tick-only ensure stranded with QUOTE_NOT_PRESENT.)
+  const priorMissing = i === 0 || (tickLog[i - 1]?.per || []).some((r) => !r.quotePresent);
   const tick = await req("POST", "/api/forex/automated-trading/stage1/spread-collect/tick", {
-    ensureSubscriptions: ensureOnce,
+    ensureSubscriptions: priorMissing || i % 10 === 0,
   });
-  ensureOnce = false;
   const counts = {};
   for (const row of tick.json?.instruments || []) {
     counts[row.instrument] = row.validLiveCount;

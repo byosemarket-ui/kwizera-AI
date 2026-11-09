@@ -322,6 +322,60 @@ describe("Stage 1 — fail-closed + instrument isolation + owner confirm", () =>
   });
 });
 
+describe("Stage 1 — independent LIVE observation gates", () => {
+  it("rejects unchanged bid/ask as non-independent even when timestamp advances", () => {
+    const t0 = Date.parse("2026-11-10T15:00:00.000Z");
+    const first = ingestSpreadObservation({
+      instrument: "EUR/USD",
+      bid: 1.1,
+      ask: 1.1002,
+      observedAtUtc: new Date(t0).toISOString(),
+      provider: "FOREXCONNECT",
+      sourceType: "offers-callback",
+      marketStatus: "OPEN",
+      freshnessStatus: "FRESH",
+      provenance: "LIVE",
+      observationId: "ind-1",
+      nowMs: t0 + 100,
+    });
+    expect(first.status).toBe("ACCEPTED_LIVE");
+    const second = ingestSpreadObservation({
+      instrument: "EUR/USD",
+      bid: 1.1,
+      ask: 1.1002,
+      observedAtUtc: new Date(t0 + 8_000).toISOString(),
+      provider: "FOREXCONNECT",
+      sourceType: "offers-callback",
+      marketStatus: "OPEN",
+      freshnessStatus: "FRESH",
+      provenance: "LIVE",
+      observationId: "ind-2",
+      priorAccepted: first.record ? [first.record] : [],
+      nowMs: t0 + 8_100,
+    });
+    expect(second.status).toBe("DUPLICATE_NOT_INDEPENDENT");
+    expect(second.code).toBe("UNCHANGED_BID_ASK");
+    expect(second.record).toBeNull();
+
+    const moved = ingestSpreadObservation({
+      instrument: "EUR/USD",
+      bid: 1.1001,
+      ask: 1.1003,
+      observedAtUtc: new Date(t0 + 8_000).toISOString(),
+      provider: "FOREXCONNECT",
+      sourceType: "offers-callback",
+      marketStatus: "OPEN",
+      freshnessStatus: "FRESH",
+      provenance: "LIVE",
+      observationId: "ind-3",
+      priorAccepted: first.record ? [first.record] : [],
+      nowMs: t0 + 8_100,
+    });
+    expect(moved.status).toBe("ACCEPTED_LIVE");
+    expect(moved.record?.spreadAbsolute).toBeCloseTo(0.0002, 10);
+  });
+});
+
 describe("Stage 1 — evidence store persistence (labelled fixture records)", () => {
   it("persists accepted LIVE records and rejection counters without approving policy", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "s1-ev-"));
