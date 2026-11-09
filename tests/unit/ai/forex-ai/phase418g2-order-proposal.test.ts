@@ -53,19 +53,19 @@ function handoff(dir: "BUY" | "SELL", overrides: Partial<AtOrderPreparationHando
   };
 }
 
-/** Contract where owner max 0.01 is broker-compatible (min=step=0.01). */
+/** FXCM-compatible integer baseUnitSize (AMOUNT = base × lots). */
 function fineContract(overrides: Partial<AtSimContractMetaInput> = {}): AtSimContractMetaInput {
   return {
     verified: true,
     pointSize: 0.01,
     tickSize: 0.01,
     digits: 2,
-    quantityMin: 0.01,
-    quantityStep: 0.01,
+    quantityMin: 1,
+    quantityStep: 1,
     quantityUnit: "contracts",
     quantityUnitAmbiguous: false,
     contractMultiplier: 1,
-    baseUnitSize: 0.01,
+    baseUnitSize: 1,
     pipCostAccount: 0.01,
     marginPerLotAccount: 50,
     minStopDistance: null,
@@ -105,7 +105,7 @@ function baseReadyInput(dir: "BUY" | "SELL") {
     existingCommittedExposure: 0,
     contract: fineContract(),
     contractFresh: true,
-    sdkMinQuantity: 0.01,
+    sdkMinQuantity: 1,
     marginPerUnitAccount: 50,
     exposureAuthoritative: true,
     existingExposure: 0,
@@ -202,20 +202,21 @@ describe("Phase 4.18G.2 order proposal engine", () => {
     expect(record.pricePlan.takeProfit).toBe(1970);
   });
 
-  it("9. Risk amount = 20% target / 25% hard max of order allocation", () => {
+  it("9. Risk amount = 25% target / 25% hard max of order allocation (v3)", () => {
     const record = buildOrderProposal(baseReadyInput("BUY"));
-    expect(record.capital.riskTargetAmount).toBe(100); // 500 * 0.20
+    expect(record.capital.riskTargetAmount).toBe(125); // 500 * 0.25
     expect(record.capital.maximumPermittedOrderLoss).toBe(125); // 500 * 0.25
-    expect(record.capital.allowedRiskAmount).toBe(100); // min(target, hardMax)
-    expect(record.capital.riskPolicyId).toBe("PER_ORDER_ALLOCATION_20TARGET_25MAX");
-    expect(record.capital.riskPolicyVersion).toBe("per-order-risk-v2-20target-25max");
+    expect(record.capital.allowedRiskAmount).toBe(125); // min(target, hardMax)
+    expect(record.capital.riskPolicyId).toBe("PER_ORDER_ALLOCATION_25TARGET_25MAX");
+    expect(record.capital.riskPolicyVersion).toBe("per-order-risk-v3-25target-25max");
   });
 
   it("10. Quantity uses contract specifications (floor-only)", () => {
     const record = buildOrderProposal(baseReadyInput("BUY"));
     expect(record.lifecycle).toBe("PROPOSAL_READY");
     expect(record.quantity.normalizedQuantity).toBeGreaterThan(0);
-    expect(record.quantity.normalizedQuantity!).toBeLessThanOrEqual(OWNER_MAX_QUANTITY);
+    expect(record.quantity.brokerAmount).toBe(record.quantity.normalizedQuantity); // base=1
+    expect(record.brokerPrep.amountQuantity).toBe(record.quantity.brokerAmount);
     expect(record.quantity.sizingMethod).toBeTruthy();
   });
 
@@ -241,25 +242,26 @@ describe("Phase 4.18G.2 order proposal engine", () => {
   });
 
   it("12. Floor-only quantity rounding (never rounds up)", () => {
-    // riskPerUnit via POINT_COST: move=10, pointSize=0.01, pipCost=0.01 → riskPerUnit=10
-    // maxLoss=125 → rawQty=12.5 → floor to 0.01 step → but owner max caps to 0.01
+    // riskPerLot via POINT_COST: move=10, pointSize=0.01, pipCost=0.01 → riskPerLot=10
+    // allowed=125 → rawLots=12.5 → floor to step 1 → 12 lots (never round up)
     const record = buildOrderProposal(baseReadyInput("BUY"));
     const q = record.quantity.normalizedQuantity!;
-    expect(q).toBe(Math.floor(q / 0.01 + 1e-12) * 0.01);
-    expect(q).toBeLessThanOrEqual(OWNER_MAX_QUANTITY);
+    expect(q).toBe(12);
+    expect(record.quantity.brokerAmount).toBe(12);
+    expect(record.capital.projectedLossAtStopLoss).toBeCloseTo(120, 8);
   });
 
-  it("13. Owner maximum 0.01 lots enforced", () => {
+  it("13. Legacy ownerMaxQuantity retained as reference; dynamic sizing may exceed 0.01", () => {
     const record = buildOrderProposal(baseReadyInput("BUY"));
-    expect(record.quantity.ownerMaxQuantity).toBe(0.01);
-    if (record.quantity.normalizedQuantity != null) {
-      expect(record.quantity.normalizedQuantity).toBeLessThanOrEqual(0.01);
-    }
+    expect(record.quantity.ownerMaxQuantity).toBe(OWNER_MAX_QUANTITY);
+    expect(OWNER_MAX_QUANTITY).toBe(0.01);
+    expect(record.quantity.normalizedQuantity!).toBeGreaterThan(OWNER_MAX_QUANTITY);
   });
 
-  it("14. Broker minimum 1.0 vs owner maximum 0.01 blocks", () => {
+  it("14. Broker minimum exceeding risk-affordable lots blocks (no upsizing)", () => {
     const record = buildOrderProposal({
       ...baseReadyInput("BUY"),
+      individualOrderAllocation: 10, // allowed $2.50 < $10/lot min
       contract: coarseContract(),
       sdkMinQuantity: 1,
       marginPerUnitAccount: 500,
@@ -268,8 +270,8 @@ describe("Phase 4.18G.2 order proposal engine", () => {
     expect(
       codes(record).some((c) =>
         c === "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY"
-        || c === "OWNER_MAX_QUANTITY_EXCEEDED"
         || c === "SIZE_QTY_BELOW_MIN_AFTER_FLOOR"
+        || c === "SIZING_FAILED"
       ),
     ).toBe(true);
   });
@@ -446,12 +448,12 @@ describe("Phase 4.18G.2 order proposal engine", () => {
   });
 });
 
-describe("Phase 4.18G.2 per-order risk policy v2 (20% target / 25% hard max)", () => {
+describe("Phase 4.18G.2 per-order risk policy v3 (25% target / 25% hard max)", () => {
   it.each([
-    [100, 20, 25],
-    [130, 26, 32.5],
-    [200, 40, 50],
-    [500, 100, 125],
+    [100, 25, 25],
+    [130, 32.5, 32.5],
+    [200, 50, 50],
+    [500, 125, 125],
   ] as const)(
     "$%s allocation → $%s risk target and $%s hard maximum",
     (alloc, target, hardMax) => {
@@ -459,22 +461,21 @@ describe("Phase 4.18G.2 per-order risk policy v2 (20% target / 25% hard max)", (
       expect(bd.riskTargetAmount).toBe(target);
       expect(bd.maximumPermittedOrderLoss).toBe(hardMax);
       expect(bd.allowedRiskAmount).toBe(target);
-      expect(bd.riskTargetPercent).toBe(20);
+      expect(bd.riskTargetPercent).toBe(25);
       expect(bd.riskMaximumPercent).toBe(25);
     },
   );
 
   it("Projected loss equals risk target → PASS", () => {
-    const r = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 20 });
+    const r = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 25 });
     expect(r.ok && r.pass).toBe(true);
     expect(r.code).toBe("PER_ORDER_LOSS_LIMIT_PASS");
   });
 
-  it("Projected loss above 20% target but below 25% hard max → BLOCKED (target policy)", () => {
-    const r = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 22 });
+  it("Projected loss at 25% target passes (target == hard max under v3)", () => {
+    const r = evaluatePerOrderLossLimit({ perOrderAllocation: 100, estimatedStopLossRisk: 25 });
     expect(r.ok).toBe(true);
-    expect(r.pass).toBe(false);
-    expect(r.code).toBe("PER_ORDER_RISK_TARGET_EXCEEDED");
+    expect(r.pass).toBe(true);
   });
 
   it("Projected loss above 25% hard maximum → BLOCKED", () => {
@@ -484,7 +485,7 @@ describe("Phase 4.18G.2 per-order risk policy v2 (20% target / 25% hard max)", (
     expect(r.code).toBe("PER_ORDER_LOSS_LIMIT_EXCEEDED");
   });
 
-  it("Ready proposal projected loss never exceeds allowed (20%) or hard max (25%)", () => {
+  it("Ready proposal projected loss never exceeds allowed (25%) or hard max (25%)", () => {
     const record = buildOrderProposal({
       handoff: {
         acceptedResultId: "res-r",
@@ -524,26 +525,9 @@ describe("Phase 4.18G.2 per-order risk policy v2 (20% target / 25% hard max)", (
       individualOrderAllocation: 200,
       allocationCurrency: "USD",
       existingCommittedExposure: 0,
-      contract: {
-        verified: true,
-        pointSize: 0.01,
-        tickSize: 0.01,
-        digits: 2,
-        quantityMin: 0.01,
-        quantityStep: 0.01,
-        quantityUnit: "contracts",
-        quantityUnitAmbiguous: false,
-        contractMultiplier: 1,
-        baseUnitSize: 0.01,
-        pipCostAccount: 0.01,
-        marginPerLotAccount: 50,
-        minStopDistance: null,
-        minStopDistanceVerified: false,
-        source: "test",
-        unavailableReason: null,
-      },
+      contract: fineContract(),
       contractFresh: true,
-      sdkMinQuantity: 0.01,
+      sdkMinQuantity: 1,
       marginPerUnitAccount: 50,
       exposureAuthoritative: true,
       existingExposure: 0,
@@ -552,7 +536,7 @@ describe("Phase 4.18G.2 per-order risk policy v2 (20% target / 25% hard max)", (
       emergencyEntryLock: false,
     });
     expect(record.lifecycle).toBe("PROPOSAL_READY");
-    expect(record.capital.riskTargetAmount).toBe(40);
+    expect(record.capital.riskTargetAmount).toBe(50); // v3: 200 * 0.25
     expect(record.capital.maximumPermittedOrderLoss).toBe(50);
     expect(record.capital.projectedLossAtStopLoss!).toBeLessThanOrEqual(
       (record.capital.allowedRiskAmount ?? 0) + 1e-8,
@@ -576,24 +560,7 @@ describe("Phase 4.18G.2 per-order risk policy v2 (20% target / 25% hard max)", (
       marginFresh: true,
       strategyAllocationPercent: 10,
       individualOrderAllocation: 100,
-      contract: {
-        verified: true,
-        pointSize: 0.01,
-        tickSize: 0.01,
-        digits: 2,
-        quantityMin: 0.01,
-        quantityStep: 0.01,
-        quantityUnit: "contracts",
-        quantityUnitAmbiguous: false,
-        contractMultiplier: 1,
-        baseUnitSize: 0.01,
-        pipCostAccount: 0.01,
-        marginPerLotAccount: 50,
-        minStopDistance: null,
-        minStopDistanceVerified: false,
-        source: "t",
-        unavailableReason: null,
-      },
+      contract: fineContract(),
       contractFresh: true,
       exposureAuthoritative: true,
       systemMasterOn: true,

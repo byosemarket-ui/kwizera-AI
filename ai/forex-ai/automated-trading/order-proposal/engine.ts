@@ -120,6 +120,7 @@ function emptyQuantity(): AtOrderProposalRecord["quantity"] {
   return {
     calculatedQuantity: null,
     normalizedQuantity: null,
+    brokerAmount: null,
     lotContractUnit: null,
     contractSize: null,
     tickSize: null,
@@ -721,6 +722,7 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
       base.capital.riskValidationStatus = "FAIL";
     } else {
       base.quantity.calculatedQuantity = sized.quantity;
+      base.quantity.brokerAmount = sized.brokerAmount;
       base.quantity.sizingMethod = sized.method;
       base.capital.projectedLossAtStopLoss = sized.estimatedStopLossRisk;
       base.capital.riskTargetAmount = sized.riskTargetAmount;
@@ -760,30 +762,59 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
         base.capital.riskValidationStatus = "PASS";
       }
 
-      // Dynamic sizing (v3): quantity from per-order risk budget + broker rules.
+      // Dynamic sizing (v3): lots from per-order risk budget + broker AMOUNT rules.
       // Legacy fixed 0.01 lot cap only when OWNER_FIXED_LOT_CAP_ENFORCED is true.
       let qty = sized.quantity;
+      let brokerAmt = sized.brokerAmount;
       if (OWNER_FIXED_LOT_CAP_ENFORCED && qty > OWNER_MAX_QUANTITY + 1e-12) {
+        // Owner fixed-cap path still sizes in lots; AMOUNT conversion must remain integer.
         const floored = floorQuantityToStep(
           OWNER_MAX_QUANTITY,
-          constraints.quantityStep ?? OWNER_MAX_QUANTITY,
-          constraints.quantityMin ?? 0,
+          OWNER_MAX_QUANTITY,
+          OWNER_MAX_QUANTITY,
         );
         if (floored == null || floored > OWNER_MAX_QUANTITY + 1e-12) {
           blockers.push(block(
             "OWNER_MAX_QUANTITY_EXCEEDED",
-            `Calculated quantity ${qty} exceeds owner maximum ${OWNER_MAX_QUANTITY}; cannot floor to a valid step within owner max.`,
+            `Calculated lots ${qty} exceeds owner maximum ${OWNER_MAX_QUANTITY}; cannot floor within owner max.`,
           ));
           qty = null as unknown as number;
+          brokerAmt = null as unknown as number;
           base.capital.riskValidationStatus = "FAIL";
         } else {
           qty = floored;
-          base.notes.push(`Quantity capped to owner maximum ${OWNER_MAX_QUANTITY} (floor-only).`);
+          base.notes.push(`Quantity capped to owner maximum ${OWNER_MAX_QUANTITY} lots (floor-only).`);
           const riskPerUnit = sized.riskPerUnit;
           const projected = riskPerUnit * qty;
           base.capital.projectedLossAtStopLoss = projected;
           base.capital.pendingProposalRisk = projected;
           base.capital.remainingRiskBudget = sized.allowedRiskAmount - projected;
+          const baseSz = sized.baseUnitSize;
+          const rawAmt = baseSz * qty;
+          const amt = Math.round(rawAmt);
+          if (Math.abs(rawAmt - amt) > 1e-9 || !Number.isInteger(amt) || amt <= 0) {
+            blockers.push(block(
+              "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
+              `Owner-capped lots ${qty} do not yield an integer FXCM AMOUNT (baseUnitSize=${baseSz}).`,
+            ));
+            qty = null as unknown as number;
+            brokerAmt = null as unknown as number;
+            base.capital.riskValidationStatus = "FAIL";
+          } else if (
+            finitePositive(constraints.quantityMin)
+            && amt + 1e-12 < constraints.quantityMin
+          ) {
+            blockers.push(block(
+              "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
+              `Owner-capped AMOUNT ${amt} is below broker minimum ${constraints.quantityMin}.`,
+            ));
+            qty = null as unknown as number;
+            brokerAmt = null as unknown as number;
+            base.capital.riskValidationStatus = "FAIL";
+          } else {
+            brokerAmt = amt;
+            base.quantity.brokerAmount = amt;
+          }
           if (projected > sized.maxPermittedOrderLoss + 1e-8) {
             blockers.push(block(
               "RISK_LIMIT_EXCEEDED",
@@ -800,30 +831,31 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
         }
       } else if (!OWNER_FIXED_LOT_CAP_ENFORCED && qty > OWNER_MAX_QUANTITY + 1e-12) {
         base.notes.push(
-          `Dynamic sizing allowed quantity ${qty} above legacy fixed-lot reference ${OWNER_MAX_QUANTITY} `
+          `Dynamic sizing allowed ${qty} lots / AMOUNT ${brokerAmt} above legacy fixed-lot reference ${OWNER_MAX_QUANTITY} `
           + `(OWNER_FIXED_LOT_CAP_ENFORCED=false; risk budget + broker rules govern).`,
         );
       }
 
-      if (qty != null && Number.isFinite(qty)) {
+      if (qty != null && Number.isFinite(qty) && brokerAmt != null && Number.isFinite(brokerAmt)) {
         const brokerMin = constraints.quantityMin;
-        if (finitePositive(brokerMin) && qty + 1e-12 < brokerMin) {
+        if (finitePositive(brokerMin) && brokerAmt + 1e-12 < brokerMin) {
           blockers.push(block(
             "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
-            `Broker minimum ${brokerMin} exceeds risk-affordable quantity ${qty}. `
-            + "Quantity is not rounded up to satisfy broker minimum.",
+            `Broker AMOUNT minimum ${brokerMin} exceeds risk-affordable AMOUNT ${brokerAmt} `
+            + `(${qty} lots). Quantity is not rounded up to satisfy broker minimum.`,
           ));
         } else if (
           finitePositive(input.brokerMaxQuantity)
-          && qty > input.brokerMaxQuantity + 1e-12
+          && brokerAmt > input.brokerMaxQuantity + 1e-12
         ) {
           blockers.push(block(
             "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
-            `Quantity ${qty} exceeds broker maximum ${input.brokerMaxQuantity}.`,
+            `Broker AMOUNT ${brokerAmt} exceeds broker maximum ${input.brokerMaxQuantity}.`,
           ));
         } else {
           normalizedQty = qty;
           base.quantity.normalizedQuantity = qty;
+          base.quantity.brokerAmount = brokerAmt;
           base.quantity.estimatedMargin = sized.requiredMargin;
           if (
             sized.requiredMargin != null
@@ -849,12 +881,16 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
     }
   }
 
-  // Broker prep (never invent order IDs)
+  // Broker prep (never invent order IDs). amountQuantity is FXCM AMOUNT, not lots.
+  const brokerAmountForPrep =
+    base.quantity.brokerAmount != null && Number.isFinite(base.quantity.brokerAmount)
+      ? base.quantity.brokerAmount
+      : null;
   base.brokerPrep = {
     accountReference: input.accountIdMasked ?? null,
     instrumentOfferReference: base.instrument,
     buySell: directionRaw === "BUY" || directionRaw === "SELL" ? directionRaw : null,
-    amountQuantity: normalizedQty,
+    amountQuantity: brokerAmountForPrep,
     orderType: base.pricePlan.entryType === "EXPLICIT" || base.pricePlan.entryType === "ZONE"
       ? "LIMIT"
       : null,
@@ -873,6 +909,7 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
     base.lifecycle = "BLOCKED";
     base.blockers = blockers;
     base.quantity.normalizedQuantity = null;
+    base.quantity.brokerAmount = null;
     base.brokerPrep.amountQuantity = null;
     return base;
   }

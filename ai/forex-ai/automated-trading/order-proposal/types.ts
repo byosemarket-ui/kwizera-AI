@@ -138,14 +138,21 @@ export interface AtOrderProposalPricePlan {
 }
 
 export interface AtOrderProposalQuantityPlan {
+  /** Application lots (risk/margin unit). */
   calculatedQuantity: number | null;
+  /** Application lots after broker/risk normalization. */
   normalizedQuantity: number | null;
+  /** ForexConnect integer AMOUNT = baseUnitSize × lots. */
+  brokerAmount: number | null;
   lotContractUnit: string | null;
   contractSize: number | null;
   tickSize: number | null;
   pipTickValue: number | null;
+  /** Broker AMOUNT minimum. */
   brokerMinimum: number | null;
+  /** Broker AMOUNT maximum when supplied. */
   brokerMaximum: number | null;
+  /** Broker AMOUNT step (BaseUnitSize). */
   quantityStep: number | null;
   ownerMaxQuantity: typeof OWNER_MAX_QUANTITY;
   estimatedMargin: number | null;

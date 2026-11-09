@@ -61,20 +61,18 @@ function handoff(dir: "BUY" | "SELL", overrides: Partial<AtOrderPreparationHando
 function eurUsdContract(overrides: Partial<AtSimContractMetaInput> = {}): AtSimContractMetaInput {
   return {
     verified: true,
-    pointSize: 0.00001,
-    tickSize: 0.00001,
+    pointSize: 0.0001,
+    tickSize: 0.0001,
     digits: 5,
-    quantityMin: 0.01,
-    quantityStep: 0.01,
+    quantityMin: 1000,
+    quantityStep: 1000,
     quantityUnit: "contracts",
     quantityUnitAmbiguous: false,
-    contractMultiplier: 100_000,
-    baseUnitSize: 100_000,
-    // $1 per pip per 0.01 lot ≈ pipCost for 1 contract at 0.0001 pip? Use POINT_COST:
-    // riskPerUnit = (move / pointSize) * pipCostAccount
-    // For move=0.0010 (10 pips), want riskPerUnit such that 0.01 lots ≈ small $ risk.
-    pipCostAccount: 0.00001, // (0.001/0.00001)*0.00001 = 1.0 per unit → 0.01 qty = $0.01 risk at 10 pips... scale up
-    marginPerLotAccount: 50,
+    contractMultiplier: null,
+    baseUnitSize: 1000,
+    // FXCM-shaped: pipCost is per 1.0 lot; AMOUNT = baseUnitSize × lots.
+    pipCostAccount: 0.1,
+    marginPerLotAccount: 1.3,
     minStopDistance: null,
     minStopDistanceVerified: false,
     source: "test-eurusd",
@@ -83,19 +81,19 @@ function eurUsdContract(overrides: Partial<AtSimContractMetaInput> = {}): AtSimC
   };
 }
 
-/** Contract tuned so 0.01 qty with 10-pip SL stays under 20% of small allocations. */
+/** XAU-like FXCM DEMO contract: integer baseUnitSize, AMOUNT = lots when base=1. */
 function fineContract(overrides: Partial<AtSimContractMetaInput> = {}): AtSimContractMetaInput {
   return {
     verified: true,
     pointSize: 0.01,
     tickSize: 0.01,
     digits: 2,
-    quantityMin: 0.01,
-    quantityStep: 0.01,
+    quantityMin: 1,
+    quantityStep: 1,
     quantityUnit: "contracts",
     quantityUnitAmbiguous: false,
     contractMultiplier: 1,
-    baseUnitSize: 0.01,
+    baseUnitSize: 1,
     pipCostAccount: 0.01,
     marginPerLotAccount: 50,
     minStopDistance: null,
@@ -141,7 +139,7 @@ function baseInput(dir: "BUY" | "SELL", alloc = 100) {
     pendingProposalReservations: 0,
     contract: fineContract(),
     contractFresh: true,
-    sdkMinQuantity: 0.01,
+    sdkMinQuantity: 1,
     marginPerUnitAccount: 50,
     exposureAuthoritative: true,
     existingExposure: 0,
@@ -404,6 +402,8 @@ describe("Stage 5 — position sizing + dynamic risk budget (v3)", () => {
         entryPrice: row.entry,
         stopLoss: row.sl,
         contract: row.contract,
+        sdkMinQuantity: row.contract.quantityMin,
+        marginPerUnitAccount: row.contract.marginPerLotAccount,
         instrument: row.name,
       });
       // May be READY or BLOCKED depending on risk/min — never invents contract.

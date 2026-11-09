@@ -3270,7 +3270,10 @@ export class AutomatedTradingService {
         quantityMin: inst.quantityMin ?? null,
         quantityStep: inst.quantityStep ?? null,
         quantityUnit: inst.quantityUnit ?? "contracts",
-        quantityUnitAmbiguous: inst.quantityUnit !== "contracts",
+        // null quantityUnit from FXCM DEMO catalog defaults to contracts; only mark
+        // ambiguous when an explicit non-contracts unit is reported.
+        quantityUnitAmbiguous:
+          inst.quantityUnit != null && inst.quantityUnit !== "contracts",
         contractMultiplier: inst.contractMultiplier ?? null,
         baseUnitSize: inst.baseUnitSize ?? null,
         pipCostAccount: inst.pipCostAccount ?? null,

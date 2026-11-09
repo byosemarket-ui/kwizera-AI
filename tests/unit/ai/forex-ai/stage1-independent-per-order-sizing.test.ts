@@ -54,18 +54,19 @@ function handoff(instrument: string, dir: "BUY" | "SELL"): AtOrderPreparationHan
   };
 }
 
+/** XAU-like FXCM DEMO fixture: amount = baseUnitSize × lots (base=1). */
 function contract(overrides: Partial<AtSimContractMetaInput> = {}): AtSimContractMetaInput {
   return {
     verified: true,
     pointSize: 0.01,
     tickSize: 0.01,
     digits: 2,
-    quantityMin: 0.01,
-    quantityStep: 0.01,
+    quantityMin: 1,
+    quantityStep: 1,
     quantityUnit: "contracts",
     quantityUnitAmbiguous: false,
     contractMultiplier: 1,
-    baseUnitSize: 0.01,
+    baseUnitSize: 1,
     pipCostAccount: 0.01,
     marginPerLotAccount: 10,
     minStopDistance: null,
@@ -113,7 +114,7 @@ function engineInput(opts: {
     pendingProposalReservations: opts.pending ?? 0,
     contract: opts.contract ?? contract(),
     contractFresh: true,
-    sdkMinQuantity: opts.sdkMin ?? 0.01,
+    sdkMinQuantity: opts.sdkMin ?? 1,
     brokerMaxQuantity: opts.brokerMax ?? null,
     marginPerUnitAccount: opts.marginPerUnit ?? 10,
     exposureAuthoritative: true,
@@ -221,12 +222,12 @@ describe("Stage 1 Part 1 — dynamic position sizing", () => {
       remainingStrategyBudget: 5_000,
       individualOrderAllocation: 400,
       entryPrice: 2000,
-      stopLoss: 1995, // 5 points
+      stopLoss: 1995, // 5 points → risk/lot = 5
       contract: contract(),
       freeMargin: 10_000,
       exposureAuthoritative: true,
       marginPerUnitAccount: 10,
-      sdkMinQuantity: 0.01,
+      sdkMinQuantity: 1,
       allocationCurrency: "USD",
     });
     const wide = sizeOrderQuantityFromAllocation({
@@ -236,18 +237,20 @@ describe("Stage 1 Part 1 — dynamic position sizing", () => {
       remainingStrategyBudget: 5_000,
       individualOrderAllocation: 400,
       entryPrice: 2000,
-      stopLoss: 1980, // 20 points
+      stopLoss: 1980, // 20 points → risk/lot = 20
       contract: contract(),
       freeMargin: 10_000,
       exposureAuthoritative: true,
       marginPerUnitAccount: 10,
-      sdkMinQuantity: 0.01,
+      sdkMinQuantity: 1,
       allocationCurrency: "USD",
     });
     expect(tight.ok).toBe(true);
     expect(wide.ok).toBe(true);
     if (!tight.ok || !wide.ok) return;
     expect(tight.quantity).toBeGreaterThan(wide.quantity!);
+    expect(tight.brokerAmount).toBe(tight.quantity); // baseUnitSize=1
+    expect(wide.brokerAmount).toBe(wide.quantity);
     expect(tight.estimatedStopLossRisk).toBeLessThanOrEqual(100 + 1e-8); // 25% of 400
     expect(wide.estimatedStopLossRisk).toBeLessThanOrEqual(100 + 1e-8);
     expect(tight.quantity).not.toBe(OWNER_MAX_QUANTITY);
@@ -287,7 +290,7 @@ describe("Stage 1 Part 1 — dynamic position sizing", () => {
       contract: { ...contract(), verified: false },
       freeMargin: 9_000,
       exposureAuthoritative: true,
-      sdkMinQuantity: 0.01,
+      sdkMinQuantity: 1,
       allocationCurrency: "USD",
     });
     expect(missing.ok).toBe(false);
@@ -304,14 +307,14 @@ describe("Stage 1 Part 1 — dynamic position sizing", () => {
       contract: contract(),
       freeMargin: 9_000,
       exposureAuthoritative: false,
-      sdkMinQuantity: 0.01,
+      sdkMinQuantity: 1,
       allocationCurrency: "USD",
     });
     expect(noExposure.ok).toBe(false);
     if (!noExposure.ok) expect(noExposure.code).toBe("SIZE_QTY_EXPOSURE_UNVERIFIED");
   });
 
-  it("respects broker max without inventing a larger size", () => {
+  it("respects broker max AMOUNT without inventing a larger size", () => {
     const r = sizeOrderQuantityFromAllocation({
       verifiedEquity: 50_000,
       accountCurrency: "USD",
@@ -319,18 +322,19 @@ describe("Stage 1 Part 1 — dynamic position sizing", () => {
       remainingStrategyBudget: 50_000,
       individualOrderAllocation: 10_000, // large risk budget
       entryPrice: 2000,
-      stopLoss: 1999, // tiny stop → huge raw qty
+      stopLoss: 1999, // tiny stop → huge raw lots
       contract: contract(),
       freeMargin: 40_000,
       exposureAuthoritative: true,
       marginPerUnitAccount: 1,
-      sdkMinQuantity: 0.01,
-      brokerMaxQuantity: 0.05,
+      sdkMinQuantity: 1,
+      brokerMaxQuantity: 5, // AMOUNT max → lotsMax=5 when base=1
       allocationCurrency: "USD",
     });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.quantity).toBeLessThanOrEqual(0.05 + 1e-12);
+    expect(r.quantity).toBeLessThanOrEqual(5 + 1e-12);
+    expect(r.brokerAmount).toBeLessThanOrEqual(5 + 1e-12);
   });
 });
 

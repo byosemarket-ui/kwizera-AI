@@ -1,6 +1,8 @@
 /**
- * Phase 56.2.5 / Stage 1 Part 1 — Pure order quantity sizing from individual order allocation.
- * Instrument-agnostic when contract metadata is verified (FX + XAU).
+ * Phase 56.2.5 / Stage 1 Part 1–2 — Pure order quantity sizing from individual order allocation.
+ *
+ * Part 2: size in application LOTS (pipCost/mmr per lot), then convert to FXCM integer AMOUNT
+ * via amount = baseUnitSize × lots. Broker min/step/max live in AMOUNT space.
  * Never invents margin, pip value, units, or stop distances. Never rounds quantity upward.
  */
 
@@ -13,6 +15,10 @@ import {
   ensureAmountInAccountCurrency,
   type ConversionRateSnapshot,
 } from "./currency-conversion.js";
+import {
+  amountConstraintsToLots,
+  lotsToFxcmAmount,
+} from "./fxcm-amount-lots.js";
 import {
   floorQuantityToStep,
   resolveXauQuantityConstraints,
@@ -31,8 +37,12 @@ function finiteNonNeg(n: unknown): n is number {
 export type SizeOrderQuantityResult =
   | {
     ok: true;
+    /** Application lots (risk/margin unit). */
     quantity: number;
     quantityUnit: "contracts";
+    /** ForexConnect AMOUNT = baseUnitSize × lots (integer). */
+    brokerAmount: number;
+    baseUnitSize: number;
     estimatedStopLossRisk: number;
     /** Hard 25% ceiling. */
     maxPermittedOrderLoss: number;
@@ -40,6 +50,7 @@ export type SizeOrderQuantityResult =
     riskTargetAmount: number;
     /** min(target, hardMax) — sizing ceiling (= 25% under v3). */
     allowedRiskAmount: number;
+    /** Monetary SL risk per 1.0 lot. */
     riskPerUnit: number;
     requiredMargin: number | null;
     freeMargin: number | null;
@@ -51,6 +62,7 @@ export type SizeOrderQuantityResult =
   | {
     ok: false;
     quantity: null;
+    brokerAmount: null;
     quantityUnit: "contracts" | "unknown" | null;
     code: string;
     message: string;
@@ -78,7 +90,7 @@ export interface SizeOrderQuantityInput {
   /** Distinct SDK min when available (preferred over legacy lotStep). */
   sdkMinQuantity?: number | null;
   legacyLotStep?: number | null;
-  /** Broker-reported maximum quantity when supplied (never invented). */
+  /** Broker-reported maximum AMOUNT when supplied (never invented). */
   brokerMaxQuantity?: number | null;
   /**
    * Currency of individualOrderAllocation (UI currently labels USD).
@@ -89,8 +101,28 @@ export interface SizeOrderQuantityInput {
   nowMs?: number;
 }
 
+function fail(
+  code: string,
+  message: string,
+  notes: string[],
+  constraints: QuantityConstraintsResult | null = null,
+  quantityUnit: "contracts" | "unknown" | null = "contracts",
+): SizeOrderQuantityResult {
+  return {
+    ok: false,
+    quantity: null,
+    brokerAmount: null,
+    quantityUnit,
+    code,
+    message,
+    constraints,
+    notes,
+  };
+}
+
 /**
- * Derive permissible XAU quantity from individual order allocation under verified constraints.
+ * Derive permissible quantity from individual order allocation under verified FXCM constraints.
+ * Sizes in lots; returns integer broker AMOUNT separately.
  */
 export function sizeOrderQuantityFromAllocation(
   input: SizeOrderQuantityInput,
@@ -99,50 +131,38 @@ export function sizeOrderQuantityFromAllocation(
   const c = input.contract;
 
   if (!c?.verified) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: null,
-      code: "SIZE_QTY_CONTRACT_UNVERIFIED",
-      message: "Contract metadata unverified — quantity not invented.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_CONTRACT_UNVERIFIED",
+      "Contract metadata unverified — quantity not invented.",
       notes,
-    };
+      null,
+      null,
+    );
   }
   if (c.quantityUnitAmbiguous || c.quantityUnit !== "contracts") {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: c.quantityUnit === "contracts" ? "contracts" : "unknown",
-      code: "SIZE_QTY_UNIT_AMBIGUOUS",
-      message: "Quantity unit ambiguous — monetary sizing blocked.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_UNIT_AMBIGUOUS",
+      "Quantity unit ambiguous — monetary sizing blocked.",
       notes,
-    };
+      null,
+      c.quantityUnit === "contracts" ? "contracts" : "unknown",
+    );
   }
 
   if (!finitePositive(input.verifiedEquity)) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_EQUITY_UNVERIFIED",
-      message: "Verified equity required for allocation-aware sizing.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_EQUITY_UNVERIFIED",
+      "Verified equity required for allocation-aware sizing.",
       notes,
-    };
+    );
   }
   const ccy = String(input.accountCurrency ?? "").trim().toUpperCase();
   if (!ccy) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_ACCOUNT_CURRENCY_MISSING",
-      message: "Account currency unverified — conversion not invented.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_ACCOUNT_CURRENCY_MISSING",
+      "Account currency unverified — conversion not invented.",
       notes,
-    };
+    );
   }
 
   if (
@@ -150,39 +170,27 @@ export function sizeOrderQuantityFromAllocation(
     || input.strategyAllocationPercent < 1
     || input.strategyAllocationPercent > 100
   ) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_STRATEGY_PCT_INVALID",
-      message: "Strategy allocation percent must be a verified value in 1–100.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_STRATEGY_PCT_INVALID",
+      "Strategy allocation percent must be a verified value in 1–100.",
       notes,
-    };
+    );
   }
 
   if (!finiteNonNeg(input.remainingStrategyBudget)) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_REMAINING_BUDGET_UNVERIFIED",
-      message: "Remaining strategy budget unverified — sizing blocked.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_REMAINING_BUDGET_UNVERIFIED",
+      "Remaining strategy budget unverified — sizing blocked.",
       notes,
-    };
+    );
   }
 
   if (!finitePositive(input.individualOrderAllocation)) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_ORDER_ALLOCATION_INVALID",
-      message: "Individual order allocation must be a finite positive amount.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_ORDER_ALLOCATION_INVALID",
+      "Individual order allocation must be a finite positive amount.",
       notes,
-    };
+    );
   }
 
   const allocCcy = String(input.allocationCurrency ?? "USD").trim().toUpperCase() || "USD";
@@ -194,15 +202,7 @@ export function sizeOrderQuantityFromAllocation(
     nowMs: input.nowMs,
   });
   if (!convertedAlloc.ok) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: convertedAlloc.code,
-      message: convertedAlloc.message,
-      constraints: null,
-      notes,
-    };
+    return fail(convertedAlloc.code, convertedAlloc.message, notes);
   }
   const orderAllocationAccountCcy = convertedAlloc.amount;
   if (!convertedAlloc.identity) {
@@ -213,54 +213,39 @@ export function sizeOrderQuantityFromAllocation(
   }
 
   if (orderAllocationAccountCcy > input.remainingStrategyBudget + 1e-9) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_EXCEEDS_REMAINING_BUDGET",
-      message: "Order allocation (account currency) exceeds remaining strategy budget.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_EXCEEDS_REMAINING_BUDGET",
+      "Order allocation (account currency) exceeds remaining strategy budget.",
       notes,
-    };
+    );
   }
 
   if (input.exposureAuthoritative !== true) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_EXPOSURE_UNVERIFIED",
-      message: "Orders/Trades exposure not authoritative — sizing fail-closed.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_EXPOSURE_UNVERIFIED",
+      "Orders/Trades exposure not authoritative — sizing fail-closed.",
       notes,
-    };
+    );
   }
 
   if (!finitePositive(input.entryPrice) || !finitePositive(input.stopLoss)) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_PRICES_MISSING",
-      message: "Entry and Stop Loss required to size quantity from risk ceiling.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_PRICES_MISSING",
+      "Entry and Stop Loss required to size quantity from risk ceiling.",
       notes,
-    };
+    );
   }
 
   const move = Math.abs(input.entryPrice - input.stopLoss);
   if (!(move > 0)) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_ZERO_STOP_DISTANCE",
-      message: "Stop distance is zero — cannot size quantity.",
-      constraints: null,
+    return fail(
+      "SIZE_QTY_ZERO_STOP_DISTANCE",
+      "Stop distance is zero — cannot size quantity.",
       notes,
-    };
+    );
   }
 
+  // AMOUNT-space constraints from TradingSettings (min/step = contracts/amount units).
   const constraints = resolveXauQuantityConstraints({
     quantityUnit: "contracts",
     quantityUnitAmbiguous: false,
@@ -272,115 +257,114 @@ export function sizeOrderQuantityFromAllocation(
   });
 
   if (constraints.sizingBlocked || !finitePositive(constraints.quantityMin) || !finitePositive(constraints.quantityStep)) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: constraints.blockCode ?? "SIZE_QTY_CONSTRAINTS_BLOCKED",
-      message: constraints.blockMessage ?? "Quantity min/step constraints blocked sizing.",
+    return fail(
+      constraints.blockCode ?? "SIZE_QTY_CONSTRAINTS_BLOCKED",
+      constraints.blockMessage ?? "Quantity min/step constraints blocked sizing.",
+      [...notes, ...constraints.notes],
       constraints,
-      notes: [...notes, ...constraints.notes],
-    };
+    );
   }
 
-  let riskPerUnit: number | null = null;
+  const lotsSpace = amountConstraintsToLots({
+    baseUnitSize: c.baseUnitSize,
+    amountMin: constraints.quantityMin,
+    amountStep: constraints.quantityStep,
+    amountMax: input.brokerMaxQuantity,
+  });
+  if (!lotsSpace.ok) {
+    return fail(lotsSpace.code, lotsSpace.message, [...notes, ...lotsSpace.notes], constraints);
+  }
+  notes.push(...lotsSpace.notes);
+  const { lotsMin, lotsStep, lotsMax, baseUnitSize, amountMin } = lotsSpace.lots;
+
+  // pipCost / contract multiplier are per 1.0 lot — not per AMOUNT unit.
+  let riskPerLot: number | null = null;
   let method: "POINT_COST" | "CONTRACT_MULTIPLIER" | null = null;
-  if (
-    finitePositive(c.pipCostAccount)
-    && finitePositive(c.pointSize)
-  ) {
-    riskPerUnit = (move / c.pointSize) * c.pipCostAccount;
+  if (finitePositive(c.pipCostAccount) && finitePositive(c.pointSize)) {
+    riskPerLot = (move / c.pointSize) * c.pipCostAccount;
     method = "POINT_COST";
   } else if (finitePositive(c.contractMultiplier)) {
-    riskPerUnit = move * c.contractMultiplier;
+    riskPerLot = move * c.contractMultiplier;
     method = "CONTRACT_MULTIPLIER";
   }
-  if (riskPerUnit == null || !(riskPerUnit > 0) || method == null) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_RISK_PER_UNIT_UNVERIFIED",
-      message: "No verified pip/point cost or contract multiplier for monetary SL risk.",
-      constraints,
+  if (riskPerLot == null || !(riskPerLot > 0) || method == null) {
+    return fail(
+      "SIZE_QTY_RISK_PER_UNIT_UNVERIFIED",
+      "No verified pip/point cost or contract multiplier for monetary SL risk.",
       notes,
-    };
+      constraints,
+    );
   }
 
   const riskTargetAmount = computePerOrderRiskTarget(orderAllocationAccountCcy);
   const maxPermittedOrderLoss = computePerOrderLossLimit(orderAllocationAccountCcy);
   const allowedRiskAmount = computeAllowedRiskAmount(orderAllocationAccountCcy);
   // Size to the allowed risk (25% target under v3). Never round upward to meet broker min.
-  const rawQty = allowedRiskAmount / riskPerUnit;
-  let quantity = floorQuantityToStep(
-    rawQty,
-    constraints.quantityStep,
-    constraints.quantityMin,
-  );
+  const rawLots = allowedRiskAmount / riskPerLot;
+  let quantity = floorQuantityToStep(rawLots, lotsStep, lotsMin);
   if (quantity == null) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_BELOW_MIN_AFTER_FLOOR",
-      message:
-        `Allowed risk $${allowedRiskAmount} (target ${riskTargetAmount}, hard max ${maxPermittedOrderLoss}) `
-        + `cannot fund minimum ${constraints.quantityMin} `
-        + `${constraints.quantityUnit} after flooring to step ${constraints.quantityStep}. `
+    return fail(
+      "SIZE_QTY_BELOW_MIN_AFTER_FLOOR",
+      `Allowed risk $${allowedRiskAmount} (target ${riskTargetAmount}, hard max ${maxPermittedOrderLoss}) `
+        + `cannot fund minimum ${lotsMin} lots (broker AMOUNT min ${amountMin}, baseUnitSize ${baseUnitSize}) `
+        + `after flooring to lots step ${lotsStep}. `
         + "Broker minimum is not satisfied by increasing size beyond the per-order risk budget.",
-      constraints,
       notes,
-    };
+      constraints,
+    );
   }
 
-  if (finitePositive(input.brokerMaxQuantity) && quantity > input.brokerMaxQuantity + 1e-12) {
-    const capped = floorQuantityToStep(
-      input.brokerMaxQuantity,
-      constraints.quantityStep,
-      constraints.quantityMin,
-    );
+  if (lotsMax != null && quantity > lotsMax + 1e-12) {
+    const capped = floorQuantityToStep(lotsMax, lotsStep, lotsMin);
     if (capped == null) {
-      return {
-        ok: false,
-        quantity: null,
-        quantityUnit: "contracts",
-        code: "SIZE_QTY_BROKER_MAX_INCOMPATIBLE",
-        message:
-          `Broker maximum ${input.brokerMaxQuantity} is incompatible with min/step constraints `
-          + `(min=${constraints.quantityMin}, step=${constraints.quantityStep}).`,
-        constraints,
+      return fail(
+        "SIZE_QTY_BROKER_MAX_INCOMPATIBLE",
+        `Broker maximum AMOUNT maps to lotsMax=${lotsMax} incompatible with lotsMin=${lotsMin}/lotsStep=${lotsStep}.`,
         notes,
-      };
+        constraints,
+      );
     }
     quantity = capped;
-    notes.push(`Quantity floored to broker maximum ${input.brokerMaxQuantity}.`);
+    notes.push(`Quantity floored to broker maximum lots ${lotsMax} (from AMOUNT max).`);
   }
 
-  const estimatedStopLossRisk = riskPerUnit * quantity;
+  const estimatedStopLossRisk = riskPerLot * quantity;
   if (estimatedStopLossRisk > maxPermittedOrderLoss + 1e-8) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_EXCEEDS_LOSS_LIMIT",
-      message: "Floored quantity would exceed hard maximum 25% per-order loss — blocked.",
-      constraints,
+    return fail(
+      "SIZE_QTY_EXCEEDS_LOSS_LIMIT",
+      "Floored quantity would exceed hard maximum 25% per-order loss — blocked.",
       notes,
-    };
+      constraints,
+    );
   }
   if (estimatedStopLossRisk > allowedRiskAmount + 1e-8) {
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_EXCEEDS_RISK_TARGET",
-      message:
-        "Floored quantity exceeds 25% risk target — blocked. "
+    return fail(
+      "SIZE_QTY_EXCEEDS_RISK_TARGET",
+      "Floored quantity exceeds 25% risk target — blocked. "
         + "Quantity is not increased to satisfy broker minimums.",
-      constraints,
       notes,
-    };
+      constraints,
+    );
   }
+
+  const amountConv = lotsToFxcmAmount({
+    lots: quantity,
+    baseUnitSize,
+    amountMin,
+  });
+  if (!amountConv.ok || amountConv.amount == null) {
+    return fail(
+      amountConv.code === "AMOUNT_NOT_INTEGER"
+        ? "SIZE_QTY_AMOUNT_NOT_INTEGER"
+        : amountConv.code === "AMOUNT_BELOW_MIN_QUANTITY"
+          ? "SIZE_QTY_BELOW_MIN_AFTER_FLOOR"
+          : "SIZE_QTY_AMOUNT_CONVERSION_FAILED",
+      amountConv.message,
+      notes,
+      constraints,
+    );
+  }
+  notes.push(amountConv.message);
 
   const marginPer =
     finitePositive(input.marginPerUnitAccount)
@@ -392,44 +376,55 @@ export function sizeOrderQuantityFromAllocation(
   let requiredMargin: number | null = null;
   if (marginPer != null) {
     requiredMargin = marginPer * quantity;
-    notes.push("Required margin = marginPerUnit × quantity (not equal to order allocation).");
+    notes.push("Required margin = marginPerLot × lots (application-estimated from broker MMR when present).");
   } else {
-    notes.push("Required margin UNAVAILABLE — marginPerUnit unverified; quantity still risk-sized.");
+    notes.push("Required margin UNAVAILABLE — marginPerLot unverified; quantity still risk-sized.");
   }
 
   const freeMargin = finiteNonNeg(input.freeMargin) ? input.freeMargin : null;
   if (requiredMargin != null) {
     if (freeMargin == null) {
-      return {
-        ok: false,
-        quantity: null,
-        quantityUnit: "contracts",
-        code: "SIZE_QTY_FREE_MARGIN_UNVERIFIED",
-        message: "Required margin computed but free margin unverified — sizing blocked.",
-        constraints,
+      return fail(
+        "SIZE_QTY_FREE_MARGIN_UNVERIFIED",
+        "Required margin computed but free margin unverified — sizing blocked.",
         notes,
-      };
+        constraints,
+      );
     }
     if (requiredMargin > freeMargin + 1e-8) {
-      // Try stepping down quantity to fit free margin without rounding up.
       let fit = quantity;
-      while (fit >= constraints.quantityMin - 1e-12) {
+      while (fit >= lotsMin - 1e-12) {
         const need = marginPer! * fit;
         if (need <= freeMargin + 1e-8) {
-          const refitRisk = riskPerUnit * fit;
+          const refitRisk = riskPerLot * fit;
           if (
             refitRisk <= allowedRiskAmount + 1e-8
             && refitRisk <= maxPermittedOrderLoss + 1e-8
           ) {
+            const refitAmount = lotsToFxcmAmount({
+              lots: fit,
+              baseUnitSize,
+              amountMin,
+            });
+            if (!refitAmount.ok || refitAmount.amount == null) {
+              return fail(
+                "SIZE_QTY_AMOUNT_CONVERSION_FAILED",
+                refitAmount.message,
+                [...notes, "Margin refit produced non-convertible lots."],
+                constraints,
+              );
+            }
             return {
               ok: true,
               quantity: fit,
               quantityUnit: "contracts",
+              brokerAmount: refitAmount.amount,
+              baseUnitSize,
               estimatedStopLossRisk: refitRisk,
               maxPermittedOrderLoss,
               riskTargetAmount,
               allowedRiskAmount,
-              riskPerUnit,
+              riskPerUnit: riskPerLot,
               requiredMargin: need,
               freeMargin,
               remainingStrategyBudgetAfter:
@@ -438,23 +433,20 @@ export function sizeOrderQuantityFromAllocation(
               method,
               notes: [
                 ...notes,
+                refitAmount.message,
                 "Quantity reduced to fit verified free margin without rounding up.",
               ],
             };
           }
         }
-        fit = Math.round((fit - constraints.quantityStep) / constraints.quantityStep)
-          * constraints.quantityStep;
+        fit = Math.round((fit - lotsStep) / lotsStep) * lotsStep;
       }
-      return {
-        ok: false,
-        quantity: null,
-        quantityUnit: "contracts",
-        code: "SIZE_QTY_INSUFFICIENT_FREE_MARGIN",
-        message: "Verified free margin cannot support minimum quantity under risk ceiling.",
-        constraints,
+      return fail(
+        "SIZE_QTY_INSUFFICIENT_FREE_MARGIN",
+        "Verified free margin cannot support minimum quantity under risk ceiling.",
         notes,
-      };
+        constraints,
+      );
     }
   } else if (freeMargin == null) {
     notes.push("Free margin not supplied — margin gate skipped (margin metadata also missing).");
@@ -464,11 +456,13 @@ export function sizeOrderQuantityFromAllocation(
     ok: true,
     quantity,
     quantityUnit: "contracts",
+    brokerAmount: amountConv.amount,
+    baseUnitSize,
     estimatedStopLossRisk,
     maxPermittedOrderLoss,
     riskTargetAmount,
     allowedRiskAmount,
-    riskPerUnit,
+    riskPerUnit: riskPerLot,
     requiredMargin,
     freeMargin,
     remainingStrategyBudgetAfter:
