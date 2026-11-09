@@ -29,6 +29,9 @@ import {
   rejectStaleXau030AsPolicyEvidence,
 } from "../../../../ai/forex-ai/automated-trading/risk-policy/stage1-readiness.js";
 import {
+  resetStage1EvidenceStoreForTests,
+} from "../../../../ai/forex-ai/automated-trading/risk-policy/stage1-evidence-store.js";
+import {
   AtRiskPolicyStore,
   resetAtRiskPolicyStoreForTests,
   resolveSpreadLimit,
@@ -38,6 +41,7 @@ import {
 const tmpDirs: string[] = [];
 afterEach(() => {
   resetAtRiskPolicyStoreForTests();
+  resetStage1EvidenceStoreForTests();
   for (const d of tmpDirs.splice(0)) {
     try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* ignore */ }
   }
@@ -148,6 +152,23 @@ describe("Stage 1 — independent LIVE observation collector", () => {
       nowMs: t0 + 2000,
     });
     expect(tooSoon.code).toBe("INSUFFICIENT_TIME_GAP");
+
+    const unchanged = ingestSpreadObservation({
+      instrument: "EUR/USD",
+      bid: 1.1,
+      ask: 1.1002,
+      observedAtUtc: new Date(t0 + 10_000).toISOString(),
+      provider: "FXCM",
+      sourceType: "Offers",
+      marketStatus: "OPEN",
+      freshnessStatus: "FRESH",
+      provenance: "LIVE",
+      observationId: "obs-3",
+      priorAccepted: prior,
+      nowMs: t0 + 10_000,
+    });
+    expect(unchanged.status).toBe("DUPLICATE_NOT_INDEPENDENT");
+    expect(unchanged.code).toBe("UNCHANGED_BID_ASK");
   });
 
   it("weekend gate reports WAITING_FOR_LIVE_MARKET", () => {
@@ -298,5 +319,42 @@ describe("Stage 1 — fail-closed + instrument isolation + owner confirm", () =>
       expect(row.slippageEvidence.status).toBe(SLIPPAGE_EVIDENCE_REQUIRES_CONTROLLED_DEMO_EXECUTION);
       expect(row.staleXau030Rejected).toBe(true);
     }
+  });
+});
+
+describe("Stage 1 — evidence store persistence (labelled fixture records)", () => {
+  it("persists accepted LIVE records and rejection counters without approving policy", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "s1-ev-"));
+    tmpDirs.push(dir);
+    const store = resetStage1EvidenceStoreForTests(path.join(dir, "stage1-evidence.json"));
+    const t0 = Date.parse("2026-11-10T14:00:00.000Z");
+    const first = ingestSpreadObservation({
+      instrument: "GBP/USD",
+      bid: 1.25,
+      ask: 1.2503,
+      observedAtUtc: new Date(t0).toISOString(),
+      provider: "FOREXCONNECT",
+      sourceType: "offers-table-diff",
+      marketStatus: "OPEN",
+      freshnessStatus: "FRESH",
+      provenance: "LIVE",
+      observationId: "live-1",
+      nowMs: t0 + 500,
+    });
+    expect(first.record).not.toBeNull();
+    store.recordAccepted(first.record!);
+    store.recordRejection({
+      instrument: "EUR/USD",
+      code: "QUOTE_NOT_PRESENT",
+      message: "fixture rejection",
+      bid: null,
+      ask: null,
+      observedAtUtc: null,
+    });
+    expect(store.getAccepted("GBP/USD")).toHaveLength(1);
+    expect(store.rejectionCountsByInstrument()["EUR/USD"]?.QUOTE_NOT_PRESENT).toBe(1);
+    const reloaded = resetStage1EvidenceStoreForTests(path.join(dir, "stage1-evidence.json"));
+    expect(reloaded.getAccepted("GBP/USD")).toHaveLength(1);
+    expect(resolveSpreadLimit({ instrument: "GBP/USD" }).status).toBe("NOT_CONFIGURED");
   });
 });

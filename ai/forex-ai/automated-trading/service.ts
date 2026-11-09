@@ -4223,6 +4223,136 @@ export class AutomatedTradingService {
   }
 
   /**
+   * Stage 1 reopen — one LIVE Offers poll → independent spread ingest (read-only).
+   * Never places orders. Never invents samples. Never auto-approves.
+   */
+  async collectStage1SpreadTick(input?: { ensureSubscriptions?: boolean }) {
+    const { collectStage1SpreadTick } = await import("./risk-policy/stage1-live-collector.js");
+    return collectStage1SpreadTick({
+      ensureSubscriptions: input?.ensureSubscriptions,
+    });
+  }
+
+  /**
+   * Stage 1 reopen — readiness + drafts from persisted LIVE evidence + RO fill audit.
+   */
+  async getStage1ReadinessReport() {
+    const {
+      buildStage1ReadinessReport,
+      getStage1EvidenceStore,
+      draftSpreadRecommendation,
+      summarizeSlippageEvidence,
+      getSlippageEvidenceCollectionWorkflow,
+      STAGE3_TRACKED_INSTRUMENTS,
+    } = await import("./risk-policy/index.js");
+    const { getForexConnectBridge } = await import("../../market-data/forexconnect/client.js");
+    const store = getStage1EvidenceStore();
+    const acceptedSpreadByInstrument = store.getAllAccepted();
+
+    // Read-only fill audit — never submit to create fills.
+    const slippageFillsByInstrument: Record<string, Array<import("./risk-policy/slippage-evidence.js").SlippageFillEvidenceRecord>> = {};
+    let fillAudit: {
+      tradesOk: boolean;
+      tradeCount: number;
+      closedTradeCount: number;
+      usableFillEvidenceCount: number;
+      note: string;
+    } = {
+      tradesOk: false,
+      tradeCount: 0,
+      closedTradeCount: 0,
+      usableFillEvidenceCount: 0,
+      note: "Fill audit not run.",
+    };
+    try {
+      const bridge = getForexConnectBridge();
+      const tradesResult = await bridge.listTrades();
+      const trades = Array.isArray((tradesResult as { trades?: unknown[] })?.trades)
+        ? (tradesResult as { trades: unknown[] }).trades
+        : [];
+      const closed = Array.isArray((tradesResult as { closedTrades?: unknown[] })?.closedTrades)
+        ? (tradesResult as { closedTrades: unknown[] }).closedTrades
+        : [];
+      fillAudit = {
+        tradesOk: (tradesResult as { ok?: boolean })?.ok !== false,
+        tradeCount: trades.length,
+        closedTradeCount: closed.length,
+        usableFillEvidenceCount: 0,
+        note:
+          trades.length + closed.length === 0
+            ? "No open/closed trades returned — WAITING_FOR_CONTROLLED_DEMO_EVIDENCE for slippage."
+            : "Trades present but Stage 1 requires explicit fill fields (reference, execution, direction, ids); none mapped without inventing values.",
+      };
+      for (const inst of STAGE3_TRACKED_INSTRUMENTS) {
+        slippageFillsByInstrument[inst] = store.getSlippageFills(inst);
+      }
+    } catch {
+      fillAudit = {
+        tradesOk: false,
+        tradeCount: 0,
+        closedTradeCount: 0,
+        usableFillEvidenceCount: 0,
+        note: "listTrades failed or unavailable — treat as no fill evidence (fail closed).",
+      };
+      for (const inst of STAGE3_TRACKED_INSTRUMENTS) {
+        slippageFillsByInstrument[inst] = store.getSlippageFills(inst);
+      }
+    }
+
+    // Prefer broker tradingStatus from latest AT feed when available.
+    let marketOpen: boolean | null = null;
+    try {
+      const status = await this.buildStatus();
+      const feed = (status as { feedStatusBreakdown?: { marketOpen?: boolean; marketClosed?: boolean } })
+        ?.feedStatusBreakdown;
+      if (feed?.marketClosed === true) marketOpen = false;
+      else if (feed?.marketOpen === true) marketOpen = true;
+    } catch {
+      marketOpen = null;
+    }
+
+    const report = buildStage1ReadinessReport({
+      marketOpen,
+      acceptedSpreadByInstrument,
+      slippageFillsByInstrument,
+    });
+
+    const drafts = STAGE3_TRACKED_INSTRUMENTS.map((instrument) =>
+      draftSpreadRecommendation({
+        instrument,
+        acceptedLive: acceptedSpreadByInstrument[instrument] ?? [],
+      })
+    );
+    const slippageSummaries = STAGE3_TRACKED_INSTRUMENTS.map((instrument) =>
+      summarizeSlippageEvidence({
+        instrument,
+        productionFills: slippageFillsByInstrument[instrument] ?? [],
+      })
+    );
+
+    const evidenceDoc = store.get();
+    return {
+      ...report,
+      drafts,
+      slippageSummaries,
+      fillAudit,
+      slippageWorkflow: getSlippageEvidenceCollectionWorkflow(),
+      evidenceMeta: {
+        collectionStartedAtUtc: evidenceDoc.collectionStartedAtUtc,
+        collectionLastTickAtUtc: evidenceDoc.collectionLastTickAtUtc,
+        acceptedCounts: Object.fromEntries(
+          STAGE3_TRACKED_INSTRUMENTS.map((i) => [i, (acceptedSpreadByInstrument[i] ?? []).length]),
+        ),
+        rejectionCountsByInstrument: store.rejectionCountsByInstrument(),
+      },
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      brokerExecution: "DISABLED" as const,
+    };
+  }
+
+  /**
    * Stage 3/4 — risk-policy document (read-only snapshot).
    * Never mutates broker; never invents numeric thresholds.
    */

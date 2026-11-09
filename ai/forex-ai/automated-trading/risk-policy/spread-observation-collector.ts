@@ -223,6 +223,17 @@ export function ingestSpreadObservation(
         record: null,
       };
     }
+    // Same bid/ask with a new wall-clock stamp is still a repeated quote read — not independent.
+    if (last.bid === input.bid && last.ask === input.ask) {
+      return {
+        ...baseFlags,
+        status: "DUPLICATE_NOT_INDEPENDENT",
+        code: "UNCHANGED_BID_ASK",
+        message:
+          "Bid/ask unchanged since last accepted sample — refuse repeated reads of the same quote levels.",
+        record: null,
+      };
+    }
   }
 
   const record: LiveSpreadObservationRecord = {

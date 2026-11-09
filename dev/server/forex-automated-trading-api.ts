@@ -2000,6 +2000,54 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Stage 1 reopen — LIVE spread evidence readiness (read-only; never auto-approves).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/stage1-readiness")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const report = await service.getStage1ReadinessReport();
+      sendJson(res, 200, {
+        ok: true,
+        ...report,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+        note:
+          "Stage 1 readiness from persisted LIVE Offers evidence + RO fill audit. "
+          + "Draft recommendations are not approved policies.",
+      });
+      return true;
+    }
+
+    // Stage 1 reopen — one LIVE Offers collection tick (subscribe+poll+ingest; never submits).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/stage1/spread-collect/tick")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      let ensureSubscriptions = true;
+      try {
+        const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+        if (body.ensureSubscriptions === false) ensureSubscriptions = false;
+      } catch {
+        /* default ensure */
+      }
+      const tick = await service.collectStage1SpreadTick({ ensureSubscriptions });
+      sendJson(res, 200, {
+        ok: true,
+        ...tick,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+        note:
+          "Read-only Offers ensure+poll+ingest. Does not approve policies or call create_order_request.",
+      });
+      return true;
+    }
+
     // Stage 4 — Risk policy history (read-only audit trail).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/risk-policy/history")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
