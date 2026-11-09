@@ -2,6 +2,7 @@
  * Stage 3/4 — persisted AT risk-policy (propose ≠ approve; auditable).
  */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import {
   RISK_POLICY_SCHEMA,
@@ -78,6 +79,11 @@ export class AtRiskPolicyStore {
   constructor(filePath: string = storePath()) {
     this.filePath = filePath;
     this.doc = this.loadOrCreate();
+  }
+
+  /** Absolute persistence path (diagnostics / tests). */
+  get persistencePath(): string {
+    return this.filePath;
   }
 
   get(): AtRiskPolicyDocument {
@@ -736,8 +742,12 @@ export function getAtRiskPolicyStore(): AtRiskPolicyStore {
 }
 
 export function resetAtRiskPolicyStoreForTests(filePath?: string): AtRiskPolicyStore {
+  // Always default to OS temp — never leak disposable stores into the repo cwd.
   shared = new AtRiskPolicyStore(
-    filePath ?? path.join(process.cwd(), `.kwizera-test-risk-policy-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.json`),
+    filePath ?? path.join(
+      os.tmpdir(),
+      `.kwizera-test-risk-policy-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.json`,
+    ),
   );
   return shared;
 }

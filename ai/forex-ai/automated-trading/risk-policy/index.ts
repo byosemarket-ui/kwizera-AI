@@ -13,6 +13,7 @@ export * from "./slippage-evidence.js";
 export * from "./stage1-readiness.js";
 export * from "./stage1-evidence-store.js";
 export * from "./stage1-part3-slippage-demo-plan.js";
+export * from "./pending-spread-live-check.js";
 // stage1-live-collector intentionally NOT barrel-exported — it pulls ForexConnect
 // live-service/client; import it directly from stage1-live-collector.js when needed.
 export {

@@ -4345,6 +4345,8 @@ export class AutomatedTradingService {
 
     const evidenceDoc = store.get();
     const { buildStage1Part3SlippageDemoPlan } = await import("./risk-policy/stage1-part3-slippage-demo-plan.js");
+    const { compareLiveSpreadToPendingOrActiveLimit } = await import("./risk-policy/pending-spread-live-check.js");
+    const { getAtRiskPolicyStore } = await import("./risk-policy/store.js");
     let usableMarginUsd: number | null = null;
     try {
       const status = await this.buildStatus();
@@ -4359,6 +4361,41 @@ export class AutomatedTradingService {
     } catch {
       usableMarginUsd = null;
     }
+
+    // Advisory LIVE vs pending/active spread comparison (never mutates policy values).
+    let liveSpreadAdvisories: Array<ReturnType<typeof compareLiveSpreadToPendingOrActiveLimit>> = [];
+    try {
+      const bridge = getForexConnectBridge();
+      const quoteRows = await bridge.pollQuotes();
+      const policyStore = getAtRiskPolicyStore();
+      liveSpreadAdvisories = STAGE3_TRACKED_INSTRUMENTS.map((instrument) => {
+        const q = quoteRows.find((row) => {
+          const sym = String(row.providerSymbol ?? row.symbol ?? "");
+          return sym.replace(/\s+/g, "").toUpperCase() === instrument.replace(/\s+/g, "").toUpperCase();
+        });
+        const pol = policyStore.getInstrument(instrument);
+        const bid = typeof q?.bid === "number" ? q.bid : null;
+        const ask = typeof q?.ask === "number" ? q.ask : null;
+        return compareLiveSpreadToPendingOrActiveLimit({
+          instrument,
+          liveBid: bid,
+          liveAsk: ask,
+          pendingProposedValue: pol?.spread.proposed?.value ?? null,
+          activeApprovedValue: pol?.spread.maxSpreadAbsolute ?? null,
+        });
+      });
+    } catch {
+      const policyStore = getAtRiskPolicyStore();
+      liveSpreadAdvisories = STAGE3_TRACKED_INSTRUMENTS.map((instrument) =>
+        compareLiveSpreadToPendingOrActiveLimit({
+          instrument,
+          liveSpreadAbsolute: null,
+          pendingProposedValue: policyStore.getInstrument(instrument)?.spread.proposed?.value ?? null,
+          activeApprovedValue: policyStore.getInstrument(instrument)?.spread.maxSpreadAbsolute ?? null,
+        })
+      );
+    }
+
     return {
       ...report,
       drafts,
@@ -4366,6 +4403,7 @@ export class AutomatedTradingService {
       fillAudit,
       slippageWorkflow: getSlippageEvidenceCollectionWorkflow(),
       controlledDemoSlippagePlan: buildStage1Part3SlippageDemoPlan({ usableMarginUsd }),
+      liveSpreadAdvisories,
       evidenceMeta: {
         collectionStartedAtUtc: evidenceDoc.collectionStartedAtUtc,
         collectionLastTickAtUtc: evidenceDoc.collectionLastTickAtUtc,

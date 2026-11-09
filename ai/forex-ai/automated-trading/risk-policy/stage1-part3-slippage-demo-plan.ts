@@ -49,6 +49,17 @@ export interface Stage1Part3SlippageDemoPlan {
   eligibleInstruments: Stage1Part3SlippageDemoInstrumentPlan[];
   orderType: "LIMIT";
   timeInForce: "GTC";
+  /**
+   * Obtaining ≥20 fills is a multi-cycle campaign, not a single LIMIT order.
+   * LIMIT/GTC may remain unfilled if priced away from the market.
+   */
+  fillCampaign: {
+    minimumFillsPerInstrument: 20;
+    singleOrderProducesAtMostOneFillEvidenceRecord: true;
+    requiresSeparateOwnerAuthorizedCycles: true;
+    limitGtcMayNeverFill: true;
+    recommendedOwnerReviewPoints: string[];
+  };
   entryConditions: string[];
   stopLossConditions: string[];
   spreadAndExecutionCostConditions: string[];
@@ -63,6 +74,9 @@ export interface Stage1Part3SlippageDemoPlan {
 /**
  * Build the Part 3 controlled DEMO slippage proposal (documentation only).
  * Quantities sized so modeled loss ≤ 25% of the individual order allocation.
+ *
+ * EUR risk math (illustrative): pipCost≈$0.1/lot, 10-pip SL → ≈$1 modeled loss at 1 lot.
+ * XAU risk math (illustrative): pipCost≈$0.01/lot, 10-point SL → ≈$0.10 modeled loss at 1 lot.
  */
 export function buildStage1Part3SlippageDemoPlan(input?: {
   /** Account usable margin (USD) when known — for documentation only. */
@@ -70,8 +84,7 @@ export function buildStage1Part3SlippageDemoPlan(input?: {
 }): Stage1Part3SlippageDemoPlan {
   const usable = input?.usableMarginUsd ?? null;
 
-  // EUR/USD: 10-pip SL → ~$1/lot risk at pipCost 0.1; alloc $400 → $100 allowed → 100 lots / AMOUNT 100000.
-  // Margin est 1.3×100 = $130 ≪ typical DEMO usable.
+  // EUR/USD: 1 lot = AMOUNT 1000; 10-pip SL × pipCost 0.1 → ≈$1 loss; alloc $40 → allowed $10.
   const eur: Stage1Part3SlippageDemoInstrumentPlan = {
     instrument: "EUR/USD",
     eligible: true,
@@ -91,8 +104,7 @@ export function buildStage1Part3SlippageDemoPlan(input?: {
     spreadPolicyPrerequisite: "Owner-approved EUR/USD maxSpreadAbsolute (draft 0.00014) must be VERIFIED first.",
   };
 
-  // XAU/USD: base=1; use 1 contract. With 10-point SL risk≈$0.10/lot; alloc $40 → headroom.
-  // Wider stops must be re-checked so 1 lot still ≤ 25% of allocation.
+  // XAU/USD: 1 lot = AMOUNT 1; 10-point SL × pipCost 0.01 → ≈$0.10 loss; alloc $40 → allowed $10.
   const xau: Stage1Part3SlippageDemoInstrumentPlan = {
     instrument: "XAU/USD",
     eligible: true,
@@ -125,17 +137,29 @@ export function buildStage1Part3SlippageDemoPlan(input?: {
       {
         instrument: "GBP/USD",
         blocker: "MMR_PER_LOT_UNVERIFIED",
-        note: "TradingSettings get_mmr returns non-positive; Offers MMR absent — keep blocked.",
+        note: "TradingSettings get_mmr returns non-positive (-1.0 observed); Offers MMR absent — keep blocked.",
       },
       {
         instrument: "USD/JPY",
         blocker: "MMR_PER_LOT_UNVERIFIED",
-        note: "TradingSettings get_mmr returns non-positive; Offers MMR absent — keep blocked.",
+        note: "TradingSettings get_mmr returns non-positive (-1.0 observed); Offers MMR absent — keep blocked.",
       },
     ],
     eligibleInstruments: [eur, xau],
     orderType: "LIMIT",
     timeInForce: "GTC",
+    fillCampaign: {
+      minimumFillsPerInstrument: 20,
+      singleOrderProducesAtMostOneFillEvidenceRecord: true,
+      requiresSeparateOwnerAuthorizedCycles: true,
+      limitGtcMayNeverFill: true,
+      recommendedOwnerReviewPoints: [
+        "Confirm whether MARKET/IOC near touch is allowed for fill evidence (separate owner decision).",
+        "Budget ≥20 distinct owner-authorized fill cycles per instrument if LIMIT/GTC is retained.",
+        "Each cycle must capture referencePrice, executionPrice, timestamps, and broker IDs.",
+        "Flatten or cancel between cycles; never leave unmanaged DEMO exposure overnight without owner intent.",
+      ],
+    },
     entryConditions: [
       "Market OPEN and LIVE ForexConnect DEMO session.",
       "Quote fresh; absolute spread ≤ owner-approved instrument maxSpreadAbsolute.",
@@ -185,6 +209,7 @@ export function buildStage1Part3SlippageDemoPlan(input?: {
     note:
       "This document prepares a future owner-reviewed controlled DEMO. "
       + "It does not submit orders, create grants, or approve policies. "
-      + "Slippage drafts require ≥20 BROKER_EXECUTION fills per instrument after a separate owner-approved test plan.",
+      + "Slippage drafts require ≥20 BROKER_EXECUTION fills per instrument after a separate owner-approved test plan. "
+      + "LIMIT/GTC alone is not a complete 20-fill acquisition strategy.",
   };
 }

@@ -5,11 +5,13 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+// os/path used for temp-store leak regression
 import { afterEach, describe, expect, it } from "vitest";
 import {
   AtRiskPolicyStore,
   buildStage1Part3SlippageDemoPlan,
   buildStage1ReadinessReport,
+  compareLiveSpreadToPendingOrActiveLimit,
   computeExecutionSlippage,
   draftSpreadRecommendation,
   documentedPrecision,
@@ -166,10 +168,32 @@ describe("Stage 1 Part 3 — controlled DEMO plan + readiness", () => {
     expect(plan.realDemoFillAuthorizedByThisPlan).toBe(false);
     expect(plan.eligibleInstruments.map((i) => i.instrument)).toEqual(["EUR/USD", "XAU/USD"]);
     expect(plan.excludedInstruments.every((e) => e.blocker === "MMR_PER_LOT_UNVERIFIED")).toBe(true);
+    expect(plan.fillCampaign.minimumFillsPerInstrument).toBe(20);
+    expect(plan.fillCampaign.limitGtcMayNeverFill).toBe(true);
+    expect(plan.fillCampaign.requiresSeparateOwnerAuthorizedCycles).toBe(true);
     for (const row of plan.eligibleInstruments) {
       expect(row.estimatedModeledLossUsd).toBeLessThanOrEqual(row.allowedRiskAmountUsd + 1e-9);
       expect(row.proposedBrokerAmount).toBe(row.baseUnitSize * row.proposedLots);
     }
+  });
+
+  it("advises when LIVE GBP spread exceeds pending 0.00013 without changing policy", () => {
+    const check = compareLiveSpreadToPendingOrActiveLimit({
+      instrument: "GBP/USD",
+      liveSpreadAbsolute: 0.00015,
+      pendingProposedValue: 0.00013,
+      activeApprovedValue: null,
+    });
+    expect(check.exceedsComparedLimit).toBe(true);
+    expect(check.relation).toBe("LIVE_EXCEEDS_PENDING_OR_ACTIVE_LIMIT");
+    expect(check.mayChangePolicyValue).toBe(false);
+    expect(check.comparedAgainstValue).toBe(0.00013);
+  });
+
+  it("resetAtRiskPolicyStoreForTests defaults to OS temp, not repo cwd", () => {
+    const store = resetAtRiskPolicyStoreForTests();
+    expect(store.persistencePath.includes(os.tmpdir())).toBe(true);
+    expect(path.normalize(store.persistencePath).startsWith(path.normalize(process.cwd() + path.sep))).toBe(false);
   });
 
   it("readiness stays NOT_RESOLVED without approved spread+slippage", () => {

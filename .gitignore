@@ -95,6 +95,14 @@ node_modules/
 # ---------------------------------------------------------------------------
 /.kwizera-storage/
 
+# Disposable risk-policy test stores (must never land in repo cwd; reset helper uses OS temp)
+.kwizera-test-risk-policy-*.json
+
+# Local agent/ops one-off audit scripts (not production source)
+/tmp-*.py
+/tmp-*.mjs
+/tmp-*.js
+
 # ---------------------------------------------------------------------------
 # OS, editor scratch, caches
 # ---------------------------------------------------------------------------
