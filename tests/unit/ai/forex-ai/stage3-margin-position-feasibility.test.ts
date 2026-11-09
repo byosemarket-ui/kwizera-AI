@@ -61,7 +61,7 @@ describe("Stage 3 — documented DEMO contracts (not LIVE)", () => {
       expect(row.stage1Blockers).toContain("WAITING_FOR_OWNER_APPROVAL");
       expect(row.stage1Blockers).toContain(SLIPPAGE_EVIDENCE_REQUIRES_CONTROLLED_DEMO_EXECUTION);
       expect(row.stage1Blockers).toContain("WAITING_FOR_LIVE_MARKET");
-      expect(row.riskPolicyPreserved.perOrderRiskTargetPercent).toBe(20);
+      expect(row.riskPolicyPreserved.perOrderRiskTargetPercent).toBe(25);
       expect(row.riskPolicyPreserved.perOrderRiskMaximumPercent).toBe(25);
       expect(row.riskPolicyPreserved.minTakeProfitR).toBe(3);
     }

@@ -153,13 +153,13 @@ function baseInput(dir: "BUY" | "SELL", alloc = 100) {
 }
 
 describe("Stage 5 — operating risk defaults (verified existing)", () => {
-  it("preserves 20% operating target and 25% hard maximum", () => {
-    expect(DEFAULT_PER_ORDER_RISK_PERCENT).toBe(20);
+  it("preserves 25% operating target and 25% hard maximum (v3)", () => {
+    expect(DEFAULT_PER_ORDER_RISK_PERCENT).toBe(25);
     expect(MAX_PER_ORDER_LOSS_PERCENT).toBe(25);
-    expect(PER_ORDER_RISK_TARGET_PERCENT).toBe(20);
+    expect(PER_ORDER_RISK_TARGET_PERCENT).toBe(25);
     expect(PER_ORDER_RISK_MAXIMUM_PERCENT).toBe(25);
     expect(MINIMUM_REWARD_TO_RISK_RATIO).toBe(3);
-    expect(OWNER_MAX_QUANTITY).toBe(0.01);
+    expect(OWNER_MAX_QUANTITY).toBe(0.01); // legacy reference only
   });
 
   it("documents modeled vs realized distinction", () => {
@@ -180,9 +180,10 @@ describe("Stage 5 — capital allocation independence", () => {
     expect(a.perOrderRisk.maximumAllowedMonetaryLoss).toBeCloseTo(2.5, 8);
     expect(b.perOrderRisk.maximumAllowedMonetaryLoss).toBeCloseTo(5, 8);
     expect(c.perOrderRisk.maximumAllowedMonetaryLoss).toBeCloseTo(10, 8);
-    expect(a.perOrderRisk.plannedMonetaryRisk).toBeCloseTo(2, 8);
-    expect(b.perOrderRisk.plannedMonetaryRisk).toBeCloseTo(4, 8);
-    expect(c.perOrderRisk.plannedMonetaryRisk).toBeCloseTo(8, 8);
+    // v3: target == hard max == 25% of allocation
+    expect(a.perOrderRisk.plannedMonetaryRisk).toBeCloseTo(2.5, 8);
+    expect(b.perOrderRisk.plannedMonetaryRisk).toBeCloseTo(5, 8);
+    expect(c.perOrderRisk.plannedMonetaryRisk).toBeCloseTo(10, 8);
   });
 
   it("rejects zero / negative / missing allocation", () => {
@@ -218,13 +219,13 @@ describe("Stage 5 — capital allocation independence", () => {
   });
 });
 
-describe("Stage 5 — maximum risk 20%/25%", () => {
-  it("computes exact 20% operating and 25% hard max for allocation examples", () => {
+describe("Stage 5 — maximum risk 25%/25%", () => {
+  it("computes exact 25% operating and 25% hard max for allocation examples", () => {
     for (const alloc of [10, 20, 40, 100, 200]) {
       const bd = computePerOrderRiskBreakdown(alloc);
-      expect(bd.riskTargetAmount).toBeCloseTo(alloc * 0.2, 10);
+      expect(bd.riskTargetAmount).toBeCloseTo(alloc * 0.25, 10);
       expect(bd.maximumPermittedOrderLoss).toBeCloseTo(alloc * 0.25, 10);
-      expect(bd.allowedRiskAmount).toBeCloseTo(alloc * 0.2, 10);
+      expect(bd.allowedRiskAmount).toBeCloseTo(alloc * 0.25, 10);
     }
   });
 
@@ -239,9 +240,8 @@ describe("Stage 5 — maximum risk 20%/25%", () => {
       perOrderAllocation: 100,
       estimatedStopLossRisk: 25,
     });
-    // 25 equals hard max but exceeds 20% target → pass=false with TARGET code
-    expect(atCeiling.pass).toBe(false);
-    expect(atCeiling.code).toBe("PER_ORDER_RISK_TARGET_EXCEEDED");
+    // v3: 25 equals both target and hard max → pass
+    expect(atCeiling.pass).toBe(true);
     const withinTarget = evaluatePerOrderLossLimit({
       perOrderAllocation: 100,
       estimatedStopLossRisk: 20,
@@ -362,20 +362,22 @@ describe("Stage 5 — automatic Stop Loss", () => {
   });
 });
 
-describe("Stage 5 — position sizing + owner max 0.01", () => {
-  it("sizes within risk budget and owner max", () => {
+describe("Stage 5 — position sizing + dynamic risk budget (v3)", () => {
+  it("sizes within per-order 25% risk budget without forced 0.01 lot cap", () => {
     const r = runAutomatedPerOrderRiskEngine(baseInput("BUY", 500));
     expect(r.proposal.placesOrders).toBe(false);
     expect(r.proposal.acceptsForExecution).toBe(false);
     expect(r.proposal.mutatesBroker).toBe(false);
     if (r.proposal.lifecycle === "PROPOSAL_READY") {
-      expect(r.proposal.quantity.normalizedQuantity!).toBeLessThanOrEqual(OWNER_MAX_QUANTITY + 1e-12);
+      expect(r.proposal.quantity.normalizedQuantity!).toBeGreaterThan(0);
       expect(r.perOrderRisk.actualModeledMonetaryRisk!).toBeLessThanOrEqual(
         r.perOrderRisk.maximumAllowedMonetaryLoss! + 1e-8,
       );
       expect(r.perOrderRisk.actualModeledMonetaryRisk!).toBeLessThanOrEqual(
         r.perOrderRisk.plannedMonetaryRisk! + 1e-8,
       );
+      expect(r.perOrderRisk.operatingRiskPercent).toBe(25);
+      expect(r.perOrderRisk.hardMaximumRiskPercent).toBe(25);
     }
   });
 

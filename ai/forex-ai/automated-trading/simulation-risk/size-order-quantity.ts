@@ -1,6 +1,7 @@
 /**
- * Phase 56.2.5 — Pure XAU/USD order quantity sizing from individual order allocation.
- * Simulation-only. Never invents margin, pip value, units, or stop distances.
+ * Phase 56.2.5 / Stage 1 Part 1 — Pure order quantity sizing from individual order allocation.
+ * Instrument-agnostic when contract metadata is verified (FX + XAU).
+ * Never invents margin, pip value, units, or stop distances. Never rounds quantity upward.
  */
 
 import {
@@ -35,9 +36,9 @@ export type SizeOrderQuantityResult =
     estimatedStopLossRisk: number;
     /** Hard 25% ceiling. */
     maxPermittedOrderLoss: number;
-    /** 20% risk target amount. */
+    /** 25% risk target amount (v3). */
     riskTargetAmount: number;
-    /** min(target, hardMax) — sizing ceiling. */
+    /** min(target, hardMax) — sizing ceiling (= 25% under v3). */
     allowedRiskAmount: number;
     riskPerUnit: number;
     requiredMargin: number | null;
@@ -77,6 +78,8 @@ export interface SizeOrderQuantityInput {
   /** Distinct SDK min when available (preferred over legacy lotStep). */
   sdkMinQuantity?: number | null;
   legacyLotStep?: number | null;
+  /** Broker-reported maximum quantity when supplied (never invented). */
+  brokerMaxQuantity?: number | null;
   /**
    * Currency of individualOrderAllocation (UI currently labels USD).
    * Converted into accountCurrency when they differ — requires rateSnapshot.
@@ -307,9 +310,9 @@ export function sizeOrderQuantityFromAllocation(
   const riskTargetAmount = computePerOrderRiskTarget(orderAllocationAccountCcy);
   const maxPermittedOrderLoss = computePerOrderLossLimit(orderAllocationAccountCcy);
   const allowedRiskAmount = computeAllowedRiskAmount(orderAllocationAccountCcy);
-  // Size to the allowed risk (20% target), never to the hard max as a permission to raise risk.
+  // Size to the allowed risk (25% target under v3). Never round upward to meet broker min.
   const rawQty = allowedRiskAmount / riskPerUnit;
-  const quantity = floorQuantityToStep(
+  let quantity = floorQuantityToStep(
     rawQty,
     constraints.quantityStep,
     constraints.quantityMin,
@@ -323,10 +326,34 @@ export function sizeOrderQuantityFromAllocation(
       message:
         `Allowed risk $${allowedRiskAmount} (target ${riskTargetAmount}, hard max ${maxPermittedOrderLoss}) `
         + `cannot fund minimum ${constraints.quantityMin} `
-        + `${constraints.quantityUnit} after flooring to step ${constraints.quantityStep}.`,
+        + `${constraints.quantityUnit} after flooring to step ${constraints.quantityStep}. `
+        + "Broker minimum is not satisfied by increasing size beyond the per-order risk budget.",
       constraints,
       notes,
     };
+  }
+
+  if (finitePositive(input.brokerMaxQuantity) && quantity > input.brokerMaxQuantity + 1e-12) {
+    const capped = floorQuantityToStep(
+      input.brokerMaxQuantity,
+      constraints.quantityStep,
+      constraints.quantityMin,
+    );
+    if (capped == null) {
+      return {
+        ok: false,
+        quantity: null,
+        quantityUnit: "contracts",
+        code: "SIZE_QTY_BROKER_MAX_INCOMPATIBLE",
+        message:
+          `Broker maximum ${input.brokerMaxQuantity} is incompatible with min/step constraints `
+          + `(min=${constraints.quantityMin}, step=${constraints.quantityStep}).`,
+        constraints,
+        notes,
+      };
+    }
+    quantity = capped;
+    notes.push(`Quantity floored to broker maximum ${input.brokerMaxQuantity}.`);
   }
 
   const estimatedStopLossRisk = riskPerUnit * quantity;
@@ -348,8 +375,8 @@ export function sizeOrderQuantityFromAllocation(
       quantityUnit: "contracts",
       code: "SIZE_QTY_EXCEEDS_RISK_TARGET",
       message:
-        "Floored quantity exceeds 20% risk target — blocked. "
-        + "Hard 25% maximum is not permission to raise risk above the target.",
+        "Floored quantity exceeds 25% risk target — blocked. "
+        + "Quantity is not increased to satisfy broker minimums.",
       constraints,
       notes,
     };

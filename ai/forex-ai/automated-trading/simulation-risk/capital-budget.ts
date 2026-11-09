@@ -2,19 +2,20 @@
  * Phase 56.2.3 / Step 2 risk policy —
  * Strategy capital allocation (1–100% of equity) and per-order risk.
  *
- * Per-order risk (v2):
- *   riskTargetAmount          = allocation × 0.20  (normal target)
+ * Per-order risk (v3 — owner-approved Stage 1 Part 1):
+ *   riskTargetAmount          = allocation × 0.25  (operating target)
  *   maximumPermittedOrderLoss = allocation × 0.25  (hard safety ceiling — not UI-increasable)
- *   allowedRiskAmount         = min(riskTarget, hardMax)  (= target under default percents)
+ *   allowedRiskAmount         = min(riskTarget, hardMax)  (= 25% under default percents)
  *
+ * Budgets are per individual order allocation only — never pooled across orders.
  * Strategy budget ≠ broker margin ≠ estimated SL risk.
  */
 export const STRATEGY_ALLOCATION_PCT_MIN = 1;
 export const STRATEGY_ALLOCATION_PCT_MAX = 100;
 
 /** Normal per-order risk target as fraction of individual order allocation. */
-export const PER_ORDER_RISK_TARGET_FRACTION = 0.20;
-export const PER_ORDER_RISK_TARGET_PERCENT = 20;
+export const PER_ORDER_RISK_TARGET_FRACTION = 0.25;
+export const PER_ORDER_RISK_TARGET_PERCENT = 25;
 
 /**
  * Absolute hard maximum loss as fraction of individual order allocation.
@@ -26,7 +27,9 @@ export const PER_ORDER_RISK_MAXIMUM_PERCENT = 25;
 /** @deprecated Alias — prefer PER_ORDER_LOSS_LIMIT_FRACTION (hard ceiling). */
 export const PER_ORDER_HARD_MAX_FRACTION = PER_ORDER_LOSS_LIMIT_FRACTION;
 
-export const PER_ORDER_RISK_POLICY_VERSION = "per-order-risk-v2-20target-25max" as const;
+export const PER_ORDER_RISK_POLICY_VERSION = "per-order-risk-v3-25target-25max" as const;
+/** Previous operating target (20%) with same 25% hard ceiling. */
+export const PER_ORDER_RISK_POLICY_VERSION_LEGACY_20 = "per-order-risk-v2-20target-25max" as const;
 export const PER_ORDER_RISK_POLICY_VERSION_LEGACY_25 = "per-order-risk-v1-25pct-only" as const;
 
 export type StrategyPctValidation =
@@ -183,7 +186,7 @@ export function allocatePerOrderFromRemaining(input: {
   };
 }
 
-/** 20% risk target amount from individual order allocation. */
+/** 25% risk target amount from individual order allocation. */
 export function computePerOrderRiskTarget(perOrderAllocation: number): number {
   return perOrderAllocation * PER_ORDER_RISK_TARGET_FRACTION;
 }
@@ -203,7 +206,7 @@ export function computeMaximumPermittedOrderLoss(perOrderAllocation: number): nu
 
 /**
  * allowedRiskAmount = min(riskTarget, hardMaximum).
- * With default 20/25 percents this equals the 20% target.
+ * With default 25/25 percents this equals the 25% target (= hard ceiling).
  */
 export function computeAllowedRiskAmount(perOrderAllocation: number): number {
   const target = computePerOrderRiskTarget(perOrderAllocation);
@@ -263,7 +266,7 @@ export type PerOrderLossLimitResult =
   };
 
 /**
- * Enforce risk target (20%) and hard maximum (25%).
+ * Enforce risk target (25%) and hard maximum (25%).
  * Pass only when projected loss <= allowedRiskAmount (target under default policy).
  * Hard-max exceed is a distinct failure code.
  */

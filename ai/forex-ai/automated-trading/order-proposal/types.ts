@@ -9,21 +9,29 @@ export const AT_ORDER_PROPOSAL_SCHEMA = "at-order-proposal-v1" as const;
 export const AT_ORDER_PROPOSAL_PHASE = "4.18G.2" as const;
 export const AT_ORDER_PROPOSAL_MAX_HISTORY = 80;
 
-/** Owner-approved maximum trade size (lots/contracts). Never raised. */
+/**
+ * Legacy fixed-lot ceiling retained for Stage 3 compatibility audits / historical evidence.
+ * Under v3 dynamic sizing this fixed cap is NOT enforced on new proposals
+ * (`OWNER_FIXED_LOT_CAP_ENFORCED=false`). Quantity comes from per-order risk budget + broker rules.
+ */
 export const OWNER_MAX_QUANTITY = 0.01;
+/** Owner-approved Stage 1 Part 1: dynamic sizing — do not force 0.01 / 1.00 lots. */
+export const OWNER_FIXED_LOT_CAP_ENFORCED = false as const;
 
 /**
- * Per-order risk policy v2:
- *   riskTargetAmount = allocation × 0.20
+ * Per-order risk policy v3 (owner-approved Stage 1 Part 1):
+ *   riskTargetAmount = allocation × 0.25
  *   maximumPermittedOrderLoss = allocation × 0.25 (hard ceiling)
  *   allowedRiskAmount = min(target, hardMax)
- * Distinct from Capital Allocation % and Order Allocation.
+ * Distinct from Capital Allocation % and Order Allocation. Never pooled across orders.
  */
-export const RISK_POLICY_ID = "PER_ORDER_ALLOCATION_20TARGET_25MAX" as const;
+export const RISK_POLICY_ID = "PER_ORDER_ALLOCATION_25TARGET_25MAX" as const;
+export const RISK_POLICY_ID_LEGACY_20 = "PER_ORDER_ALLOCATION_20TARGET_25MAX" as const;
 export const RISK_POLICY_ID_LEGACY_25 = "PER_ORDER_ALLOCATION_25PCT_LOSS" as const;
-export const RISK_POLICY_VERSION = "per-order-risk-v2-20target-25max" as const;
+export const RISK_POLICY_VERSION = "per-order-risk-v3-25target-25max" as const;
+export const RISK_POLICY_VERSION_LEGACY_20 = "per-order-risk-v2-20target-25max" as const;
 export const RISK_POLICY_VERSION_LEGACY_25 = "per-order-risk-v1-25pct-only" as const;
-export const PER_ORDER_RISK_TARGET_PERCENT = 20 as const;
+export const PER_ORDER_RISK_TARGET_PERCENT = 25 as const;
 export const PER_ORDER_RISK_MAXIMUM_PERCENT = 25 as const;
 
 export type AtOrderProposalLifecycle =

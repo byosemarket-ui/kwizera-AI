@@ -45,3 +45,11 @@ export {
   type RunPerOrderRiskEngineInput,
   type RunPerOrderRiskEngineResult,
 } from "./engine.js";
+
+export {
+  assertIndependentRiskBudgets,
+  buildIndependentOrderRiskBudget,
+  reserveIndependentAllocations,
+  type IndependentOrderAllocationSpec,
+  type IndependentOrderRiskBudget,
+} from "./independent-allocation.js";

@@ -24,6 +24,7 @@ import type { AtOrderPreparationHandoff } from "../result-intake/types.js";
 import {
   AT_ORDER_PROPOSAL_PHASE,
   AT_ORDER_PROPOSAL_SCHEMA,
+  OWNER_FIXED_LOT_CAP_ENFORCED,
   OWNER_MAX_QUANTITY,
   PER_ORDER_RISK_MAXIMUM_PERCENT,
   PER_ORDER_RISK_TARGET_PERCENT,
@@ -690,6 +691,7 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
       marginPerUnitAccount: input.marginPerUnitAccount,
       sdkMinQuantity: input.sdkMinQuantity,
       legacyLotStep: input.legacyLotStep,
+      brokerMaxQuantity: input.brokerMaxQuantity,
       allocationCurrency: accountCurrency, // already converted above
       conversionRateSnapshot: null,
       nowMs,
@@ -750,16 +752,18 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
         blockers.push(block(
           "RISK_TARGET_EXCEEDED",
           `Projected loss ${sized.estimatedStopLossRisk} exceeds risk target ${sized.allowedRiskAmount}. `
-          + "Hard 25% is not permission to raise risk above the 20% target.",
+          + `Hard ${PER_ORDER_RISK_MAXIMUM_PERCENT}% is not permission to raise risk above the `
+          + `${PER_ORDER_RISK_TARGET_PERCENT}% target.`,
         ));
         base.capital.riskValidationStatus = "FAIL";
       } else {
         base.capital.riskValidationStatus = "PASS";
       }
 
-      // Floor-only already applied inside sizer; re-assert owner max 0.01
+      // Dynamic sizing (v3): quantity from per-order risk budget + broker rules.
+      // Legacy fixed 0.01 lot cap only when OWNER_FIXED_LOT_CAP_ENFORCED is true.
       let qty = sized.quantity;
-      if (qty > OWNER_MAX_QUANTITY + 1e-12) {
+      if (OWNER_FIXED_LOT_CAP_ENFORCED && qty > OWNER_MAX_QUANTITY + 1e-12) {
         const floored = floorQuantityToStep(
           OWNER_MAX_QUANTITY,
           constraints.quantityStep ?? OWNER_MAX_QUANTITY,
@@ -783,17 +787,22 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
           if (projected > sized.maxPermittedOrderLoss + 1e-8) {
             blockers.push(block(
               "RISK_LIMIT_EXCEEDED",
-              "Projected loss at owner-capped quantity exceeds hard maximum 25%.",
+              `Projected loss at owner-capped quantity exceeds hard maximum ${PER_ORDER_RISK_MAXIMUM_PERCENT}%.`,
             ));
             base.capital.riskValidationStatus = "FAIL";
           } else if (projected > sized.allowedRiskAmount + 1e-8) {
             blockers.push(block(
               "RISK_TARGET_EXCEEDED",
-              "Projected loss at owner-capped quantity exceeds 20% risk target.",
+              `Projected loss at owner-capped quantity exceeds ${PER_ORDER_RISK_TARGET_PERCENT}% risk target.`,
             ));
             base.capital.riskValidationStatus = "FAIL";
           }
         }
+      } else if (!OWNER_FIXED_LOT_CAP_ENFORCED && qty > OWNER_MAX_QUANTITY + 1e-12) {
+        base.notes.push(
+          `Dynamic sizing allowed quantity ${qty} above legacy fixed-lot reference ${OWNER_MAX_QUANTITY} `
+          + `(OWNER_FIXED_LOT_CAP_ENFORCED=false; risk budget + broker rules govern).`,
+        );
       }
 
       if (qty != null && Number.isFinite(qty)) {
@@ -801,14 +810,15 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
         if (finitePositive(brokerMin) && qty + 1e-12 < brokerMin) {
           blockers.push(block(
             "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
-            `Broker minimum ${brokerMin} exceeds allowed quantity ${qty} (owner max ${OWNER_MAX_QUANTITY}). Proposal remains blocked.`,
+            `Broker minimum ${brokerMin} exceeds risk-affordable quantity ${qty}. `
+            + "Quantity is not rounded up to satisfy broker minimum.",
           ));
         } else if (
           finitePositive(input.brokerMaxQuantity)
           && qty > input.brokerMaxQuantity + 1e-12
         ) {
           blockers.push(block(
-            "OWNER_MAX_QUANTITY_EXCEEDED",
+            "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
             `Quantity ${qty} exceeds broker maximum ${input.brokerMaxQuantity}.`,
           ));
         } else {

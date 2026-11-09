@@ -156,7 +156,7 @@ export function evaluateControlledDemoReadiness(
     push(blockers, "ALLOCATION_IDENTITY_INVALID", gates.allocationIdentity.detail, "TECHNICAL");
   }
 
-  // Explicit operating risk ≤ 20% of allocation (actual modeled)
+  // Explicit operating risk ≤ approved per-order target % of allocation (actual modeled)
   let operatingRiskOk = false;
   if (risk && finitePositive(risk.capitalAllocation) && risk.actualModeledMonetaryRisk != null) {
     const pct = (risk.actualModeledMonetaryRisk / risk.capitalAllocation) * 100;

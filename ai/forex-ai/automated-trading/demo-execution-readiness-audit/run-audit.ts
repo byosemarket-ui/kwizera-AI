@@ -359,7 +359,7 @@ export function runDemoExecutionReadinessAudit(input: Stage71AuditInput): Stage7
       status: riskOk ? "PASS" : "FAIL",
       code: riskOk ? "RISK_INTEGRITY_PASS" : "RISK_INTEGRITY_FAIL",
       message: riskOk
-        ? "Per-order risk applies to individual allocation; 20%/25%/3R/0.01 constraints hold on live record."
+        ? "Per-order risk applies to individual allocation; 25%/25%/3R + dynamic quantity constraints hold on live record."
         : "Live risk record fails one or more Stage 5 constraints.",
       evidenceSource: "per-order-risk on canonical proposal",
       evidenceKind: "PRODUCTION",
