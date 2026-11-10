@@ -76,6 +76,23 @@ export type AtPrecheckReasonCode =
   | "SPREAD_DATA_UNAVAILABLE"
   | "EXCESSIVE_SPREAD"
   | "SPREAD_POLICY_INVALID"
+  | "DYNAMIC_SPREAD_REJECT"
+  | "DYNAMIC_SPREAD_NOT_EVALUATED"
+  | "QUOTE_MISSING"
+  | "QUOTE_STALE"
+  | "QUOTE_INVALID"
+  | "MARKET_DATA_NOT_LIVE"
+  | "SPREAD_DATA_INSUFFICIENT"
+  | "SPREAD_ABNORMAL_WIDENING"
+  | "SPREAD_COST_UNVERIFIED"
+  | "SPREAD_COST_EXCESSIVE"
+  | "STOP_LOSS_RISK_EXCEEDED"
+  | "NET_REWARD_BELOW_POLICY"
+  | "INSTRUMENT_METADATA_UNVERIFIED"
+  | "CURRENCY_CONVERSION_UNVERIFIED"
+  | "BROKER_CONSTRAINT_UNVERIFIED"
+  | "LEGACY_EMERGENCY_SPREAD_CEILING"
+  | "DYNAMIC_SPREAD_OK"
   | "SLIPPAGE_LIMIT_NOT_CONFIGURED"
   | "SLIPPAGE_POLICY_INVALID"
   | "SLIPPAGE_DATA_UNAVAILABLE"
@@ -132,7 +149,11 @@ export interface AtPrecheckRiskLimits {
   /** Absolute day-loss cap in account currency; null = gate requires telemetry then fails closed. */
   maxDailyLossAccount: number | null;
   maxDrawdownFractionOfDayStartEquity: number | null;
-  /** Optional; when null → SPREAD_LIMIT_NOT_CONFIGURED (fail closed). */
+  /**
+   * Legacy owner-approved absolute ceiling (optional emergency safety only).
+   * When null, Dynamic Spread Intelligence is the sole spread eligibility rule —
+   * precheck must NOT fail solely because this field is null.
+   */
   maxSpreadAbsolute: number | null;
   /** Optional; when null → SLIPPAGE_LIMIT_NOT_CONFIGURED (fail closed). Absolute |entry−executable|. */
   maxSlippageAbsolute: number | null;
@@ -212,6 +233,27 @@ export interface AtPreExecutionValidationInput {
   validationId?: string;
   /** Informational TTL; does not authorize execution. */
   ttlMs?: number;
+  /**
+   * Dynamic Spread Intelligence inputs (Stage 1 remediation — mode DYNAMIC).
+   * When omitted, precheck invokes the engine from market/proposal fields (fail-closed).
+   */
+  dynamicSpread?: {
+    historicalSpreads?: import("../dynamic-spread/types.js").DynamicSpreadHistoricalObservation[] | null;
+    provenance?: string | null;
+    feedConnected?: boolean | null;
+    quoteTimestampUtc?: string | null;
+    quoteId?: string | null;
+    contract?: import("../simulation-risk/types.js").AtSimContractMetaInput | null;
+    orderAllocationAccount?: number | null;
+    allocationId?: string | null;
+    accountCurrency?: string | null;
+    commissionAccount?: number | null;
+    commissionVerified?: boolean | null;
+    slippageEstimateAccount?: number | null;
+    slippageEvidenceAvailable?: boolean | null;
+    /** Precomputed evaluation — when set, precheck consumes it directly. */
+    evaluation?: import("../dynamic-spread/types.js").DynamicSpreadEvaluationResult | null;
+  } | null;
 }
 
 export interface AtPreExecutionValidationResult {
@@ -245,6 +287,8 @@ export interface AtPreExecutionValidationResult {
   executionAuthorized: false;
   phase2SubmitImplemented: false;
   note: string;
+  /** Dynamic Spread Intelligence decision attached to every precheck run. */
+  dynamicSpread?: import("../dynamic-spread/types.js").DynamicSpreadEvaluationResult | null;
 }
 
 export function defaultPrecheckRiskLimits(): AtPrecheckRiskLimits {

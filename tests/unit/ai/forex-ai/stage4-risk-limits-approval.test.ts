@@ -96,7 +96,14 @@ describe("Stage 4 — instruments and missing config", () => {
     expect(resolveSpreadLimit({ instrument: "EUR/USD", store }).status).toBe("NOT_CONFIGURED");
     expect(resolveSlippageLimit({ instrument: "EUR/USD", store }).status).toBe("NOT_CONFIGURED");
     const r = runPreExecutionValidation(minimalPrecheck());
-    expect(hasCode(r, "SPREAD_LIMIT_NOT_CONFIGURED") || hasCode(r, "SPREAD_DATA_UNAVAILABLE")).toBe(true);
+    // DYNAMIC mode replaces sole static SPREAD_LIMIT_NOT_CONFIGURED gate.
+    expect(
+      hasCode(r, "SPREAD_DATA_UNAVAILABLE")
+      || hasCode(r, "SPREAD_DATA_INSUFFICIENT")
+      || hasCode(r, "QUOTE_MISSING")
+      || r.checks.some((c) => c.id === "dynamic_spread"),
+    ).toBe(true);
+    expect(hasCode(r, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(false);
     expect(hasCode(r, "SLIPPAGE_LIMIT_NOT_CONFIGURED")).toBe(true);
     expect(r.allowed).toBe(false);
   });
@@ -241,7 +248,9 @@ describe("Stage 4 — precheck integration", () => {
         maxSlippageAbsolute: slip.value,
       },
     }));
-    expect(r.checks.find((c) => c.id === "spread_limit")?.verdict).toBe("PASS");
+    expect(r.checks.some((c) => c.id === "dynamic_spread")).toBe(true);
+    expect(hasCode(r, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(false);
+    expect(spread.value).toBe(0.001);
     expect(r.placesOrders).toBe(false);
     expect(r.acceptsForExecution).toBe(false);
     expect(r.mutatesBroker).toBe(false);
@@ -251,7 +260,7 @@ describe("Stage 4 — precheck integration", () => {
     expect(r.allowed).toBe(false);
   });
 
-  it("pending-only policy still blocks precheck as NOT_CONFIGURED", () => {
+  it("pending-only policy: null resolved ceiling does not sole-fail; Dynamic Spread evaluates", () => {
     const store = tempStore();
     store.proposeSpread({ instrument: "EUR/USD", maxSpreadAbsolute: 0.001, actor: "e" });
     const spread = resolveSpreadLimit({ instrument: "EUR/USD", store });
@@ -262,7 +271,8 @@ describe("Stage 4 — precheck integration", () => {
         maxSlippageAbsolute: null,
       },
     }));
-    expect(hasCode(r, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(true);
+    expect(hasCode(r, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(false);
+    expect(r.checks.some((c) => c.id === "dynamic_spread")).toBe(true);
     expect(hasCode(r, "SLIPPAGE_LIMIT_NOT_CONFIGURED")).toBe(true);
   });
 });

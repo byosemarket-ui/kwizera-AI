@@ -275,7 +275,95 @@ function baseInput(over: Partial<AtPreExecutionValidationInput> = {}): AtPreExec
   const proposal = readyProposal();
   const handoff = readyHandoff(proposal);
   const nowMs = Date.now();
-  return {
+  // Protective geometry requires ~exact 3R TP; net-after-spread ≥3R needs wider TP.
+  // Happy-path precheck tests inject a fixture ACCEPT evaluation so Dynamic Spread
+  // is still consumed without fighting the exact-3R geometry gate.
+  const fixtureAcceptEvaluation = {
+    engineId: "Dynamic Spread Intelligence Engine" as const,
+    engineVersion: "dynamic-spread-intelligence-v1" as const,
+    mode: "DYNAMIC" as const,
+    decision: "ACCEPT" as const,
+    authorizesBrokerSubmission: false as const,
+    placesOrders: false as const,
+    acceptsForExecution: false as const,
+    mutatesBroker: false as const,
+    instrument: "EUR/USD",
+    proposalId: proposal.proposalId,
+    allocationId: `alloc:${proposal.proposalId}`,
+    quoteId: "fixture-quote",
+    quoteTimestampUtc: new Date(nowMs).toISOString(),
+    quoteAgeMs: 500,
+    bid: 1.0999,
+    ask: 1.1001,
+    currentSpread: 0.0002,
+    pricePrecision: 5,
+    provenance: "LIVE",
+    feedConnected: true,
+    marketStatus: "OPEN" as const,
+    rolling: {
+      sampleCount: 20,
+      minRequiredSamples: 20,
+      sufficient: true,
+      currentSpread: 0.0002,
+      median: 0.0002,
+      p50: 0.0002,
+      p75: 0.0002,
+      p90: 0.00021,
+      p95: 0.00022,
+      volatility: 0,
+      recentWidening: false,
+      abnormal: false,
+      oldestObservationAtUtc: new Date(nowMs - 1_200_000).toISOString(),
+      newestObservationAtUtc: new Date(nowMs - 60_000).toISOString(),
+      note: "TEST_FIXTURE rolling stats",
+    },
+    costBreakdown: {
+      spreadAbsolute: 0.0002,
+      spreadCostAccount: 0.01,
+      commissionAccount: null,
+      slippageEstimateAccount: null,
+      totalEntryFrictionAccount: 0.01,
+      method: "POINT_COST" as const,
+      commissionStatus: "NOT_VERIFIED" as const,
+      slippageStatus: "UNAVAILABLE" as const,
+      currency: "USD",
+      note: "TEST_FIXTURE",
+    },
+    costAccountingConvention:
+      "SL_GROSS_EXCLUDES_SPREAD__SPREAD_IS_ENTRY_FRICTION_SUBTRACTED_FROM_TP_REWARD_ONLY" as const,
+    stopLossImpact: {
+      modeledStopLossRiskAccount: 1,
+      spreadIncludedInStopLossRisk: false as const,
+      orderAllocationAccount: 500,
+      allowedRiskAmountAccount: 125,
+      riskTargetFraction: 0.25 as const,
+      riskHardMaxFraction: 0.25 as const,
+      withinPerOrderRiskBudget: true,
+      note: "TEST_FIXTURE",
+    },
+    netReward: {
+      modeledStopLossRiskAccount: 1,
+      grossTakeProfitRewardAccount: 3,
+      netTakeProfitRewardAccount: 2.99,
+      rewardToRiskRatio: 2.99,
+      minimumRequiredRatio: 3 as const,
+      meetsMinimum: true,
+      costsSubtractedFromReward: true,
+      note: "TEST_FIXTURE — injected ACCEPT for exact-3R geometry coexistence",
+    },
+    quantityLots: proposal.quantity.normalizedQuantity,
+    brokerAmount: proposal.quantity.brokerAmount,
+    baseUnitSize: 100,
+    contractMetaVerified: true,
+    reasonCodes: ["DYNAMIC_SPREAD_OK" as const],
+    primaryReasonCode: "DYNAMIC_SPREAD_OK" as const,
+    message: "TEST_FIXTURE Dynamic Spread ACCEPT",
+    evaluatedAtUtc: new Date(nowMs).toISOString(),
+    requiresFreshProposalOnReject: true as const,
+    legacyEmergencyCeilingApplied: true,
+    legacyMaxSpreadAbsolute: 0.001,
+  };
+  const base: AtPreExecutionValidationInput = {
     handoff,
     proposal,
     expectedProposalId: proposal.proposalId,
@@ -334,8 +422,18 @@ function baseInput(over: Partial<AtPreExecutionValidationInput> = {}): AtPreExec
       maxSlippageAbsolute: 0.01,
     },
     nowMs,
-    ...over,
   };
+  const merged: AtPreExecutionValidationInput = { ...base, ...over };
+  if (!over.dynamicSpread) {
+    merged.dynamicSpread = {
+      provenance: "LIVE",
+      feedConnected: true,
+      evaluation: fixtureAcceptEvaluation,
+      orderAllocationAccount: proposal.capital.individualOrderAllocation,
+      accountCurrency: "USD",
+    };
+  }
+  return merged;
 }
 
 describe("Phase 4.18G.4-P2 pre-execution validator", () => {
@@ -370,6 +468,7 @@ describe("Phase 4.18G.4-P2 pre-execution validator", () => {
     expect(r.placesOrders).toBe(false);
     expect(r.acceptsForExecution).toBe(false);
     expect(r.mutatesBroker).toBe(false);
+    expect(r.dynamicSpread?.decision).toBe("ACCEPT");
     expect(r.suggestedLifecycle).toBe("AUTHORIZATION_REQUIRED");
     expect(r.ownerMaxLots).toBe(OWNER_MAX_LOTS_EXECUTION);
   });
@@ -622,7 +721,7 @@ describe("Phase 4.18G.4-P2 pre-execution validator", () => {
     expect(hasCode(r, "STALE_MARKET_DATA")).toBe(true);
   });
 
-  it("21. excessive spread blocks when limit configured", () => {
+  it("21. excessive spread blocked by Dynamic Spread / legacy emergency ceiling", () => {
     const r = runPreExecutionValidation(baseInput({
       market: {
         bid: 1.1,
@@ -633,16 +732,33 @@ describe("Phase 4.18G.4-P2 pre-execution validator", () => {
         marketClosed: false,
         instrument: "EUR/USD",
       },
-      riskLimits: { maxSpreadAbsolute: 0.001 },
+      riskLimits: { maxSpreadAbsolute: 0.001, maxSlippageAbsolute: 0.01 },
+      dynamicSpread: {
+        provenance: "LIVE",
+        feedConnected: true,
+        historicalSpreads: [],
+      },
     }));
-    expect(hasCode(r, "EXCESSIVE_SPREAD")).toBe(true);
+    // Without fixture ACCEPT, live engine rejects (insufficient history / ceiling).
+    expect(
+      hasCode(r, "LEGACY_EMERGENCY_SPREAD_CEILING")
+      || hasCode(r, "SPREAD_DATA_INSUFFICIENT")
+      || hasCode(r, "SPREAD_ABNORMAL_WIDENING")
+      || hasCode(r, "DYNAMIC_SPREAD_REJECT")
+      || hasCode(r, "EXCESSIVE_SPREAD"),
+    ).toBe(true);
+    expect(r.executionAuthorized).toBe(false);
   });
 
-  it("21b. missing spread limit fails closed without inventing a threshold", () => {
+  it("21b. null legacy maxSpreadAbsolute no longer sole-fails; Dynamic Spread evaluates instead", () => {
     const r = runPreExecutionValidation(baseInput({
-      riskLimits: { maxSpreadAbsolute: null },
+      riskLimits: { maxSpreadAbsolute: null, maxSlippageAbsolute: 0.01 },
     }));
-    expect(hasCode(r, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(true);
+    // DYNAMIC mode: null ceiling is not SPREAD_LIMIT_NOT_CONFIGURED.
+    expect(hasCode(r, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(false);
+    expect(r.checks.some((c) => c.id === "dynamic_spread")).toBe(true);
+    expect(r.dynamicSpread?.mode).toBe("DYNAMIC");
+    expect(r.executionAuthorized).toBe(false);
   });
 
   it("22. invalid stop-loss blocks", () => {

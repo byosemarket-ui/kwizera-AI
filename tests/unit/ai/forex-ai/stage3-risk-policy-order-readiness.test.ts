@@ -402,7 +402,10 @@ describe("Stage 3 — spread policy", () => {
     const result = runPreExecutionValidation(basePrecheck({
       riskLimits: { maxSpreadAbsolute: resolved.value, maxSlippageAbsolute: 0.01 },
     }));
-    expect(result.checks.find((c) => c.id === "spread_limit")?.verdict).toBe("PASS");
+    // DYNAMIC mode: engine check is mandatory; legacy ceiling is optional emergency only.
+    expect(result.checks.some((c) => c.id === "dynamic_spread")).toBe(true);
+    expect(hasCode(result, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(false);
+    expect(resolved.value).toBe(0.0003);
   });
 });
 
@@ -650,7 +653,9 @@ describe("Stage 3 — fail-closed safety", () => {
     expect(result.executionAuthorized).toBe(false);
     expect(result.ownerMaxLots).toBe(OWNER_MAX_LOTS_EXECUTION);
     expect(hasCode(result, "EXECUTION_MASTER_OFF")).toBe(true);
-    expect(hasCode(result, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(true);
+    // DYNAMIC spread mode: null legacy ceiling is not SPREAD_LIMIT_NOT_CONFIGURED.
+    expect(hasCode(result, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(false);
+    expect(result.checks.some((c) => c.id === "dynamic_spread")).toBe(true);
     expect(hasCode(result, "SLIPPAGE_LIMIT_NOT_CONFIGURED")).toBe(true);
   });
 });

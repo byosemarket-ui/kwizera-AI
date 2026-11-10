@@ -4166,6 +4166,59 @@ export class AutomatedTradingService {
         maxSpreadAbsolute: configuredSpread.value,
         maxSlippageAbsolute: configuredSlippage.value,
       },
+      dynamicSpread: await (async () => {
+        const { getStage1EvidenceStore } = await import("./risk-policy/stage1-evidence-store.js");
+        const { normalizeInstrumentSymbol } = await import("./risk-policy/validate.js");
+        const sym = normalizeInstrumentSymbol(String(instrumentSymbol || "")) || String(instrumentSymbol || "");
+        const evidence = getStage1EvidenceStore().get();
+        const accepted = (evidence.acceptedByInstrument as Record<string, Array<{
+          spreadAbsolute: number;
+          observedAtUtc: string;
+          provenance?: string;
+          instrument?: string;
+        }>>)[sym] ?? [];
+        const historicalSpreads = accepted.map((row) => ({
+          spreadAbsolute: row.spreadAbsolute,
+          observedAtUtc: row.observedAtUtc,
+          provenance: row.provenance ?? "LIVE",
+          instrument: row.instrument ?? sym,
+        }));
+        const verifiedContract = inst?.contractVerified === true
+          ? {
+            verified: true as const,
+            pointSize: (inst as { pointSize?: number | null }).pointSize ?? null,
+            tickSize: (inst as { tickSize?: number | null }).tickSize ?? null,
+            digits: (inst as { digits?: number | null }).digits ?? null,
+            quantityMin: inst.quantityMin ?? null,
+            quantityStep: inst.quantityStep ?? null,
+            quantityUnit: (inst as { quantityUnit?: string | null }).quantityUnit ?? "contracts",
+            quantityUnitAmbiguous: false,
+            contractMultiplier: (inst as { contractMultiplier?: number | null }).contractMultiplier ?? null,
+            baseUnitSize: inst.baseUnitSize ?? null,
+            pipCostAccount: (inst as { pipCostAccount?: number | null }).pipCostAccount ?? null,
+            marginPerLotAccount: inst.marginPerLotAccount ?? null,
+            minStopDistance: null,
+            minStopDistanceVerified: false,
+            source: "verification-instrument",
+            unavailableReason: null,
+          }
+          : null;
+        return {
+          historicalSpreads,
+          provenance: "LIVE",
+          feedConnected: true,
+          quoteTimestampUtc: new Date().toISOString(),
+          quoteId: `precheck-quote:${sym}:${Date.now()}`,
+          contract: verifiedContract,
+          orderAllocationAccount: proposal?.capital?.individualOrderAllocation ?? null,
+          allocationId: proposal?.proposalId ? `alloc:${proposal.proposalId}` : null,
+          accountCurrency: account?.accountCurrency
+            ?? (riskIntel.precheckAccount ?? verificationAccount)?.currency
+            ?? null,
+          commissionVerified: false,
+          slippageEvidenceAvailable: false,
+        };
+      })(),
     };
 
     const marginAttestation = attestProposedOrderMargin({
@@ -4404,6 +4457,69 @@ export class AutomatedTradingService {
       slippageWorkflow: getSlippageEvidenceCollectionWorkflow(),
       controlledDemoSlippagePlan: buildStage1Part3SlippageDemoPlan({ usableMarginUsd }),
       liveSpreadAdvisories,
+      dynamicSpreadIntelligence: await (async () => {
+        const { computeRollingSpreadStats, DYNAMIC_SPREAD_ENGINE_VERSION, DYNAMIC_SPREAD_MODE } =
+          await import("./dynamic-spread/index.js");
+        const bridge = (() => {
+          try {
+            return getForexConnectBridge();
+          } catch {
+            return null;
+          }
+        })();
+        let quoteRows: Array<{
+          providerSymbol?: string;
+          symbol?: string;
+          bid?: number;
+          ask?: number;
+        }> = [];
+        try {
+          if (bridge) quoteRows = await bridge.pollQuotes();
+        } catch {
+          quoteRows = [];
+        }
+        return {
+          engineVersion: DYNAMIC_SPREAD_ENGINE_VERSION,
+          mode: DYNAMIC_SPREAD_MODE,
+          note:
+            "Read-only Dynamic Spread Intelligence visibility. "
+            + "ACCEPT on a precheck never means broker approval or submission authorization. "
+            + "Legacy maxSpreadAbsolute proposals remain unapproved historical records.",
+          authorizesBrokerSubmission: false as const,
+          instruments: STAGE3_TRACKED_INSTRUMENTS.map((instrument) => {
+            const accepted = acceptedSpreadByInstrument[instrument] ?? [];
+            const q = quoteRows.find((row) => {
+              const sym = String(row.providerSymbol ?? row.symbol ?? "");
+              return sym.replace(/\s+/g, "").toUpperCase()
+                === instrument.replace(/\s+/g, "").toUpperCase();
+            });
+            const bid = typeof q?.bid === "number" ? q.bid : null;
+            const ask = typeof q?.ask === "number" ? q.ask : null;
+            const currentSpread = bid != null && ask != null && ask >= bid ? ask - bid : null;
+            const rolling = computeRollingSpreadStats({
+              currentSpread,
+              historical: accepted.map((row) => ({
+                spreadAbsolute: row.spreadAbsolute,
+                observedAtUtc: row.observedAtUtc,
+                provenance: row.provenance,
+                instrument: row.instrument,
+              })),
+            });
+            return {
+              instrument,
+              bid,
+              ask,
+              currentSpread,
+              rolling,
+              dataFreshness: {
+                acceptedSampleCount: accepted.length,
+                newestObservationAtUtc: rolling.newestObservationAtUtc,
+                quotePresent: bid != null && ask != null,
+              },
+            };
+          }),
+        };
+      })(),
       evidenceMeta: {
         collectionStartedAtUtc: evidenceDoc.collectionStartedAtUtc,
         collectionLastTickAtUtc: evidenceDoc.collectionLastTickAtUtc,

@@ -2,6 +2,8 @@
  * Phase 2 — Final pre-execution validator (pure, fail-closed).
  * Never places orders. Never sets acceptsForExecution. Never mutates broker.
  */
+import { evaluateDynamicSpread } from "../dynamic-spread/index.js";
+import type { DynamicSpreadEvaluationResult } from "../dynamic-spread/types.js";
 import { evaluateProtectiveGeometry } from "../broker-intent/protective-geometry.js";
 import { evaluateBrokerQuantityContract } from "../order-execution/broker-quantity-contract.js";
 import {
@@ -95,6 +97,7 @@ export function runPreExecutionValidation(
   const limits = mergeLimits(input.riskLimits);
   const checks: AtPrecheckCheck[] = [];
   const warnings: string[] = [];
+  let dynamicSpreadResult: DynamicSpreadEvaluationResult | null = null;
 
   const handoff = input.handoff;
   const proposal = input.proposal;
@@ -1260,30 +1263,127 @@ export function runPreExecutionValidation(
         "SPREAD_DATA_UNAVAILABLE",
         ba.reason ?? "Bid/ask/spread unavailable.",
       ));
-    } else if (limits.maxSpreadAbsolute == null) {
+    }
+
+    // Stage 1 remediation — Dynamic Spread Intelligence (mode DYNAMIC) is the sole
+    // spread eligibility rule. Legacy maxSpreadAbsolute is optional emergency ceiling
+    // only; null does NOT fail closed once the engine evaluates.
+    const dsIn = input.dynamicSpread ?? null;
+    const dirForDs = (proposal?.canonicalDecision === "BUY" || proposal?.canonicalDecision === "SELL")
+      ? proposal.canonicalDecision
+      : (handoff?.directionOrder?.canonicalDecision === "BUY"
+        || handoff?.directionOrder?.canonicalDecision === "SELL"
+        ? handoff.directionOrder.canonicalDecision
+        : null);
+    const instrumentContract = input.instrumentContract;
+    const contractForDs = dsIn?.contract
+      ?? (proposal?.quantity?.pipTickValue != null
+        && proposal.quantity.contractSize != null
+        && instrumentContract?.contractVerified === true
+        ? {
+          verified: true as const,
+          pointSize: proposal.quantity.tickSize,
+          tickSize: proposal.quantity.tickSize,
+          digits: null,
+          quantityMin: instrumentContract.minQuantity,
+          quantityStep: instrumentContract.quantityStep,
+          quantityUnit: proposal.quantity.lotContractUnit,
+          quantityUnitAmbiguous: false,
+          contractMultiplier: proposal.quantity.contractSize,
+          baseUnitSize: instrumentContract.baseUnitSize
+            ?? proposal.quantity.quantityStep,
+          pipCostAccount: proposal.quantity.pipTickValue,
+          marginPerLotAccount: instrumentContract.mmrPerLot,
+          minStopDistance: null,
+          minStopDistanceVerified: false,
+          source: "precheck-proposal-projection",
+          unavailableReason: null,
+        }
+        : null);
+
+    dynamicSpreadResult = dsIn?.evaluation ?? evaluateDynamicSpread({
+      instrument: market.instrument,
+      expectedInstrument: proposal?.instrument ?? handoff?.instrument?.symbol ?? market.instrument,
+      bid: market.bid,
+      ask: market.ask,
+      quoteAgeMs: market.quoteAgeMs,
+      quoteMaxAgeMs: limits.quoteMaxAgeMs,
+      quoteTimestampUtc: dsIn?.quoteTimestampUtc ?? null,
+      quoteId: dsIn?.quoteId ?? null,
+      provenance: dsIn?.provenance ?? "LIVE",
+      feedConnected: dsIn?.feedConnected ?? true,
+      marketStatus: market.marketClosed === true
+        ? "CLOSED"
+        : (market.tradingEligible === true ? "OPEN" : (market.tradingEligible === false ? "CLOSED" : "UNKNOWN")),
+      historicalSpreads: dsIn?.historicalSpreads ?? [],
+      direction: dirForDs,
+      entryPrice: proposal?.pricePlan?.entryPrice
+        ?? handoff?.directionOrder?.entryPrice
+        ?? null,
+      stopLoss: proposal?.pricePlan?.stopLoss
+        ?? handoff?.directionOrder?.stopLoss
+        ?? null,
+      takeProfit: proposal?.pricePlan?.takeProfit
+        ?? handoff?.directionOrder?.takeProfit
+        ?? null,
+      quantityLots: proposal?.quantity?.normalizedQuantity
+        ?? handoff?.directionOrder?.normalizedQuantity
+        ?? null,
+      brokerAmount: proposal?.quantity?.brokerAmount
+        ?? (handoff?.directionOrder as { amount?: number | null } | undefined)?.amount
+        ?? null,
+      baseUnitSize: instrumentContract?.baseUnitSize
+        ?? proposal?.quantity?.quantityStep
+        ?? null,
+      contract: contractForDs,
+      orderAllocationAccount: dsIn?.orderAllocationAccount
+        ?? proposal?.capital?.individualOrderAllocation
+        ?? null,
+      allocationId: dsIn?.allocationId
+        ?? (proposal?.proposalId ? `alloc:${proposal.proposalId}` : null),
+      proposalId: proposal?.proposalId ?? null,
+      accountCurrency: dsIn?.accountCurrency
+        ?? account?.currency
+        ?? proposal?.capital?.accountCurrency
+        ?? null,
+      commissionAccount: dsIn?.commissionAccount ?? null,
+      commissionVerified: dsIn?.commissionVerified ?? false,
+      slippageEstimateAccount: dsIn?.slippageEstimateAccount ?? null,
+      slippageEvidenceAvailable: dsIn?.slippageEvidenceAvailable ?? false,
+      legacyMaxSpreadAbsolute: limits.maxSpreadAbsolute,
+      nowMs,
+    });
+
+    if (dynamicSpreadResult.decision === "ACCEPT") {
       checks.push(check(
-        "spread_limit",
-        "spread",
-        "FAIL",
-        "SPREAD_LIMIT_NOT_CONFIGURED",
-        `Spread ${spread} observed but maxSpreadAbsolute is not configured — fail closed (no invented limit).`,
-      ));
-      warnings.push("Spread limit is not configured in AT — do not invent thresholds.");
-    } else if (spread > limits.maxSpreadAbsolute + 1e-12) {
-      checks.push(check(
-        "spread_limit",
-        "spread",
-        "FAIL",
-        "EXCESSIVE_SPREAD",
-        `Spread ${spread} exceeds configured max ${limits.maxSpreadAbsolute}.`,
-      ));
-    } else {
-      checks.push(check(
-        "spread_limit",
+        "dynamic_spread",
         "spread",
         "PASS",
-        "SPREAD_OK",
-        `Spread ${spread} ≤ max ${limits.maxSpreadAbsolute}.`,
+        "DYNAMIC_SPREAD_OK",
+        dynamicSpreadResult.message,
+      ));
+      // Informational legacy note when emergency ceiling present and respected.
+      if (dynamicSpreadResult.legacyEmergencyCeilingApplied && limits.maxSpreadAbsolute != null) {
+        checks.push(check(
+          "spread_limit",
+          "spread",
+          "PASS",
+          "SPREAD_OK",
+          `Legacy emergency ceiling ${limits.maxSpreadAbsolute} respected (not sole eligibility rule).`,
+          false,
+        ));
+      } else if (limits.maxSpreadAbsolute == null) {
+        warnings.push(
+          "Legacy maxSpreadAbsolute unset — Dynamic Spread Intelligence is the sole spread eligibility rule.",
+        );
+      }
+    } else {
+      checks.push(check(
+        "dynamic_spread",
+        "spread",
+        "FAIL",
+        dynamicSpreadResult.primaryReasonCode || "DYNAMIC_SPREAD_REJECT",
+        dynamicSpreadResult.message,
       ));
     }
 
@@ -1411,6 +1511,9 @@ export function runPreExecutionValidation(
       "Phase 2 pre-execution validation only. "
       + "allowed=true never means submission is authorized. "
       + "placesOrders=false, acceptsForExecution=false, mutatesBroker=false. "
-      + `suggestedLifecycle=${suggestedLifecycle}.`,
+      + `suggestedLifecycle=${suggestedLifecycle}. `
+      + "Spread eligibility uses Dynamic Spread Intelligence (DYNAMIC); "
+      + "ACCEPT never authorizes broker submission.",
+    dynamicSpread: dynamicSpreadResult,
   };
 }
