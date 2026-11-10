@@ -86,7 +86,17 @@ export function compareLiveSpreadToPendingOrActiveLimit(input: {
     };
   }
 
-  const exceeds = live > comparedAgainstValue + 1e-15;
+  // Round to instrument price precision before compare so IEEE residue on
+  // ask-bid (e.g. XAU 0.3000000000001819 vs pending 0.3) is not a false exceed.
+  const exceeds = (() => {
+    if (precision != null && Number.isInteger(precision) && precision >= 0) {
+      const factor = Math.pow(10, precision);
+      const liveR = Math.round(live * factor) / factor;
+      const limitR = Math.round(comparedAgainstValue * factor) / factor;
+      return liveR > limitR;
+    }
+    return live > comparedAgainstValue + 1e-12;
+  })();
   return {
     instrument,
     liveSpreadAbsolute: live,

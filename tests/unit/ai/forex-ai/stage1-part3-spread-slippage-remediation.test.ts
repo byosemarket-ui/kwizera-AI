@@ -190,6 +190,18 @@ describe("Stage 1 Part 3 — controlled DEMO plan + readiness", () => {
     expect(check.comparedAgainstValue).toBe(0.00013);
   });
 
+  it("treats XAU float-residue 0.300… as within pending 0.3 (precision 2)", () => {
+    const check = compareLiveSpreadToPendingOrActiveLimit({
+      instrument: "XAU/USD",
+      liveSpreadAbsolute: 0.3000000000001819,
+      pendingProposedValue: 0.3,
+      activeApprovedValue: null,
+    });
+    expect(check.exceedsComparedLimit).toBe(false);
+    expect(check.relation).toBe("LIVE_WITHIN_LIMIT");
+    expect(check.mayChangePolicyValue).toBe(false);
+  });
+
   it("resetAtRiskPolicyStoreForTests defaults to OS temp, not repo cwd", () => {
     const store = resetAtRiskPolicyStoreForTests();
     expect(store.persistencePath.includes(os.tmpdir())).toBe(true);
