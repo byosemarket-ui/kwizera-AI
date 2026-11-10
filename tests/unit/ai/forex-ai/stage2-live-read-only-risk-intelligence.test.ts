@@ -741,10 +741,12 @@ describe("Stage 2 — precheck integration", () => {
     expect(hasCode(result, "DRAWDOWN_UNAVAILABLE")).toBe(true);
   });
 
-  it("keeps unconfigured spread blocked", () => {
+  it("null legacy maxSpreadAbsolute no longer sole-fails under Dynamic Spread", () => {
     const { snapshot } = buildRiskIntelligenceSnapshot(gather({ maxSpreadAbsolute: null }));
     const result = runPreExecutionValidation(precheckBase(snapshot));
-    expect(hasCode(result, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(true);
+    // DYNAMIC mode: null emergency ceiling is not SPREAD_LIMIT_NOT_CONFIGURED.
+    // Spread ACCEPT/REJECT is owned by Dynamic Spread Intelligence instead.
+    expect(hasCode(result, "SPREAD_LIMIT_NOT_CONFIGURED")).toBe(false);
   });
 
   it("keeps stale telemetry blocked", () => {
