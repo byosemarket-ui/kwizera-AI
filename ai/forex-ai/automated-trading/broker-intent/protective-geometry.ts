@@ -5,6 +5,7 @@
 import type { AtBinaryDirection } from "../analysis/direction.js";
 import type { BrokerIntentRejection, ProtectiveOrderStatus } from "./types.js";
 
+/** Minimum reward/risk (gross price distance). Cost-adjusted TPs may exceed 3R. */
 const R_TARGET = 3;
 const R_TOLERANCE = 0.05;
 
@@ -112,15 +113,19 @@ export function evaluateProtectiveGeometry(
       if (risk > 0) rewardRisk = reward / risk;
     }
 
+    // Stage 1 remediation: require minimum 3R (not exact ~3R).
+    // Verified trading costs may require TP beyond gross geometric 3R for net ≥3R.
     if (
       input.requireThreeR
       && rewardRisk != null
       && Number.isFinite(rewardRisk)
-      && Math.abs(rewardRisk - R_TARGET) > R_TOLERANCE
+      && rewardRisk + R_TOLERANCE < R_TARGET
     ) {
       rejections.push({
         code: "TP_NOT_3R",
-        message: `Take Profit must target ~${R_TARGET}R (observed R=${rewardRisk.toFixed(3)}).`,
+        message:
+          `Take Profit must satisfy minimum ${R_TARGET}R `
+          + `(observed R=${rewardRisk.toFixed(3)}; values above 3R are allowed for net-3R cost adjustment).`,
       });
     }
   }

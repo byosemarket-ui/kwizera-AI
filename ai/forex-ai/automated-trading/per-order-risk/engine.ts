@@ -10,7 +10,10 @@ import {
   type BuildOrderProposalInput,
 } from "../order-proposal/engine.js";
 import type { AtOrderProposalRecord } from "../order-proposal/types.js";
-import type { AnalysisPriceLevelLite } from "../simulation-risk/propose-levels.js";
+import {
+  technicalRewardDistanceMaxFromLevels,
+  type AnalysisPriceLevelLite,
+} from "../simulation-risk/propose-levels.js";
 import { deriveAutomaticOrderLevels } from "./auto-levels.js";
 import { buildPerOrderRiskRecord } from "./build-record.js";
 import { validateMonetaryRewardToRisk } from "./monetary-3r.js";
@@ -32,6 +35,8 @@ export interface RunPerOrderRiskEngineInput extends Omit<BuildOrderProposalInput
   atrMultiplier?: number | null;
   marketDataTimestampUtc?: string | null;
   spreadAtCalculation?: number | null;
+  /** LIVE ask−bid; forwarded to order-proposal for net-3R friction (once). */
+  liveSpreadAbsolute?: number | null;
   spreadPolicyStatus?: string | null;
   slippagePolicyStatus?: string | null;
   contractMetadataVersion?: string | null;
@@ -151,10 +156,41 @@ export function runAutomatedPerOrderRiskEngine(
     takeProfitSource = "engine-3R";
   }
 
+  const liveSpread =
+    input.liveSpreadAbsolute != null && Number.isFinite(input.liveSpreadAbsolute)
+      ? Math.max(0, input.liveSpreadAbsolute)
+      : input.spreadAtCalculation != null && Number.isFinite(input.spreadAtCalculation)
+        ? Math.max(0, input.spreadAtCalculation)
+        : null;
+
+  const structureCeiling =
+    input.technicalRewardDistanceMax != null && Number.isFinite(input.technicalRewardDistanceMax)
+      ? input.technicalRewardDistanceMax
+      : entryPrice != null && (direction === "BUY" || direction === "SELL")
+        ? technicalRewardDistanceMaxFromLevels({
+          direction,
+          entryPrice,
+          supportLevels: input.supportLevels,
+          resistanceLevels: input.resistanceLevels,
+        })
+        : null;
+
   const built = buildOrderProposal({
     ...input,
     entryPrice,
     stopLoss,
+    liveSpreadAbsolute: liveSpread,
+    technicalRewardDistanceMax: structureCeiling,
+    // Map Stage 5 cost fields onto Stage 1 net-3R TP remediation inputs when not already set.
+    verifiedTradingCostsAccount:
+      input.verifiedTradingCostsAccount
+      ?? (input.costDataVerified === true ? input.estimatedCostsAccount : null),
+    costsVerified:
+      input.costsVerified
+      ?? (input.costDataVerified === true
+        && typeof input.estimatedCostsAccount === "number"
+        && Number.isFinite(input.estimatedCostsAccount)
+        && input.estimatedCostsAccount >= 0),
   });
 
   // Attach provenance notes
@@ -197,6 +233,11 @@ export function runAutomatedPerOrderRiskEngine(
     if (takeProfitOverride != null && built.pricePlan.takeProfit == null) {
       built.pricePlan.takeProfit = takeProfitOverride;
     }
+    const proposalCosts =
+      built.pricePlan.verifiedTradingCostsAccount != null
+      && Number.isFinite(built.pricePlan.verifiedTradingCostsAccount)
+        ? Math.max(0, built.pricePlan.verifiedTradingCostsAccount)
+        : null;
     const m3r = validateMonetaryRewardToRisk({
       direction: built.direction,
       entryPrice: built.pricePlan.entryPrice,
@@ -204,8 +245,14 @@ export function runAutomatedPerOrderRiskEngine(
       takeProfit: built.pricePlan.takeProfit,
       quantity: built.quantity.normalizedQuantity,
       contract: input.contract,
-      costDataVerified: input.costDataVerified,
-      estimatedCostsAccount: input.estimatedCostsAccount,
+      // Prefer net-3R proposal costs (spread friction once) over Stage 5 estimatedCosts.
+      costDataVerified:
+        proposalCosts != null
+          ? true
+          : input.costDataVerified,
+      estimatedCostsAccount:
+        proposalCosts
+        ?? input.estimatedCostsAccount,
     });
     if (!m3r.ok) {
       monetary3rOk = false;

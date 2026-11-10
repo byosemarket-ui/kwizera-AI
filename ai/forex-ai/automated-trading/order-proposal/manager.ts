@@ -54,6 +54,16 @@ export interface GenerateOrderProposalInput {
   analysisConfidencePct?: number | null;
   confidenceCalibrationFlag?: boolean;
   invalidationConditions?: string[];
+  /** Verified entry friction (spread ± verified commission ± evidence slippage) in account currency. */
+  verifiedTradingCostsAccount?: number | null;
+  costsVerified?: boolean | null;
+  /**
+   * LIVE absolute spread (ask−bid). When verifiedTradingCostsAccount is omitted,
+   * buildOrderProposal derives entry friction from this after quantity sizing.
+   */
+  liveSpreadAbsolute?: number | null;
+  /** Farthest valid market-structure reward distance; null = no structure ceiling. */
+  technicalRewardDistanceMax?: number | null;
   nowMs?: number;
   /** When false, do not persist (unit tests). Default true. */
   persist?: boolean;

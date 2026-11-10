@@ -423,7 +423,8 @@ describe("Dynamic Spread Intelligence Engine", () => {
       takeProfit: 1.10030, // only 3R geometrically → net < 3 after spread
     }));
     expect(r.decision).toBe("REJECT");
-    expect(r.primaryReasonCode).toBe("NET_REWARD_BELOW_POLICY");
+    expect(r.primaryReasonCode).toBe("NET_REWARD_BELOW_3R");
+    expect(r.reasonCodes).toContain("NET_REWARD_BELOW_POLICY");
   });
 
   it("27. ACCEPT result shape", () => {

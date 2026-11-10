@@ -3381,6 +3381,7 @@ export class AutomatedTradingService {
       timeframe: handoff?.evidenceReferences?.primaryTimeframe ?? null,
       marketDataTimestampUtc: verification?.verifiedAtUtc ?? null,
       spreadAtCalculation,
+      liveSpreadAbsolute: spreadAtCalculation,
       spreadPolicyStatus,
       slippagePolicyStatus,
       contractMetadataVersion: inst?.contractSource ?? null,
@@ -4481,11 +4482,37 @@ export class AutomatedTradingService {
         return {
           engineVersion: DYNAMIC_SPREAD_ENGINE_VERSION,
           mode: DYNAMIC_SPREAD_MODE,
+          costAccountingConvention:
+            "SL_GROSS_EXCLUDES_SPREAD__SPREAD_IS_ENTRY_FRICTION_SUBTRACTED_FROM_TP_REWARD_ONLY" as const,
+          rewardRiskPolicy: {
+            requiredNetRewardRisk: 3 as const,
+            grossIsNotNet: true as const,
+            costAccountingConvention:
+              "SL_GROSS_EXCLUDES_SPREAD__SPREAD_IS_ENTRY_FRICTION_SUBTRACTED_FROM_TP_REWARD_ONLY" as const,
+            fields: {
+              grossRewardRisk: "pricePlan.grossRewardRiskRatio",
+              spreadCost: "pricePlan.verifiedTradingCostsAccount (spread component when LIVE)",
+              otherVerifiedTradingCosts: "commission/slippage only when verified — never invented",
+              netRewardRisk: "pricePlan.netRewardRiskRatio",
+              requiredNet3R: 3,
+              technicalTargetValidity: "technicalRewardDistanceMax / TECHNICAL_TARGET_CANNOT_SUPPORT_NET_3R",
+              finalProposalDecision: "lifecycle PROPOSAL_READY | BLOCKED",
+              rejectionReason: "blockers[].code",
+            },
+            note:
+              "Gross reward/risk is price geometry only. Net reward/risk subtracts verified "
+              + "entry friction (spread ± verified commission ± evidence-backed slippage) once. "
+              + "Do not display gross 3R as net 3R. ACCEPT ≠ broker authorization.",
+          },
           note:
             "Read-only Dynamic Spread Intelligence visibility. "
             + "ACCEPT on a precheck never means broker approval or submission authorization. "
-            + "Legacy maxSpreadAbsolute proposals remain unapproved historical records.",
+            + "Legacy maxSpreadAbsolute proposals remain unapproved historical records. "
+            + "Gross R:R and net R:R are reported separately when a proposal is evaluated.",
           authorizesBrokerSubmission: false as const,
+          placesOrders: false as const,
+          acceptsForExecution: false as const,
+          mutatesBroker: false as const,
           instruments: STAGE3_TRACKED_INSTRUMENTS.map((instrument) => {
             const accepted = acceptedSpreadByInstrument[instrument] ?? [];
             const q = quoteRows.find((row) => {

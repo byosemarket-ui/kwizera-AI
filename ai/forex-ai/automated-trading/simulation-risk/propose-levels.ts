@@ -121,6 +121,33 @@ export function proposeStopFromAnalysisLevels(input: {
   return { ok: true, stopLoss: above[0], source: "analysis-resistance-nearest-above-entry" };
 }
 
+/**
+ * Farthest opposing structure level as optional TP ceiling (absolute reward distance).
+ * BUY: max resistance above entry − entry. SELL: entry − min support below entry.
+ * Returns null when no verified opposing level exists — never invents structure.
+ */
+export function technicalRewardDistanceMaxFromLevels(input: {
+  direction: AtBinaryDirection;
+  entryPrice: number;
+  supportLevels: AnalysisPriceLevelLite[] | null | undefined;
+  resistanceLevels: AnalysisPriceLevelLite[] | null | undefined;
+}): number | null {
+  const entry = input.entryPrice;
+  if (!finitePositive(entry)) return null;
+  if (input.direction === "BUY") {
+    const above = (input.resistanceLevels ?? [])
+      .map((l) => l.price)
+      .filter((p): p is number => finitePositive(p) && p > entry);
+    if (!above.length) return null;
+    return Math.max(...above) - entry;
+  }
+  const below = (input.supportLevels ?? [])
+    .map((l) => l.price)
+    .filter((p): p is number => finitePositive(p) && p < entry);
+  if (!below.length) return null;
+  return entry - Math.min(...below);
+}
+
 /** Price-only 3R TP from verified entry/SL geometry (no monetary R required). */
 export function proposeTakeProfit3RPrice(input: {
   direction: AtBinaryDirection;

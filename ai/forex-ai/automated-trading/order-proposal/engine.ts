@@ -13,6 +13,8 @@ import {
   ensureAmountInAccountCurrency,
   type ConversionRateSnapshot,
 } from "../simulation-risk/currency-conversion.js";
+import { buildSpreadCostBreakdown } from "../dynamic-spread/spread-cost.js";
+import { proposeTakeProfitNetAware3R } from "../simulation-risk/net-3r-take-profit.js";
 import { proposeTakeProfit3RPrice } from "../simulation-risk/propose-levels.js";
 import {
   floorQuantityToStep,
@@ -36,7 +38,9 @@ import {
 } from "./types.js";
 
 const TP_NOTE =
-  "3R is a planned target derived from Entry–SL distance (RewardDistance = 3 × RiskDistance). Not a guaranteed return.";
+  "Minimum 3R from Entry–SL distance. When verified trading costs exist, TP may extend so "
+  + "NetReward/ModeledRisk >= 3 (spread subtracted from TP reward only; SL unchanged). "
+  + "Not a guaranteed return.";
 
 function finitePositive(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
@@ -83,6 +87,13 @@ function emptyPricePlan(): AtOrderProposalRecord["pricePlan"] {
     takeProfitLabel: "3R_PLANNED_TARGET",
     takeProfitNote: TP_NOTE,
     invalidationConditions: [],
+    grossRewardRiskRatio: null,
+    netRewardRiskRatio: null,
+    verifiedTradingCostsAccount: null,
+    modeledStopLossRiskAccount: null,
+    grossTakeProfitRewardAccount: null,
+    netTakeProfitRewardAccount: null,
+    takeProfitSource: null,
   };
 }
 
@@ -255,6 +266,24 @@ export interface BuildOrderProposalInput {
   systemMasterOn?: boolean | null;
   tradingEnabled?: boolean | null;
   emergencyEntryLock?: boolean | null;
+
+  /**
+   * Verified entry friction in account currency (spread ± verified commission ± evidence slippage).
+   * When provided with costsVerified=true, TP is extended for net ≥3R after sizing.
+   * Prefer this when quantity is already known; otherwise pass liveSpreadAbsolute.
+   */
+  verifiedTradingCostsAccount?: number | null;
+  costsVerified?: boolean | null;
+  /**
+   * LIVE absolute spread (ask−bid). When set and costsVerified, cost is computed
+   * AFTER quantity sizing via buildSpreadCostBreakdown (never invented).
+   */
+  liveSpreadAbsolute?: number | null;
+  /**
+   * Optional farthest valid reward distance from market structure.
+   * If required net-3R distance exceeds this → TECHNICAL_TARGET_CANNOT_SUPPORT_NET_3R.
+   */
+  technicalRewardDistanceMax?: number | null;
 
   nowMs?: number;
   proposalId?: string;
@@ -644,6 +673,13 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
     takeProfitLabel: "3R_PLANNED_TARGET",
     takeProfitNote: TP_NOTE,
     invalidationConditions: input.invalidationConditions ?? [],
+    grossRewardRiskRatio: riskDistance != null && rewardDistance != null ? 3 : null,
+    netRewardRiskRatio: null,
+    verifiedTradingCostsAccount: null,
+    modeledStopLossRiskAccount: null,
+    grossTakeProfitRewardAccount: null,
+    netTakeProfitRewardAccount: null,
+    takeProfitSource: "3R_FROM_VERIFIED_STOP_DISTANCE",
   };
 
   // Quantity sizing — only when geometry + capital gates allow
@@ -876,6 +912,121 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
               `Projected exposure ${base.quantity.projectedExposure} exceeds limit ${input.maxExposureLimit}.`,
             ));
           }
+        }
+      }
+    }
+  }
+
+  // Net 3R TP remediation (after quantity is known so account costs convert to price distance).
+  // SL and quantity stay fixed; TP may only extend within a technical max when provided.
+  if (
+    blockers.length === 0
+    && finitePositive(normalizedQty)
+    && finitePositive(entryPrice)
+    && finitePositive(stopLoss)
+    && (directionRaw === "BUY" || directionRaw === "SELL")
+  ) {
+    let claimedCosts =
+      input.verifiedTradingCostsAccount != null && Number.isFinite(input.verifiedTradingCostsAccount)
+        ? Math.max(0, input.verifiedTradingCostsAccount)
+        : 0;
+    let costsVerifiedFlag = input.costsVerified === true || claimedCosts === 0;
+
+    // When LIVE spread is provided, compute friction for THIS sized quantity (once).
+    if (
+      (claimedCosts === 0 || input.verifiedTradingCostsAccount == null)
+      && input.liveSpreadAbsolute != null
+      && Number.isFinite(input.liveSpreadAbsolute)
+      && input.liveSpreadAbsolute >= 0
+      && input.contract?.verified === true
+    ) {
+      const cost = buildSpreadCostBreakdown({
+        spreadAbsolute: input.liveSpreadAbsolute,
+        quantityLots: normalizedQty,
+        contract: input.contract,
+        accountCurrency: input.accountCurrency,
+        commissionVerified: false,
+        slippageEvidenceAvailable: false,
+      });
+      if (cost.verified && cost.breakdown.totalEntryFrictionAccount != null) {
+        claimedCosts = Math.max(0, cost.breakdown.totalEntryFrictionAccount);
+        costsVerifiedFlag = true;
+        base.notes.push(
+          `NET_3R_SPREAD_FRICTION: liveSpread=${input.liveSpreadAbsolute} → `
+          + `entryFrictionAccount=${claimedCosts} (spread only; commission/slippage not invented).`,
+        );
+      } else if (input.liveSpreadAbsolute > 0) {
+        blockers.push(block(
+          cost.failCode ?? "TRADING_COST_UNVERIFIED",
+          cost.breakdown.note || "LIVE spread present but friction could not be verified.",
+        ));
+        costsVerifiedFlag = false;
+      }
+    }
+
+    const costsOk = costsVerifiedFlag || claimedCosts === 0;
+    if (!costsOk) {
+      blockers.push(block(
+        "TRADING_COST_UNVERIFIED",
+        "Non-zero trading costs were supplied without costsVerified=true — refusing invented cost accounting.",
+      ));
+    } else if (blockers.length === 0) {
+      const stopBefore = stopLoss;
+      const qtyBefore = normalizedQty;
+      const netTp = proposeTakeProfitNetAware3R({
+        direction: directionRaw,
+        entryPrice,
+        stopLoss,
+        quantityLots: normalizedQty,
+        contract: input.contract,
+        verifiedTradingCostsAccount: claimedCosts,
+        costsVerified: claimedCosts === 0 ? true : costsVerifiedFlag,
+        digits,
+        tickSize,
+        technicalRewardDistanceMax:
+          input.technicalRewardDistanceMax != null && Number.isFinite(input.technicalRewardDistanceMax)
+            ? input.technicalRewardDistanceMax
+            : null,
+      });
+      if (!netTp.ok || netTp.takeProfit == null) {
+        blockers.push(block(
+          netTp.ok === false ? netTp.code : "NET_REWARD_BELOW_3R",
+          netTp.ok === false ? netTp.message : "Net 3R take-profit remediation failed.",
+        ));
+        base.pricePlan.takeProfit = null;
+        base.pricePlan.rewardDistance = null;
+        base.pricePlan.plannedRewardRiskRatio = null;
+        base.pricePlan.grossRewardRiskRatio = null;
+        base.pricePlan.netRewardRiskRatio = null;
+        base.pricePlan.takeProfitSource = null;
+        base.pricePlan.verifiedTradingCostsAccount = claimedCosts;
+      } else {
+        base.pricePlan.takeProfit = netTp.takeProfit;
+        base.pricePlan.rewardDistance = netTp.rewardDistance;
+        base.pricePlan.plannedRewardRiskRatio = netTp.grossRewardRiskRatio;
+        base.pricePlan.grossRewardRiskRatio = netTp.grossRewardRiskRatio;
+        base.pricePlan.netRewardRiskRatio = netTp.netRewardRiskRatio;
+        base.pricePlan.verifiedTradingCostsAccount = netTp.verifiedTradingCostsAccount;
+        base.pricePlan.modeledStopLossRiskAccount = netTp.modeledStopLossRiskAccount;
+        base.pricePlan.grossTakeProfitRewardAccount = netTp.grossTakeProfitRewardAccount;
+        base.pricePlan.netTakeProfitRewardAccount = netTp.netTakeProfitRewardAccount;
+        base.pricePlan.takeProfitSource = netTp.takeProfitSource;
+        base.pricePlan.takeProfitLabel =
+          netTp.takeProfitSource === "NET_3R_AFTER_VERIFIED_COSTS"
+            ? "NET_3R_AFTER_VERIFIED_COSTS"
+            : "3R_PLANNED_TARGET";
+        // Invariants: SL and quantity must remain unchanged by TP remediation.
+        if (Math.abs((base.pricePlan.stopLoss ?? stopBefore) - stopBefore) > 1e-12) {
+          blockers.push(block(
+            "STOP_LOSS_CHANGED_DURING_TP",
+            "Invariant violation: Stop Loss must not change during net-3R TP remediation.",
+          ));
+        }
+        if (normalizedQty !== qtyBefore) {
+          blockers.push(block(
+            "QUANTITY_CHANGED_DURING_TP",
+            "Invariant violation: Quantity must not change during net-3R TP remediation.",
+          ));
         }
       }
     }

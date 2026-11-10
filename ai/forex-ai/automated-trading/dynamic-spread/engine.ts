@@ -422,7 +422,7 @@ export function evaluateDynamicSpread(
   if (net.meetsMinimum !== true) {
     return rejectBase(
       input,
-      ["NET_REWARD_BELOW_POLICY"],
+      ["NET_REWARD_BELOW_3R", "NET_REWARD_BELOW_POLICY"],
       net.note + (net.rewardToRiskRatio != null
         ? ` ratio=${net.rewardToRiskRatio}`
         : ""),

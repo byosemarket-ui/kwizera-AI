@@ -377,7 +377,7 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     );
   }
 
-  // —— Phase 56.4.2 — TP must satisfy price-level 3R after tick rounding (never silently adjust) ——
+  // —— Phase 56.4.2 / Stage 1 — TP must satisfy minimum price-level 3R (may exceed for net-3R costs) ——
   if (
     geometryOk
     && (direction === "BUY" || direction === "SELL")
@@ -395,21 +395,20 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
       pushCheck(checks, expected.code, "REWARD_RISK", "FAIL", expected.message);
       geometryOk = false;
     } else {
-      const tick =
-        (contract?.tickSize != null && contract.tickSize > 0)
-          ? contract.tickSize
-          : (contract?.pointSize != null && contract.pointSize > 0)
-            ? contract.pointSize
-            : 1e-8;
-      const delta = Math.abs(tp - expected.takeProfit);
-      if (delta > tick + 1e-12) {
+      const riskDist = expected.stopDistance;
+      const rewardDist = Math.abs(tp - entry);
+      const observedR = riskDist > 0 ? rewardDist / riskDist : 0;
+      // Minimum 3R: exact gross 3R OR cost-adjusted TP beyond 3R are both valid.
+      const meetsMinimum = observedR + 1e-9 >= 3;
+      const wrongSide = direction === "BUY" ? !(tp > entry) : !(tp < entry);
+      if (wrongSide || !meetsMinimum) {
         pushCheck(
           checks,
           "TP_NOT_3R",
           "REWARD_RISK",
           "FAIL",
-          `Take Profit ${tp} does not match required 3R price ${expected.takeProfit} `
-            + `(R=${expected.stopDistance}; tolerance=${tick}). Re-validate or submit a new draft.`,
+          `Take Profit ${tp} yields R=${observedR.toFixed(4)} below minimum 3R `
+            + `(gross-3R floor=${expected.takeProfit}). Cost-adjusted TPs may exceed 3R but never fall below.`,
         );
         geometryOk = false;
       } else {
@@ -418,7 +417,9 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
           "TP_3R_POLICY",
           "REWARD_RISK",
           "PASS",
-          `Take Profit matches 3R policy (expected=${expected.takeProfit}).`,
+          observedR <= 3.05
+            ? `Take Profit satisfies minimum 3R policy (R=${observedR.toFixed(4)}, floor=${expected.takeProfit}).`
+            : `Take Profit exceeds gross 3R (R=${observedR.toFixed(4)}) — allowed for net-3R after verified costs.`,
         );
       }
     }

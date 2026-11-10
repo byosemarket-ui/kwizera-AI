@@ -77,6 +77,17 @@ export type AtOrderProposalBlockCode =
   | "SIZING_FAILED"
   | "TRADING_DISABLED"
   | "EMERGENCY_LOCK"
+  | "NET_REWARD_BELOW_3R"
+  | "TECHNICAL_TARGET_CANNOT_SUPPORT_NET_3R"
+  | "TP_OUTSIDE_VALID_MARKET_STRUCTURE"
+  | "TP_PRICE_INVALID"
+  | "TRADING_COST_UNVERIFIED"
+  | "SPREAD_COST_DOUBLE_COUNTED"
+  | "PER_ORDER_RISK_EXCEEDED"
+  | "BROKER_QUANTITY_CONSTRAINT_FAILED"
+  | "CURRENCY_CONVERSION_UNVERIFIED"
+  | "STOP_LOSS_CHANGED_DURING_TP"
+  | "QUANTITY_CHANGED_DURING_TP"
   | "UNKNOWN";
 
 export interface AtOrderProposalBlocker {
@@ -97,9 +108,9 @@ export interface AtOrderProposalCapitalSnapshot {
   existingCommittedExposure: number | null;
   pendingProposalReservations: number | null;
   remainingStrategyBudget: number | null;
-  /** Risk target % (20) — intended max loss for this order. */
+  /** Risk target % (25) — intended max loss for this order. */
   riskTargetPercent: typeof PER_ORDER_RISK_TARGET_PERCENT | number | null;
-  /** C — riskTargetAmount = orderAllocation × 0.20 */
+  /** C — riskTargetAmount = orderAllocation × 0.25 */
   riskTargetAmount: number | null;
   /** Hard maximum risk % (25) — absolute ceiling. */
   riskMaximumPercent: typeof PER_ORDER_RISK_MAXIMUM_PERCENT | number | null;
@@ -131,10 +142,19 @@ export interface AtOrderProposalPricePlan {
   takeProfit: number | null;
   riskDistance: number | null;
   rewardDistance: number | null;
+  /** Gross price-distance R:R (may exceed 3 when cost-adjusted). */
   plannedRewardRiskRatio: number | null;
-  takeProfitLabel: "3R_PLANNED_TARGET";
+  takeProfitLabel: "3R_PLANNED_TARGET" | "NET_3R_AFTER_VERIFIED_COSTS";
   takeProfitNote: string;
   invalidationConditions: string[];
+  /** Stage 1 — gross vs net reward visibility (null when costs not verified). */
+  grossRewardRiskRatio?: number | null;
+  netRewardRiskRatio?: number | null;
+  verifiedTradingCostsAccount?: number | null;
+  modeledStopLossRiskAccount?: number | null;
+  grossTakeProfitRewardAccount?: number | null;
+  netTakeProfitRewardAccount?: number | null;
+  takeProfitSource?: "3R_FROM_VERIFIED_STOP_DISTANCE" | "NET_3R_AFTER_VERIFIED_COSTS" | null;
 }
 
 export interface AtOrderProposalQuantityPlan {
