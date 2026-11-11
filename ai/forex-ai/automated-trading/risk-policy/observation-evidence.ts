@@ -3,7 +3,11 @@
  * Never invents thresholds. Never marks observations as approved policy values.
  * Weekend/stale/cached quotes are labelled and rejected as recommendation evidence.
  */
-import { STAGE3_TRACKED_INSTRUMENTS, type Stage3TrackedInstrument } from "./types.js";
+import {
+  STAGE3_ACTIVE_INSTRUMENTS,
+  STAGE3_TRACKED_INSTRUMENTS,
+  type Stage3TrackedInstrument,
+} from "./types.js";
 import { documentedPrecision, normalizeInstrumentSymbol } from "./validate.js";
 
 export type QuoteProvenanceLabel =
@@ -174,6 +178,8 @@ export function evaluateSpreadObservationQuality(input: {
 
 export function ownerApprovalRequirements(): {
   instruments: Stage3TrackedInstrument[];
+  activeInstruments: Stage3TrackedInstrument[];
+  trackedCatalog: Stage3TrackedInstrument[];
   units: "absolute_price";
   requireProposeThenOwnerApproveConfirm: true;
   requireDistinctOwnerToken: true;
@@ -184,7 +190,10 @@ export function ownerApprovalRequirements(): {
   note: string;
 } {
   return {
-    instruments: [...STAGE3_TRACKED_INSTRUMENTS],
+    // Phase-active instruments require owner approval this cycle.
+    instruments: [...STAGE3_ACTIVE_INSTRUMENTS],
+    activeInstruments: [...STAGE3_ACTIVE_INSTRUMENTS],
+    trackedCatalog: [...STAGE3_TRACKED_INSTRUMENTS],
     units: "absolute_price",
     requireProposeThenOwnerApproveConfirm: true,
     requireDistinctOwnerToken: true,
@@ -194,9 +203,11 @@ export function ownerApprovalRequirements(): {
     fieldsPerInstrument: ["spread.maxSpreadAbsolute", "slippage.maxSlippageAbsolute"],
     note:
       "Owner must provide APPROVED absolute_price maxSpreadAbsolute and maxSlippageAbsolute "
-      + "for each tracked instrument via Stage 4 propose → owner approve+confirm=true. "
-      + "Recommendations may only be drafted from ≥20 independent LIVE market-open observations; "
-      + "recommendations ≠ approval. Missing policies fail closed.",
+      + "for ACTIVE Automated Trading instruments (XAU/USD this phase) via Stage 4 "
+      + "propose → owner approve+confirm=true. OUT_OF_SCOPE catalog instruments remain "
+      + "unapproved and excluded from active workflow. Recommendations may only be drafted "
+      + "from ≥20 independent LIVE market-open observations; recommendations ≠ approval. "
+      + "Missing ACTIVE policies fail closed.",
   };
 }
 

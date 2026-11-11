@@ -11,6 +11,8 @@ import {
 } from "../forex/admin-access/forex-owner-token";
 
 const INSTRUMENTS = ["EUR/USD", "GBP/USD", "USD/JPY", "XAU/USD"] as const;
+/** KWIZERA AI STUDIO → FOREX → AUTOMATED TRADING — active phase (XAU only). */
+const ACTIVE_PHASE_INSTRUMENTS = new Set<string>(["XAU/USD"]);
 
 type Kind = "spread" | "slippage";
 
@@ -71,7 +73,7 @@ function stateTone(state: string | undefined): "ok" | "warn" | "danger" | undefi
 export function ForexAdminAtRiskLimitsPanel() {
   const [doc, setDoc] = useState<PolicyDoc | null>(null);
   const [history, setHistory] = useState<Array<Record<string, unknown>>>([]);
-  const [instrument, setInstrument] = useState<(typeof INSTRUMENTS)[number]>("EUR/USD");
+  const [instrument, setInstrument] = useState<(typeof INSTRUMENTS)[number]>("XAU/USD");
   const [kind, setKind] = useState<Kind>("spread");
   const [draftValue, setDraftValue] = useState("");
   const [busy, setBusy] = useState(false);
@@ -183,6 +185,8 @@ export function ForexAdminAtRiskLimitsPanel() {
         Pending values are not active. Units: absolute price (same scale as bid/ask).
         Slippage is measured vs executable-side price (entry_vs_executable). No invented thresholds.
         No order submission. Does not enable Execution Master.
+        {" "}
+        Active phase: <strong>XAU/USD only</strong> — EUR/GBP/JPY remain in the catalog as OUT_OF_SCOPE.
       </p>
       <dl className="fxa-dl">
         <dt>Owner capability</dt>
@@ -244,7 +248,9 @@ export function ForexAdminAtRiskLimitsPanel() {
             disabled={busy}
           >
             {INSTRUMENTS.map((i) => (
-              <option key={i} value={i}>{i}</option>
+              <option key={i} value={i}>
+                {i}{ACTIVE_PHASE_INSTRUMENTS.has(i) ? " · ACTIVE" : " · OUT_OF_SCOPE"}
+              </option>
             ))}
           </select>
         </label>

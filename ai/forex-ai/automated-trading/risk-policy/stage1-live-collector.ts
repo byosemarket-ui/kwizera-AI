@@ -11,7 +11,12 @@ import {
   type LiveSpreadObservationRecord,
 } from "./spread-observation-collector.js";
 import { getStage1EvidenceStore, type Stage1EvidenceStore } from "./stage1-evidence-store.js";
-import { STAGE3_TRACKED_INSTRUMENTS, type Stage3TrackedInstrument } from "./types.js";
+import {
+  STAGE3_ACTIVE_INSTRUMENTS,
+  STAGE3_TRACKED_INSTRUMENTS,
+  getInstrumentPhaseStatus,
+  type Stage3TrackedInstrument,
+} from "./types.js";
 import { normalizeInstrumentSymbol } from "./validate.js";
 
 export interface Stage1InstrumentTickResult {
@@ -73,7 +78,8 @@ function quoteTimestampMs(q: Record<string, unknown>, nowMs: number): number {
 }
 
 /**
- * One collection pass across the four tracked instruments.
+ * One collection pass across ACTIVE Automated Trading instruments (XAU/USD this phase).
+ * Tracked OUT_OF_SCOPE instruments are reported as skipped — never deleted.
  * Subscribes Offers (market-data only) when missing — never submits orders.
  */
 export async function collectStage1SpreadTick(input?: {
@@ -128,8 +134,9 @@ export async function collectStage1SpreadTick(input?: {
   }
 
   const subscribeCodes: Partial<Record<Stage3TrackedInstrument, string | null>> = {};
+  const activeList = [...STAGE3_ACTIVE_INSTRUMENTS] as Stage3TrackedInstrument[];
   if (ensure) {
-    for (const instrument of STAGE3_TRACKED_INSTRUMENTS) {
+    for (const instrument of activeList) {
       try {
         await live.ensure(instrument, "1m");
         subscribeCodes[instrument] = "ENSURE_OK";
@@ -150,7 +157,31 @@ export async function collectStage1SpreadTick(input?: {
   const instruments: Stage1InstrumentTickResult[] = [];
   let acceptedThisTick = 0;
 
+  // Report OUT_OF_SCOPE tracked instruments as skipped (catalog preserved).
   for (const instrument of STAGE3_TRACKED_INSTRUMENTS) {
+    if (getInstrumentPhaseStatus(instrument) === "OUT_OF_SCOPE") {
+      const prior = store.getAccepted(instrument);
+      instruments.push({
+        instrument,
+        subscribed: false,
+        subscribeCode: "OUT_OF_SCOPE",
+        quotePresent: false,
+        bid: null,
+        ask: null,
+        tradingStatus: null,
+        quoteAgeMs: null,
+        ingestStatus: "SKIPPED",
+        ingestCode: "OUT_OF_SCOPE",
+        message:
+          "Instrument is OUT_OF_SCOPE for the current Automated Trading phase (XAU/USD only). "
+          + "Catalog entry preserved; not collected.",
+        accepted: false,
+        validLiveCount: prior.length,
+      });
+    }
+  }
+
+  for (const instrument of activeList) {
     const prior = store.getAccepted(instrument);
     const q = matchQuote(quotes, instrument);
     if (!q) {
@@ -254,7 +285,9 @@ export async function collectStage1SpreadTick(input?: {
     mutatesBroker: false,
     brokerExecution: "DISABLED",
     note:
-      "One read-only Offers poll. Independent LIVE samples require ≥5s gap and changing bid/ask. "
+      "One read-only Offers poll for ACTIVE Automated Trading instruments (XAU/USD this phase). "
+      + "Independent LIVE samples require ≥5s gap and changing bid/ask. "
+      + "OUT_OF_SCOPE tracked instruments are skipped, not deleted. "
       + "Restores DEMO market-data session when DISCONNECTED. Does not approve policies or submit orders.",
   };
 }

@@ -23,7 +23,14 @@ import {
   summarizeSlippageEvidence,
   type SlippageFillEvidenceRecord,
 } from "./slippage-evidence.js";
-import { STAGE3_TRACKED_INSTRUMENTS, type Stage3TrackedInstrument } from "./types.js";
+import {
+  STAGE3_ACTIVE_INSTRUMENTS,
+  STAGE3_TRACKED_INSTRUMENTS,
+  getInstrumentPhaseStatus,
+  isStage3ActiveInstrument,
+  type InstrumentPhaseStatus,
+  type Stage3TrackedInstrument,
+} from "./types.js";
 import { getAtRiskPolicyStore } from "./store.js";
 
 export type Stage1InstrumentStatus =
@@ -32,10 +39,12 @@ export type Stage1InstrumentStatus =
   | "WAITING_FOR_CONTROLLED_DEMO_EVIDENCE"
   | "INSUFFICIENT_LIVE_EVIDENCE"
   | "NOT_CONFIGURED"
+  | "OUT_OF_SCOPE"
   | "RESOLVED";
 
 export interface Stage1InstrumentReport {
   instrument: Stage3TrackedInstrument;
+  phaseStatus: InstrumentPhaseStatus;
   spreadPolicyStatus: string;
   slippagePolicyStatus: string;
   spreadEvidence: ReturnType<typeof summarizeInstrumentSpreadEvidence>;
@@ -49,6 +58,12 @@ export interface Stage1ReadinessReport {
   stage: "STAGE_1_SPREAD_SLIPPAGE_POLICY";
   stageComplete: false | true;
   completionCode: "STAGE_1_COMPLETE" | "NOT_RESOLVED";
+  activePhase: {
+    module: "KWIZERA_AI_STUDIO_FOREX_AUTOMATED_TRADING";
+    activeInstruments: readonly string[];
+    trackedCatalog: readonly string[];
+    note: string;
+  };
   marketGate: ReturnType<typeof stage1SpreadCollectionGate>;
   ownerApproval: ReturnType<typeof ownerApprovalRequirements>;
   slippageWorkflow: ReturnType<typeof getSlippageEvidenceCollectionWorkflow>;
@@ -64,6 +79,7 @@ export interface Stage1ReadinessReport {
 }
 
 function overallFor(inst: Stage1InstrumentReport, marketOpen: boolean): Stage1InstrumentStatus {
+  if (inst.phaseStatus === "OUT_OF_SCOPE") return "OUT_OF_SCOPE";
   if (inst.spreadPolicyStatus === "VERIFIED" && inst.slippagePolicyStatus === "VERIFIED") {
     return "RESOLVED";
   }
@@ -99,6 +115,7 @@ export function buildStage1ReadinessReport(input?: {
   const store = input?.store ?? getAtRiskPolicyStore();
 
   const instruments: Stage1InstrumentReport[] = STAGE3_TRACKED_INSTRUMENTS.map((instrument) => {
+    const phaseStatus = getInstrumentPhaseStatus(instrument);
     const spread = resolveSpreadLimit({ instrument, store });
     const slip = resolveSlippageLimit({ instrument, store });
     const accepted = input?.acceptedSpreadByInstrument?.[instrument] ?? [];
@@ -112,12 +129,13 @@ export function buildStage1ReadinessReport(input?: {
       instrument,
       productionFills: input?.slippageFillsByInstrument?.[instrument] ?? [],
     });
-    const spreadRecommendation = accepted.length > 0
+    const spreadRecommendation = phaseStatus === "ACTIVE" && accepted.length > 0
       ? draftSpreadRecommendation({ instrument, acceptedLive: accepted })
       : null;
 
     const report: Stage1InstrumentReport = {
       instrument,
+      phaseStatus,
       spreadPolicyStatus: spread.status,
       slippagePolicyStatus: slip.status,
       spreadEvidence,
@@ -127,15 +145,28 @@ export function buildStage1ReadinessReport(input?: {
       staleXau030Rejected: true,
     };
     report.overall = overallFor(report, marketOpen === true);
-    if (marketOpen === false) report.overall = "WAITING_FOR_LIVE_MARKET";
+    if (phaseStatus === "ACTIVE" && marketOpen === false) {
+      report.overall = "WAITING_FOR_LIVE_MARKET";
+    }
     return report;
   });
 
-  const allResolved = instruments.every((i) => i.overall === "RESOLVED");
+  const activeInstruments = instruments.filter((i) => isStage3ActiveInstrument(i.instrument));
+  const activeResolved = activeInstruments.length > 0
+    && activeInstruments.every((i) => i.overall === "RESOLVED");
   return {
     stage: "STAGE_1_SPREAD_SLIPPAGE_POLICY",
-    stageComplete: allResolved,
-    completionCode: allResolved ? "STAGE_1_COMPLETE" : "NOT_RESOLVED",
+    stageComplete: activeResolved,
+    completionCode: activeResolved ? "STAGE_1_COMPLETE" : "NOT_RESOLVED",
+    activePhase: {
+      module: "KWIZERA_AI_STUDIO_FOREX_AUTOMATED_TRADING",
+      activeInstruments: [...STAGE3_ACTIVE_INSTRUMENTS],
+      trackedCatalog: [...STAGE3_TRACKED_INSTRUMENTS],
+      note:
+        "XAU/USD is the only ACTIVE Automated Trading instrument this phase. "
+        + "EUR/USD, GBP/USD, and USD/JPY remain in the tracked catalog as OUT_OF_SCOPE "
+        + "(not deleted; excluded from active Stage 1 completion and AT workflow).",
+    },
     marketGate: marketOpen === false
       ? { ...marketGate, collectionStatus: "WAITING_FOR_LIVE_MARKET", code: "WAITING_FOR_LIVE_MARKET", marketLikelyOpen: false }
       : marketGate,
@@ -150,8 +181,9 @@ export function buildStage1ReadinessReport(input?: {
       mayInventThresholds: false,
     },
     note:
-      "Stage 1 complete only when all four instruments have VERIFIED spread + slippage policies "
-      + "backed by valid evidence and owner approve+confirm. Cached XAU 0.30 is rejected.",
+      "Stage 1 complete for this phase only when ACTIVE instruments (XAU/USD) have VERIFIED "
+      + "spread + slippage policies backed by valid evidence and owner approve+confirm. "
+      + "OUT_OF_SCOPE instruments do not block phase completion. Cached XAU 0.30 is rejected.",
   };
 }
 

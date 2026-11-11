@@ -161,25 +161,27 @@ describe("Stage 1 Part 3 — slippage fills + missing evidence", () => {
 });
 
 describe("Stage 1 Part 3 — controlled DEMO plan + readiness", () => {
-  it("plan excludes GBP/JPY MMR blockers and never authorizes orders", () => {
+  it("XAU-only plan excludes out-of-scope FX and never authorizes orders", () => {
     const plan = buildStage1Part3SlippageDemoPlan({ usableMarginUsd: 19997.4 });
     expect(plan.placesOrders).toBe(false);
     expect(plan.mayCallCreateOrderRequest).toBe(false);
     expect(plan.realDemoFillAuthorizedByThisPlan).toBe(false);
-    expect(plan.eligibleInstruments.map((i) => i.instrument)).toEqual(["EUR/USD", "XAU/USD"]);
-    expect(plan.excludedInstruments.every((e) => e.blocker === "MMR_PER_LOT_UNVERIFIED")).toBe(true);
+    expect(plan.activePhaseInstruments).toEqual(["XAU/USD"]);
+    expect(plan.eligibleInstruments.map((i) => i.instrument)).toEqual(["XAU/USD"]);
+    expect(plan.excludedInstruments.map((e) => e.instrument).sort()).toEqual(
+      ["EUR/USD", "GBP/USD", "USD/JPY"].sort(),
+    );
     expect(plan.fillCampaign.minimumFillsPerInstrument).toBe(20);
     expect(plan.fillCampaign.limitGtcMayNeverFill).toBe(true);
     expect(plan.fillCampaign.requiresSeparateOwnerAuthorizedCycles).toBe(true);
     expect(plan.fillCampaign.measurementFormula.provenanceRequired).toBe("BROKER_EXECUTION");
     expect(plan.fillCampaign.measurementFormula.syntheticFixturesForbiddenAsProductionEvidence).toBe(true);
     expect(plan.fillCampaign.abortConditions.length).toBeGreaterThan(0);
-    expect(plan.realDemoFillAuthorizedByThisPlan).toBe(false);
-    expect(plan.mayCallCreateOrderRequest).toBe(false);
     expect(plan.mayCallSendRequest).toBe(false);
     for (const row of plan.eligibleInstruments) {
       expect(row.estimatedModeledLossUsd).toBeLessThanOrEqual(row.allowedRiskAmountUsd + 1e-9);
       expect(row.proposedBrokerAmount).toBe(row.baseUnitSize * row.proposedLots);
+      expect(row.fxcmOfferId).toBe("4001");
     }
   });
 

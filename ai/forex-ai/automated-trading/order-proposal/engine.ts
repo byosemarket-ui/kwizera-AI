@@ -21,8 +21,13 @@ import {
   resolveXauQuantityConstraints,
 } from "../simulation-risk/quantity-constraints.js";
 import { sizeOrderQuantityFromAllocation } from "../simulation-risk/size-order-quantity.js";
+import {
+  allowlistRejectionMessage,
+  isInstrumentAllowlisted,
+} from "../simulation-risk/allowlist.js";
 import type { AtSimContractMetaInput } from "../simulation-risk/types.js";
 import type { AtOrderPreparationHandoff } from "../result-intake/types.js";
+import { isStage3ActiveInstrument } from "../risk-policy/types.js";
 import {
   AT_ORDER_PROPOSAL_PHASE,
   AT_ORDER_PROPOSAL_SCHEMA,
@@ -423,6 +428,22 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
     base.notes.push(
       "CONTROLS_OBSERVED: emergencyEntryLock unknown/null at proposal time — Phase 2 precheck will fail closed.",
     );
+  }
+
+  // KWIZERA AI STUDIO → FOREX → AUTOMATED TRADING — XAU/USD active phase gate.
+  // Keep catalog instruments out of the proposal path without deleting them.
+  const proposalInstrument = String(handoff?.instrument ?? base.instrument ?? "").trim();
+  if (proposalInstrument && !isInstrumentAllowlisted(proposalInstrument)) {
+    blockers.push(block(
+      "INSTRUMENT_NOT_ALLOWLISTED",
+      allowlistRejectionMessage(proposalInstrument),
+    ));
+  } else if (proposalInstrument && !isStage3ActiveInstrument(proposalInstrument)) {
+    blockers.push(block(
+      "INSTRUMENT_PHASE_OUT_OF_SCOPE",
+      `Instrument "${proposalInstrument}" is OUT_OF_SCOPE for the current Automated Trading `
+        + "active phase (XAU/USD only). Catalog entry preserved; proposal blocked.",
+    ));
   }
 
   if (canonicalDecision === "NO_TRADE") {

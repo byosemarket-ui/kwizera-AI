@@ -4517,7 +4517,9 @@ export class AutomatedTradingService {
 
     // Owner-facing spread proposal readiness (never auto-approves).
     const policyStoreForDecisions = getAtRiskPolicyStore();
+    const { getInstrumentPhaseStatus } = await import("./risk-policy/types.js");
     const spreadProposalOwnerDecisions = STAGE3_TRACKED_INSTRUMENTS.map((instrument) => {
+      const phaseStatus = getInstrumentPhaseStatus(instrument);
       const slot = policyStoreForDecisions.getInstrument(instrument);
       const proposed = slot?.spread.proposed ?? null;
       const draft = drafts.find((d) => d.instrument === instrument) ?? null;
@@ -4535,28 +4537,33 @@ export class AutomatedTradingService {
       const evidenceStaleForOwnerReview = evidenceAgeMs != null && evidenceAgeMs > 24 * 3600_000;
       return {
         instrument,
+        phaseStatus,
         proposalStatus: slot?.spread.approvalState ?? "NOT_CONFIGURED",
         activeMaxSpreadAbsolute: slot?.spread.maxSpreadAbsolute ?? null,
-        proposedValueRequiringOwnerConfirm: proposed?.value ?? draft?.recommendedMaxSpreadAbsolute ?? null,
+        proposedValueRequiringOwnerConfirm: phaseStatus === "ACTIVE"
+          ? (proposed?.value ?? draft?.recommendedMaxSpreadAbsolute ?? null)
+          : null,
         proposedUnits: proposed?.units ?? draft?.units ?? "absolute_price",
         proposedAtUtc: proposed?.proposedAtUtc ?? null,
         proposedBy: proposed?.proposedBy ?? null,
         proposedNote: proposed?.note ?? null,
-        draftRecommendation: draft,
+        draftRecommendation: phaseStatus === "ACTIVE" ? draft : null,
         evidenceSummary: evidence ?? null,
         evidenceNewestAtUtc: newest != null ? new Date(newest).toISOString() : null,
         evidenceAgeMs,
-        evidenceStaleForOwnerReview,
-        liveVsPendingAdvisory: advisory,
+        evidenceStaleForOwnerReview: phaseStatus === "ACTIVE" ? evidenceStaleForOwnerReview : false,
+        liveVsPendingAdvisory: phaseStatus === "ACTIVE" ? advisory : null,
         dynamicSpreadNote:
           "Dynamic Spread Intelligence remains the live ACCEPT/REJECT gate. "
           + "Legacy maxSpreadAbsolute is an optional emergency ceiling only after owner approve+confirm.",
         autoApproveForbidden: true as const,
-        ownerActionRequired:
-          "Owner must explicitly approve+confirm=true (distinct owner token) or reject. "
-          + "Engineering must not convert PENDING → APPROVED.",
-        recommendedOwnerDecision:
-          evidenceStaleForOwnerReview
+        ownerActionRequired: phaseStatus === "ACTIVE"
+          ? ("Owner must explicitly approve+confirm=true (distinct owner token) or reject. "
+            + "Engineering must not convert PENDING → APPROVED.")
+          : "OUT_OF_SCOPE for current Automated Trading phase — no owner action required now.",
+        recommendedOwnerDecision: phaseStatus !== "ACTIVE"
+          ? "OUT_OF_SCOPE_NO_ACTION"
+          : evidenceStaleForOwnerReview
             ? "RECOLLECT_LIVE_EVIDENCE_THEN_REVIEW"
             : (proposed?.value != null || draft?.sufficient === true)
               ? "OWNER_REVIEW_PENDING_PROPOSAL"
@@ -4570,7 +4577,10 @@ export class AutomatedTradingService {
       slippageSummaries,
       fillAudit,
       slippageWorkflow: getSlippageEvidenceCollectionWorkflow(),
-      controlledDemoSlippagePlan: buildStage1Part3SlippageDemoPlan({ usableMarginUsd }),
+      controlledDemoSlippagePlan: buildStage1Part3SlippageDemoPlan({
+        usableMarginUsd,
+        xauMmrPerLot: mmrEvidenceByInstrument["XAU/USD"]?.mmrPerLot ?? null,
+      }),
       liveSpreadAdvisories,
       mmrEvidenceByInstrument,
       spreadProposalOwnerDecisions,

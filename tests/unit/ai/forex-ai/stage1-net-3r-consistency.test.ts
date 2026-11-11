@@ -9,8 +9,8 @@ import {
   DYNAMIC_SPREAD_MIN_ROLLING_SAMPLES,
 } from "../../../../ai/forex-ai/automated-trading/dynamic-spread/index.js";
 import {
-  fixtureEurUsdContract,
   fixtureRollingSpreads,
+  fixtureXauUsdContract,
 } from "../../../../ai/forex-ai/automated-trading/dynamic-spread/test-fixtures.js";
 import { buildOrderProposal } from "../../../../ai/forex-ai/automated-trading/order-proposal/index.js";
 import {
@@ -31,22 +31,23 @@ import type { AtOrderPreparationHandoff } from "../../../../ai/forex-ai/automate
 import { evaluateProtectiveGeometry } from "../../../../ai/forex-ai/automated-trading/broker-intent/protective-geometry.js";
 
 const NOW = Date.parse("2026-11-10T14:00:00.000Z");
-/** Exact 5-decimal tick prices — avoid binary float off-tick INVALID_PRICE_PRECISION. */
-const ENTRY = 110_000 / 100_000; // 1.10000
-const STOP = 109_900 / 100_000; // 1.09900 — 10 pips / 0.001
-/** LIVE-shaped EUR/USD — AMOUNT min/step = baseUnitSize (1000), not invented 1. */
+/** XAU/USD fixture prices — 2dp ticks (pointSize 0.01). SL distance = 10.0 → $10/lot risk. */
+const ENTRY = 4000.0;
+const STOP = 3990.0;
+/** LIVE-shaped XAU/USD — AMOUNT = lots (baseUnitSize 1). */
 const CONTRACT = {
-  ...fixtureEurUsdContract(),
-  quantityMin: 1000,
-  quantityStep: 1000,
-  baseUnitSize: 1000,
+  ...fixtureXauUsdContract(),
+  quantityMin: 1,
+  quantityStep: 1,
+  baseUnitSize: 1,
+  marginPerLotAccount: 4.42,
 };
 
 function handoff(): AtOrderPreparationHandoff {
   return {
     acceptedResultId: "res-net3r-1",
     analysisId: "an-net3r-1",
-    instrument: "EUR/USD",
+    instrument: "XAU/USD",
     canonicalDirection: "BUY",
     directionalConfidencePct: 60,
     confidenceType: "ANALYSIS_CONFIDENCE",
@@ -67,7 +68,7 @@ function handoff(): AtOrderPreparationHandoff {
     placesOrders: false,
     acceptsForExecution: false,
     mutatesBroker: false,
-    note: "TEST_FIXTURE_NET_3R",
+    note: "TEST_FIXTURE_NET_3R_XAU",
   };
 }
 
@@ -83,14 +84,14 @@ function baseProposalInput(over: Record<string, unknown> = {}) {
     usedMargin: 100,
     marginFresh: true,
     strategyAllocationPercent: 10,
-    // $40 allocation → $10 allowed risk → ~1.0 lot at $10/lot SL risk (clean cost math).
+    // $40 allocation → $10 allowed risk → 1.0 lot at $10/lot SL risk (10-point SL).
     individualOrderAllocation: 40,
     allocationCurrency: "USD",
     existingCommittedExposure: 0,
     contract: CONTRACT,
     contractFresh: true,
-    sdkMinQuantity: 1000,
-    marginPerUnitAccount: 33,
+    sdkMinQuantity: 1,
+    marginPerUnitAccount: 4.42,
     exposureAuthoritative: true,
     existingExposure: 0,
     systemMasterOn: true,
@@ -107,7 +108,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       direction: "BUY",
       entryPrice: ENTRY,
       stopLoss: STOP,
-      digits: 5,
+      digits: 2,
     });
     expect(gross.ok).toBe(true);
     if (!gross.ok) return;
@@ -119,8 +120,8 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       contract: CONTRACT,
       verifiedTradingCostsAccount: 0,
       costsVerified: true,
-      digits: 5,
-      tickSize: 0.00001,
+      digits: 2,
+      tickSize: 0.01,
     });
     expect(net.ok).toBe(true);
     if (!net.ok) return;
@@ -131,7 +132,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
   });
 
   it("2. exact 3R gross with positive spread cost → TP extends for net ≥3R", () => {
-    const spreadCost = 1.2; // matches fixture 0.00012 × POINT_COST
+    const spreadCost = 0.30; // XAU 0.30 absolute × POINT_COST → $0.30/lot
     const net = proposeTakeProfitNetAware3R({
       direction: "BUY",
       entryPrice: ENTRY,
@@ -140,8 +141,8 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       contract: CONTRACT,
       verifiedTradingCostsAccount: spreadCost,
       costsVerified: true,
-      digits: 5,
-      tickSize: 0.00001,
+      digits: 2,
+      tickSize: 0.01,
     });
     expect(net.ok).toBe(true);
     if (!net.ok) return;
@@ -155,17 +156,17 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
   it("3. gross above 3R but net below 3R is REJECTED when TP not extended", () => {
     // Fixed TP at exact 3R with positive friction → dynamic spread REJECT
     const r = evaluateDynamicSpread({
-      instrument: "EUR/USD",
-      bid: 1.10000,
-      ask: 1.10012,
+      instrument: "XAU/USD",
+      bid: 4000.0,
+      ask: 4000.30,
       quoteAgeMs: 200,
       provenance: "LIVE",
       feedConnected: true,
       marketStatus: "OPEN",
       historicalSpreads: fixtureRollingSpreads({
         n: DYNAMIC_SPREAD_MIN_ROLLING_SAMPLES,
-        baseSpread: 0.00012,
-        instrument: "EUR/USD",
+        baseSpread: 0.30,
+        instrument: "XAU/USD",
         nowMs: NOW,
       }),
       direction: "BUY",
@@ -173,8 +174,8 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       stopLoss: STOP,
       takeProfit: ENTRY + 3 * (ENTRY - STOP),
       quantityLots: 1,
-      brokerAmount: 1000,
-      baseUnitSize: 1000,
+      brokerAmount: 1,
+      baseUnitSize: 1,
       contract: CONTRACT,
       orderAllocationAccount: 400,
       accountCurrency: "USD",
@@ -189,7 +190,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
     const proposal = buildOrderProposal(baseProposalInput({
       verifiedTradingCostsAccount: 1.2,
       costsVerified: true,
-      technicalRewardDistanceMax: 0.01, // plenty of room
+      technicalRewardDistanceMax: 100, // plenty of room beyond 3R=30
     }));
     expect(proposal.blockers.map((b) => `${b.code}:${b.message}`)).toEqual([]);
     expect(proposal.lifecycle).toBe("PROPOSAL_READY");
@@ -207,8 +208,8 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       contract: CONTRACT,
       verifiedTradingCostsAccount: 1.2,
       costsVerified: true,
-      technicalRewardDistanceMax: 0.00300, // exact 3R only — too tight for costs
-      digits: 5,
+      technicalRewardDistanceMax: 30.0, // exact 3R only — too tight for costs
+      digits: 2,
     });
     expect(net.ok).toBe(false);
     if (net.ok) return;
@@ -216,7 +217,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
   });
 
   it("6. TP beyond valid resistance for BUY → REJECT (no invented structure)", () => {
-    const resistanceDistance = 0.0025; // < required cost-adjusted distance
+    const resistanceDistance = 20; // < required cost-adjusted distance (3R=30 + costs)
     const proposal = buildOrderProposal(baseProposalInput({
       verifiedTradingCostsAccount: 5,
       costsVerified: true,
@@ -234,8 +235,8 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
 
   it("7. TP beyond valid support for SELL → REJECT", () => {
     const sellHandoff = { ...handoff(), canonicalDirection: "SELL" as const };
-    const entry = 1.10000;
-    const stop = 1.10100;
+    const entry = 4000.0;
+    const stop = 4010.0;
     const net = proposeTakeProfitNetAware3R({
       direction: "SELL",
       entryPrice: entry,
@@ -244,8 +245,8 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       contract: CONTRACT,
       verifiedTradingCostsAccount: 2,
       costsVerified: true,
-      technicalRewardDistanceMax: 0.0025,
-      digits: 5,
+      technicalRewardDistanceMax: 20, // < 3R=30 + cost distance
+      digits: 2,
     });
     expect(net.ok).toBe(false);
     if (net.ok) return;
@@ -258,7 +259,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       direction: "BUY",
       entryPrice: ENTRY,
       stopLoss: STOP,
-      takeProfit: ENTRY - 0.001, // wrong side
+      takeProfit: ENTRY - 1, // wrong side
       requireProtective: true,
       requireThreeR: true,
     });
@@ -269,17 +270,17 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
   it("9. spread cost deducted exactly once (convention)", () => {
     expect(DYNAMIC_SPREAD_COST_ACCOUNTING_CONVENTION).toContain("SPREAD_IS_ENTRY_FRICTION_SUBTRACTED_FROM_TP_REWARD_ONLY");
     const r = evaluateDynamicSpread({
-      instrument: "EUR/USD",
-      bid: 1.10000,
-      ask: 1.10012,
+      instrument: "XAU/USD",
+      bid: 4000.0,
+      ask: 4000.30,
       quoteAgeMs: 200,
       provenance: "LIVE",
       feedConnected: true,
       marketStatus: "OPEN",
       historicalSpreads: fixtureRollingSpreads({
         n: 20,
-        baseSpread: 0.00012,
-        instrument: "EUR/USD",
+        baseSpread: 0.30,
+        instrument: "XAU/USD",
         nowMs: NOW,
       }),
       direction: "BUY",
@@ -287,8 +288,8 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       stopLoss: STOP,
       takeProfit: ENTRY + 0.005,
       quantityLots: 1,
-      brokerAmount: 1000,
-      baseUnitSize: 1000,
+      brokerAmount: 1,
+      baseUnitSize: 1,
       contract: CONTRACT,
       orderAllocationAccount: 400,
       accountCurrency: "USD",
@@ -314,7 +315,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       contract: CONTRACT,
       verifiedTradingCostsAccount: 1.2 + 0.5,
       costsVerified: true,
-      digits: 5,
+      digits: 2,
     });
     const spreadOnly = proposeTakeProfitNetAware3R({
       direction: "BUY",
@@ -324,7 +325,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       contract: CONTRACT,
       verifiedTradingCostsAccount: 1.2,
       costsVerified: true,
-      digits: 5,
+      digits: 2,
     });
     expect(withComm.ok && spreadOnly.ok).toBe(true);
     if (!withComm.ok || !spreadOnly.ok) return;
@@ -340,7 +341,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       contract: CONTRACT,
       verifiedTradingCostsAccount: 2.0,
       costsVerified: false,
-      digits: 5,
+      digits: 2,
     });
     expect(net.ok).toBe(false);
     if (net.ok) return;
@@ -428,7 +429,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       freeMargin: 8000,
       exposureAuthoritative: true,
       marginPerUnitAccount: 33,
-      sdkMinQuantity: 1000,
+      sdkMinQuantity: 1,
       allocationCurrency: "USD",
     });
     if (!sized.ok) {
@@ -445,15 +446,15 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
   });
 
   it("19. FXCM AMOUNT/lots conversion regression", () => {
-    const amt = lotsToFxcmAmount({ lots: 1, baseUnitSize: 1000 });
+    const amt = lotsToFxcmAmount({ lots: 1, baseUnitSize: 1 });
     expect(amt.ok).toBe(true);
     if (!amt.ok) return;
-    expect(amt.amount).toBe(1000);
+    expect(amt.amount).toBe(1);
     const lots = amountConstraintsToLots({
-      amountMin: 1000,
-      amountStep: 1000,
-      amountMax: 1000,
-      baseUnitSize: 1000,
+      amountMin: 1,
+      amountStep: 1,
+      amountMax: 1,
+      baseUnitSize: 1,
     });
     expect(lots.ok).toBe(true);
     if (!lots.ok) return;
@@ -467,17 +468,17 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
     }));
     expect(proposal.lifecycle).toBe("PROPOSAL_READY");
     const r = evaluateDynamicSpread({
-      instrument: "EUR/USD",
-      bid: 1.10000,
-      ask: 1.10012,
+      instrument: "XAU/USD",
+      bid: 4000.0,
+      ask: 4000.30,
       quoteAgeMs: 200,
       provenance: "LIVE",
       feedConnected: true,
       marketStatus: "OPEN",
       historicalSpreads: fixtureRollingSpreads({
         n: 20,
-        baseSpread: 0.00012,
-        instrument: "EUR/USD",
+        baseSpread: 0.30,
+        instrument: "XAU/USD",
         nowMs: NOW,
       }),
       direction: "BUY",
@@ -486,7 +487,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       takeProfit: proposal.pricePlan.takeProfit,
       quantityLots: proposal.quantity.normalizedQuantity,
       brokerAmount: proposal.quantity.brokerAmount,
-      baseUnitSize: 1000,
+      baseUnitSize: 1,
       contract: CONTRACT,
       orderAllocationAccount: proposal.capital.individualOrderAllocation,
       accountCurrency: "USD",
@@ -532,12 +533,12 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       },
       market: {
         bid: 1.0999,
-        ask: 1.10012,
+        ask: 4000.30,
         spread: 0.00022,
         quoteAgeMs: 200,
         tradingEligible: true,
         marketClosed: false,
-        instrument: "EUR/USD",
+        instrument: "XAU/USD",
       },
       exposure: {
         openExposureLots: 0,
@@ -548,9 +549,9 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
         dayStartEquity: 10_000,
       },
       instrumentContract: {
-        baseUnitSize: 1000,
+        baseUnitSize: 1,
         minQuantity: 1,
-        quantityStep: 1000,
+        quantityStep: 1,
         mmrPerLot: 33,
         contractVerified: true,
       },
@@ -561,8 +562,8 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
       dynamicSpread: {
         historicalSpreads: fixtureRollingSpreads({
           n: 20,
-          baseSpread: 0.00012,
-          instrument: "EUR/USD",
+          baseSpread: 0.30,
+          instrument: "XAU/USD",
           nowMs: NOW,
         }),
         provenance: "LIVE",
@@ -608,7 +609,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
 
   it("22. liveSpreadAbsolute computes friction once after sizing (no double count)", () => {
     const proposal = buildOrderProposal(baseProposalInput({
-      liveSpreadAbsolute: 0.00012,
+      liveSpreadAbsolute: 0.30,
     }));
     expect(proposal.blockers.map((b) => `${b.code}:${b.message}`)).toEqual([]);
     expect(proposal.lifecycle).toBe("PROPOSAL_READY");
@@ -622,7 +623,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
 
   it("23. structure ceiling rejects BUY TP beyond farthest resistance", () => {
     const proposal = buildOrderProposal(baseProposalInput({
-      liveSpreadAbsolute: 0.00012,
+      liveSpreadAbsolute: 0.30,
       technicalRewardDistanceMax: 0.0025,
     }));
     expect(proposal.lifecycle).toBe("BLOCKED");

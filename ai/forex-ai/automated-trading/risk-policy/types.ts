@@ -16,6 +16,33 @@ export const STAGE3_TRACKED_INSTRUMENTS = [
 
 export type Stage3TrackedInstrument = (typeof STAGE3_TRACKED_INSTRUMENTS)[number];
 
+/**
+ * KWIZERA AI STUDIO → FOREX → AUTOMATED TRADING — active instrument phase.
+ * Catalog (`STAGE3_TRACKED_INSTRUMENTS`) is preserved for future multi-market work.
+ * Only ACTIVE instruments enter Stage 1 collection / completion / active AT workflow.
+ * Inactive tracked instruments remain OUT_OF_SCOPE (not deleted).
+ */
+export const STAGE3_ACTIVE_INSTRUMENTS = ["XAU/USD"] as const;
+
+export type Stage3ActiveInstrument = (typeof STAGE3_ACTIVE_INSTRUMENTS)[number];
+
+export type InstrumentPhaseStatus = "ACTIVE" | "OUT_OF_SCOPE";
+
+export function isStage3ActiveInstrument(
+  instrument: string | null | undefined,
+): instrument is Stage3ActiveInstrument {
+  const n = String(instrument ?? "").replace(/\s+/g, "").toUpperCase();
+  return (STAGE3_ACTIVE_INSTRUMENTS as readonly string[]).some(
+    (a) => a.replace(/\s+/g, "").toUpperCase() === n,
+  );
+}
+
+export function getInstrumentPhaseStatus(
+  instrument: string | null | undefined,
+): InstrumentPhaseStatus {
+  return isStage3ActiveInstrument(instrument) ? "ACTIVE" : "OUT_OF_SCOPE";
+}
+
 /** Resolve/precheck field status (only APPROVED active values become VERIFIED). */
 export type RiskPolicyFieldStatus =
   | "VERIFIED"

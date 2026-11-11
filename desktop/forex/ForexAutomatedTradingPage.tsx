@@ -2382,6 +2382,13 @@ export function ForexAutomatedTradingPage(props: {
             Operating instrument:{" "}
             <strong>{selectedInstrument ?? "NO_MARKET_SELECTED"}</strong>
           </li>
+          <li data-fx-at-active-phase="true">
+            Automated Trading active phase:{" "}
+            <strong>XAU/USD only</strong>
+            {" — "}
+            EUR/USD, GBP/USD, USD/JPY remain OUT_OF_SCOPE (catalog preserved; not deleted).
+            Broker execution remains DISABLED.
+          </li>
           <li>
             Provider: FOREXCONNECT DEMO
             {" · "}
