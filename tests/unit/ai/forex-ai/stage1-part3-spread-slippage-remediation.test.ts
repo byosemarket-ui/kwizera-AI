@@ -171,6 +171,12 @@ describe("Stage 1 Part 3 — controlled DEMO plan + readiness", () => {
     expect(plan.fillCampaign.minimumFillsPerInstrument).toBe(20);
     expect(plan.fillCampaign.limitGtcMayNeverFill).toBe(true);
     expect(plan.fillCampaign.requiresSeparateOwnerAuthorizedCycles).toBe(true);
+    expect(plan.fillCampaign.measurementFormula.provenanceRequired).toBe("BROKER_EXECUTION");
+    expect(plan.fillCampaign.measurementFormula.syntheticFixturesForbiddenAsProductionEvidence).toBe(true);
+    expect(plan.fillCampaign.abortConditions.length).toBeGreaterThan(0);
+    expect(plan.realDemoFillAuthorizedByThisPlan).toBe(false);
+    expect(plan.mayCallCreateOrderRequest).toBe(false);
+    expect(plan.mayCallSendRequest).toBe(false);
     for (const row of plan.eligibleInstruments) {
       expect(row.estimatedModeledLossUsd).toBeLessThanOrEqual(row.allowedRiskAmountUsd + 1e-9);
       expect(row.proposedBrokerAmount).toBe(row.baseUnitSize * row.proposedLots);

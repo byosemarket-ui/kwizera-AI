@@ -44,8 +44,8 @@ export interface ForexConnectInstrument {
    * May also come from Offers-row MMR fallback when TradingSettings is null.
    */
   mmrPerLot?: number | null;
-  /** Provenance for mmrPerLot: trading_settings | offers_row (never invented). */
-  mmrSource?: "trading_settings" | "offers_row" | string | null;
+  /** Provenance for mmrPerLot: trading_settings | trading_settings_margins | offers_row (never invented). */
+  mmrSource?: "trading_settings" | "trading_settings_margins" | "offers_row" | string | null;
   mmrProbe?: Record<string, unknown> | null;
   /**
    * Phase 56.2.5 — TradingSettings getMinQuantity (CFD → contracts).

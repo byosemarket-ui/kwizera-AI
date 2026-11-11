@@ -58,6 +58,16 @@ export interface Stage1Part3SlippageDemoPlan {
     singleOrderProducesAtMostOneFillEvidenceRecord: true;
     requiresSeparateOwnerAuthorizedCycles: true;
     limitGtcMayNeverFill: true;
+    measurementFormula: {
+      absoluteSlippage: string;
+      buyAdverse: string;
+      sellAdverse: string;
+      units: "absolute_price";
+      provenanceRequired: "BROKER_EXECUTION";
+      syntheticFixturesForbiddenAsProductionEvidence: true;
+    };
+    abortConditions: string[];
+    risksAndLimitations: string[];
     recommendedOwnerReviewPoints: string[];
   };
   entryConditions: string[];
@@ -137,27 +147,65 @@ export function buildStage1Part3SlippageDemoPlan(input?: {
       {
         instrument: "GBP/USD",
         blocker: "MMR_PER_LOT_UNVERIFIED",
-        note: "TradingSettings get_mmr returns non-positive (-1.0 observed); Offers MMR absent — keep blocked.",
+        note:
+          "TradingSettings get_mmr returns non-positive (-1.0). RO get_margins is probed; "
+          + "Offers MMR absent. Keep blocked until finite positive broker MMR is verified. "
+          + "UpdateMarginRequirements (createOrderRequest+sendRequest) is a mutation and out of scope.",
       },
       {
         instrument: "USD/JPY",
         blocker: "MMR_PER_LOT_UNVERIFIED",
-        note: "TradingSettings get_mmr returns non-positive (-1.0 observed); Offers MMR absent — keep blocked.",
+        note:
+          "TradingSettings get_mmr returns non-positive (-1.0). RO get_margins is probed; "
+          + "Offers MMR absent. Keep blocked until finite positive broker MMR is verified. "
+          + "UpdateMarginRequirements (createOrderRequest+sendRequest) is a mutation and out of scope.",
       },
     ],
     eligibleInstruments: [eur, xau],
     orderType: "LIMIT",
     timeInForce: "GTC",
+    /**
+     * DEMO campaign measurement formula (BUY/SELL):
+     *   absoluteSlippage = |executionPrice − referencePrice|
+     *   adverseAbsolute  = max(0, signed adverse move vs direction)
+     *   BUY adverse when execution > reference; SELL adverse when execution < reference.
+     * Partial fills / rejects / requotes / missing prices → record as non-evidence events
+     * (do not invent fill rows). Only complete BROKER_EXECUTION fills count toward ≥20.
+     */
     fillCampaign: {
       minimumFillsPerInstrument: 20,
       singleOrderProducesAtMostOneFillEvidenceRecord: true,
       requiresSeparateOwnerAuthorizedCycles: true,
       limitGtcMayNeverFill: true,
+      measurementFormula: {
+        absoluteSlippage: "abs(executionPrice - referencePrice)",
+        buyAdverse: "max(0, executionPrice - referencePrice)",
+        sellAdverse: "max(0, referencePrice - executionPrice)",
+        units: "absolute_price",
+        provenanceRequired: "BROKER_EXECUTION",
+        syntheticFixturesForbiddenAsProductionEvidence: true,
+      },
+      abortConditions: [
+        "Unexpected broker mutation outside grant window",
+        "Emergency lock engaged",
+        "Execution Master unexpectedly ON without owner grant",
+        "Usable margin or MMR attestation fails at grant time",
+        "Spread exceeds owner-approved absolute limit at submission",
+        "Partial fill without complete price/id fields",
+      ],
+      risksAndLimitations: [
+        "DEMO fills are not LIVE economic outcomes; they measure venue behavior only.",
+        "LIMIT/GTC may never fill — sample count can stall without owner strategy change.",
+        "A 20-fill sample may still be non-representative across sessions/volatility regimes.",
+        "This plan does not authorize orders, grants, or policy approvals.",
+      ],
       recommendedOwnerReviewPoints: [
+        "Approve/reject pending spread proposals (EUR/USD 0.00014, XAU/USD 0.30) before any fill campaign.",
         "Confirm whether MARKET/IOC near touch is allowed for fill evidence (separate owner decision).",
         "Budget ≥20 distinct owner-authorized fill cycles per instrument if LIMIT/GTC is retained.",
         "Each cycle must capture referencePrice, executionPrice, timestamps, and broker IDs.",
         "Flatten or cancel between cycles; never leave unmanaged DEMO exposure overnight without owner intent.",
+        "Keep GBP/USD and USD/JPY excluded until MMR is broker-verified.",
       ],
     },
     entryConditions: [

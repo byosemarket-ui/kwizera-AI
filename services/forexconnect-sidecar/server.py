@@ -473,6 +473,142 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
                     })
             if mmr_probe["hit"]:
                 break
+        # Stage 1 blockers — read-only three-level margin probe (get_margins).
+        # FXCM docs: get_mmr is for one-level margin accounts; three-level uses
+        # TradingSettingsProvider.getMargins() → O2GMargin/O2GMargins getMMR/EMR/LMR.
+        # Never invent. Never call UpdateMarginRequirements / createOrderRequest / sendRequest.
+        if not mmr_probe["hit"]:
+            margins_probe: dict[str, Any] = {
+                "attempted": True,
+                "hit": False,
+                "tried": [],
+                "is3LevelMargin": None,
+                "updateMarginRequirementsRequired": False,
+                "note": (
+                    "RO get_margins probe only. UpdateMarginRequirements via "
+                    "createOrderRequest+sendRequest is OUT OF SCOPE (mutation)."
+                ),
+            }
+            for meth in ("get_margins", "getMargins"):
+                if not hasattr(tsp, meth):
+                    margins_probe["tried"].append({"method": meth, "present": False})
+                    continue
+                for acc_arg in account_args:
+                    try:
+                        margins_obj = getattr(tsp, meth)(instrument, acc_arg)
+                        entry: dict[str, Any] = {
+                            "method": meth,
+                            "present": True,
+                            "accountArgType": type(acc_arg).__name__,
+                            "marginsType": type(margins_obj).__name__ if margins_obj is not None else None,
+                        }
+                        if margins_obj is None:
+                            entry["result"] = "null"
+                            margins_probe["tried"].append(entry)
+                            continue
+                        # Python fxcorepy O2GMargins exposes is_3level_margin / mmr / emr / lmr.
+                        for flag_meth in (
+                            "is_3level_margin",
+                            "is_3_level_margin",
+                            "is3LevelMargin",
+                            "get_is_3_level_margin",
+                        ):
+                            if hasattr(margins_obj, flag_meth):
+                                try:
+                                    flag_raw = getattr(margins_obj, flag_meth)
+                                    flag_val = flag_raw() if callable(flag_raw) else flag_raw
+                                    entry["is3LevelMargin"] = bool(flag_val)
+                                    margins_probe["is3LevelMargin"] = bool(flag_val)
+                                    break
+                                except Exception as exc:  # noqa: BLE001
+                                    entry["is3LevelError"] = type(exc).__name__
+                        # Prefer maintenance MMR; record EMR/LMR for provenance only.
+                        level_vals: dict[str, Any] = {}
+                        for level_key, level_methods in (
+                            ("mmr", ("mmr", "MMR", "get_mmr", "getMMR")),
+                            ("emr", ("emr", "EMR", "get_emr", "getEMR")),
+                            ("lmr", ("lmr", "LMR", "get_lmr", "getLMR")),
+                        ):
+                            for lm in level_methods:
+                                if not hasattr(margins_obj, lm):
+                                    continue
+                                try:
+                                    raw_level = getattr(margins_obj, lm)
+                                    raw_level = raw_level() if callable(raw_level) else raw_level
+                                    parsed_level = _finite(raw_level)
+                                    level_vals[level_key] = {
+                                        "method": lm,
+                                        "rawType": type(raw_level).__name__,
+                                        "finitePositive": bool(
+                                            parsed_level is not None and parsed_level > 0
+                                        ),
+                                    }
+                                    if parsed_level is None or parsed_level <= 0:
+                                        try:
+                                            level_vals[level_key]["rawValue"] = (
+                                                float(raw_level)
+                                                if isinstance(raw_level, (int, float))
+                                                else repr(raw_level)[:48]
+                                            )
+                                        except Exception:
+                                            level_vals[level_key]["rawValue"] = repr(raw_level)[:48]
+                                    else:
+                                        level_vals[level_key]["value"] = parsed_level
+                                    break
+                                except Exception as exc:  # noqa: BLE001
+                                    level_vals[level_key] = {
+                                        "method": lm,
+                                        "error": type(exc).__name__,
+                                    }
+                                    break
+                        entry["levels"] = level_vals
+                        margins_probe["tried"].append(entry)
+                        # Accept only finite positive maintenance MMR (absolute per 1 lot).
+                        mmr_level = level_vals.get("mmr") if isinstance(level_vals.get("mmr"), dict) else None
+                        if (
+                            isinstance(mmr_level, dict)
+                            and mmr_level.get("finitePositive") is True
+                            and isinstance(mmr_level.get("value"), (int, float))
+                            and float(mmr_level["value"]) > 0
+                        ):
+                            out["mmrPerLot"] = float(mmr_level["value"])
+                            mmr_probe["hit"] = True
+                            mmr_probe["mmrSource"] = "trading_settings_margins"
+                            margins_probe["hit"] = True
+                            margins_probe["acceptedLevel"] = "mmr"
+                            margins_probe["acceptedValue"] = float(mmr_level["value"])
+                            break
+                        # Non-positive / missing margins MMR — record sentinel interpretation.
+                        if isinstance(mmr_level, dict) and mmr_level.get("rawValue") == -1.0:
+                            margins_probe["interpretation"] = (
+                                "get_margins.mmr rawValue -1.0 — treated as unavailable/"
+                                "not-loaded for this instrument+account (not verified MMR). "
+                                "FXCM may require UpdateMarginRequirements (mutation; blocked)."
+                            )
+                            margins_probe["updateMarginRequirementsRequired"] = True
+                    except Exception as exc:  # noqa: BLE001
+                        margins_probe["tried"].append({
+                            "method": meth,
+                            "present": True,
+                            "accountArgType": type(acc_arg).__name__,
+                            "error": type(exc).__name__,
+                        })
+                        mmr_probe["lastError"] = type(exc).__name__
+                if margins_probe["hit"]:
+                    break
+            mmr_probe["marginsProbe"] = margins_probe
+            # Preserve get_mmr -1.0 interpretation when margins also failed.
+            if not mmr_probe["hit"]:
+                neg = any(
+                    isinstance(t, dict) and t.get("rawValue") == -1.0
+                    for t in (mmr_probe.get("tried") or [])
+                )
+                if neg and "interpretation" not in mmr_probe:
+                    mmr_probe["interpretation"] = (
+                        "TradingSettings get_mmr returned -1.0 (non-positive). "
+                        "Treated as unavailable — not a verified margin amount. "
+                        "Do not invent or copy another instrument's MMR."
+                    )
         out["mmrProbe"] = mmr_probe
         # Phase 56.2.5 — MinQuantity is the minimum order amount (CFD → contracts).
         # Official ForexConnect: amounts must be multiples of BaseUnitSize; there is
@@ -643,9 +779,20 @@ def _normalize_offer(
     ts = trading if isinstance(trading, dict) else {}
     base_unit_size = _finite(ts.get("baseUnitSize"))
     mmr_per_lot = _finite(ts.get("mmrPerLot"))
-    mmr_source = "trading_settings" if (mmr_per_lot is not None and mmr_per_lot > 0) else None
-    # Offers-row MMR fallback — only when TradingSettings get_mmr did not yield a
-    # finite positive value. Never invent; never copy another instrument's MMR.
+    mmr_probe_raw = ts.get("mmrProbe") if isinstance(ts.get("mmrProbe"), dict) else {}
+    probe_declared_source = (
+        mmr_probe_raw.get("mmrSource") if isinstance(mmr_probe_raw, dict) else None
+    )
+    mmr_source = None
+    if mmr_per_lot is not None and mmr_per_lot > 0:
+        # Preserve get_margins vs get_mmr provenance when probe recorded it.
+        mmr_source = (
+            str(probe_declared_source)
+            if isinstance(probe_declared_source, str) and probe_declared_source.strip()
+            else "trading_settings"
+        )
+    # Offers-row MMR fallback — only when TradingSettings get_mmr/get_margins did not
+    # yield a finite positive value. Never invent; never copy another instrument's MMR.
     if mmr_per_lot is None or mmr_per_lot <= 0:
         offers_mmr = _finite(
             _row_get(row, "mmr", "MMR", "get_mmr", "getMMR", "MarginRequirement")
@@ -655,7 +802,7 @@ def _normalize_offer(
             mmr_source = "offers_row"
     lot_step = _finite(ts.get("lotStep"))
     min_quantity = _finite(ts.get("minQuantity"))
-    mmr_probe = ts.get("mmrProbe") if isinstance(ts.get("mmrProbe"), dict) else {}
+    mmr_probe = mmr_probe_raw if isinstance(mmr_probe_raw, dict) else {}
     if isinstance(mmr_probe, dict):
         mmr_probe = {
             **mmr_probe,

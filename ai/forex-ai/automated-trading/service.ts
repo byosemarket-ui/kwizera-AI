@@ -4450,6 +4450,120 @@ export class AutomatedTradingService {
       );
     }
 
+    // Read-only MMR evidence from live ForexConnect instruments catalog.
+    // Never invent MMR; never copy EUR/XAU values onto GBP/JPY.
+    let mmrEvidenceByInstrument: Record<string, {
+      instrument: string;
+      mmrPerLot: number | null;
+      mmrSource: string | null;
+      mmrProbe: unknown;
+      baseUnitSize: number | null;
+      quantityMin: number | null;
+      verified: boolean;
+      blocker: "MMR_PER_LOT_UNVERIFIED" | null;
+      note: string;
+    }> = {};
+    try {
+      const bridge = getForexConnectBridge();
+      const listed = await bridge.listInstruments();
+      const rows = Array.isArray((listed as { instruments?: unknown[] })?.instruments)
+        ? (listed as { instruments: Array<Record<string, unknown>> }).instruments
+        : Array.isArray(listed)
+          ? (listed as Array<Record<string, unknown>>)
+          : [];
+      for (const instrument of STAGE3_TRACKED_INSTRUMENTS) {
+        const row = rows.find((r) => {
+          const sym = String(r?.providerSymbol ?? r?.symbol ?? "");
+          return sym.replace(/\s+/g, "").toUpperCase()
+            === instrument.replace(/\s+/g, "").toUpperCase();
+        }) ?? null;
+        const mmrRaw = row?.mmrPerLot;
+        const mmrPerLot = typeof mmrRaw === "number" && Number.isFinite(mmrRaw) && mmrRaw > 0
+          ? mmrRaw
+          : null;
+        const baseRaw = row?.baseUnitSize;
+        const minRaw = row?.quantityMin ?? row?.minQuantity;
+        mmrEvidenceByInstrument[instrument] = {
+          instrument,
+          mmrPerLot,
+          mmrSource: typeof row?.mmrSource === "string" ? row.mmrSource : null,
+          mmrProbe: row?.mmrProbe ?? null,
+          baseUnitSize: typeof baseRaw === "number" && Number.isFinite(baseRaw) ? baseRaw : null,
+          quantityMin: typeof minRaw === "number" && Number.isFinite(minRaw) ? minRaw : null,
+          verified: mmrPerLot != null,
+          blocker: mmrPerLot == null ? "MMR_PER_LOT_UNVERIFIED" : null,
+          note: mmrPerLot != null
+            ? "Broker-reported absolute MMR for 1 lot (TradingSettings / margins / Offers)."
+            : "No finite positive MMR from get_mmr/get_margins/Offers — fail closed. "
+              + "Do not invent or copy another instrument. UpdateMarginRequirements is a "
+              + "mutation path and remains blocked.",
+        };
+      }
+    } catch {
+      for (const instrument of STAGE3_TRACKED_INSTRUMENTS) {
+        mmrEvidenceByInstrument[instrument] = {
+          instrument,
+          mmrPerLot: null,
+          mmrSource: null,
+          mmrProbe: null,
+          baseUnitSize: null,
+          quantityMin: null,
+          verified: false,
+          blocker: "MMR_PER_LOT_UNVERIFIED",
+          note: "listInstruments failed — treat MMR as unverified (fail closed).",
+        };
+      }
+    }
+
+    // Owner-facing spread proposal readiness (never auto-approves).
+    const policyStoreForDecisions = getAtRiskPolicyStore();
+    const spreadProposalOwnerDecisions = STAGE3_TRACKED_INSTRUMENTS.map((instrument) => {
+      const slot = policyStoreForDecisions.getInstrument(instrument);
+      const proposed = slot?.spread.proposed ?? null;
+      const draft = drafts.find((d) => d.instrument === instrument) ?? null;
+      const evidence = report.instruments.find((i) => i.instrument === instrument)?.spreadEvidence;
+      const advisory = liveSpreadAdvisories.find((a) => a.instrument === instrument) ?? null;
+      const accepted = acceptedSpreadByInstrument[instrument] ?? [];
+      const newest = accepted.length > 0
+        ? accepted.reduce((best, row) => {
+          const t = Date.parse(String(row.observedAtUtc ?? ""));
+          if (!Number.isFinite(t)) return best;
+          return best == null || t > best ? t : best;
+        }, null as number | null)
+        : null;
+      const evidenceAgeMs = newest != null ? Math.max(0, Date.now() - newest) : null;
+      const evidenceStaleForOwnerReview = evidenceAgeMs != null && evidenceAgeMs > 24 * 3600_000;
+      return {
+        instrument,
+        proposalStatus: slot?.spread.approvalState ?? "NOT_CONFIGURED",
+        activeMaxSpreadAbsolute: slot?.spread.maxSpreadAbsolute ?? null,
+        proposedValueRequiringOwnerConfirm: proposed?.value ?? draft?.recommendedMaxSpreadAbsolute ?? null,
+        proposedUnits: proposed?.units ?? draft?.units ?? "absolute_price",
+        proposedAtUtc: proposed?.proposedAtUtc ?? null,
+        proposedBy: proposed?.proposedBy ?? null,
+        proposedNote: proposed?.note ?? null,
+        draftRecommendation: draft,
+        evidenceSummary: evidence ?? null,
+        evidenceNewestAtUtc: newest != null ? new Date(newest).toISOString() : null,
+        evidenceAgeMs,
+        evidenceStaleForOwnerReview,
+        liveVsPendingAdvisory: advisory,
+        dynamicSpreadNote:
+          "Dynamic Spread Intelligence remains the live ACCEPT/REJECT gate. "
+          + "Legacy maxSpreadAbsolute is an optional emergency ceiling only after owner approve+confirm.",
+        autoApproveForbidden: true as const,
+        ownerActionRequired:
+          "Owner must explicitly approve+confirm=true (distinct owner token) or reject. "
+          + "Engineering must not convert PENDING → APPROVED.",
+        recommendedOwnerDecision:
+          evidenceStaleForOwnerReview
+            ? "RECOLLECT_LIVE_EVIDENCE_THEN_REVIEW"
+            : (proposed?.value != null || draft?.sufficient === true)
+              ? "OWNER_REVIEW_PENDING_PROPOSAL"
+              : "KEEP_PENDING_INSUFFICIENT_EVIDENCE",
+      };
+    });
+
     return {
       ...report,
       drafts,
@@ -4458,6 +4572,8 @@ export class AutomatedTradingService {
       slippageWorkflow: getSlippageEvidenceCollectionWorkflow(),
       controlledDemoSlippagePlan: buildStage1Part3SlippageDemoPlan({ usableMarginUsd }),
       liveSpreadAdvisories,
+      mmrEvidenceByInstrument,
+      spreadProposalOwnerDecisions,
       dynamicSpreadIntelligence: await (async () => {
         const { computeRollingSpreadStats, DYNAMIC_SPREAD_ENGINE_VERSION, DYNAMIC_SPREAD_MODE } =
           await import("./dynamic-spread/index.js");
