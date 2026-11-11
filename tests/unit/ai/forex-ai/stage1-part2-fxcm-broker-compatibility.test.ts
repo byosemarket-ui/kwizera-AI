@@ -441,7 +441,7 @@ describe("Stage 1 Part 2 — independent multi-order + pipeline brokerAmount", (
     expect(proof.budgets.every((b) => !b.mayBorrowFromOtherOrders)).toBe(true);
   });
 
-  it("canonical engine emits FXCM AMOUNT in brokerPrep (not lots) for EUR/USD", () => {
+  it("EUR/USD proposals are blocked in XAU-only Automated Trading phase", () => {
     const run = runAutomatedPerOrderRiskEngine({
       handoff: handoff("EUR/USD"),
       allocationId: "eur-p2",
@@ -471,12 +471,48 @@ describe("Stage 1 Part 2 — independent multi-order + pipeline brokerAmount", (
       emergencyEntryLock: true,
       environment: "DEMO",
     });
+    expect(run.proposal.lifecycle).toBe("BLOCKED");
+    expect(run.proposal.blockers.some((b) => b.code === "INSTRUMENT_NOT_ALLOWLISTED")).toBe(true);
+    expect(run.perOrderRisk.placesOrders).toBe(false);
+    expect(run.perOrderRisk.mutatesBroker).toBe(false);
+    expect(run.perOrderRisk.executionAuthorized).toBe(false);
+  });
+
+  it("canonical engine emits FXCM AMOUNT in brokerPrep (amount=lots) for XAU/USD", () => {
+    const run = runAutomatedPerOrderRiskEngine({
+      handoff: handoff("XAU/USD"),
+      allocationId: "xau-p2",
+      entryPrice: 4000,
+      stopLoss: 3990,
+      autoLevels: false,
+      verifiedEquity: 20_000,
+      accountCurrency: "USD",
+      equityFresh: true,
+      usableMargin: 19_000,
+      usedMargin: 0,
+      marginFresh: true,
+      strategyAllocationPercent: 100,
+      individualOrderAllocation: 400,
+      allocationCurrency: "USD",
+      existingCommittedExposure: 0,
+      pendingProposalReservations: 0,
+      contract: contractFor("XAU/USD"),
+      contractFresh: true,
+      sdkMinQuantity: 1,
+      brokerMaxQuantity: null,
+      marginPerUnitAccount: 4.42,
+      exposureAuthoritative: true,
+      existingExposure: 0,
+      systemMasterOn: true,
+      tradingEnabled: false,
+      emergencyEntryLock: true,
+      environment: "DEMO",
+    });
     expect(run.proposal.lifecycle).toBe("PROPOSAL_READY");
     const lots = run.proposal.quantity.normalizedQuantity!;
-    expect(lots).toBeGreaterThanOrEqual(99);
-    expect(lots).toBeLessThanOrEqual(100);
-    expect(run.proposal.quantity.brokerAmount).toBe(lots * 1000); // AMOUNT
-    expect(run.proposal.brokerPrep.amountQuantity).toBe(lots * 1000);
+    expect(lots).toBeGreaterThanOrEqual(1);
+    expect(run.proposal.quantity.brokerAmount).toBe(lots * 1); // XAU AMOUNT = lots
+    expect(run.proposal.brokerPrep.amountQuantity).toBe(lots * 1);
     expect(run.proposal.brokerPrep.brokerOrderId).toBeNull();
     expect(run.perOrderRisk.placesOrders).toBe(false);
     expect(run.perOrderRisk.mutatesBroker).toBe(false);

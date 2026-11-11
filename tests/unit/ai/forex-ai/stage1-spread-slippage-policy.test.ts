@@ -313,7 +313,13 @@ describe("Stage 1 — fail-closed + instrument isolation + owner confirm", () =>
     expect(report.marketGate.code).toBe("WAITING_FOR_LIVE_MARKET");
     expect(report.tradingSafety.mayInventThresholds).toBe(false);
     for (const row of report.instruments) {
-      expect(row.overall).toBe("WAITING_FOR_LIVE_MARKET");
+      if (row.instrument === "XAU/USD") {
+        expect(row.phaseStatus).toBe("ACTIVE");
+        expect(row.overall).toBe("WAITING_FOR_LIVE_MARKET");
+      } else {
+        expect(row.phaseStatus).toBe("OUT_OF_SCOPE");
+        expect(row.overall).toBe("OUT_OF_SCOPE");
+      }
       expect(row.spreadPolicyStatus).toBe("NOT_CONFIGURED");
       expect(row.slippagePolicyStatus).toBe("NOT_CONFIGURED");
       expect(row.slippageEvidence.status).toBe(SLIPPAGE_EVIDENCE_REQUIRES_CONTROLLED_DEMO_EXECUTION);

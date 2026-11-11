@@ -297,11 +297,11 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
     });
     expect(r.stopLossImpact.spreadIncludedInStopLossRisk).toBe(false);
     expect(r.netReward.costsSubtractedFromReward).toBe(true);
-    // SL risk $10; spread $1.2 — not added into SL
+    // SL risk $10; spread $0.30 — not added into SL
     expect(r.stopLossImpact.modeledStopLossRiskAccount).toBeCloseTo(10, 5);
-    expect(r.costBreakdown.spreadCostAccount).toBeCloseTo(1.2, 5);
+    expect(r.costBreakdown.spreadCostAccount).toBeCloseTo(0.30, 5);
     expect(r.netReward.netTakeProfitRewardAccount).toBeCloseTo(
-      (r.netReward.grossTakeProfitRewardAccount ?? 0) - 1.2,
+      (r.netReward.grossTakeProfitRewardAccount ?? 0) - 0.30,
       5,
     );
   });
@@ -613,7 +613,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
     }));
     expect(proposal.blockers.map((b) => `${b.code}:${b.message}`)).toEqual([]);
     expect(proposal.lifecycle).toBe("PROPOSAL_READY");
-    expect(proposal.pricePlan.verifiedTradingCostsAccount).toBeCloseTo(1.2, 5);
+    expect(proposal.pricePlan.verifiedTradingCostsAccount).toBeCloseTo(0.30, 5);
     expect(proposal.pricePlan.netRewardRiskRatio!).toBeGreaterThanOrEqual(3 - 1e-9);
     expect(proposal.pricePlan.grossRewardRiskRatio!).toBeGreaterThan(
       proposal.pricePlan.netRewardRiskRatio!,
@@ -624,7 +624,7 @@ describe("Stage 1 — Net 3R take-profit consistency", () => {
   it("23. structure ceiling rejects BUY TP beyond farthest resistance", () => {
     const proposal = buildOrderProposal(baseProposalInput({
       liveSpreadAbsolute: 0.30,
-      technicalRewardDistanceMax: 0.0025,
+      technicalRewardDistanceMax: 20,
     }));
     expect(proposal.lifecycle).toBe("BLOCKED");
     expect(
