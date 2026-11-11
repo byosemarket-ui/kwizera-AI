@@ -56,9 +56,9 @@ export function priceDistanceToAccountCost(input: {
   }
 
   // Reuse SL estimator by treating distance as entry→syntheticStop.
-  // entry=1, stop=1−distance (or +) yields |entry−stop|=distance with same economics.
-  const entry = 1;
-  const stop = 1 - input.priceDistance;
+  // Entry must exceed distance so stop stays positive (XAU spreads can be ≥1.0 absolute).
+  const entry = Math.max(10, input.priceDistance * 2 + 1);
+  const stop = entry - input.priceDistance;
   const est = estimateStopLossRisk({
     entryPrice: entry,
     stopLoss: stop,

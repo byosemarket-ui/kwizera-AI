@@ -361,11 +361,13 @@ describe("Stage 7 — proposal and risk gates", () => {
     void port;
   });
 
-  it("operating risk above 20% rejected", () => {
+  it("operating risk above approved per-order target rejected", () => {
+    // STAGE7_RISK_TARGET_PERCENT tracks PER_ORDER_RISK_TARGET_PERCENT (25%).
+    // Reason code name retains OPERATING_RISK_ABOVE_20PCT for audit compatibility.
     const r = evaluateControlledDemoReadiness(technicalReadyInput({
       proposal: readyProposal({
         perOrderRisk: riskRecord("prop-s7-1", {
-          actualModeledMonetaryRisk: 21,
+          actualModeledMonetaryRisk: 26,
           capitalAllocation: 100,
           validationResult: "PASS",
         }),

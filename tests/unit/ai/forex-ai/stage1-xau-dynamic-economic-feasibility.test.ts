@@ -253,6 +253,19 @@ describe("XAU/USD — dynamic per-trade economic feasibility (no fixed 0.30 prim
     expect(r.costAccountingConvention).toContain("SPREAD_IS_ENTRY_FRICTION");
   });
 
+  it("spread cost remains verified when absolute spread ≥ 1.0 (XAU-scale)", async () => {
+    const { priceDistanceToAccountCost } = await import(
+      "../../../../ai/forex-ai/automated-trading/dynamic-spread/spread-cost.js"
+    );
+    const wide = priceDistanceToAccountCost({
+      priceDistance: 1.20,
+      quantityLots: 1,
+      contract: fixtureXauUsdContract(),
+    });
+    expect(wide.ok).toBe(true);
+    if (wide.ok) expect(wide.costAccount).toBeCloseTo(1.20, 6);
+  });
+
   it("D35–D37: commission/slippage only when verified; missing invent forbidden", () => {
     const invented = decidePerTradeEconomicFeasibility(xauInput({
       commissionAccount: 1.5,
@@ -340,6 +353,39 @@ describe("XAU/USD — dynamic per-trade economic feasibility (no fixed 0.30 prim
       placesOrders: false,
       acceptsForExecution: false,
       mutatesBroker: false,
+      brokerPrep: {
+        expiration: new Date(NOW + 3_600_000).toISOString(),
+        orderType: "LIMIT",
+        timeInForce: "GTC",
+      },
+      capital: {
+        individualOrderAllocation: 40,
+        allocatedAmount: 40,
+        accountCurrency: "USD",
+      },
+      quantity: {
+        normalizedQuantity: 1,
+        brokerAmount: 1,
+        contractSize: 1,
+        estimatedMargin: 4.42,
+      },
+      pricePlan: {
+        entryPrice: 4000,
+        stopLoss: 3990,
+        takeProfit: 4050,
+        grossRewardRiskRatio: 5,
+        netRewardRiskRatio: 4.97,
+      },
+      perOrderRisk: {
+        allocationId: "alloc-xau-demo",
+        capitalAllocation: 40,
+        actualModeledMonetaryRisk: 10,
+        maximumAllowedMonetaryLoss: 10,
+        operatingRiskPercent: 25,
+        actualRewardToRiskRatio: 3,
+        marginVerificationStatus: "VERIFIED",
+        validationResult: "PASS",
+      },
     } as unknown as AtOrderProposalRecord;
 
     const r = evaluateControlledDemoReadiness({
