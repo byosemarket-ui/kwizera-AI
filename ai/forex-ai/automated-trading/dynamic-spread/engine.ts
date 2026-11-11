@@ -261,16 +261,9 @@ export function evaluateDynamicSpread(
     );
   }
 
-  if (rolling.abnormal === true) {
-    return rejectBase(
-      input,
-      ["SPREAD_ABNORMAL_WIDENING"],
-      `Current spread ${currentSpread} exceeds rolling P95 ${rolling.p95} (abnormal widening) — REJECT.`,
-      { rolling, currentSpread },
-    );
-  }
-
-  // Optional legacy emergency ceiling (only when explicitly configured).
+  // Rolling abnormality is contextual evidence only — not a fixed eligibility ceiling.
+  // REJECT only when subsequent per-trade economics / risk checks fail.
+  // Optional legacy emergency ceiling (only when explicitly owner-configured).
   let legacyEmergencyCeilingApplied = false;
   const legacyCeil = finitePositive(input.legacyMaxSpreadAbsolute)
     ? input.legacyMaxSpreadAbsolute
@@ -282,7 +275,7 @@ export function evaluateDynamicSpread(
       return rejectBase(
         input,
         ["LEGACY_EMERGENCY_SPREAD_CEILING"],
-        `Current spread ${currentSpread} exceeds legacy emergency ceiling ${legacyCeil}.`,
+        `Current spread ${currentSpread} exceeds optional legacy emergency ceiling ${legacyCeil}.`,
         {
           rolling,
           currentSpread,
@@ -420,12 +413,40 @@ export function evaluateDynamicSpread(
     costsVerified: true,
   });
   if (net.meetsMinimum !== true) {
+    const codes: DynamicSpreadReasonCode[] = ["NET_REWARD_BELOW_3R", "NET_REWARD_BELOW_POLICY"];
+    if (rolling.abnormal === true) codes.push("SPREAD_ABNORMAL_WIDENING");
     return rejectBase(
       input,
-      ["NET_REWARD_BELOW_3R", "NET_REWARD_BELOW_POLICY"],
+      codes,
       net.note + (net.rewardToRiskRatio != null
         ? ` ratio=${net.rewardToRiskRatio}`
-        : ""),
+        : "")
+        + (rolling.abnormal === true
+          ? ` (rolling abnormal vs P95 ${rolling.p95}; economics failed).`
+          : ""),
+      {
+        rolling,
+        currentSpread,
+        costBreakdown: cost.breakdown,
+        stopLossImpact: slImpact,
+        netReward: net,
+      },
+    );
+  }
+
+  // Spread cost that leaves economics viable may still be flagged when abnormal —
+  // ACCEPT remains economic; abnormality is contextual in rolling stats.
+  if (
+    finitePositive(cost.breakdown.spreadCostAccount)
+    && rolling.abnormal === true
+    && finitePositive(slImpact.modeledStopLossRiskAccount)
+    && cost.breakdown.spreadCostAccount > slImpact.modeledStopLossRiskAccount + 1e-9
+  ) {
+    return rejectBase(
+      input,
+      ["SPREAD_ABNORMAL_WIDENING", "SPREAD_COST_EXCESSIVE"],
+      `Abnormally wide spread cost ${cost.breakdown.spreadCostAccount} exceeds modeled SL risk `
+      + `${slImpact.modeledStopLossRiskAccount} — economically unviable.`,
       {
         rolling,
         currentSpread,
@@ -470,7 +491,8 @@ export function evaluateDynamicSpread(
     reasonCodes: ["DYNAMIC_SPREAD_OK"],
     primaryReasonCode: "DYNAMIC_SPREAD_OK",
     message:
-      "Dynamic Spread Intelligence ACCEPT — eligibility only; does not authorize broker submission.",
+      "Per-trade economic feasibility ACCEPT — eligibility only; does not authorize broker submission. "
+      + "Fixed maxSpreadAbsolute is not the primary rule.",
     evaluatedAtUtc: new Date(nowMs).toISOString(),
     requiresFreshProposalOnReject: true,
     legacyEmergencyCeilingApplied,

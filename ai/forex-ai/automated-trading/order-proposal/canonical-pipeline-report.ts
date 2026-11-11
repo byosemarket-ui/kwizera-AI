@@ -14,6 +14,7 @@ import type { AtOrderProposalRecord } from "./types.js";
 import {
   SLIPPAGE_EVIDENCE_REQUIRES_CONTROLLED_DEMO_EXECUTION,
 } from "../risk-policy/slippage-evidence.js";
+import { usesDynamicPerTradeSpreadEligibility } from "../risk-policy/types.js";
 
 export const STAGE2_CANONICAL_PIPELINE_SCHEMA = "kwizera.at-canonical-pipeline.v1" as const;
 
@@ -82,6 +83,13 @@ function policyWaiting(status: string | null | undefined): boolean {
   return !s || s === "NOT_CONFIGURED" || s === "INVALID" || s === "UNAVAILABLE" || s === "PENDING_APPROVAL";
 }
 
+function instrumentFromReportInput(input: {
+  analysis?: { instrument?: string | null } | null;
+  proposal?: { instrument?: string | null } | null;
+}): string | null {
+  return input.proposal?.instrument ?? input.analysis?.instrument ?? null;
+}
+
 /**
  * Build Stage 2 pipeline report from existing analysis + proposal artifacts.
  * Incomplete fields stay null — never invented.
@@ -142,7 +150,13 @@ export function buildCanonicalPipelineReport(input: {
     stage1Codes.push(SLIPPAGE_EVIDENCE_REQUIRES_CONTROLLED_DEMO_EXECUTION);
     stage1Codes.push("WAITING_FOR_CONTROLLED_DEMO_EVIDENCE");
   }
-  if (policyWaiting(spreadStatus) || policyWaiting(slipStatus)) {
+  // ACTIVE XAU: fixed spread ceiling governance is informational only — do not
+  // block pipeline display on PENDING/NOT_CONFIGURED maxSpreadAbsolute.
+  const dynamicSpreadPrimary = usesDynamicPerTradeSpreadEligibility(
+    instrumentFromReportInput(input),
+  );
+  const spreadBlocksOwnerWait = !dynamicSpreadPrimary && policyWaiting(spreadStatus);
+  if (spreadBlocksOwnerWait || policyWaiting(slipStatus)) {
     stage1Codes.push("WAITING_FOR_OWNER_APPROVAL");
   }
 

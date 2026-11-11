@@ -6,6 +6,7 @@ import type { AtOrderProposalRecord } from "../order-proposal/types.js";
 import { verifyDemoEnvironment } from "../demo-submission-adapter/demo-environment.js";
 import { evaluateStage5ProposalIntegrity } from "../demo-submission-adapter/proposal-integrity.js";
 import { buildFxcmTrueMarketOpenPayload } from "../demo-submission-adapter/fxcm-payload.js";
+import { usesDynamicPerTradeSpreadEligibility } from "../risk-policy/types.js";
 import { evaluateTimeInForce } from "./tif.js";
 import type { Stage7ExecutionGrant } from "./types.js";
 import {
@@ -242,13 +243,20 @@ export function evaluateControlledDemoReadiness(
     push(blockers, "CONTRACT_QUANTITY_UNVERIFIED", gates.contractQuantity.detail, "TECHNICAL");
   }
 
-  // Spread / slippage approved
-  const spreadOk = input.spreadPolicyStatus === "VERIFIED";
+  // Spread: ACTIVE XAU uses per-trade economic feasibility (fixed ceiling optional).
+  // Slippage policy remains mandatory VERIFIED until evidence campaign completes.
+  const dynamicSpreadPrimary = usesDynamicPerTradeSpreadEligibility(input.proposal?.instrument);
+  const spreadOk = dynamicSpreadPrimary || input.spreadPolicyStatus === "VERIFIED";
   gates.spreadPolicy = gate(
     "spreadPolicy",
     spreadOk,
     "SPREAD_LIMIT_NOT_CONFIGURED",
-    spreadOk ? "Spread policy VERIFIED." : `Spread policy status=${input.spreadPolicyStatus ?? "null"}.`,
+    dynamicSpreadPrimary
+      ? `DYNAMIC_PER_TRADE eligibility for ${input.proposal?.instrument ?? "ACTIVE"} `
+        + `(legacy ceiling status=${input.spreadPolicyStatus ?? "null"}; not primary).`
+      : spreadOk
+        ? "Spread policy VERIFIED."
+        : `Spread policy status=${input.spreadPolicyStatus ?? "null"}.`,
   );
   if (!spreadOk) push(blockers, "SPREAD_LIMIT_NOT_CONFIGURED", gates.spreadPolicy.detail, "TECHNICAL");
 

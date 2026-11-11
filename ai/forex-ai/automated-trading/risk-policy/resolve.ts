@@ -1,11 +1,41 @@
 /**
  * Stage 3/4 — resolve spread/slippage limits for precheck.
  * Only APPROVED active values from instrument policy are used (pending/rejected ignored).
+ *
+ * For ACTIVE Automated Trading instruments (XAU/USD), fixed maxSpreadAbsolute is an
+ * optional legacy emergency ceiling only — per-trade economic feasibility is primary.
+ * Historical proposals/evidence remain; pending 0.30 is never auto-activated.
  */
 import { readConfiguredMaxSpreadAbsolute } from "../risk-intelligence/gather.js";
 import { getAtRiskPolicyStore } from "./store.js";
-import type { ResolvedSlippageLimit, ResolvedSpreadLimit } from "./types.js";
+import type {
+  ResolvedSlippageLimit,
+  ResolvedSpreadLimit,
+  SpreadEligibilityMode,
+} from "./types.js";
+import { usesDynamicPerTradeSpreadEligibility } from "./types.js";
 import { normalizeInstrumentSymbol, validateAbsolutePriceLimit } from "./validate.js";
+
+function withSpreadEligibility(
+  instrument: string | null,
+  base: Omit<ResolvedSpreadLimit, "eligibilityMode" | "fixedCeilingRequiredForTradeEligibility">,
+): ResolvedSpreadLimit {
+  const dynamic = usesDynamicPerTradeSpreadEligibility(instrument);
+  const eligibilityMode: SpreadEligibilityMode = dynamic
+    ? "DYNAMIC_PER_TRADE"
+    : "LEGACY_EMERGENCY_CEILING";
+  const reason = dynamic && base.value == null
+    ? (base.reason
+      ? `${base.reason} Primary eligibility=DYNAMIC_PER_TRADE (fixed ceiling optional).`
+      : "No active legacy emergency ceiling — primary eligibility is DYNAMIC_PER_TRADE economic feasibility.")
+    : base.reason;
+  return {
+    ...base,
+    reason,
+    eligibilityMode,
+    fixedCeilingRequiredForTradeEligibility: !dynamic,
+  };
+}
 
 export function resolveSpreadLimit(input: {
   instrument?: string | null;
@@ -17,7 +47,7 @@ export function resolveSpreadLimit(input: {
   if (input.requestOverride !== undefined) {
     const fromReq = readConfiguredMaxSpreadAbsolute(input.requestOverride);
     if (fromReq.source === "request" && fromReq.value != null) {
-      return {
+      return withSpreadEligibility(instrument, {
         value: fromReq.value,
         source: "request",
         status: "VERIFIED",
@@ -25,10 +55,10 @@ export function resolveSpreadLimit(input: {
         reason: "Request override (explicit for this call only).",
         instrument,
         configVersion: null,
-      };
+      });
     }
     if (input.requestOverride === null) {
-      return {
+      return withSpreadEligibility(instrument, {
         value: null,
         source: null,
         status: "NOT_CONFIGURED",
@@ -36,7 +66,7 @@ export function resolveSpreadLimit(input: {
         reason: fromReq.reason,
         instrument,
         configVersion: null,
-      };
+      });
     }
   }
 
@@ -49,7 +79,7 @@ export function resolveSpreadLimit(input: {
         if (pol.spread.status === "VERIFIED" && pol.spread.maxSpreadAbsolute != null) {
           const v = validateAbsolutePriceLimit(pol.spread.maxSpreadAbsolute);
           if (v.ok) {
-            return {
+            return withSpreadEligibility(instrument, {
               value: v.value,
               source: "instrument_policy",
               status: "VERIFIED",
@@ -57,21 +87,23 @@ export function resolveSpreadLimit(input: {
               reason: "Active approved spread remains in force while a new proposal is pending.",
               instrument,
               configVersion: pol.spread.configVersion,
-            };
+            });
           }
         }
-        return {
+        return withSpreadEligibility(instrument, {
           value: null,
           source: "instrument_policy",
           status: "NOT_CONFIGURED",
           approvalState: "PENDING_APPROVAL",
-          reason: "PENDING_APPROVAL — proposed spread is not active until approved.",
+          reason:
+            "PENDING_APPROVAL — proposed legacy emergency ceiling is not active. "
+            + "Historical proposal preserved; not auto-approved.",
           instrument,
           configVersion: pol.spread.configVersion,
-        };
+        });
       }
       if (pol.spread.approvalState === "REJECTED") {
-        return {
+        return withSpreadEligibility(instrument, {
           value: null,
           source: "instrument_policy",
           status: "NOT_CONFIGURED",
@@ -79,10 +111,10 @@ export function resolveSpreadLimit(input: {
           reason: pol.spread.reason || "Rejected spread proposal — no active approved limit.",
           instrument,
           configVersion: pol.spread.configVersion,
-        };
+        });
       }
       if (pol.spread.approvalState === "INVALID" || pol.spread.status === "INVALID") {
-        return {
+        return withSpreadEligibility(instrument, {
           value: null,
           source: "instrument_policy",
           status: "INVALID",
@@ -90,7 +122,7 @@ export function resolveSpreadLimit(input: {
           reason: pol.spread.reason || "Spread policy invalid.",
           instrument,
           configVersion: pol.spread.configVersion,
-        };
+        });
       }
       if (
         pol.spread.approvalState === "APPROVED"
@@ -99,17 +131,19 @@ export function resolveSpreadLimit(input: {
       ) {
         const v = validateAbsolutePriceLimit(pol.spread.maxSpreadAbsolute);
         if (v.ok) {
-          return {
+          return withSpreadEligibility(instrument, {
             value: v.value,
             source: "instrument_policy",
             status: "VERIFIED",
             approvalState: "APPROVED",
-            reason: null,
+            reason: usesDynamicPerTradeSpreadEligibility(instrument)
+              ? "Optional legacy emergency ceiling APPROVED — primary eligibility remains DYNAMIC_PER_TRADE."
+              : null,
             instrument,
             configVersion: pol.spread.configVersion,
-          };
+          });
         }
-        return {
+        return withSpreadEligibility(instrument, {
           value: null,
           source: "instrument_policy",
           status: "INVALID",
@@ -117,14 +151,14 @@ export function resolveSpreadLimit(input: {
           reason: v.reason,
           instrument,
           configVersion: pol.spread.configVersion,
-        };
+        });
       }
     }
   }
 
   const fromEnv = readConfiguredMaxSpreadAbsolute(undefined);
   if (fromEnv.source === "env" && fromEnv.value != null) {
-    return {
+    return withSpreadEligibility(instrument, {
       value: fromEnv.value,
       source: "env",
       status: "VERIFIED",
@@ -132,10 +166,10 @@ export function resolveSpreadLimit(input: {
       reason: "Global KWIZERA_AT_MAX_SPREAD_ABSOLUTE (not instrument-specific).",
       instrument,
       configVersion: null,
-    };
+    });
   }
   if (fromEnv.reason && String(process.env.KWIZERA_AT_MAX_SPREAD_ABSOLUTE ?? "").trim()) {
-    return {
+    return withSpreadEligibility(instrument, {
       value: null,
       source: "env",
       status: "INVALID",
@@ -143,21 +177,21 @@ export function resolveSpreadLimit(input: {
       reason: fromEnv.reason,
       instrument,
       configVersion: null,
-    };
+    });
   }
 
-  return {
+  return withSpreadEligibility(instrument, {
     value: null,
     source: null,
     status: "NOT_CONFIGURED",
     approvalState: "NOT_CONFIGURED",
     reason:
       instrument
-        ? `SPREAD_LIMIT_NOT_CONFIGURED for ${instrument} — propose then approve via risk-policy API.`
-        : "SPREAD_LIMIT_NOT_CONFIGURED — instrument unknown and no request/env override.",
+        ? `No active legacy emergency ceiling for ${instrument}.`
+        : "No active legacy emergency ceiling — instrument unknown and no request/env override.",
     instrument,
     configVersion: null,
-  };
+  });
 }
 
 export function resolveSlippageLimit(input: {

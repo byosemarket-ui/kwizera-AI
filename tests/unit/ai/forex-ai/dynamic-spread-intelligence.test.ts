@@ -200,21 +200,32 @@ describe("Dynamic Spread Intelligence Engine", () => {
     expect(r.rolling.abnormal).toBe(false);
   });
 
-  it("10. REJECT abnormal spread widening above P95", () => {
-    const r = evaluateDynamicSpread(baseEngineInput({
+  it("10. Abnormal widening above P95 is contextual — REJECT only when economics fail", () => {
+    // Wide vs history but still economically viable (spread cost < SL risk, net ≥3R).
+    const viable = evaluateDynamicSpread(baseEngineInput({
       bid: 1.1,
       ask: 1.10080, // far above fixture cluster ~0.00012
     }));
-    expect(r.decision).toBe("REJECT");
-    expect(r.primaryReasonCode).toBe("SPREAD_ABNORMAL_WIDENING");
+    expect(viable.rolling.abnormal).toBe(true);
+    expect(viable.decision).toBe("ACCEPT");
+    expect(viable.primaryReasonCode).toBe("DYNAMIC_SPREAD_OK");
+
+    // Wider still — spread cost exceeds modeled SL risk → economic REJECT with abnormal code.
+    const unviable = evaluateDynamicSpread(baseEngineInput({
+      bid: 1.1,
+      ask: 1.10200, // cost 20 > SL risk 10
+    }));
+    expect(unviable.decision).toBe("REJECT");
+    expect(unviable.reasonCodes).toContain("SPREAD_ABNORMAL_WIDENING");
+    expect(unviable.requiresFreshProposalOnReject).toBe(true);
   });
 
-  it("11. REJECT when quote changes to abnormal between evaluations (fresh run required)", () => {
+  it("11. REJECT when quote becomes economically unviable (fresh proposal required)", () => {
     const first = evaluateDynamicSpread(baseEngineInput());
     expect(first.decision).toBe("ACCEPT");
     const second = evaluateDynamicSpread(baseEngineInput({
       bid: 1.1,
-      ask: 1.10090,
+      ask: 1.10200,
       quoteId: "q-fixture-2",
     }));
     expect(second.decision).toBe("REJECT");

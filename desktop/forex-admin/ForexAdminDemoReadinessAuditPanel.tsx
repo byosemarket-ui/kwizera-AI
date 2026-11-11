@@ -108,8 +108,12 @@ export function ForexAdminDemoReadinessAuditPanel() {
             const slip = (row.slippage || {}) as Record<string, unknown>;
             return (
               <li key={String(row.instrument)}>
-                <code>{String(row.instrument)}</code> — spread {String(spread.status)}/
-                {String(spread.approvalState)} max={String(spread.maxSpreadAbsolute)} consumed=
+                <code>{String(row.instrument)}</code>
+                {String(row.instrument) === "XAU/USD"
+                  ? " — eligibility=DYNAMIC_PER_TRADE"
+                  : " — eligibility=legacy-ceiling"}
+                {" · "}spread {String(spread.status)}/{String(spread.approvalState)}
+                {" "}legacyMax={String(spread.maxSpreadAbsolute)} consumed=
                 {String(spread.consumedByStage57)}; slippage {String(slip.status)}/
                 {String(slip.approvalState)} max={String(slip.maxSlippageAbsolute)} consumed=
                 {String(slip.consumedByStage57)}

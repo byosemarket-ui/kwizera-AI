@@ -9,7 +9,11 @@ import {
   PER_ORDER_RISK_TARGET_PERCENT,
 } from "../order-proposal/types.js";
 import { attestProposedOrderMargin } from "../risk-policy/margin.js";
-import { STAGE3_TRACKED_INSTRUMENTS, type Stage3TrackedInstrument } from "../risk-policy/types.js";
+import {
+  STAGE3_TRACKED_INSTRUMENTS,
+  usesDynamicPerTradeSpreadEligibility,
+  type Stage3TrackedInstrument,
+} from "../risk-policy/types.js";
 import { evaluateBrokerQuantityContract } from "./broker-quantity-contract.js";
 import { lotsToBrokerAmount } from "./lots-to-broker-amount.js";
 import {
@@ -200,7 +204,11 @@ export function evaluateInstrumentPositionFeasibility(
   }
 
   const stage1Blockers: string[] = [];
-  if (!opts?.spreadPolicyStatus || opts.spreadPolicyStatus !== "VERIFIED") {
+  const dynamicSpreadPrimary = usesDynamicPerTradeSpreadEligibility(input.instrument);
+  if (
+    !dynamicSpreadPrimary
+    && (!opts?.spreadPolicyStatus || opts.spreadPolicyStatus !== "VERIFIED")
+  ) {
     stage1Blockers.push("WAITING_FOR_OWNER_APPROVAL");
     stage1Blockers.push("SPREAD_LIMIT_NOT_CONFIGURED");
   }

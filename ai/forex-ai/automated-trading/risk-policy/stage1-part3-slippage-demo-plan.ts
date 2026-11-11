@@ -118,7 +118,8 @@ export function buildStage1Part3SlippageDemoPlan(input?: {
     mmrPerLotBrokerReported: mmr,
     fxcmOfferId: "4001",
     spreadPolicyPrerequisite:
-      "Owner-approved XAU/USD maxSpreadAbsolute (fresh LIVE draft; historically 0.30) must be VERIFIED first.",
+      "XAU/USD per-trade economic feasibility must PASS (DYNAMIC_PER_TRADE). "
+        + "Fixed maxSpreadAbsolute is optional emergency only — historical 0.30 is not required.",
   };
 
   return {
@@ -182,7 +183,8 @@ export function buildStage1Part3SlippageDemoPlan(input?: {
         "XAU/USD is the only eligible instrument in this Automated Trading phase.",
       ],
       recommendedOwnerReviewPoints: [
-        "Recollect fresh LIVE XAU spread evidence, then approve/reject the pending XAU maxSpreadAbsolute.",
+        "Confirm DYNAMIC_PER_TRADE economic feasibility is the primary XAU eligibility rule; "
+          + "optional legacy ceiling may remain PENDING as historical record.",
         "Confirm whether MARKET/IOC near touch is allowed for fill evidence (separate owner decision).",
         "Budget ≥20 distinct owner-authorized fill cycles for XAU/USD if LIMIT/GTC is retained.",
         "Each cycle must capture referencePrice, executionPrice, timestamps, and broker IDs.",
@@ -193,7 +195,7 @@ export function buildStage1Part3SlippageDemoPlan(input?: {
     entryConditions: [
       "Market OPEN and LIVE ForexConnect DEMO session.",
       "Instrument identity XAU/USD (FXCM offerId 4001) verified.",
-      "Quote fresh; absolute spread ≤ owner-approved XAU maxSpreadAbsolute.",
+      "Quote fresh; per-trade economics PASS (spread cost absorbable within 25% budget + net ≥3R).",
       "Execution Master remains OFF until owner explicitly enables a Stage 7 controlled grant.",
       "Individual order allocation and 25% risk ceiling computed before request construction.",
     ],

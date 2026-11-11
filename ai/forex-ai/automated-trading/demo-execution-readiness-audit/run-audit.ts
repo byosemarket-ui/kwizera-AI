@@ -2,7 +2,10 @@
  * Stage 7.1 — Compose read-only DEMO execution readiness audit.
  * Fail-closed on missing evidence. Never mutates broker / never issues grants.
  */
-import type { InstrumentRiskPolicy } from "../risk-policy/types.js";
+import {
+  usesDynamicPerTradeSpreadEligibility,
+  type InstrumentRiskPolicy,
+} from "../risk-policy/types.js";
 import type { AtOrderProposalRecord } from "../order-proposal/types.js";
 import {
   OWNER_MAX_QUANTITY,
@@ -154,10 +157,15 @@ export function runDemoExecutionReadinessAudit(input: Stage71AuditInput): Stage7
   const instrumentPolicies: Stage71InstrumentPolicyAudit[] = [];
   for (const inst of STAGE71_TRACKED_INSTRUMENTS) {
     const pol = input.policiesByInstrument[inst] ?? null;
-    // Stage 5–7 consume only APPROVED+VERIFIED absolute values (resolveSpreadLimit/resolveSlippageLimit).
-    const spreadConsumed = pol?.spread.status === "VERIFIED"
-      && pol.spread.approvalState === "APPROVED"
-      && pol.spread.maxSpreadAbsolute != null;
+    const dynamicSpreadPrimary = usesDynamicPerTradeSpreadEligibility(inst);
+    // ACTIVE XAU: DYNAMIC_PER_TRADE is primary — fixed ceiling optional (not required to "consume").
+    // Other instruments still treat APPROVED+VERIFIED maxSpreadAbsolute as consumed.
+    const spreadConsumed = dynamicSpreadPrimary
+      || (
+        pol?.spread.status === "VERIFIED"
+        && pol.spread.approvalState === "APPROVED"
+        && pol.spread.maxSpreadAbsolute != null
+      );
     const slipConsumed = pol?.slippage.status === "VERIFIED"
       && pol.slippage.approvalState === "APPROVED"
       && pol.slippage.maxSlippageAbsolute != null;
@@ -204,6 +212,26 @@ export function runDemoExecutionReadinessAudit(input: Stage71AuditInput): Stage7
           status: pol?.spread.status ?? null,
           approvalState: pol?.spread.approvalState ?? null,
           maxSpreadAbsolute: pol?.spread.maxSpreadAbsolute ?? null,
+        },
+      }, nowIso));
+    } else if (dynamicSpreadPrimary) {
+      findings.push(finding({
+        category: "SPREAD_POLICY",
+        status: "PASS",
+        code: "SPREAD_ELIGIBILITY_DYNAMIC",
+        message:
+          `${inst} uses DYNAMIC_PER_TRADE economic feasibility as primary spread eligibility. `
+          + `Legacy maxSpreadAbsolute status=${pol?.spread.status ?? "null"} `
+          + `(approval=${pol?.spread.approvalState ?? "null"}) is optional historical/emergency only.`,
+        evidenceSource: "risk-policy + Dynamic Spread Intelligence",
+        evidenceKind: "PRODUCTION",
+        remediation: "None for fixed-ceiling approval. Per-trade economics still apply at precheck.",
+        details: {
+          instrument: inst,
+          eligibilityMode: "DYNAMIC_PER_TRADE",
+          maxSpreadAbsolute: pol?.spread.maxSpreadAbsolute ?? null,
+          approvalState: pol?.spread.approvalState ?? null,
+          fixedCeilingRequiredForTradeEligibility: false,
         },
       }, nowIso));
     } else {

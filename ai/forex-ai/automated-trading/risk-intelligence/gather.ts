@@ -700,8 +700,16 @@ function buildSpread(
 ): RiskIntelligenceSpread {
   const instrument = normalizeInstrument(input.instrument);
   const limit = readConfiguredMaxSpreadAbsolute(input.maxSpreadAbsolute);
+  // ACTIVE XAU: null fixed ceiling is intentional (DYNAMIC_PER_TRADE primary).
+  const dynamicPrimary = String(instrument || "").replace(/\s+/g, "").toUpperCase() === "XAU/USD";
   const limitMeta = limit.value == null
-    ? meta("NOT_CONFIGURED", limit.reason)
+    ? (dynamicPrimary
+      ? meta(
+        "VERIFIED",
+        "DYNAMIC_PER_TRADE primary eligibility — no legacy emergency ceiling configured "
+        + "(historical maxSpreadAbsolute proposals are optional, not required).",
+      )
+      : meta("NOT_CONFIGURED", limit.reason))
     : meta("VERIFIED", `Limit from ${limit.source}.`);
 
   const bid = input.bid;
@@ -905,7 +913,12 @@ export function logRiskIntelligenceEvents(snapshot: RiskIntelligenceSnapshot): v
       blockers: snapshot.daily.blockers,
     });
   }
-  if (snapshot.spread.meta.status !== "VERIFIED" || snapshot.spread.limitMeta.status === "NOT_CONFIGURED") {
+  const instrumentNorm = String(snapshot.spread.instrument || "").replace(/\s+/g, "").toUpperCase();
+  const dynamicPrimary = instrumentNorm === "XAU/USD";
+  if (
+    snapshot.spread.meta.status !== "VERIFIED"
+    || (!dynamicPrimary && snapshot.spread.limitMeta.status === "NOT_CONFIGURED")
+  ) {
     console.warn("[risk-intelligence] spread_blocked", {
       ...base,
       spreadStatus: snapshot.spread.meta.status,

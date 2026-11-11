@@ -4554,20 +4554,23 @@ export class AutomatedTradingService {
         evidenceStaleForOwnerReview: phaseStatus === "ACTIVE" ? evidenceStaleForOwnerReview : false,
         liveVsPendingAdvisory: phaseStatus === "ACTIVE" ? advisory : null,
         dynamicSpreadNote:
-          "Dynamic Spread Intelligence remains the live ACCEPT/REJECT gate. "
-          + "Legacy maxSpreadAbsolute is an optional emergency ceiling only after owner approve+confirm.",
+          "Primary XAU/USD eligibility is DYNAMIC_PER_TRADE economic feasibility "
+          + "(spread cost + 25% SL budget + net ≥3R + technical target). "
+          + "Legacy maxSpreadAbsolute is optional emergency ceiling only — PENDING proposals "
+          + "are historical records and are never auto-approved or required for trade eligibility.",
+        spreadEligibilityPrimary: phaseStatus === "ACTIVE"
+          ? ("DYNAMIC_PER_TRADE" as const)
+          : ("OUT_OF_SCOPE" as const),
+        fixedCeilingRequiredForTradeEligibility: false as const,
         autoApproveForbidden: true as const,
         ownerActionRequired: phaseStatus === "ACTIVE"
-          ? ("Owner must explicitly approve+confirm=true (distinct owner token) or reject. "
-            + "Engineering must not convert PENDING → APPROVED.")
+          ? ("No fixed-ceiling approval required for XAU trade eligibility. "
+            + "Optional legacy ceiling may still be approved/rejected as emergency policy; "
+            + "engineering must not convert PENDING → APPROVED.")
           : "OUT_OF_SCOPE for current Automated Trading phase — no owner action required now.",
         recommendedOwnerDecision: phaseStatus !== "ACTIVE"
           ? "OUT_OF_SCOPE_NO_ACTION"
-          : evidenceStaleForOwnerReview
-            ? "RECOLLECT_LIVE_EVIDENCE_THEN_REVIEW"
-            : (proposed?.value != null || draft?.sufficient === true)
-              ? "OWNER_REVIEW_PENDING_PROPOSAL"
-              : "KEEP_PENDING_INSUFFICIENT_EVIDENCE",
+          : "DYNAMIC_PER_TRADE_NO_FIXED_CEILING_REQUIRED",
       };
     });
 
@@ -4628,12 +4631,18 @@ export class AutomatedTradingService {
             note:
               "Gross reward/risk is price geometry only. Net reward/risk subtracts verified "
               + "entry friction (spread ± verified commission ± evidence-backed slippage) once. "
-              + "Do not display gross 3R as net 3R. ACCEPT ≠ broker authorization.",
+              + "Minimum net is 3R; technically valid targets greater than 3R are allowed "
+              + "(not clipped to exact 3R). Do not display gross 3R as net 3R. "
+              + "ACCEPT ≠ broker authorization.",
+            openEndedReward: true as const,
+            minimumNetRewardRisk: 3 as const,
+            maximumNetRewardRisk: null,
           },
           note:
-            "Read-only Dynamic Spread Intelligence visibility. "
-            + "ACCEPT on a precheck never means broker approval or submission authorization. "
-            + "Legacy maxSpreadAbsolute proposals remain unapproved historical records. "
+            "Read-only Dynamic Spread / per-trade economic feasibility visibility. "
+            + "ACCEPT never means broker approval or submission authorization. "
+            + "Fixed 0.30 is not the active eligibility ceiling. "
+            + "Historical maxSpreadAbsolute proposals remain as audit records. "
             + "Gross R:R and net R:R are reported separately when a proposal is evaluated.",
           authorizesBrokerSubmission: false as const,
           placesOrders: false as const,

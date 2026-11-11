@@ -3979,6 +3979,12 @@ export function ForexAutomatedTradingPage(props: {
                     <span>{verification.market.spread != null ? fmtNum(verification.market.spread, 5) : "—"}</span>
                   </div>
                   <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Spread eligibility</span>
+                    <span>
+                      DYNAMIC_PER_TRADE (not fixed 0.30 ceiling) · ACCEPT ≠ broker authorized · Master OFF
+                    </span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
                     <span className="fx-ai-label">Feed</span>
                     <ForexStatusBadge tone={statusTone(verification.market.feedStatus)}>
                       {verification.market.feedStatus}

@@ -80,19 +80,23 @@ export interface Stage1ReadinessReport {
 
 function overallFor(inst: Stage1InstrumentReport, marketOpen: boolean): Stage1InstrumentStatus {
   if (inst.phaseStatus === "OUT_OF_SCOPE") return "OUT_OF_SCOPE";
-  if (inst.spreadPolicyStatus === "VERIFIED" && inst.slippagePolicyStatus === "VERIFIED") {
+  // ACTIVE XAU phase: fixed spread ceiling is optional. Trade eligibility uses
+  // per-trade economic feasibility. Stage 1 "RESOLVED" still requires verified
+  // slippage evidence/policy — not an approved 0.30 ceiling.
+  const dynamicSpreadPrimary = inst.phaseStatus === "ACTIVE";
+  const spreadGovernanceOk = dynamicSpreadPrimary || inst.spreadPolicyStatus === "VERIFIED";
+  if (spreadGovernanceOk && inst.slippagePolicyStatus === "VERIFIED") {
     return "RESOLVED";
   }
   if (!marketOpen) return "WAITING_FOR_LIVE_MARKET";
   if (inst.slippageEvidence.status === SLIPPAGE_EVIDENCE_REQUIRES_CONTROLLED_DEMO_EXECUTION) {
-    // Spread may still need live samples / owner approval
-    if (inst.spreadPolicyStatus !== "VERIFIED") {
+    if (!dynamicSpreadPrimary && inst.spreadPolicyStatus !== "VERIFIED") {
       if (!inst.spreadEvidence.sufficientForRecommendation) return "INSUFFICIENT_LIVE_EVIDENCE";
       return "WAITING_FOR_OWNER_APPROVAL";
     }
     return "WAITING_FOR_CONTROLLED_DEMO_EVIDENCE";
   }
-  if (inst.spreadPolicyStatus !== "VERIFIED") {
+  if (!dynamicSpreadPrimary && inst.spreadPolicyStatus !== "VERIFIED") {
     if (!inst.spreadEvidence.sufficientForRecommendation) return "INSUFFICIENT_LIVE_EVIDENCE";
     return "WAITING_FOR_OWNER_APPROVAL";
   }
@@ -181,9 +185,11 @@ export function buildStage1ReadinessReport(input?: {
       mayInventThresholds: false,
     },
     note:
-      "Stage 1 complete for this phase only when ACTIVE instruments (XAU/USD) have VERIFIED "
-      + "spread + slippage policies backed by valid evidence and owner approve+confirm. "
-      + "OUT_OF_SCOPE instruments do not block phase completion. Cached XAU 0.30 is rejected.",
+      "Stage 1 complete for this phase when ACTIVE instruments (XAU/USD) have VERIFIED "
+      + "slippage policy backed by fill evidence (owner approve+confirm). "
+      + "Fixed maxSpreadAbsolute is NOT required for XAU trade eligibility — "
+      + "per-trade economic feasibility is primary. Historical 0.30 proposals remain "
+      + "as records and are never auto-approved. OUT_OF_SCOPE instruments do not block phase completion.",
   };
 }
 

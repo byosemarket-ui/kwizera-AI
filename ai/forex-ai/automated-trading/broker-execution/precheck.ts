@@ -2,7 +2,7 @@
  * Phase 2 — Final pre-execution validator (pure, fail-closed).
  * Never places orders. Never sets acceptsForExecution. Never mutates broker.
  */
-import { evaluateDynamicSpread } from "../dynamic-spread/index.js";
+import { decidePerTradeEconomicFeasibility } from "../dynamic-spread/index.js";
 import type { DynamicSpreadEvaluationResult } from "../dynamic-spread/types.js";
 import { evaluateProtectiveGeometry } from "../broker-intent/protective-geometry.js";
 import { evaluateBrokerQuantityContract } from "../order-execution/broker-quantity-contract.js";
@@ -1301,7 +1301,7 @@ export function runPreExecutionValidation(
         }
         : null);
 
-    dynamicSpreadResult = dsIn?.evaluation ?? evaluateDynamicSpread({
+    dynamicSpreadResult = dsIn?.evaluation ?? decidePerTradeEconomicFeasibility({
       instrument: market.instrument,
       expectedInstrument: proposal?.instrument ?? handoff?.instrument?.symbol ?? market.instrument,
       bid: market.bid,

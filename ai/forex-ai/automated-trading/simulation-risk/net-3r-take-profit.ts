@@ -317,9 +317,19 @@ export function proposeTakeProfitNetAware3R(input: {
     };
   }
 
+  // 3R is a minimum, not a profit ceiling. When valid market structure supports a
+  // farther target, use that distance (open-ended within technicalRewardDistanceMax).
+  let chosenRewardDistance = minRewardDistance;
+  if (
+    finitePositive(input.technicalRewardDistanceMax)
+    && input.technicalRewardDistanceMax + 1e-12 >= minRewardDistance
+  ) {
+    chosenRewardDistance = input.technicalRewardDistanceMax;
+  }
+
   let rawTp = input.direction === "BUY"
-    ? input.entryPrice + minRewardDistance
-    : input.entryPrice - minRewardDistance;
+    ? input.entryPrice + chosenRewardDistance
+    : input.entryPrice - chosenRewardDistance;
   rawTp = alignToTick(rawTp, input.tickSize);
   rawTp = roundToDigits(rawTp, input.digits);
 
@@ -397,8 +407,11 @@ export function proposeTakeProfitNetAware3R(input: {
     quantityUnchanged: true,
     technicalBoundApplied: finitePositive(input.technicalRewardDistanceMax),
     note:
-      costs > 0
-        ? `TP extended for net ≥${NET_3R_MINIMUM_RATIO}R after verified costs ${costs}; SL and quantity unchanged.`
-        : "TP at gross geometric 3R.",
+      chosenRewardDistance > minRewardDistance + 1e-12
+        ? `TP at technical structure distance ${chosenRewardDistance} (net R:R ${netRatio?.toFixed(4)}; `
+          + `minimum ${NET_3R_MINIMUM_RATIO}R satisfied; not clipped to exact 3R). SL/qty unchanged.`
+        : costs > 0
+          ? `TP at net ≥${NET_3R_MINIMUM_RATIO}R minimum after verified costs ${costs}; SL and quantity unchanged.`
+          : `TP at gross geometric ${NET_3R_MINIMUM_RATIO}R minimum (open-ended when structure allows more).`,
   };
 }

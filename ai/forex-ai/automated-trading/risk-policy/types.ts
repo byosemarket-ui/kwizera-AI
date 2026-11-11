@@ -171,6 +171,24 @@ export interface AtRiskPolicyDocument {
   note: string;
 }
 
+/**
+ * Trade-eligibility mode for spread.
+ * DYNAMIC_PER_TRADE: per-trade economic feasibility (primary for ACTIVE XAU/USD).
+ * LEGACY_EMERGENCY_CEILING: optional owner-approved absolute ceiling only.
+ */
+export type SpreadEligibilityMode = "DYNAMIC_PER_TRADE" | "LEGACY_EMERGENCY_CEILING";
+
+/**
+ * ACTIVE Automated Trading instruments use per-trade economic feasibility as the
+ * primary spread eligibility rule. A missing/pending maxSpreadAbsolute must NOT
+ * block trade eligibility for these instruments (historical proposals preserved).
+ */
+export function usesDynamicPerTradeSpreadEligibility(
+  instrument: string | null | undefined,
+): boolean {
+  return isStage3ActiveInstrument(instrument);
+}
+
 export interface ResolvedSpreadLimit {
   value: number | null;
   source: "request" | "instrument_policy" | "env" | null;
@@ -179,6 +197,14 @@ export interface ResolvedSpreadLimit {
   reason: string | null;
   instrument: string | null;
   configVersion: number | null;
+  /** Primary trade-eligibility mode (DYNAMIC for active XAU phase). */
+  eligibilityMode: SpreadEligibilityMode;
+  /**
+   * When false, missing/pending fixed maxSpreadAbsolute does not block trade
+   * eligibility, readiness aggregation, or demo technical gates for this instrument.
+   * Governance/history of proposals remains intact.
+   */
+  fixedCeilingRequiredForTradeEligibility: boolean;
 }
 
 export interface ResolvedSlippageLimit {

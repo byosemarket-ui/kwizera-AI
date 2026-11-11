@@ -307,8 +307,20 @@ export function ForexAdminAtRiskLimitsPanel() {
 
       <div className="fxa-card" style={{ boxShadow: "none", border: "1px solid var(--fxa-border, #ddd)" }}>
         <h3 style={{ marginTop: 0 }}>{instrument} · {kind}</h3>
+        {kind === "spread" && ACTIVE_PHASE_INSTRUMENTS.has(instrument) && (
+          <p className="fxa-muted" style={{ marginTop: 0 }}>
+            Primary eligibility: <strong>DYNAMIC_PER_TRADE</strong> economic feasibility
+            (LIVE spread cost + 25% SL budget + net ≥3R + technical target).
+            Fixed absolute ceiling is <strong>optional emergency only</strong> — not required for trade eligibility.
+            Historical proposals (e.g. 0.30) remain as audit records and are never auto-approved.
+            Dynamic ACCEPT ≠ broker submission authorized.
+          </p>
+        )}
         <p className="fxa-muted">
-          Active: <strong>{activeValue(kind, slot) ?? "NOT_CONFIGURED"}</strong>
+          {kind === "spread" && ACTIVE_PHASE_INSTRUMENTS.has(instrument)
+            ? "Legacy emergency ceiling: "
+            : "Active: "}
+          <strong>{activeValue(kind, slot) ?? "NOT_CONFIGURED"}</strong>
           {" · "}
           State: <span className="fxa-badge" data-tone={stateTone(slot?.approvalState)}>{slot?.approvalState ?? "NOT_CONFIGURED"}</span>
           {" · "}
