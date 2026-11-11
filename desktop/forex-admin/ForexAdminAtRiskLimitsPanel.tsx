@@ -315,8 +315,10 @@ export function ForexAdminAtRiskLimitsPanel() {
             Primary eligibility: <strong>DYNAMIC_PER_TRADE</strong> economic feasibility
             (LIVE spread cost + 25% SL budget + net ≥3R + technical target).
             Fixed absolute ceiling is <strong>optional emergency only</strong> — not required for trade eligibility.
-            Historical proposals (e.g. 0.30) remain as audit records and are never auto-approved.
-            Dynamic ACCEPT ≠ broker submission authorized.
+            Historical proposals (e.g. 0.30 PENDING) remain as audit records and are never auto-approved
+            and do not block dynamic eligibility.
+            Stage 1 completion still needs genuine slippage fill evidence + owner-approved maxSlippageAbsolute.
+            Dynamic ACCEPT ≠ order-ready ≠ broker submission authorized.
           </p>
         )}
         <p className="fxa-muted">

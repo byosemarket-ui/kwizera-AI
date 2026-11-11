@@ -2021,6 +2021,48 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Stage 1 — ingest genuine BROKER_EXECUTION fill for slippage evidence (never submits).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/stage1/slippage-fill/ingest")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 16_000)) as Record<string, unknown>;
+      const result = await service.ingestStage1SlippageFill(body);
+      sendJson(res, 200, {
+        ok: true,
+        ...result,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+        note:
+          "Persists validated BROKER_EXECUTION fills only. Synthetic fixtures excluded. "
+          + "Does not place orders or invent fill fields.",
+      });
+      return true;
+    }
+
+    // Post-entry management PLAN (calculation only — never mutates broker).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/post-entry/plan")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 16_000)) as Record<string, unknown>;
+      const plan = await service.planPostEntryManagement(body);
+      sendJson(res, 200, {
+        ok: true,
+        ...plan,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+        note: "Post-entry PLAN only. Broker trailing/partial-close/SL mods remain DISABLED.",
+      });
+      return true;
+    }
+
     // Stage 1 reopen — one LIVE Offers collection tick (subscribe+poll+ingest; never submits).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/stage1/spread-collect/tick")) {
       if (req.method !== "POST") {

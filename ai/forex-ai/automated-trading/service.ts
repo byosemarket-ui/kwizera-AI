@@ -4320,6 +4320,106 @@ export class AutomatedTradingService {
   }
 
   /**
+   * Stage 1 — ingest one genuine BROKER_EXECUTION fill for slippage evidence.
+   * Never invents fields. Never places orders. Synthetic fixtures are rejected from production counts.
+   */
+  async ingestStage1SlippageFill(raw: Record<string, unknown>) {
+    const {
+      ingestSlippageFillEvidence,
+      mapBrokerTradeRowToSlippageCandidate,
+    } = await import("./risk-policy/stage1-slippage-fill-ingest.js");
+
+    // Prefer structured candidate fields; otherwise attempt fail-closed broker-row mapping.
+    const hasStructured =
+      raw.referencePrice != null
+      || raw.executionPrice != null
+      || raw.executionIdentifier != null;
+    const candidateSource = hasStructured
+      ? {
+        ok: true as const,
+        candidate: {
+          instrument: (raw.instrument as string | null | undefined) ?? null,
+          direction: (raw.direction as "BUY" | "SELL" | null | undefined) ?? null,
+          referencePrice: typeof raw.referencePrice === "number" ? raw.referencePrice : null,
+          submissionReferencePrice: typeof raw.submissionReferencePrice === "number"
+            ? raw.submissionReferencePrice
+            : null,
+          executionPrice: typeof raw.executionPrice === "number" ? raw.executionPrice : null,
+          fillTimestampUtc: typeof raw.fillTimestampUtc === "string" ? raw.fillTimestampUtc : null,
+          executionIdentifier: typeof raw.executionIdentifier === "string"
+            ? raw.executionIdentifier
+            : null,
+          brokerResponseId: typeof raw.brokerResponseId === "string" ? raw.brokerResponseId : null,
+          provenance: raw.provenance === "SYNTHETIC_TEST_DATA"
+            ? ("SYNTHETIC_TEST_DATA" as const)
+            : ("BROKER_EXECUTION" as const),
+          expectedEnvironment: raw.expectedEnvironment === "DEMO" || raw.expectedEnvironment === "LIVE"
+            ? raw.expectedEnvironment
+            : null,
+          observedEnvironment: raw.observedEnvironment === "DEMO" || raw.observedEnvironment === "LIVE"
+            ? raw.observedEnvironment
+            : null,
+          expectedAccountIdMasked: typeof raw.expectedAccountIdMasked === "string"
+            ? raw.expectedAccountIdMasked
+            : null,
+          observedAccountIdMasked: typeof raw.observedAccountIdMasked === "string"
+            ? raw.observedAccountIdMasked
+            : null,
+          evidenceId: typeof raw.evidenceId === "string" ? raw.evidenceId : null,
+        },
+      }
+      : mapBrokerTradeRowToSlippageCandidate(raw);
+
+    if (!candidateSource.ok) {
+      return {
+        ...candidateSource,
+        accepted: false,
+        duplicate: false,
+        placesOrders: false as const,
+        mutatesBroker: false as const,
+        brokerExecution: "DISABLED" as const,
+      };
+    }
+
+    const result = ingestSlippageFillEvidence(candidateSource.candidate);
+    return {
+      ...result,
+      brokerExecution: "DISABLED" as const,
+    };
+  }
+
+  /**
+   * Post-entry management PLAN (calculation only — never mutates broker).
+   */
+  async planPostEntryManagement(raw: Record<string, unknown>) {
+    const { planPostEntryManagement } = await import("./post-entry/index.js");
+    const plan = planPostEntryManagement({
+      instrument: typeof raw.instrument === "string" ? raw.instrument : null,
+      positionId: typeof raw.positionId === "string" ? raw.positionId : null,
+      direction: raw.direction === "BUY" || raw.direction === "SELL" ? raw.direction : null,
+      entryPrice: typeof raw.entryPrice === "number" ? raw.entryPrice : null,
+      currentPrice: typeof raw.currentPrice === "number" ? raw.currentPrice : null,
+      originalStopLoss: typeof raw.originalStopLoss === "number" ? raw.originalStopLoss : null,
+      takeProfit: typeof raw.takeProfit === "number" ? raw.takeProfit : null,
+      openQuantityLots: typeof raw.openQuantityLots === "number" ? raw.openQuantityLots : null,
+      quoteAgeMs: typeof raw.quoteAgeMs === "number" ? raw.quoteAgeMs : null,
+      quoteMaxAgeMs: typeof raw.quoteMaxAgeMs === "number" ? raw.quoteMaxAgeMs : null,
+      quantityStep: typeof raw.quantityStep === "number" ? raw.quantityStep : null,
+      quantityMin: typeof raw.quantityMin === "number" ? raw.quantityMin : null,
+      trailingDistancePrice: typeof raw.trailingDistancePrice === "number"
+        ? raw.trailingDistancePrice
+        : null,
+      partialCloseFraction: typeof raw.partialCloseFraction === "number"
+        ? raw.partialCloseFraction
+        : null,
+    });
+    return {
+      ...plan,
+      brokerExecution: "DISABLED" as const,
+    };
+  }
+
+  /**
    * Stage 1 reopen — readiness + drafts from persisted LIVE evidence + RO fill audit.
    */
   async getStage1ReadinessReport() {
@@ -4341,12 +4441,15 @@ export class AutomatedTradingService {
       tradesOk: boolean;
       tradeCount: number;
       closedTradeCount: number;
+      /** Alias for Stage 1 production BROKER_EXECUTION fill count (never synthetic). */
+      genuineFillEvidenceCount: number;
       usableFillEvidenceCount: number;
       note: string;
     } = {
       tradesOk: false,
       tradeCount: 0,
       closedTradeCount: 0,
+      genuineFillEvidenceCount: 0,
       usableFillEvidenceCount: 0,
       note: "Fill audit not run.",
     };
@@ -4360,6 +4463,25 @@ export class AutomatedTradingService {
       const closed = Array.isArray((closedResult as { closedTrades?: unknown[] })?.closedTrades)
         ? (closedResult as { closedTrades: unknown[] }).closedTrades
         : [];
+      // Attempt fail-closed mapping of broker rows that already carry required fields.
+      // Never invents reference/execution prices. Does not submit orders.
+      const {
+        mapBrokerTradeRowToSlippageCandidate,
+        ingestSlippageFillEvidence,
+      } = await import("./risk-policy/stage1-slippage-fill-ingest.js");
+      let mappedAccepted = 0;
+      let mappedRejected = 0;
+      for (const row of [...trades, ...closed]) {
+        if (!row || typeof row !== "object") continue;
+        const mapped = mapBrokerTradeRowToSlippageCandidate(row as Record<string, unknown>);
+        if (!mapped.ok) {
+          mappedRejected += 1;
+          continue;
+        }
+        const ingested = ingestSlippageFillEvidence(mapped.candidate, store);
+        if (ingested.accepted) mappedAccepted += 1;
+        else mappedRejected += 1;
+      }
       const persistedFills = STAGE3_TRACKED_INSTRUMENTS.reduce(
         (n, inst) => n + store.getSlippageFills(inst).length,
         0,
@@ -4369,15 +4491,20 @@ export class AutomatedTradingService {
           && (closedResult as { ok?: boolean })?.ok !== false,
         tradeCount: trades.length,
         closedTradeCount: closed.length,
+        genuineFillEvidenceCount: persistedFills,
         usableFillEvidenceCount: persistedFills,
         note:
           trades.length + closed.length === 0 && persistedFills === 0
             ? "No open trades, no current-trading-day closed trades, and no persisted BROKER_EXECUTION fills — "
-              + "WAITING_FOR_CONTROLLED_DEMO_EVIDENCE for slippage. ClosedTrades is not an all-time ledger."
+              + "WAITING_FOR_CONTROLLED_DEMO_EVIDENCE for slippage. ClosedTrades is not an all-time ledger. "
+              + "Use POST /stage1/slippage-fill/ingest after authorized DEMO fills with complete fields."
             : persistedFills > 0
-              ? `Persisted Stage 1 fill evidence count=${persistedFills}; open=${trades.length}; closed(day)=${closed.length}.`
+              ? `Persisted Stage 1 fill evidence count=${persistedFills}; open=${trades.length}; `
+                + `closed(day)=${closed.length}; mappedAcceptedThisAudit=${mappedAccepted}; `
+                + `mappedRejectedThisAudit=${mappedRejected}.`
               : "Trades/closed-trades present but Stage 1 requires explicit fill fields "
-                + "(reference, execution, direction, ids); none mapped without inventing values.",
+                + "(reference, execution, direction, ids); none mapped without inventing values. "
+                + `mappedRejectedThisAudit=${mappedRejected}.`,
       };
       for (const inst of STAGE3_TRACKED_INSTRUMENTS) {
         slippageFillsByInstrument[inst] = store.getSlippageFills(inst);
@@ -4387,7 +4514,14 @@ export class AutomatedTradingService {
         tradesOk: false,
         tradeCount: 0,
         closedTradeCount: 0,
-        usableFillEvidenceCount: 0,
+        genuineFillEvidenceCount: STAGE3_TRACKED_INSTRUMENTS.reduce(
+          (n, inst) => n + store.getSlippageFills(inst).length,
+          0,
+        ),
+        usableFillEvidenceCount: STAGE3_TRACKED_INSTRUMENTS.reduce(
+          (n, inst) => n + store.getSlippageFills(inst).length,
+          0,
+        ),
         note: "listTrades/listClosedTrades failed or unavailable — treat as no fill evidence (fail closed).",
       };
       for (const inst of STAGE3_TRACKED_INSTRUMENTS) {

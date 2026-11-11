@@ -185,6 +185,9 @@ export function buildStage1Part3SlippageDemoPlan(input?: {
       recommendedOwnerReviewPoints: [
         "Confirm DYNAMIC_PER_TRADE economic feasibility is the primary XAU eligibility rule; "
           + "optional legacy ceiling may remain PENDING as historical record.",
+        "After each authorized DEMO fill, persist via POST /api/forex/automated-trading/stage1/slippage-fill/ingest "
+          + "with referencePrice, executionPrice, direction, fillTimestampUtc, executionIdentifier "
+          + "(ingest software is ready; this plan still does not authorize order submission).",
         "Confirm whether MARKET/IOC near touch is allowed for fill evidence (separate owner decision).",
         "Budget ≥20 distinct owner-authorized fill cycles for XAU/USD if LIMIT/GTC is retained.",
         "Each cycle must capture referencePrice, executionPrice, timestamps, and broker IDs.",

@@ -161,6 +161,55 @@ export class Stage1EvidenceStore {
     this.persist(this.doc);
   }
 
+  /**
+   * Append one validated BROKER_EXECUTION fill. Dedupes by executionIdentifier.
+   * Synthetic / non-production records are rejected (not persisted as evidence).
+   */
+  appendSlippageFill(record: SlippageFillEvidenceRecord): {
+    accepted: boolean;
+    duplicate: boolean;
+    code: string;
+    countForInstrument: number;
+  } {
+    if (record.provenance !== "BROKER_EXECUTION") {
+      return {
+        accepted: false,
+        duplicate: false,
+        code: "SYNTHETIC_NOT_PRODUCTION_EVIDENCE",
+        countForInstrument: (this.doc.slippageFillsByInstrument[record.instrument] ?? []).length,
+      };
+    }
+    const key = String(record.executionIdentifier || "").trim();
+    if (!key) {
+      return {
+        accepted: false,
+        duplicate: false,
+        code: "MISSING_EXECUTION_ID",
+        countForInstrument: (this.doc.slippageFillsByInstrument[record.instrument] ?? []).length,
+      };
+    }
+    const list = this.doc.slippageFillsByInstrument[record.instrument] ?? [];
+    if (list.some((f) => f.executionIdentifier === key)) {
+      return {
+        accepted: false,
+        duplicate: true,
+        code: "DUPLICATE_EXECUTION_ID",
+        countForInstrument: list.length,
+      };
+    }
+    list.push(record);
+    while (list.length > MAX_ACCEPTED_PER_INSTRUMENT) list.shift();
+    this.doc.slippageFillsByInstrument[record.instrument] = list;
+    this.doc.updatedAtUtc = new Date().toISOString();
+    this.persist(this.doc);
+    return {
+      accepted: true,
+      duplicate: false,
+      code: "SLIPPAGE_FILL_ACCEPTED",
+      countForInstrument: list.length,
+    };
+  }
+
   getSlippageFills(instrument: string): SlippageFillEvidenceRecord[] {
     return [...(this.doc.slippageFillsByInstrument[instrument] ?? [])];
   }

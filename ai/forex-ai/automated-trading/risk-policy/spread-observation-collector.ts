@@ -281,16 +281,16 @@ export function summarizeInstrumentSpreadEvidence(input: {
   instrument: Stage3TrackedInstrument;
   accepted: LiveSpreadObservationRecord[];
   marketOpen: boolean | null;
-  policyStatus?: "NOT_CONFIGURED" | "PENDING_APPROVAL" | "APPROVED";
+  policyStatus?: "NOT_CONFIGURED" | "PENDING_APPROVAL" | "APPROVED" | "DYNAMIC_PRIMARY";
 }): InstrumentSpreadEvidenceSummary {
   const validLiveCount = input.accepted.filter((r) => r.instrument === input.instrument).length;
   const sufficient = validLiveCount >= MIN_LIVE_SPREAD_OBSERVATIONS_FOR_RECOMMENDATION;
   let status: InstrumentSpreadEvidenceSummary["status"];
   if (input.marketOpen === false) status = "WAITING_FOR_LIVE_MARKET";
   else if (sufficient) status = "EVIDENCE_READY_FOR_RECOMMENDATION";
-  else if (input.policyStatus === "NOT_CONFIGURED" || !input.policyStatus) status = "INSUFFICIENT_LIVE_EVIDENCE";
   else status = "INSUFFICIENT_LIVE_EVIDENCE";
 
+  const dynamicPrimary = input.policyStatus === "DYNAMIC_PRIMARY";
   return {
     instrument: input.instrument,
     validLiveCount,
@@ -303,8 +303,14 @@ export function summarizeInstrumentSpreadEvidence(input: {
       input.marketOpen === false
         ? "WAITING_FOR_LIVE_MARKET — collector ready; do not fabricate LIVE samples while closed."
         : sufficient
-          ? "≥20 LIVE samples available to draft a recommendation only (owner must still approve)."
-          : `Need ${MIN_LIVE_SPREAD_OBSERVATIONS_FOR_RECOMMENDATION - validLiveCount} more independent LIVE samples.`,
+          ? (dynamicPrimary
+            ? "≥20 LIVE samples available for rolling context / optional emergency recommendation. "
+              + "Fixed maxSpreadAbsolute is NOT required for DYNAMIC_PER_TRADE eligibility."
+            : "≥20 LIVE samples available to draft a recommendation only (owner must still approve).")
+          : `Need ${MIN_LIVE_SPREAD_OBSERVATIONS_FOR_RECOMMENDATION - validLiveCount} more independent LIVE samples.`
+            + (dynamicPrimary
+              ? " (DYNAMIC_PER_TRADE eligibility does not wait on fixed-ceiling approval.)"
+              : ""),
   };
 }
 

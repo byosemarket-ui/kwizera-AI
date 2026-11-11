@@ -127,7 +127,10 @@ export function buildStage1ReadinessReport(input?: {
       instrument,
       accepted,
       marketOpen,
-      policyStatus: spread.status === "VERIFIED" ? "APPROVED" : "NOT_CONFIGURED",
+      // ACTIVE XAU: missing fixed ceiling is intentional DYNAMIC_PER_TRADE (not a failure).
+      policyStatus: spread.status === "VERIFIED"
+        ? "APPROVED"
+        : (phaseStatus === "ACTIVE" ? "DYNAMIC_PRIMARY" : "NOT_CONFIGURED"),
     });
     const slippageEvidence = summarizeSlippageEvidence({
       instrument,

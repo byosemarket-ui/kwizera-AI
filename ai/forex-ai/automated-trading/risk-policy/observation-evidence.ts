@@ -186,7 +186,10 @@ export function ownerApprovalRequirements(): {
   adminCannotApprove: true;
   failClosedWhenMissing: true;
   minLiveObservationsForRecommendation: number;
-  fieldsPerInstrument: Array<"spread.maxSpreadAbsolute" | "slippage.maxSlippageAbsolute">;
+  /** Mandatory owner fields for Stage 1 completion (ACTIVE XAU). */
+  fieldsPerInstrument: Array<"slippage.maxSlippageAbsolute">;
+  /** Optional emergency-only; NOT required for DYNAMIC_PER_TRADE eligibility. */
+  optionalEmergencyFields: Array<"spread.maxSpreadAbsolute">;
   note: string;
 } {
   return {
@@ -200,14 +203,15 @@ export function ownerApprovalRequirements(): {
     adminCannotApprove: true,
     failClosedWhenMissing: true,
     minLiveObservationsForRecommendation: MIN_LIVE_SPREAD_OBSERVATIONS_FOR_RECOMMENDATION,
-    fieldsPerInstrument: ["spread.maxSpreadAbsolute", "slippage.maxSlippageAbsolute"],
+    fieldsPerInstrument: ["slippage.maxSlippageAbsolute"],
+    optionalEmergencyFields: ["spread.maxSpreadAbsolute"],
     note:
-      "Owner must provide APPROVED absolute_price maxSpreadAbsolute and maxSlippageAbsolute "
-      + "for ACTIVE Automated Trading instruments (XAU/USD this phase) via Stage 4 "
-      + "propose → owner approve+confirm=true. OUT_OF_SCOPE catalog instruments remain "
-      + "unapproved and excluded from active workflow. Recommendations may only be drafted "
-      + "from ≥20 independent LIVE market-open observations; recommendations ≠ approval. "
-      + "Missing ACTIVE policies fail closed.",
+      "ACTIVE XAU/USD: primary spread eligibility is DYNAMIC_PER_TRADE economic feasibility. "
+      + "Historical maxSpreadAbsolute proposals (e.g. 0.30 PENDING) remain audit-only and are "
+      + "NOT required for trade eligibility. Optional emergency ceiling may still use Stage 4 "
+      + "propose→approve+confirm. Stage 1 completion still requires APPROVED maxSlippageAbsolute "
+      + "backed by ≥20 genuine BROKER_EXECUTION fills. Recommendations ≠ approval. "
+      + "OUT_OF_SCOPE instruments remain excluded from the active workflow.",
   };
 }
 

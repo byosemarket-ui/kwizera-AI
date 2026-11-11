@@ -813,6 +813,20 @@ export const atDemoAdapterApi = {
 export const atStage1ReadinessApi = {
   get: () =>
     request<Record<string, unknown>>("/api/forex/automated-trading/stage1-readiness"),
+  ingestSlippageFill: (body: Record<string, unknown>) =>
+    request<Record<string, unknown>>("/api/forex/automated-trading/stage1/slippage-fill/ingest", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
+/** Post-entry management PLAN (calculation only). */
+export const atPostEntryApi = {
+  plan: (body: Record<string, unknown>) =>
+    request<Record<string, unknown>>("/api/forex/automated-trading/post-entry/plan", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };
 
 /** Stage 7.1 — read-only DEMO execution readiness audit (never mutates broker). */
