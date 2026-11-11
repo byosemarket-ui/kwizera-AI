@@ -3981,7 +3981,18 @@ export function ForexAutomatedTradingPage(props: {
                   <div className="fx-auto-summary-cell">
                     <span className="fx-ai-label">Spread eligibility</span>
                     <span>
-                      DYNAMIC_PER_TRADE (not fixed 0.30 ceiling) · ACCEPT ≠ broker authorized · Master OFF
+                      DYNAMIC_PER_TRADE economic feasibility (spread cost + 25% SL budget + net ≥3R + technical target).
+                      Fixed 0.30 is not the mandatory ceiling. ACCEPT ≠ order-ready ≠ broker authorized. Master OFF.
+                    </span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Net R:R policy</span>
+                    <span>Minimum net 3R; technically valid &gt;3R allowed (no exact-3R clip). Gross ≠ net.</span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Profit management</span>
+                    <span>
+                      Proposal/validation only this phase — no auto trailing, partial-close, or broker SL mutations.
                     </span>
                   </div>
                   <div className="fx-auto-summary-cell">

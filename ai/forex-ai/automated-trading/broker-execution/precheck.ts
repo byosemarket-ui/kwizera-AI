@@ -468,6 +468,15 @@ export function runPreExecutionValidation(
         "PROPOSAL_EXPIRED",
         "Proposal lifecycle is EXPIRED.",
       ));
+    } else if (proposal.lifecycle === "REJECTED") {
+      checks.push(check(
+        "proposal_lifecycle",
+        "proposal",
+        "FAIL",
+        "FRESH_PROPOSAL_REQUIRED",
+        "Proposal was REJECTED by economic/technical feasibility — "
+          + "fresh market analysis and a new proposalId are required (no silent retry).",
+      ));
     } else if (proposal.lifecycle !== "PROPOSAL_READY") {
       checks.push(check(
         "proposal_lifecycle",

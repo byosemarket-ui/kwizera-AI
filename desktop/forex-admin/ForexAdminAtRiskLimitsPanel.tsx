@@ -3,7 +3,7 @@
  * Propose ≠ approve. Never invents thresholds. No execution controls.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { atOwnerAuthApi, atRiskPolicyApi } from "./api";
+import { atOwnerAuthApi, atRiskPolicyApi, atStage1ReadinessApi } from "./api";
 import {
   getForexOwnerToken,
   maskForexOwnerToken,
@@ -82,6 +82,7 @@ export function ForexAdminAtRiskLimitsPanel() {
   const [ownerStatus, setOwnerStatus] = useState<Record<string, unknown> | null>(null);
   const [ownerTokenDraft, setOwnerTokenDraft] = useState("");
   const [ownerMasked, setOwnerMasked] = useState<string | null>(maskForexOwnerToken(getForexOwnerToken()));
+  const [stage1, setStage1] = useState<Record<string, unknown> | null>(null);
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -94,10 +95,11 @@ export function ForexAdminAtRiskLimitsPanel() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [pol, hist, owner] = await Promise.all([
+      const [pol, hist, owner, readiness] = await Promise.all([
         atRiskPolicyApi.get(),
         atRiskPolicyApi.history(30),
         atOwnerAuthApi.status().catch(() => null),
+        atStage1ReadinessApi.get().catch(() => null),
       ]);
       if (!mounted.current) return;
       setDoc(pol.riskPolicy as unknown as PolicyDoc);
@@ -106,6 +108,7 @@ export function ForexAdminAtRiskLimitsPanel() {
         || (pol as { ownerAuthorization?: Record<string, unknown> }).ownerAuthorization
         || null);
       setOwnerMasked(maskForexOwnerToken(getForexOwnerToken()));
+      setStage1(readiness);
     } catch (err) {
       if (!mounted.current) return;
       setError(err instanceof Error ? err.message : "Failed to load AT risk policy.");
@@ -404,6 +407,45 @@ export function ForexAdminAtRiskLimitsPanel() {
 
       {message && <p className="fxa-muted">{message}</p>}
       {error && <p className="fxa-error">{error}</p>}
+
+      {ACTIVE_PHASE_INSTRUMENTS.has(instrument) && (() => {
+        const dsi = stage1?.dynamicSpreadIntelligence as Record<string, unknown> | undefined;
+        const instruments = Array.isArray(dsi?.instruments) ? dsi!.instruments as Array<Record<string, unknown>> : [];
+        const xau = instruments.find((r) => String(r.instrument ?? "") === "XAU/USD") ?? null;
+        const rolling = (xau?.rolling ?? null) as Record<string, unknown> | null;
+        const reward = (dsi?.rewardRiskPolicy ?? null) as Record<string, unknown> | null;
+        const decision = stage1?.spreadProposalOwnerDecisions as Array<Record<string, unknown>> | undefined;
+        const xauDecision = Array.isArray(decision)
+          ? decision.find((d) => String(d.instrument ?? "") === "XAU/USD")
+          : null;
+        return (
+          <div className="fxa-card" style={{ boxShadow: "none", border: "1px solid var(--fxa-border, #ddd)", marginBottom: 16 }}>
+            <h3 style={{ marginTop: 0 }}>XAU/USD · live economic visibility</h3>
+            <p className="fxa-muted" style={{ marginTop: 0 }}>
+              Bid/ask/spread and rolling stats are LIVE context. Per-trade ACCEPT/REJECT is computed
+              on each proposal/precheck with allocation, SL, costs, and net ≥3R — not against a fixed 0.30 ceiling.
+              Dynamic ACCEPT ≠ order-ready ≠ broker authorized.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 8, fontSize: 13 }}>
+              <div>Bid <strong>{xau?.bid != null ? String(xau.bid) : "—"}</strong></div>
+              <div>Ask <strong>{xau?.ask != null ? String(xau.ask) : "—"}</strong></div>
+              <div>Spread <strong>{xau?.currentSpread != null ? String(xau.currentSpread) : "—"}</strong></div>
+              <div>Rolling n <strong>{rolling?.sampleCount != null ? String(rolling.sampleCount) : "—"}</strong></div>
+              <div>Median <strong>{rolling?.median != null ? String(rolling.median) : "—"}</strong></div>
+              <div>P95 <strong>{rolling?.p95 != null ? String(rolling.p95) : "—"}</strong></div>
+              <div>Abnormal <strong>{rolling?.abnormal === true ? "yes" : rolling?.abnormal === false ? "no" : "—"}</strong></div>
+              <div>Eligibility <strong>{String(xauDecision?.spreadEligibilityPrimary ?? "DYNAMIC_PER_TRADE")}</strong></div>
+              <div>Min net R:R <strong>{reward?.minimumNetRewardRisk != null ? String(reward.minimumNetRewardRisk) : "3"}</strong></div>
+              <div>Max profit cap <strong>{reward?.maximumNetRewardRisk == null ? "none (open-ended)" : String(reward.maximumNetRewardRisk)}</strong></div>
+              <div>Broker execution <strong>{String(stage1?.brokerExecution ?? "DISABLED")}</strong></div>
+            </div>
+            <p className="fxa-muted" style={{ marginBottom: 0 }}>
+              Historical pending ceiling proposals remain audit-only.
+              Profit management after entry (trailing / partial close / broker SL mods) is not enabled in this phase.
+            </p>
+          </div>
+        );
+      })()}
 
       <h3>Recent audit</h3>
       <div style={{ overflowX: "auto", maxHeight: 220 }}>

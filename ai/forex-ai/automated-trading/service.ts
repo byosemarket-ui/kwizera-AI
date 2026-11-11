@@ -4255,8 +4255,36 @@ export class AutomatedTradingService {
         actor: "admin-api",
         correlationId: input.correlationId,
       });
+      // Per-trade economic REJECT marks the proposal REJECTED — no silent retry.
+      const ds = applied.validation?.dynamicSpread ?? null;
+      let proposalMarkedRejected: {
+        proposalId: string;
+        lifecycle: string;
+        reasonCode: string;
+        requiresFreshProposal: true;
+      } | null = null;
+      if (
+        ds
+        && ds.decision === "REJECT"
+        && proposal?.proposalId
+        && proposal.lifecycle === "PROPOSAL_READY"
+      ) {
+        const marked = proposalStore.markRejected(proposal.proposalId, {
+          code: String(ds.primaryReasonCode || "DYNAMIC_SPREAD_REJECT"),
+          message: String(ds.message || "Per-trade economic feasibility REJECT."),
+        });
+        if (marked) {
+          proposalMarkedRejected = {
+            proposalId: marked.proposalId,
+            lifecycle: marked.lifecycle,
+            reasonCode: String(ds.primaryReasonCode || "DYNAMIC_SPREAD_REJECT"),
+            requiresFreshProposal: true,
+          };
+        }
+      }
       return {
         ...applied,
+        proposalMarkedRejected,
         riskIntelligence: riskIntel,
         riskPolicy,
         placesOrders: false as const,
@@ -4270,6 +4298,7 @@ export class AutomatedTradingService {
       lifecycleBefore: foundation.lifecycle,
       lifecycleAfter: foundation.lifecycle,
       transition: { ok: true as const },
+      proposalMarkedRejected: null,
       riskIntelligence: riskIntel,
       riskPolicy,
       placesOrders: false as const,
@@ -4637,6 +4666,16 @@ export class AutomatedTradingService {
             openEndedReward: true as const,
             minimumNetRewardRisk: 3 as const,
             maximumNetRewardRisk: null,
+          },
+          profitManagement: {
+            proposalAndValidationOnly: true as const,
+            trailingStopBrokerMutation: false as const,
+            automaticPartialClose: false as const,
+            protectiveSlWiden: false as const,
+            note:
+              "Post-entry trailing / partial-close / SL modification against the broker are NOT enabled "
+              + "in this XAU Automated Trading phase. Simulation profit-protection helpers may exist "
+              + "for proposal audit only — they do not mutate broker positions.",
           },
           note:
             "Read-only Dynamic Spread / per-trade economic feasibility visibility. "

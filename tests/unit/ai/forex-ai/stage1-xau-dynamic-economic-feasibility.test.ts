@@ -393,4 +393,192 @@ describe("XAU/USD — dynamic per-trade economic feasibility (no fixed 0.30 prim
     expect(withCeiling.decision).toBe("REJECT");
     expect(withCeiling.primaryReasonCode).toBe("LEGACY_EMERGENCY_SPREAD_CEILING");
   });
+
+  it("B17–B21: quantity round-down; broker min exceeds budget; step; missing contract; invalid conversion", async () => {
+    const { sizeOrderQuantityFromAllocation } = await import(
+      "../../../../ai/forex-ai/automated-trading/simulation-risk/size-order-quantity.js"
+    );
+    const base = {
+      verifiedEquity: 10_000,
+      accountCurrency: "USD",
+      strategyAllocationPercent: 10,
+      remainingStrategyBudget: 1_000,
+      individualOrderAllocation: 40,
+      allocationCurrency: "USD",
+      conversionRateSnapshot: null,
+      exposureAuthoritative: true as const,
+      entryPrice: 4000,
+      stopLoss: 3990,
+      contract: fixtureXauUsdContract(),
+      sdkMinQuantity: 1,
+      brokerMaxQuantity: null,
+      freeMargin: 5_000,
+      marginPerUnitAccount: 4.42,
+      nowMs: NOW,
+    };
+    const ok = sizeOrderQuantityFromAllocation(base);
+    expect(ok.ok).toBe(true);
+    if (ok.ok) {
+      // Floored to broker step — never rounded up past risk budget.
+      expect(ok.quantity).toBeLessThanOrEqual(1 + 1e-12);
+      expect(ok.estimatedStopLossRisk).toBeLessThanOrEqual(10 + 1e-8);
+    }
+
+    const minExceeds = sizeOrderQuantityFromAllocation({
+      ...base,
+      individualOrderAllocation: 0.05, // $0.0125 risk — cannot fund 1 lot @ $10/lot SL
+      remainingStrategyBudget: 1,
+    });
+    expect(minExceeds.ok).toBe(false);
+    if (!minExceeds.ok) {
+      expect(minExceeds.code).toMatch(/BELOW_MIN|EXCEEDS/);
+    }
+
+    const missingContract = sizeOrderQuantityFromAllocation({
+      ...base,
+      contract: { ...fixtureXauUsdContract(), verified: false },
+    });
+    expect(missingContract.ok).toBe(false);
+    if (!missingContract.ok) expect(missingContract.code).toBe("SIZE_QTY_CONTRACT_UNVERIFIED");
+
+    const badCcy = sizeOrderQuantityFromAllocation({
+      ...base,
+      accountCurrency: "",
+    });
+    expect(badCcy.ok).toBe(false);
+    if (!badCcy.ok) expect(badCcy.code).toBe("SIZE_QTY_ACCOUNT_CURRENCY_MISSING");
+  });
+
+  it("C30–C32: no upper reward cap; no SL widen; no qty/allocation manipulation in decision", () => {
+    const wide = decidePerTradeEconomicFeasibility(xauInput({ takeProfit: 4120 })); // ~12R
+    expect(wide.decision).toBe("ACCEPT");
+    expect(wide.netReward.rewardToRiskRatio ?? 0).toBeGreaterThan(6);
+
+    const tightSl = decidePerTradeEconomicFeasibility(xauInput({
+      stopLoss: 3995, // $5 risk — SL not widened by engine
+      takeProfit: 4020,
+    }));
+    // Modeled risk reflects the supplied SL distance; engine does not invent a wider SL.
+    expect(tightSl.stopLossImpact.modeledStopLossRiskAccount).toBeCloseTo(5, 6);
+    expect(tightSl.stopLossImpact.spreadIncludedInStopLossRisk).toBe(false);
+
+    const tinyAlloc = decidePerTradeEconomicFeasibility(xauInput({
+      orderAllocationAccount: 4, // $1 max risk — 1 lot $10 SL exceeds
+      stopLoss: 3990,
+    }));
+    expect(tinyAlloc.decision).toBe("REJECT");
+    expect(tinyAlloc.primaryReasonCode).toBe("STOP_LOSS_RISK_EXCEEDED");
+  });
+
+  it("D38: BUY vs SELL executable entry uses ask/bid correctly for spread friction", () => {
+    const buy = decidePerTradeEconomicFeasibility(xauInput({
+      direction: "BUY",
+      bid: 4000,
+      ask: 4000.5,
+      spreadAbsolute: 0.5,
+      entryPrice: 4000.5,
+      stopLoss: 3990.5,
+      takeProfit: 4050.5,
+    }));
+    const sell = decidePerTradeEconomicFeasibility(xauInput({
+      direction: "SELL",
+      bid: 4000,
+      ask: 4000.5,
+      spreadAbsolute: 0.5,
+      entryPrice: 4000,
+      stopLoss: 4010,
+      takeProfit: 3950,
+    }));
+    expect(buy.costBreakdown.spreadCostAccount).toBeCloseTo(0.5, 6);
+    expect(sell.costBreakdown.spreadCostAccount).toBeCloseTo(0.5, 6);
+    expect(buy.decision).toBe("ACCEPT");
+    expect(sell.decision).toBe("ACCEPT");
+  });
+
+  it("E43: REJECTED proposal requires FRESH_PROPOSAL_REQUIRED on precheck", async () => {
+    const { runPreExecutionValidation } = await import(
+      "../../../../ai/forex-ai/automated-trading/broker-execution/precheck.js"
+    );
+    const result = runPreExecutionValidation({
+      proposal: {
+        proposalId: "prop-rejected-xau",
+        lifecycle: "REJECTED",
+        instrument: "XAU/USD",
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      } as never,
+      handoff: null,
+      environment: "DEMO",
+      controls: {
+        emergencyEntryLock: true,
+        masterEnable: false,
+        automaticEntry: false,
+        positionManagement: false,
+      },
+      foundation: {
+        executionMasterEnabled: false,
+        armedForSubmission: false,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        lifecycle: "IDLE",
+      },
+      account: null,
+      market: {
+        bid: 4000,
+        ask: 4000.3,
+        spread: 0.3,
+        quoteAgeMs: 100,
+        tradingEligible: true,
+        marketClosed: false,
+        instrument: "XAU/USD",
+      },
+      exposure: null,
+      instrumentContract: null,
+      riskLimits: { maxSpreadAbsolute: null, maxSlippageAbsolute: null },
+    } as never);
+    const codes = result.checks.map((c: { code: string }) => c.code);
+    expect(codes).toContain("FRESH_PROPOSAL_REQUIRED");
+    expect(result.allowed).toBe(false);
+  });
+
+  it("auto-engine: XAU ignores fixed maxSpread; EUR still rejects", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const { generateAutoSignal } = await import(
+      "../../../../ai/forex-ai/automated-trading/auto-engine/signals/engine.js"
+    );
+    const { AutoSignalStore } = await import(
+      "../../../../ai/forex-ai/automated-trading/auto-engine/signals/store.js"
+    );
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kw-xau-dyn-"));
+    const store = new AutoSignalStore(path.join(dir, "signals.json"));
+    // Minimal path: quote age ok but maxSpread would reject — XAU must not use that gate.
+    const xau = generateAutoSignal({
+      instrument: "XAU/USD",
+      timeframe: "M15",
+      candles: [],
+      pointSize: 0.01,
+      quoteAgeMs: 100,
+      spread: 0.80,
+      maxSpread: 0.30,
+      store,
+    });
+    expect(xau.code).not.toBe("SPREAD_REJECTED");
+
+    const eur = generateAutoSignal({
+      instrument: "EUR/USD",
+      timeframe: "M15",
+      candles: [],
+      pointSize: 0.00001,
+      quoteAgeMs: 100,
+      spread: 0.00040,
+      maxSpread: 0.00020,
+      store,
+    });
+    expect(eur.ok).toBe(false);
+    expect(eur.code).toBe("SPREAD_REJECTED");
+  });
 });

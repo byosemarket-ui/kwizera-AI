@@ -809,6 +809,12 @@ export const atDemoAdapterApi = {
     }),
 };
 
+/** Stage 1 — readiness + Dynamic Spread Intelligence (read-only; never mutates broker). */
+export const atStage1ReadinessApi = {
+  get: () =>
+    request<Record<string, unknown>>("/api/forex/automated-trading/stage1-readiness"),
+};
+
 /** Stage 7.1 — read-only DEMO execution readiness audit (never mutates broker). */
 export const atDemoReadinessAuditApi = {
   run: () =>

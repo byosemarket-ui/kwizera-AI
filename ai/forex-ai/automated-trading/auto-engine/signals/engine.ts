@@ -9,6 +9,7 @@ import {
   type AutoSignalRecord,
 } from "./types.js";
 import { isUtcMinuteInSession } from "../../demo-execution/open-market-risk.js";
+import { usesDynamicPerTradeSpreadEligibility } from "../../risk-policy/types.js";
 
 export interface GenerateAutoSignalInput {
   instrument: string;
@@ -75,8 +76,11 @@ export function generateAutoSignal(input: GenerateAutoSignalInput): GenerateAuto
     };
   }
 
+  // ACTIVE XAU uses DYNAMIC_PER_TRADE economic feasibility later in proposal/precheck.
+  // Fixed KWIZERA_AUTO_ENGINE_MAX_SPREAD must not independently reject XAU signals.
   if (
-    input.maxSpread != null
+    !usesDynamicPerTradeSpreadEligibility(input.instrument)
+    && input.maxSpread != null
     && Number.isFinite(input.maxSpread)
     && (input.spread == null || !Number.isFinite(input.spread) || input.spread > input.maxSpread)
   ) {

@@ -270,6 +270,37 @@ export class AtOrderProposalStore {
     delete this.data.activeReservations[proposalId];
   }
 
+  /**
+   * Mark a proposal REJECTED after economic/technical failure.
+   * Releases capital reservation. Re-use requires a fresh proposalId (new analysis).
+   */
+  markRejected(
+    proposalId: string,
+    blocker: { code: string; message: string },
+  ): AtOrderProposalRecord | null {
+    const row = this.get(proposalId);
+    if (!row) return null;
+    if (row.lifecycle === "REJECTED" || row.lifecycle === "SUPERSEDED" || row.lifecycle === "EXPIRED") {
+      return row;
+    }
+    this.releaseReservation(proposalId);
+    row.lifecycle = "REJECTED";
+    row.updatedAtUtc = new Date().toISOString();
+    row.blockers = [
+      ...(Array.isArray(row.blockers) ? row.blockers : []),
+      {
+        code: blocker.code,
+        message: blocker.message,
+      },
+    ];
+    row.notes = [
+      ...(Array.isArray(row.notes) ? row.notes : []),
+      "Economic/technical REJECT — fresh market analysis and a new proposal are required before reconsideration.",
+    ];
+    this.persist();
+    return row;
+  }
+
   private persist(): void {
     try {
       fs.mkdirSync(path.dirname(this.file), { recursive: true });
