@@ -227,7 +227,15 @@ function operationalTone(code: string | undefined): "live" | "future" | "offline
 }
 
 function statusTone(s: string): "live" | "future" | "offline" {
-  if (s === "READY" || s === "CONNECTED" || s === "LIVE" || s === "ACCOUNT_VERIFIED") return "live";
+  if (
+    s === "READY"
+    || s === "CONNECTED"
+    || s === "LIVE"
+    || s === "ACCOUNT_VERIFIED"
+    || s === "ANALYSIS_SUCCEEDED"
+  ) {
+    return "live";
+  }
   if (
     s === "BLOCKED"
     || s === "MISMATCH"
@@ -235,6 +243,12 @@ function statusTone(s: string): "live" | "future" | "offline" {
     || s === "ENVIRONMENT_MISMATCH"
     || s === "STALE"
     || s === "CONNECTION_FAILED"
+    || s === "PROVIDER_RATE_LIMITED"
+    || s === "PROVIDER_AUTH_FAILED"
+    || s === "PROVIDER_BILLING_BLOCKED"
+    || s === "ANALYSIS_FAILED"
+    || s === "STALE_MARKET_DATA"
+    || s === "LAST_SUCCESS_STALE"
   ) {
     return "offline";
   }
@@ -406,7 +420,19 @@ export function ForexAutomatedTradingPage(props: {
       environment?: string;
       configEpoch?: number;
     } | null;
-    automaticAnalysisStatus?: "ACTIVE" | "STOPPED" | "BLOCKED";
+    automaticAnalysisStatus?:
+      | "ACTIVE"
+      | "STOPPED"
+      | "BLOCKED"
+      | "WAITING"
+      | "ANALYSIS_RUNNING"
+      | "ANALYSIS_SUCCEEDED"
+      | "ANALYSIS_FAILED"
+      | "PROVIDER_RATE_LIMITED"
+      | "PROVIDER_AUTH_FAILED"
+      | "PROVIDER_BILLING_BLOCKED"
+      | "STALE_MARKET_DATA"
+      | "LAST_SUCCESS_STALE";
     scheduleIntervalMs?: number;
     scheduleMode?: string;
     requiresDashboardClick?: boolean;
@@ -443,7 +469,19 @@ export function ForexAutomatedTradingPage(props: {
       lastCanonicalDirection?: "BUY" | "SELL" | "NO_TRADE" | null;
       lastCanonicalConfidencePct?: number | null;
       lastEvidenceIntegrityStatus?: string | null;
-      automaticAnalysisStatus?: "ACTIVE" | "STOPPED" | "BLOCKED";
+      automaticAnalysisStatus?:
+        | "ACTIVE"
+        | "STOPPED"
+        | "BLOCKED"
+        | "WAITING"
+        | "ANALYSIS_RUNNING"
+        | "ANALYSIS_SUCCEEDED"
+        | "ANALYSIS_FAILED"
+        | "PROVIDER_RATE_LIMITED"
+        | "PROVIDER_AUTH_FAILED"
+        | "PROVIDER_BILLING_BLOCKED"
+        | "STALE_MARKET_DATA"
+        | "LAST_SUCCESS_STALE";
       scheduleIntervalMs?: number;
       lastScheduledAtUtc?: string | null;
       lastCycleStartedAtUtc?: string | null;
@@ -4064,6 +4102,12 @@ export function ForexAutomatedTradingPage(props: {
                       ?? (monitor as { automaticAnalysisStatus?: string } | null)?.automaticAnalysisStatus
                       ?? "STOPPED"}
                   </ForexStatusBadge>
+                  {monitor?.health?.lastBlockerCode ? (
+                    <span className="fx-auto-trading-hint">
+                      {" "}
+                      · blocker {monitor.health.lastBlockerCode}
+                    </span>
+                  ) : null}
                 </dd>
               </div>
               <div>

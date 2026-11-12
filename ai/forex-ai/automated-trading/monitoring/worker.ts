@@ -68,6 +68,7 @@ import {
   type AtMonitorPublicStatus,
   type AtMonitorWorkerState,
 } from "./types.js";
+import { deriveAtAutomaticAnalysisStatus } from "./status.js";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -256,24 +257,34 @@ export class AtMonitorWorker {
     if (hooks.isSystemMasterOn) this.deps.isSystemMasterOn = hooks.isSystemMasterOn;
   }
 
-  private deriveAutomaticAnalysisStatus(input: {
-    enabled: boolean;
-    workerActive: boolean;
-    blockerCode: string | null;
-  }): AtAutomaticAnalysisStatus {
-    if (!input.enabled || !input.workerActive) return "STOPPED";
-    if (
-      input.blockerCode === "INSTRUMENT_NOT_CONFIGURED"
-      || input.blockerCode === "ENVIRONMENT_MISMATCH"
-      || input.blockerCode === "VERIFICATION_REQUIRED"
-      || input.blockerCode === "STALE_QUOTES"
-      || input.blockerCode === "DATA_INSUFFICIENT"
-      || input.blockerCode === "IMAGE_UNAVAILABLE"
-      || input.blockerCode === "PROVIDER_ERROR"
-    ) {
-      return "BLOCKED";
-    }
-    return "ACTIVE";
+  private automaticStatusPatch(input: {
+    lastBlockerCode?: string | null;
+    workerActive?: boolean;
+    enabled?: boolean;
+    analysisInFlight?: boolean;
+    lastSuccessfulAnalysisAtUtc?: string | null;
+    lastCycleTerminalStatus?: AtMonitorCycleTerminalStatus | null;
+  } = {}): AtAutomaticAnalysisStatus {
+    const s = this.store.getState();
+    return deriveAtAutomaticAnalysisStatus({
+      enabled: input.enabled ?? Boolean(s.config?.enabled),
+      workerActive:
+        input.workerActive
+        ?? (this.runtimeActive && Boolean(s.config?.enabled)),
+      analysisInFlight: input.analysisInFlight ?? this.analysisInFlight,
+      lastBlockerCode:
+        input.lastBlockerCode !== undefined
+          ? input.lastBlockerCode
+          : s.health.lastBlockerCode,
+      lastSuccessfulAnalysisAtUtc:
+        input.lastSuccessfulAnalysisAtUtc !== undefined
+          ? input.lastSuccessfulAnalysisAtUtc
+          : s.health.lastSuccessfulAnalysisAtUtc,
+      lastCycleTerminalStatus:
+        input.lastCycleTerminalStatus !== undefined
+          ? input.lastCycleTerminalStatus
+          : s.health.lastCycleTerminalStatus,
+    });
   }
 
   private armBoundaryWake(): void {
@@ -384,7 +395,10 @@ export class AtMonitorWorker {
         lastBlockerCode: "ENVIRONMENT_MISMATCH",
         lastError:
           "Monitoring not resumed after restart — selected AT environment no longer matches persisted monitor config.",
-        automaticAnalysisStatus: "BLOCKED",
+        automaticAnalysisStatus: this.automaticStatusPatch({
+          workerActive: false,
+          lastBlockerCode: "ENVIRONMENT_MISMATCH",
+        }),
         scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
         nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
       });
@@ -398,7 +412,10 @@ export class AtMonitorWorker {
       workerActive: true,
       lastError: null,
       lastBlockerCode: null,
-      automaticAnalysisStatus: "ACTIVE",
+        automaticAnalysisStatus: this.automaticStatusPatch({
+          workerActive: true,
+          lastBlockerCode: null,
+        }),
       scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
       nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
     });
@@ -480,10 +497,13 @@ export class AtMonitorWorker {
       };
     }
 
-    const automaticAnalysisStatus = this.deriveAutomaticAnalysisStatus({
+    const automaticAnalysisStatus = deriveAtAutomaticAnalysisStatus({
       enabled: Boolean(s.config?.enabled),
       workerActive,
-      blockerCode: health.lastBlockerCode,
+      analysisInFlight: this.analysisInFlight,
+      lastBlockerCode: health.lastBlockerCode,
+      lastSuccessfulAnalysisAtUtc: health.lastSuccessfulAnalysisAtUtc,
+      lastCycleTerminalStatus: health.lastCycleTerminalStatus,
     });
     health = {
       ...health,
@@ -601,7 +621,10 @@ export class AtMonitorWorker {
         ...defaultMonitorHealth(),
         workerState: "CONNECTING",
         workerActive: true,
-        automaticAnalysisStatus: "ACTIVE",
+        automaticAnalysisStatus: this.automaticStatusPatch({
+          workerActive: true,
+          lastBlockerCode: null,
+        }),
         scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
         nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
         // Preserve prior success age across reconfigure so failed cycles cannot erase it.
@@ -648,7 +671,10 @@ export class AtMonitorWorker {
     await this.patchHealth({
       workerState: "PAUSED_SAFETY",
       workerActive: false,
-      automaticAnalysisStatus: "BLOCKED",
+      automaticAnalysisStatus: this.automaticStatusPatch({
+        workerActive: false,
+        lastBlockerCode: input.code.slice(0, 80),
+      }),
       lastBlockerCode: input.code.slice(0, 80),
       lastError: input.message.slice(0, 240),
       scheduleIntervalMs: AT_ANALYSIS_SCHEDULE_INTERVAL_MS,
@@ -714,7 +740,9 @@ export class AtMonitorWorker {
           workerState: "PAUSED_SAFETY",
           lastBlockerCode: "ENVIRONMENT_MISMATCH",
           lastError: "Monitoring paused — selected AT environment no longer matches monitor config.",
-          automaticAnalysisStatus: "BLOCKED",
+          automaticAnalysisStatus: this.automaticStatusPatch({
+            lastBlockerCode: "ENVIRONMENT_MISMATCH",
+          }),
           nextScheduledAnalysisAtUtc: nextFiveMinuteBoundaryUtc(),
         });
         return;
@@ -731,13 +759,16 @@ export class AtMonitorWorker {
           slotDecision.action === "run" || slotDecision.action === "missed"
             ? nextFiveMinuteBoundaryUtc()
             : ("nextAtUtc" in slotDecision ? slotDecision.nextAtUtc : nextFiveMinuteBoundaryUtc()),
-        automaticAnalysisStatus: "ACTIVE",
+        automaticAnalysisStatus: this.automaticStatusPatch(),
       });
 
       if (slotDecision.action === "done" || slotDecision.action === "wait") {
         if (!this.analysisInFlight) {
           this.runtimeState = "MONITORING_LIVE";
-          await this.patchHealth({ workerState: "MONITORING_LIVE" });
+          await this.patchHealth({
+            workerState: "MONITORING_LIVE",
+            automaticAnalysisStatus: this.automaticStatusPatch(),
+          });
         }
         return;
       }
@@ -873,7 +904,9 @@ export class AtMonitorWorker {
           workerState: "PROVIDER_ERROR",
           lastError: message,
           lastBlockerCode: "PROVIDER_ERROR",
-          automaticAnalysisStatus: "BLOCKED",
+          automaticAnalysisStatus: this.automaticStatusPatch({
+            lastBlockerCode: "PROVIDER_ERROR",
+          }),
           consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
         });
         await this.recordCycleTerminal({
@@ -940,7 +973,9 @@ export class AtMonitorWorker {
           workerState: "VERIFICATION_REQUIRED",
           lastBlockerCode: "VERIFICATION_REQUIRED",
           lastError: "Fresh Phase 52 verification is required before scheduled OpenAI analysis.",
-          automaticAnalysisStatus: "BLOCKED",
+          automaticAnalysisStatus: this.automaticStatusPatch({
+            lastBlockerCode: "VERIFICATION_REQUIRED",
+          }),
         });
         await this.recordCycleTerminal({
           slotSec: slotDecision.slotSec,
@@ -959,7 +994,9 @@ export class AtMonitorWorker {
           workerState: "DATA_INSUFFICIENT",
           lastBlockerCode: "DATA_INSUFFICIENT",
           lastError: "No candles returned from ForexConnect.",
-          automaticAnalysisStatus: "BLOCKED",
+          automaticAnalysisStatus: this.automaticStatusPatch({
+            lastBlockerCode: "DATA_INSUFFICIENT",
+          }),
         });
         await this.recordCycleTerminal({
           slotSec: slotDecision.slotSec,
@@ -984,7 +1021,9 @@ export class AtMonitorWorker {
           workerState: "STALE_QUOTES",
           lastBlockerCode: "STALE_QUOTES",
           lastError: staleMsg,
-          automaticAnalysisStatus: "BLOCKED",
+          automaticAnalysisStatus: this.automaticStatusPatch({
+            lastBlockerCode: "STALE_QUOTES",
+          }),
         });
         await this.recordCycleTerminal({
           slotSec: slotDecision.slotSec,
@@ -1018,7 +1057,9 @@ export class AtMonitorWorker {
         workerState: "PROVIDER_ERROR",
         lastError: message,
         lastBlockerCode: "PROVIDER_ERROR",
-        automaticAnalysisStatus: "BLOCKED",
+        automaticAnalysisStatus: this.automaticStatusPatch({
+          lastBlockerCode: "PROVIDER_ERROR",
+        }),
         consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
       });
       // If this tick already claimed the slot, emit a terminal so a provider hang/throw
@@ -1518,7 +1559,20 @@ export class AtMonitorWorker {
           semanticOk && integrity.ok
             ? result.analysis.createdAtUtc
             : this.store.getState().health.lastSuccessfulAnalysisAtUtc,
-        automaticAnalysisStatus: "ACTIVE",
+        automaticAnalysisStatus: this.automaticStatusPatch({
+          lastBlockerCode: !integrity.ok
+            ? integrity.status
+            : (!semanticOk ? lifecycle : null),
+          lastSuccessfulAnalysisAtUtc:
+            semanticOk && integrity.ok
+              ? result.analysis.createdAtUtc
+              : this.store.getState().health.lastSuccessfulAnalysisAtUtc,
+          lastCycleTerminalStatus: !integrity.ok
+            ? "ANALYSIS_FAILED"
+            : semanticOk
+              ? "ANALYSIS_VALID"
+              : "ANALYSIS_SEMANTIC_REJECTED",
+        }),
       });
       if (this.cycleSlotSec != null && this.cycleScheduledAtUtc) {
         const terminalStatus: AtMonitorCycleTerminalStatus = !integrity.ok

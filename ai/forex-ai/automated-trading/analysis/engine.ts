@@ -737,7 +737,7 @@ export class AtOpenAiAnalysisEngine {
       });
 
       if (!chatResult.ok || !chatResult.data) {
-        if (chartMeta) chartMeta.includedInOpenAiRequest = false;
+        if (chartMeta) chartMeta.includedInOpenAiRequest = useMultimodal;
         const failCode = String(chatResult.code ?? "ANALYSIS_FAILED");
         const requestStatus =
           /timeout/i.test(failCode) || /timeout/i.test(chatResult.error ?? "")
@@ -788,7 +788,7 @@ export class AtOpenAiAnalysisEngine {
           imageSource: chartMeta?.imageSourceLabel === "PLATFORM_SCREENSHOT"
             ? "PLATFORM_SCREENSHOT"
             : (hasImageBytes ? "SERVER_OHLC_RENDER" : null),
-          includedImageBytesInRequest: false,
+          includedImageBytesInRequest: useMultimodal,
           phase: "4.18F.7",
         });
         await this.store().save(failed);

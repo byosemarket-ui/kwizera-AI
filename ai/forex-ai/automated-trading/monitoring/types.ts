@@ -8,7 +8,34 @@ export const AT_MONITOR_SCHEMA = "at-live-monitor-v1";
 /** Phase 4.18F.8 — automatic 5-minute wall-clock analysis schedule (extends F.7). */
 export const AT_MONITOR_PHASE = "4.18F.8";
 
-export type AtAutomaticAnalysisStatus = "ACTIVE" | "STOPPED" | "BLOCKED";
+export type AtAutomaticAnalysisStatus =
+  | "ACTIVE"
+  | "STOPPED"
+  | "BLOCKED"
+  | "WAITING"
+  | "ANALYSIS_RUNNING"
+  | "ANALYSIS_SUCCEEDED"
+  | "ANALYSIS_FAILED"
+  | "PROVIDER_RATE_LIMITED"
+  | "PROVIDER_AUTH_FAILED"
+  | "PROVIDER_BILLING_BLOCKED"
+  | "STALE_MARKET_DATA"
+  | "LAST_SUCCESS_STALE";
+
+export const AT_AUTOMATIC_ANALYSIS_STATUSES: AtAutomaticAnalysisStatus[] = [
+  "ACTIVE",
+  "STOPPED",
+  "BLOCKED",
+  "WAITING",
+  "ANALYSIS_RUNNING",
+  "ANALYSIS_SUCCEEDED",
+  "ANALYSIS_FAILED",
+  "PROVIDER_RATE_LIMITED",
+  "PROVIDER_AUTH_FAILED",
+  "PROVIDER_BILLING_BLOCKED",
+  "STALE_MARKET_DATA",
+  "LAST_SUCCESS_STALE",
+];
 
 /** Terminal status for one UTC five-minute schedule slot (never mid-flight). */
 export type AtMonitorCycleTerminalStatus =

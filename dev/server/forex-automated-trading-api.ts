@@ -3556,3 +3556,5 @@ export async function handleForexAutomatedTradingApi(
     return true;
   }
 }
+
+export { bootAutomatedTrading } from "./forex-automated-trading-boot.js";

@@ -22,6 +22,7 @@ import { handleForexAdminApi } from "./forex-admin-api.js";
 import { handleForexIntelligenceApi } from "./forex-intelligence-api.js";
 import { handleForexRiskApi } from "./forex-risk-api.js";
 import { handleForexAutomatedTradingApi } from "./forex-automated-trading-api.js";
+import { bootAutomatedTrading } from "./forex-automated-trading-boot.js";
 import { handleForexMemoryApi } from "./forex-memory-api.js";
 import { handleForexMarketStateApi } from "./forex-market-state-api.js";
 import { handleForexMarketDataApi } from "./forex-market-data-api.js";
@@ -6187,6 +6188,9 @@ async function main(): Promise<void> {
       }
       void bootForexMonitor().catch((err) => {
         console.error("[KWIZERA] Forex monitor boot error:", err instanceof Error ? err.message : err);
+      });
+      void bootAutomatedTrading().catch((err) => {
+        console.error("[KWIZERA] Automated Trading boot error:", err instanceof Error ? err.message : err);
       });
     })();
   }, bootDelayMs);

@@ -7,11 +7,13 @@ import { resolveStorageRoot } from "../../../../storage/paths/storage-paths.js";
 import { readJsonSafeSync, writeJsonAtomic } from "../../../../storage/safe-json.js";
 import { parseAtMonitorTimeframe } from "./timeframes.js";
 import {
+  AT_AUTOMATIC_ANALYSIS_STATUSES,
   AT_MONITOR_CYCLE_TERMINAL_MAX,
   AT_MONITOR_PHASE,
   AT_MONITOR_SCHEMA,
   defaultMonitorHealth,
   defaultMonitorPersisted,
+  type AtAutomaticAnalysisStatus,
   type AtMonitorConfig,
   type AtMonitorCycleTerminal,
   type AtMonitorCycleTerminalStatus,
@@ -177,12 +179,12 @@ function normalizeHealth(raw: unknown): AtMonitorHealth {
         : null,
     lastEvidenceIntegrityStatus:
       typeof o.lastEvidenceIntegrityStatus === "string" ? o.lastEvidenceIntegrityStatus.slice(0, 64) : null,
-    automaticAnalysisStatus:
-      o.automaticAnalysisStatus === "ACTIVE"
-      || o.automaticAnalysisStatus === "STOPPED"
-      || o.automaticAnalysisStatus === "BLOCKED"
-        ? o.automaticAnalysisStatus
-        : "STOPPED",
+    automaticAnalysisStatus: (() => {
+      const raw = typeof o.automaticAnalysisStatus === "string" ? o.automaticAnalysisStatus : "";
+      return (AT_AUTOMATIC_ANALYSIS_STATUSES as readonly string[]).includes(raw)
+        ? (raw as AtAutomaticAnalysisStatus)
+        : "STOPPED";
+    })(),
     scheduleIntervalMs:
       typeof o.scheduleIntervalMs === "number" && Number.isFinite(o.scheduleIntervalMs)
         ? Math.max(60_000, Math.floor(o.scheduleIntervalMs))

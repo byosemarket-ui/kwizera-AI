@@ -454,6 +454,9 @@ export class OpenAiSnapshotAnalysisEngine {
 
 function mapFailureCode(analysis: OpenAiSnapshotAnalysisResult): string {
   const err = analysis.error ?? "";
+  if (/billing|quota/i.test(err) && /limit|exhaust|inactive|payment/i.test(err)) {
+    return "OPENAI_BILLING_BLOCKED";
+  }
   if (/rate limit/i.test(err)) return "OPENAI_RATE_LIMIT";
   if (/auth/i.test(err) || /API key/i.test(err)) return "OPENAI_AUTH_ERROR";
   if (/timed out/i.test(err)) return "OPENAI_TIMEOUT";
