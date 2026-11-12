@@ -199,6 +199,22 @@ export interface AutomatedTradingPublicStatus {
   } | null;
   updatedAtUtc: string;
   placesOrders: false;
+  /** Phase 2 — latest analysis→intake→proposal→handoff→precheck chain (read-only). */
+  phase2Pipeline?: {
+    analysisId: string | null;
+    intakeId: string | null;
+    proposalId: string | null;
+    riskDecisionId: string | null;
+    handoffId: string | null;
+    precheckId: string | null;
+    status: string | null;
+    blockers: string[];
+    direction: "BUY" | "SELL" | "NO_TRADE" | null;
+    note: string | null;
+    placesOrders: false;
+    acceptsForExecution: false;
+    mutatesBroker: false;
+  } | null;
 }
 
 export function defaultEnvControls(): AutomatedTradingEnvControls {

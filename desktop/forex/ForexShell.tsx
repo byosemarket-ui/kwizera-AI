@@ -100,9 +100,32 @@ export function ForexShell({
   const [chartTimeframe, setChartTimeframe] = useState<ChartTimeframeId>(
     () => readMarketQuery().timeframe || DEFAULT_CHART_TIMEFRAME,
   );
+  const [forexConnectStatus, setForexConnectStatus] = useState<{ status?: string | null } | null>(null);
   const liveTicker = useBinanceLiveTicker(
     selectedMarket?.venue === "binance-spot" ? selectedMarket.symbol : null,
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    const pull = async () => {
+      try {
+        const res = await fetch("/api/forex/providers/forexconnect/status", {
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) return;
+        const json = await res.json() as { status?: string };
+        if (!cancelled) setForexConnectStatus({ status: json.status ?? null });
+      } catch {
+        if (!cancelled) setForexConnectStatus({ status: "UNKNOWN" });
+      }
+    };
+    void pull();
+    const id = window.setInterval(() => void pull(), 15_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [route]);
 
   const selectMarket = (market: SelectedMarket) => {
     setSelectedMarket(market);
@@ -275,6 +298,7 @@ export function ForexShell({
             binanceConnection={binanceConnection}
             selectedMarket={selectedMarket}
             liveTicker={liveTicker}
+            forexConnectStatus={forexConnectStatus}
           />
           <div className="fx-body">
             <ForexSidebar route={route} open={sidebarOpen} onNavigate={navigate} />

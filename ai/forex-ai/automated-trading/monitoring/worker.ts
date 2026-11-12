@@ -1501,13 +1501,9 @@ export class AtMonitorWorker {
         });
         if (canon.result) {
           canonicalOutcome = canon.result.finalOutcome;
+          // Phase 2 — directional bias is BUY|SELL only; never invent NO_TRADE as direction.
           if (canon.result.direction === "BUY" || canon.result.direction === "SELL") {
             canonicalDirection = canon.result.direction;
-          } else if (
-            canon.result.finalOutcome === "NO_TRADE"
-            || /NO_TRADE|NO_CROSSOVER|INSUFFICIENT|STALE|CONFLICT/i.test(canon.result.finalOutcome)
-          ) {
-            canonicalDirection = "NO_TRADE";
           } else {
             canonicalDirection = null;
           }

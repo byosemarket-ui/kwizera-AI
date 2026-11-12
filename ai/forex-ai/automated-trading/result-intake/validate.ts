@@ -104,19 +104,8 @@ export function validateCanonicalForIntake(
       rejectionReason: "Candidate outcome/direction mismatch.",
     };
   }
-  if (
-    (result.finalOutcome === "NO_TRADE"
-      || result.finalOutcome === "STALE_DATA"
-      || result.finalOutcome === "INSUFFICIENT_DATA"
-      || result.finalOutcome === "CONFLICT")
-    && result.direction != null
-  ) {
-    return {
-      ok: false,
-      validationStatus: "INVALID_DIRECTION",
-      rejectionReason: "Non-candidate outcome must have null direction.",
-    };
-  }
+  // Phase 2 — non-candidate outcomes may carry BUY/SELL directional bias while
+  // trade eligibility remains blocked (NO_TRADE / STALE_DATA / CONFLICT).
 
   if (result.confidenceType !== ANALYSIS_CONFIDENCE_TYPE) {
     return {

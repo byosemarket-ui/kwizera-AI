@@ -31,6 +31,7 @@ export function ForexHeader({
   binanceConnection,
   selectedMarket,
   liveTicker,
+  forexConnectStatus = null,
 }: {
   route: ForexViewId;
   sidebarOpen: boolean;
@@ -45,6 +46,8 @@ export function ForexHeader({
   binanceConnection: MarketConnectionSnapshot;
   selectedMarket: SelectedMarket | null;
   liveTicker: LiveTickerSnapshot;
+  /** Phase 2 — ForexConnect session status for AT / FC surfaces (never Binance). */
+  forexConnectStatus?: { status?: string | null } | null;
 }) {
   const item = getForexNavItem(route);
   const crumbs = getForexBreadcrumbs(route);
@@ -53,13 +56,28 @@ export function ForexHeader({
     ? resolveTickerUiStatus(liveTicker, selectedMarket.symbol)
     : null;
   const live = tickerStatus === "LIVE";
-  const wsTone = tickerStatus ? liveMarketStatusTone(tickerStatus) : connectionBadgeTone(binanceConnection);
   const binanceHealthLabel = publicConnectionLabel(binanceConnection);
-  // Binance REST health is global — never imply it is the selected ForexConnect/FXCM chart source.
-  const wsLabel = tickerStatus
-    ? liveMarketStatusLabel(tickerStatus)
-    : (isForexConnectSelection(selectedMarket) || isFxcmSelection(selectedMarket))
-      ? `Binance API health · ${binanceHealthLabel}`
+  const fcStatusRaw = String(forexConnectStatus?.status ?? "").toUpperCase();
+  const fcLabel =
+    fcStatusRaw === "CONNECTED"
+      ? "CONNECTED"
+      : fcStatusRaw === "DISCONNECTED" || fcStatusRaw === "IDLE"
+        ? "DISCONNECTED"
+        : fcStatusRaw || "UNKNOWN";
+  const preferForexConnectBadge =
+    route === "automated-trading"
+    || isForexConnectSelection(selectedMarket)
+    || isFxcmSelection(selectedMarket);
+  // Binance REST health must never be presented as XAU/USD / ForexConnect health.
+  const wsTone: "live" | "future" | "offline" = preferForexConnectBadge
+    ? (fcLabel === "CONNECTED" ? "live" : "offline")
+    : tickerStatus
+      ? liveMarketStatusTone(tickerStatus)
+      : connectionBadgeTone(binanceConnection);
+  const wsLabel = preferForexConnectBadge
+    ? `ForexConnect · ${fcLabel}`
+    : tickerStatus
+      ? liveMarketStatusLabel(tickerStatus)
       : isBinanceSpotSelection(selectedMarket)
         ? binanceHealthLabel
         : `Binance API health · ${binanceHealthLabel}`;

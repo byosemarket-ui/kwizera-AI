@@ -73,6 +73,7 @@ function normalize(raw: unknown): SystemMasterPersisted {
       operationalState = "OFF";
     }
   }
+  const genRaw = Number(o.analysisGeneration);
   return {
     ...d,
     stateVersion: Number.isFinite(ver) && ver >= 1 ? Math.floor(ver) : 1,
@@ -87,10 +88,26 @@ function normalize(raw: unknown): SystemMasterPersisted {
     blockedModules: normalizeModules(o.blockedModules),
     lastError: typeof o.lastError === "string" ? o.lastError.slice(0, 240) : null,
     lastBlockerCode: typeof o.lastBlockerCode === "string" ? o.lastBlockerCode.slice(0, 80) : null,
+    analysisGeneration: Number.isFinite(genRaw) && genRaw >= 0 ? Math.floor(genRaw) : 0,
     placesOrders: false,
     acceptsForExecution: false,
     mutatesBroker: false,
     brokerExecution: "DISABLED",
+  };
+}
+
+function bumpGenerationOnOff(
+  prev: SystemMasterPersisted,
+  next: SystemMasterPersisted,
+): SystemMasterPersisted {
+  const turningOff =
+    (prev.ownerState === "ON" || prev.masterEnabled === true)
+    && (next.ownerState === "OFF" || next.masterEnabled === false);
+  if (!turningOff) return next;
+  const prevGen = Number.isFinite(prev.analysisGeneration) ? Math.max(0, Math.floor(prev.analysisGeneration)) : 0;
+  return {
+    ...next,
+    analysisGeneration: prevGen + 1,
   };
 }
 
@@ -116,16 +133,24 @@ export class AtSystemMasterStore {
     };
   }
 
+  getAnalysisGeneration(): number {
+    return Number.isFinite(this.data.analysisGeneration)
+      ? Math.max(0, Math.floor(this.data.analysisGeneration))
+      : 0;
+  }
+
   async compareAndSet(
     expectedVersion: number,
     mutator: (prev: SystemMasterPersisted) => SystemMasterPersisted,
   ): Promise<SystemMasterPersisted | null> {
     if (this.data.stateVersion !== expectedVersion) return null;
-    const next = mutator({
+    const prev = {
       ...this.data,
       activeModules: [...this.data.activeModules],
       blockedModules: [...this.data.blockedModules],
-    });
+    };
+    let next = mutator(prev);
+    next = bumpGenerationOnOff(prev, next);
     next.schemaVersion = AT_SYSTEM_MASTER_SCHEMA;
     next.phase = "4.18F.8R";
     next.stateVersion = this.data.stateVersion + 1;
@@ -134,6 +159,9 @@ export class AtSystemMasterStore {
     next.mutatesBroker = false;
     next.brokerExecution = "DISABLED";
     next.changedAtUtc = new Date().toISOString();
+    if (!Number.isFinite(next.analysisGeneration) || next.analysisGeneration < 0) {
+      next.analysisGeneration = prev.analysisGeneration ?? 0;
+    }
     this.data = next;
     await writeJsonAtomic(this.file, this.data);
     return this.get();

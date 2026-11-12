@@ -127,6 +127,41 @@ export class AutomatedTradingService {
     this.monitor = monitor ?? getAtMonitorWorker();
     this.decisionEngine = decisionEngine ?? getAtDecisionEngine();
     this.simRiskEngine = simRiskEngine ?? getAtSimRiskEngine();
+    this.registerPhase2Hook();
+  }
+
+  /** Phase 2 — bind intake → proposal → handoff → precheck hook (no broker mutation). */
+  private registerPhase2Hook(): void {
+    void import("./phase2-pipeline.js").then(({ registerPhase2DownstreamHook }) => {
+      registerPhase2DownstreamHook(async ({ record, analysisGeneration }) => {
+        await this.runPhase2Downstream({ record, analysisGeneration });
+      });
+    }).catch(() => undefined);
+  }
+
+  /**
+   * Phase 2 — downstream orchestration after eligible Result Intake.
+   * Terminates at precheck. Never submits broker orders.
+   */
+  async runPhase2Downstream(input: {
+    record: import("./result-intake/types.js").AtResultIntakeRecord;
+    analysisGeneration: number;
+  }) {
+    const { runPhase2Downstream, getAtPhase2PipelineStore } = await import("./phase2-pipeline.js");
+    return runPhase2Downstream({
+      record: input.record,
+      analysisGeneration: input.analysisGeneration,
+      store: getAtPhase2PipelineStore(),
+      service: {
+        generateProposal: async (args) =>
+          (await this.generateProposal(args ?? {})) as unknown as Record<string, unknown>,
+        validateHandoff: async (args) =>
+          (await this.validateHandoff(args ?? {})) as unknown as Record<string, unknown>,
+        runBrokerPrecheck: async (args) =>
+          (await this.runBrokerPrecheck(args ?? {})) as unknown as Record<string, unknown>,
+        getProposalAllocationConfig: () => this.getProposalAllocationConfig(),
+      },
+    });
   }
 
   getMonitorStatus(): AtMonitorPublicStatus {
@@ -472,6 +507,59 @@ export class AutomatedTradingService {
       ?? (monNow.config?.timeframe && ["5m", "15m", "30m", "1h"].includes(monNow.config.timeframe)
         ? monNow.config.timeframe
         : AT_ANALYSIS_DEFAULT_TIMEFRAME);
+
+    // Phase 2 — ensure ForexConnect DEMO/session is connected before analysis modules.
+    try {
+      const { getForexConnectSessionService, maybeRestoreDemoSession } = await import(
+        "../../market-data/forexconnect/session.js"
+      );
+      const session = await getForexConnectSessionService();
+      const restored = await maybeRestoreDemoSession(session, { force: true });
+      if (!restored.ok) {
+        const bridge = (await import("../../market-data/forexconnect/client.js")).getForexConnectBridge();
+        const fc = await bridge.getStatus();
+        if (String(fc.status ?? "").toUpperCase() !== "CONNECTED") {
+          await masterStore.forceSet((prev) => ({
+            ...prev,
+            masterEnabled: true,
+            ownerState: "ON",
+            operationalState: "BLOCKED",
+            activeModules: [],
+            blockedModules: [...AT_SYSTEM_MASTER_OWNED_MODULES],
+            lastBlockerCode: "PROVIDER_DISCONNECTED",
+            lastError: (restored.note || fc.errorMessage || "ForexConnect disconnected").slice(0, 240),
+            changedBy: input.operator,
+          }));
+          await this.monitor.markAutomaticAnalysisBlocked({
+            code: "PROVIDER_DISCONNECTED",
+            message: "System Master ON but ForexConnect is disconnected — analysis blocked.",
+          }).catch(() => undefined);
+          return {
+            ok: false,
+            code: "PROVIDER_DISCONNECTED",
+            message:
+              "ForexConnect is DISCONNECTED. Activate the DEMO session before System Master can run analysis.",
+          };
+        }
+      }
+    } catch (err) {
+      await masterStore.forceSet((prev) => ({
+        ...prev,
+        masterEnabled: true,
+        ownerState: "ON",
+        operationalState: "BLOCKED",
+        activeModules: [],
+        blockedModules: [...AT_SYSTEM_MASTER_OWNED_MODULES],
+        lastBlockerCode: "PROVIDER_DISCONNECTED",
+        lastError: String((err as Error)?.message ?? err).slice(0, 240),
+        changedBy: input.operator,
+      }));
+      return {
+        ok: false,
+        code: "PROVIDER_DISCONNECTED",
+        message: "Could not verify ForexConnect connection for System Master ON.",
+      };
+    }
 
     await this.runVerification({ environment: env, instrument, timeframe }).catch(() => undefined);
 
@@ -2063,6 +2151,30 @@ export class AutomatedTradingService {
         : null,
       updatedAtUtc: fresh.updatedAtUtc,
       placesOrders: false,
+      phase2Pipeline: await (async () => {
+        try {
+          const { getAtPhase2PipelineStore } = await import("./phase2-pipeline.js");
+          const latest = getAtPhase2PipelineStore().getLatest();
+          if (!latest) return null;
+          return {
+            analysisId: latest.analysisId,
+            intakeId: latest.intakeId,
+            proposalId: latest.proposalId,
+            riskDecisionId: latest.riskDecisionId,
+            handoffId: latest.handoffId,
+            precheckId: latest.precheckId,
+            status: latest.status,
+            blockers: [...latest.blockers],
+            direction: latest.direction,
+            note: latest.note,
+            placesOrders: false as const,
+            acceptsForExecution: false as const,
+            mutatesBroker: false as const,
+          };
+        } catch {
+          return null;
+        }
+      })(),
     };
   }
 
@@ -2871,6 +2983,24 @@ export class AutomatedTradingService {
     acceptsForExecution: false;
     mutatesBroker: false;
   }> {
+    const masterGate = getAtSystemMasterStore().get();
+    if (masterGate.ownerState !== "ON" || masterGate.masterEnabled !== true) {
+      const { toCanonicalPublicView } = await import("./analysis/index.js");
+      return {
+        ok: false,
+        code: "SYSTEM_MASTER_OFF",
+        message: "System Master is OFF — canonical/OpenAI analysis is blocked until SYSTEM ON.",
+        result: null,
+        view: toCanonicalPublicView(null),
+        candleQuality: null,
+        marketEvidence: null,
+        history: { saved: false, duplicate: false, writeError: null },
+        status: await this.buildStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+      };
+    }
     const {
       runCanonicalAnalysis,
       toCanonicalPublicView,
@@ -3003,6 +3133,9 @@ export class AutomatedTradingService {
               ? "BEARISH"
               : null,
         finalOutcome: latest.finalOutcome,
+        tradeEligibility: null,
+        blockReasons: [],
+        calibratedWinProbability: null,
         confidencePct: latest.confidencePct,
         confidenceType: ANALYSIS_CONFIDENCE_TYPE,
         confidenceModelVersion: ANALYSIS_CONFIDENCE_MODEL_VERSION,

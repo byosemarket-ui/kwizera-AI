@@ -194,6 +194,21 @@ type PublicStatus = {
   selectedEnvState?: { selectedInstrument?: string | null };
   updatedAtUtc: string;
   placesOrders: false;
+  phase2Pipeline?: {
+    analysisId: string | null;
+    intakeId: string | null;
+    proposalId: string | null;
+    riskDecisionId: string | null;
+    handoffId: string | null;
+    precheckId: string | null;
+    status: string | null;
+    blockers: string[];
+    direction: "BUY" | "SELL" | "NO_TRADE" | null;
+    note: string | null;
+    placesOrders: false;
+    acceptsForExecution: false;
+    mutatesBroker: false;
+  } | null;
 };
 
 type AuditEvent = {
@@ -362,6 +377,10 @@ type CanonicalAnalysisView = {
   direction?: "BUY" | "SELL" | null;
   marketInterpretation?: "BULLISH" | "BEARISH" | null;
   finalOutcome?: string | null;
+  tradeEligibility?: "APPROVED" | "BLOCKED" | "WAITING" | "INELIGIBLE" | null;
+  blockReasons?: string[];
+  calibratedWinProbability?: null;
+  isCalibratedWinProbability?: false;
   confidencePct?: number | null;
   confidenceType?: string;
   confidenceModelVersion?: string;
@@ -2353,6 +2372,52 @@ export function ForexAutomatedTradingPage(props: {
         </div>
       </div>
 
+      <section
+        className="fx-auto-trading-panel"
+        data-fx-at-phase2-pipeline="true"
+        aria-label="Phase 2 analysis to precheck lifecycle"
+      >
+        <h2 className="fx-auto-trading-h2">Phase 2 lifecycle (analysis → precheck)</h2>
+        <p className="fx-auto-trading-hint" style={{ marginTop: 0 }}>
+          Provider: <strong>ForexConnect</strong> · Market: <strong>XAU/USD</strong> · Broker execution:{" "}
+          <strong>DISABLED</strong>
+        </p>
+        <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+          <li data-fx-at-phase2-status="true">
+            Chain status: <strong>{status?.phase2Pipeline?.status ?? "—"}</strong>
+            {status?.phase2Pipeline?.direction
+              ? ` · direction ${status.phase2Pipeline.direction}`
+              : ""}
+          </li>
+          <li data-fx-at-phase2-ids="true">
+            analysisId → intakeId → proposalId → riskDecisionId → handoffId → precheckId:{" "}
+            <code>
+              {status?.phase2Pipeline?.analysisId ?? "—"}
+              {" → "}
+              {status?.phase2Pipeline?.intakeId ?? "—"}
+              {" → "}
+              {status?.phase2Pipeline?.proposalId ?? "—"}
+              {" → "}
+              {status?.phase2Pipeline?.riskDecisionId ?? "—"}
+              {" → "}
+              {status?.phase2Pipeline?.handoffId ?? "—"}
+              {" → "}
+              {status?.phase2Pipeline?.precheckId ?? "—"}
+            </code>
+          </li>
+          <li data-fx-at-phase2-blockers="true">
+            Blockers:{" "}
+            {(status?.phase2Pipeline?.blockers ?? []).length
+              ? status!.phase2Pipeline!.blockers.join(", ")
+              : "—"}
+          </li>
+          <li data-fx-at-phase2-note="true">
+            {status?.phase2Pipeline?.note
+              ?? "No Phase 2 chain yet. Eligible BUY/SELL analyses auto-advance when System Master is ON."}
+          </li>
+        </ul>
+      </section>
+
       <header className="fx-auto-trading-header">
         <div className="fx-auto-trading-title-block">
           <div className="fx-auto-trading-title-row">
@@ -2589,21 +2654,15 @@ export function ForexAutomatedTradingPage(props: {
             TF: <strong>{canonicalView?.primaryTimeframe ?? props.timeframe ?? "—"}</strong>
           </li>
           <li data-fx-at-canonical-direction="true">
-            Direction:{" "}
-            <strong>
-              {canonicalView?.direction
-                ?? (canonicalView?.finalOutcome === "INSUFFICIENT_DATA"
-                  ? "INSUFFICIENT DATA"
-                  : canonicalView?.finalOutcome === "STALE_DATA"
-                    ? "STALE DATA"
-                    : canonicalView?.finalOutcome === "CONFLICT"
-                      ? "CONFLICT"
-                      : canonicalView?.finalOutcome === "NO_TRADE"
-                        ? "NO TRADE"
-                        : "—")}
-            </strong>
+            Directional bias:{" "}
+            <strong>{canonicalView?.direction ?? "—"}</strong>
             {canonicalView?.marketInterpretation
               ? ` · ${canonicalView.marketInterpretation}`
+              : ""}
+            {" · eligibility "}
+            <strong>{canonicalView?.tradeEligibility ?? "—"}</strong>
+            {canonicalView?.blockReasons?.length
+              ? ` · blockers ${canonicalView.blockReasons.slice(0, 4).join(", ")}`
               : ""}
           </li>
           <li data-fx-at-canonical-confidence="true">
@@ -2618,6 +2677,8 @@ export function ForexAutomatedTradingPage(props: {
             {canonicalView?.availableConfidenceFactorCount != null
               ? ` · factors ${canonicalView.availableConfidenceFactorCount}`
               : ""}
+            {" · win probability "}
+            <strong>not calibrated</strong>
           </li>
           <li>
             SMA(9)/SMA(21):{" "}

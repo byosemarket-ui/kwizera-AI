@@ -121,17 +121,19 @@ function baseReconcile(over: Parameters<typeof reconcileAnalysis>[0] extends inf
 }
 
 describe("Phase 4.18C reconciliation rules", () => {
-  it("stale quote blocks directional analysis", () => {
+  it("stale quote blocks trade eligibility but may retain directional bias", () => {
     const r = baseReconcile({
       quote: freshQuote({ quoteFresh: false, freshnessReasonCode: "QUOTE_AGE_EXCEEDED" }),
     });
     expect(r.finalOutcome).toBe("STALE_DATA");
-    expect(r.direction).toBeNull();
-    expect(r.confidencePct).toBeNull();
+    // Phase 2 — BUY evidence still yields directional bias; trade remains BLOCKED.
+    expect(r.direction).toBe("BUY");
+    expect(r.tradeEligibility).toBe("BLOCKED");
+    expect(r.blockReasons).toContain("QUOTE_STALE");
     expect(r.reconciliationCode).toBe("RECON_STALE_QUOTE");
   });
 
-  it("heartbeat-only update blocks directional analysis", () => {
+  it("heartbeat-only update blocks trade eligibility but may retain directional bias", () => {
     const r = baseReconcile({
       quote: freshQuote({
         quoteFresh: false,
@@ -139,16 +141,18 @@ describe("Phase 4.18C reconciliation rules", () => {
       }),
     });
     expect(r.finalOutcome).toBe("STALE_DATA");
-    expect(r.direction).toBeNull();
+    expect(r.direction).toBe("BUY");
+    expect(r.tradeEligibility).toBe("BLOCKED");
     expect(r.reconciliationCode).toBe("RECON_STALE_QUOTE");
   });
 
-  it("MARKET_INACTIVE blocks directional analysis", () => {
+  it("MARKET_INACTIVE blocks trade eligibility but may retain directional bias", () => {
     const r = baseReconcile({
       quote: freshQuote({ quoteFresh: false, freshnessReasonCode: "MARKET_INACTIVE" }),
     });
     expect(r.finalOutcome).toBe("STALE_DATA");
-    expect(r.direction).toBeNull();
+    expect(r.direction).toBe("BUY");
+    expect(r.tradeEligibility).toBe("BLOCKED");
   });
 
   it("insufficient candles block directional analysis", () => {
@@ -194,7 +198,7 @@ describe("Phase 4.18C reconciliation rules", () => {
     expect(r.reconciliationCode).toBe("RECON_INSUFFICIENT");
   });
 
-  it("deterministic NO_TRADE cannot be overridden by AI", () => {
+  it("deterministic NO_TRADE cannot be overridden into a trade candidate by AI", () => {
     const r = baseReconcile({
       deterministic: detSlice({
         direction: "NO_TRADE",
@@ -206,9 +210,10 @@ describe("Phase 4.18C reconciliation rules", () => {
       ai: aiSlice({ direction: "BUY" }),
     });
     expect(r.finalOutcome).toBe("NO_TRADE");
-    expect(r.direction).toBeNull();
+    expect(r.tradeEligibility).toBe("BLOCKED");
+    // Phase 2 — AI may supply directional bias; never BUY_CANDIDATE without det cross.
+    expect(r.direction).toBe("BUY");
     expect(r.reconciliationCode).toBe("RECON_NO_CROSS_AI_IGNORED");
-    expect(r.confidencePct).toBeNull();
   });
 
   it("deterministic BUY + AI SELL returns CONFLICT", () => {
@@ -274,7 +279,7 @@ describe("Phase 4.18C reconciliation rules", () => {
     expect(r.reconciliationCode).toBe("RECON_DET_ONLY");
   });
 
-  it("higher-timeframe conflict blocks the directional result", () => {
+  it("higher-timeframe conflict blocks trade candidacy (bias may remain if primary agrees)", () => {
     const htf: CanonicalHtfContext = {
       primaryTimeframe: "15m",
       confirmationTimeframes: ["1h"],
@@ -286,9 +291,11 @@ describe("Phase 4.18C reconciliation rules", () => {
     };
     const r = baseReconcile({ htf });
     expect(r.finalOutcome).toBe("NO_TRADE");
-    expect(r.direction).toBeNull();
+    // Phase 2 — det+AI both BUY → retain bias; HTF conflict blocks trade eligibility.
+    expect(r.direction).toBe("BUY");
+    expect(r.tradeEligibility).toBe("BLOCKED");
+    expect(r.blockReasons).toContain("HTF_CONFLICT");
     expect(r.reconciliationCode).toBe("RECON_HTF_CONFLICT");
-    expect(r.confidencePct).toBeNull();
   });
 
   it("missing HTF evidence is not treated as a conflict", () => {
@@ -415,20 +422,24 @@ describe("Phase 4.18C confidence score", () => {
     expect(aiF?.detail).toMatch(/disagrees/i);
   });
 
-  it("AI cannot create a direction via reconciler", () => {
+  it("AI bias may remain when deterministic has no cross, but trade stays BLOCKED", () => {
     const r = baseReconcile({
       deterministic: detSlice({ direction: "NO_TRADE", code: "NO_CROSSOVER" }),
       ai: aiSlice({ direction: "SELL" }),
     });
-    expect(r.direction).toBeNull();
+    // Phase 2 — directional bias allowed; not a trade candidate.
+    expect(r.direction).toBe("SELL");
     expect(r.finalOutcome).toBe("NO_TRADE");
+    expect(r.tradeEligibility).toBe("BLOCKED");
   });
 
-  it("stale data returns no directional confidence", () => {
+  it("stale data retains ANALYSIS_CONFIDENCE when directional bias exists", () => {
     const r = baseReconcile({
       quote: freshQuote({ quoteFresh: false, freshnessReasonCode: "MARKET_INACTIVE" }),
     });
-    expect(r.confidencePct).toBeNull();
+    expect(r.direction).toBe("BUY");
+    expect(r.tradeEligibility).toBe("BLOCKED");
+    expect(r.calibratedWinProbability).toBeNull();
   });
 
   it("insufficient data returns no directional confidence", () => {

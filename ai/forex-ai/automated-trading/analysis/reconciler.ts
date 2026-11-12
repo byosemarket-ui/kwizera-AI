@@ -7,9 +7,9 @@
  *  2 INSUFFICIENT_DATA
  *  3 instrument / timeframe isolation mismatches
  *  4 HTF CONFLICT → NO_TRADE (missing HTF ≠ conflict)
- *  5 Deterministic NO_TRADE / NO_CROSSOVER → AI ignored
- *  6 Deterministic vs AI opposite → CONFLICT
- *  7 Deterministic BUY/SELL (+ optional AI agree / AI absent)
+ *  5 Deterministic NO_TRADE / NO_CROSSOVER → trade BLOCKED; AI bias may remain as direction
+ *  6 Deterministic vs AI opposite → CONFLICT (direction null)
+ *  7 Deterministic BUY/SELL (+ optional AI agree / AI absent) → APPROVED candidate
  */
 import { createHash, randomUUID } from "node:crypto";
 import type { AutomatedTradingEnvironment } from "../types.js";
@@ -151,6 +151,16 @@ function isInsufficient(input: ReconcileAnalysisInput): { yes: boolean; reasons:
   return { yes: reasons.length > 0, reasons };
 }
 
+function resolveDirectionalBias(
+  det: ReconcileAnalysisInput["deterministic"],
+  ai: ReconcileAnalysisInput["ai"],
+): CanonicalMarketDirection | null {
+  const detDir = det?.direction === "BUY" || det?.direction === "SELL" ? det.direction : null;
+  const aiDir = ai?.direction === "BUY" || ai?.direction === "SELL" ? ai.direction : null;
+  if (detDir && aiDir && detDir !== aiDir) return null;
+  return detDir ?? aiDir ?? null;
+}
+
 function buildBase(
   input: ReconcileAnalysisInput,
   partial: {
@@ -160,6 +170,8 @@ function buildBase(
     explanation: string[];
     validationErrors: Array<{ code: string; message: string }>;
     dataQuality: CanonicalAnalysisResult["dataQuality"];
+    tradeEligibility?: CanonicalAnalysisResult["tradeEligibility"];
+    blockReasons?: string[];
   },
 ): CanonicalAnalysisResult {
   const analyzedAtUtc = input.analyzedAtUtc ?? new Date().toISOString();
@@ -187,6 +199,21 @@ function buildBase(
       : detDir === "SELL"
         ? "BEARISH"
         : "UNKNOWN";
+
+  let tradeEligibility = partial.tradeEligibility;
+  let blockReasons = partial.blockReasons ? [...partial.blockReasons] : [];
+  if (!tradeEligibility) {
+    if (partial.finalOutcome === "BUY_CANDIDATE" || partial.finalOutcome === "SELL_CANDIDATE") {
+      tradeEligibility = "APPROVED";
+      blockReasons = [];
+    } else if (partial.finalOutcome === "INSUFFICIENT_DATA") {
+      tradeEligibility = "INELIGIBLE";
+      if (!blockReasons.length) blockReasons = [String(partial.reconciliationCode)];
+    } else {
+      tradeEligibility = "BLOCKED";
+      if (!blockReasons.length) blockReasons = [String(partial.reconciliationCode)];
+    }
+  }
 
   return {
     schemaVersion: CANONICAL_ANALYSIS_SCHEMA,
@@ -237,6 +264,9 @@ function buildBase(
     finalOutcome: partial.finalOutcome,
     direction: partial.direction,
     marketInterpretation,
+    tradeEligibility,
+    blockReasons,
+    calibratedWinProbability: null,
     confidencePct: conf.confidencePct,
     confidenceType: ANALYSIS_CONFIDENCE_TYPE,
     confidenceModelVersion: ANALYSIS_CONFIDENCE_MODEL_VERSION,
@@ -333,19 +363,37 @@ export function reconcileAnalysis(input: ReconcileAnalysisInput): CanonicalAnaly
     }
   }
 
-  // Rule 1 — stale
+  // Rule 1 — stale (Phase 2: may still emit directional bias; trade remains BLOCKED)
   if (isStaleQuote(input.quote)) {
+    const bias = resolveDirectionalBias(input.deterministic, input.ai);
+    const detDir = input.deterministic?.direction;
+    const aiDir = input.ai?.direction;
+    const conflict =
+      (detDir === "BUY" || detDir === "SELL")
+      && (aiDir === "BUY" || aiDir === "SELL")
+      && detDir !== aiDir;
     return buildBase(input, {
-      finalOutcome: "STALE_DATA",
-      direction: null,
-      reconciliationCode: "RECON_STALE_QUOTE",
+      finalOutcome: conflict ? "CONFLICT" : "STALE_DATA",
+      direction: conflict ? null : bias,
+      reconciliationCode: conflict ? "RECON_DIR_CONFLICT" : "RECON_STALE_QUOTE",
       explanation: [
         `Quote not fresh (reason=${input.quote.freshnessReasonCode ?? "quoteFresh=false"}).`,
         "Heartbeat alone is never a genuine price update.",
-        "No BUY/SELL manufactured.",
+        conflict
+          ? `Deterministic ${detDir} conflicts with AI ${aiDir} — no directional bias.`
+          : bias
+            ? `Directional bias ${bias} retained from available evidence; trade eligibility BLOCKED.`
+            : "No defensible BUY/SELL bias from available evidence.",
       ],
-      validationErrors: [{ code: "RECON_STALE_QUOTE", message: "Stale or inactive market data." }],
+      validationErrors: [{
+        code: conflict ? "RECON_DIR_CONFLICT" : "RECON_STALE_QUOTE",
+        message: conflict ? "Opposite BUY/SELL conclusions." : "Stale or inactive market data.",
+      }],
       dataQuality: "STALE_QUOTE",
+      tradeEligibility: "BLOCKED",
+      blockReasons: conflict
+        ? ["QUOTE_STALE", "DIRECTION_CONFLICT"]
+        : ["QUOTE_STALE", input.quote.freshnessReasonCode ?? "QUOTE_NOT_FRESH"].filter(Boolean),
     });
   }
 
@@ -374,33 +422,48 @@ export function reconcileAnalysis(input: ReconcileAnalysisInput): CanonicalAnaly
 
   // Rule 8 — HTF conflict (genuine only; missing ≠ conflict)
   if (htf && htf.agreement === "CONFLICT") {
+    const agreedBias =
+      (det.direction === "BUY" || det.direction === "SELL")
+      && ai?.direction
+      && ai.direction === det.direction
+        ? det.direction
+        : null;
     return buildBase(input, {
       finalOutcome: "NO_TRADE",
-      direction: null,
+      direction: agreedBias,
       reconciliationCode: "RECON_HTF_CONFLICT",
       explanation: [
         "Higher-timeframe deterministic agreement is CONFLICT.",
-        "Safer policy: block directional candidate (NO_TRADE validity).",
+        "Safer policy: block trade candidacy (NO_TRADE validity).",
+        agreedBias
+          ? `Primary TF bias ${agreedBias} retained; HTF conflict blocks trade eligibility.`
+          : "No agreed primary-TF bias — direction left null.",
       ],
       validationErrors: [{ code: "RECON_HTF_CONFLICT", message: "HTF directional conflict." }],
       dataQuality: "SUFFICIENT",
+      tradeEligibility: "BLOCKED",
+      blockReasons: ["HTF_CONFLICT"],
     });
   }
 
   // Rule 3 — deterministic NO_TRADE / NO_CROSSOVER
+  // Phase 2: AI may still supply directional bias; trade eligibility stays BLOCKED.
   if (det.direction === "NO_TRADE" || det.code === "NO_CROSSOVER") {
+    const aiBias = ai?.direction === "BUY" || ai?.direction === "SELL" ? ai.direction : null;
     return buildBase(input, {
       finalOutcome: "NO_TRADE",
-      direction: null,
+      direction: aiBias,
       reconciliationCode: "RECON_NO_CROSS_AI_IGNORED",
       explanation: [
         `Deterministic strategy ${det.code} / NO_TRADE.`,
-        ai?.direction
-          ? `AI ${ai.direction} ignored — cannot create direction without deterministic cross.`
-          : "AI unavailable or non-directional.",
+        aiBias
+          ? `AI directional bias ${aiBias} retained; deterministic cross missing — trade BLOCKED.`
+          : "AI unavailable or non-directional — no BUY/SELL bias.",
       ],
       validationErrors: [],
       dataQuality: "SUFFICIENT",
+      tradeEligibility: "BLOCKED",
+      blockReasons: ["NO_DETERMINISTIC_CROSS", det.code].filter(Boolean),
     });
   }
 
@@ -421,6 +484,8 @@ export function reconcileAnalysis(input: ReconcileAnalysisInput): CanonicalAnaly
       ],
       validationErrors: [{ code: "RECON_DIR_CONFLICT", message: "Opposite BUY/SELL conclusions." }],
       dataQuality: "SUFFICIENT",
+      tradeEligibility: "BLOCKED",
+      blockReasons: ["DIRECTION_CONFLICT"],
     });
   }
 
@@ -452,6 +517,8 @@ export function reconcileAnalysis(input: ReconcileAnalysisInput): CanonicalAnaly
       explanation,
       validationErrors: [],
       dataQuality: "SUFFICIENT",
+      tradeEligibility: "APPROVED",
+      blockReasons: [],
     });
   }
 

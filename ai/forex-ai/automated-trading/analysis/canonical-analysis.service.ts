@@ -51,6 +51,9 @@ export interface CanonicalAnalysisPublicView {
   direction: "BUY" | "SELL" | null;
   marketInterpretation: "BULLISH" | "BEARISH" | null;
   finalOutcome: string | null;
+  tradeEligibility: CanonicalAnalysisResult["tradeEligibility"] | null;
+  blockReasons: string[];
+  calibratedWinProbability: null;
   confidencePct: number | null;
   confidenceType: typeof ANALYSIS_CONFIDENCE_TYPE;
   confidenceModelVersion: typeof ANALYSIS_CONFIDENCE_MODEL_VERSION;
@@ -117,6 +120,9 @@ export function toCanonicalPublicView(
     direction: null,
     marketInterpretation: null,
     finalOutcome: null,
+    tradeEligibility: null,
+    blockReasons: [],
+    calibratedWinProbability: null,
     confidencePct: null,
     confidenceType: ANALYSIS_CONFIDENCE_TYPE,
     confidenceModelVersion: ANALYSIS_CONFIDENCE_MODEL_VERSION,
@@ -177,6 +183,9 @@ export function toCanonicalPublicView(
     direction: result.direction,
     marketInterpretation: result.marketInterpretation,
     finalOutcome: result.finalOutcome,
+    tradeEligibility: result.tradeEligibility ?? null,
+    blockReasons: Array.isArray(result.blockReasons) ? [...result.blockReasons] : [],
+    calibratedWinProbability: null,
     confidencePct: result.confidencePct,
     confidenceBreakdown: result.confidenceBreakdown,
     confidenceLimitations: result.confidenceLimitations,

@@ -70,6 +70,11 @@ export interface SystemMasterPersisted {
   blockedModules: SystemMasterModuleId[];
   lastError: string | null;
   lastBlockerCode: string | null;
+  /**
+   * Phase 2 — bumped on every OFF transition so in-flight analysis cannot
+   * publish downstream effects after System Master stops.
+   */
+  analysisGeneration: number;
   placesOrders: false;
   acceptsForExecution: false;
   mutatesBroker: false;
@@ -91,6 +96,7 @@ export interface SystemMasterPublicStatus {
   activeModuleCount: number;
   lastError: string | null;
   lastBlockerCode: string | null;
+  analysisGeneration: number;
   sharedServices: readonly string[];
   ownedModules: readonly SystemMasterModuleId[];
   placesOrders: false;
@@ -117,6 +123,7 @@ export function defaultSystemMasterPersisted(): SystemMasterPersisted {
     blockedModules: [],
     lastError: null,
     lastBlockerCode: null,
+    analysisGeneration: 0,
     placesOrders: false,
     acceptsForExecution: false,
     mutatesBroker: false,
@@ -140,6 +147,7 @@ export function toSystemMasterPublicStatus(p: SystemMasterPersisted): SystemMast
     activeModuleCount: p.activeModules.length,
     lastError: p.lastError,
     lastBlockerCode: p.lastBlockerCode,
+    analysisGeneration: Number.isFinite(p.analysisGeneration) ? Math.max(0, Math.floor(p.analysisGeneration)) : 0,
     sharedServices: AT_SYSTEM_MASTER_SHARED_SERVICES,
     ownedModules: AT_SYSTEM_MASTER_OWNED_MODULES,
     placesOrders: false,

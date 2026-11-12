@@ -323,6 +323,25 @@ export async function ingestCanonicalAnalysisResult(
   };
 
   const saved = await store.save(record);
+
+  // Phase 2 — auto proposal/handoff/precheck for eligible ACCEPTED intakes only.
+  if (
+    !saved.duplicate
+    && saved.record.intakeLifecycle === "ACCEPTED"
+    && saved.record.eligibleForOrderPreparation
+  ) {
+    try {
+      const { invokePhase2DownstreamHook } = await import("../phase2-pipeline.js");
+      const generation = getAtSystemMasterStore().getAnalysisGeneration();
+      invokePhase2DownstreamHook({
+        record: saved.record,
+        analysisGeneration: generation,
+      });
+    } catch {
+      /* hook registration optional during unit tests */
+    }
+  }
+
   return {
     ok: saved.record.intakeLifecycle === "ACCEPTED",
     duplicate: saved.duplicate,

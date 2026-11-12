@@ -38,6 +38,19 @@ export type AnalysisFinalOutcome =
 /** Market direction only — never HOLD/NEUTRAL/WAIT/NO_TRADE. */
 export type CanonicalMarketDirection = "BUY" | "SELL";
 
+/**
+ * Phase 2 — trade candidacy is separate from directional bias.
+ * APPROVED = BUY_CANDIDATE/SELL_CANDIDATE eligible for proposal prep.
+ * BLOCKED = directional bias may exist but trade must not proceed.
+ * WAITING = temporary gate (e.g. schedule/waiting for closed candle).
+ * INELIGIBLE = insufficient evidence for trade consideration.
+ */
+export type CanonicalTradeEligibility =
+  | "APPROVED"
+  | "BLOCKED"
+  | "WAITING"
+  | "INELIGIBLE";
+
 export type CanonicalMarketInterpretation = "BULLISH" | "BEARISH";
 
 export type AtrMethodId = "SMA_OF_TR" | "WILDER_RMA";
@@ -189,11 +202,21 @@ export interface CanonicalAnalysisResult {
   /** Validity / reconciliation outcome — not a market direction. */
   finalOutcome: AnalysisFinalOutcome;
   /**
-   * Market direction only when finalOutcome is BUY_CANDIDATE or SELL_CANDIDATE.
-   * null for STALE_DATA | INSUFFICIENT_DATA | CONFLICT | NO_TRADE.
+   * Phase 2 — market directional bias when evidence supports BUY or SELL.
+   * null only when evidence cannot support any defensible bias (insufficient/conflict).
+   * Never set to NO_TRADE. Trade candidacy lives in tradeEligibility / finalOutcome.
    */
   direction: CanonicalMarketDirection | null;
   marketInterpretation: CanonicalMarketInterpretation | null;
+  /** Phase 2 — whether this analysis may proceed toward proposal preparation. */
+  tradeEligibility: CanonicalTradeEligibility;
+  /** Structured blockers when tradeEligibility is not APPROVED. */
+  blockReasons: string[];
+  /**
+   * Always null until a calibrated probability model exists.
+   * Do not treat confidencePct as win probability.
+   */
+  calibratedWinProbability: null;
   confidencePct: number | null;
   confidenceType: typeof ANALYSIS_CONFIDENCE_TYPE;
   confidenceModelVersion: typeof ANALYSIS_CONFIDENCE_MODEL_VERSION;
