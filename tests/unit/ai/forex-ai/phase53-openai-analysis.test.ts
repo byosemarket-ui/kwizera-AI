@@ -331,7 +331,7 @@ describe("Phase 53 static contracts", () => {
 
     const page = read("desktop/forex/ForexAutomatedTradingPage.tsx");
     expect(page).toContain("data-fx-at-openai-ta");
-    expect(page).toContain("Run Analysis Now");
+    expect(page).toMatch(/Run analysis/i);
     expect(page).toContain("NOT CALIBRATED");
     expect(page).not.toMatch(/localStorage\.setItem\([^)]*openai|sk-/i);
 

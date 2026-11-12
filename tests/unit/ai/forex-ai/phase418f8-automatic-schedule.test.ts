@@ -172,7 +172,8 @@ describe("Phase 4.18F.8 worker public status exposes automatic schedule fields",
     expect(started.ok).toBe(true);
     if (started.ok) {
       expect(started.status.config?.enabled).toBe(true);
-      expect(started.status.automaticAnalysisStatus).toBe("ACTIVE");
+      // Armed scheduler between slots reports WAITING (not false-green ACTIVE).
+      expect(started.status.automaticAnalysisStatus).toBe("WAITING");
       expect(started.status.health.nextScheduledAnalysisAtUtc).toMatch(/T\d{2}:\d{2}:00.000Z$/);
     }
     worker.dispose();
