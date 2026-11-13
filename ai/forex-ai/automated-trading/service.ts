@@ -141,14 +141,14 @@ export class AutomatedTradingService {
 
   /**
    * Phase 2 — downstream orchestration after eligible Result Intake.
-   * Terminates at precheck. Never submits broker orders.
+   * On PRECHECK_PASSED, continues into Phase 3 payload→boundary (still no submission).
    */
   async runPhase2Downstream(input: {
     record: import("./result-intake/types.js").AtResultIntakeRecord;
     analysisGeneration: number;
   }) {
     const { runPhase2Downstream, getAtPhase2PipelineStore } = await import("./phase2-pipeline.js");
-    return runPhase2Downstream({
+    const phase2 = await runPhase2Downstream({
       record: input.record,
       analysisGeneration: input.analysisGeneration,
       store: getAtPhase2PipelineStore(),
@@ -162,6 +162,146 @@ export class AutomatedTradingService {
         getProposalAllocationConfig: () => this.getProposalAllocationConfig(),
       },
     });
+    if (
+      phase2.status === "PRECHECK_PASSED"
+      && phase2.precheckId
+      && phase2.proposalId
+    ) {
+      await this.runPhase3FromPrecheck({
+        precheckId: phase2.precheckId,
+        precheckStatus: "PASSED",
+        precheckPassedDomain: true,
+        proposalId: phase2.proposalId,
+        handoffId: phase2.handoffId,
+        analysisId: phase2.analysisId,
+        intakeId: phase2.intakeId,
+        riskDecisionId: phase2.riskDecisionId,
+        analysisGeneration: input.analysisGeneration,
+      }).catch(() => undefined);
+    }
+    return phase2;
+  }
+
+  /**
+   * Phase 3 — build/validate FXCM payload from trusted precheck and block at execution boundary.
+   * Never submits broker orders.
+   */
+  async runPhase3FromPrecheck(input: {
+    precheckId: string;
+    precheckStatus: string;
+    precheckPassedDomain: boolean;
+    precheckExpiresAtUtc?: string | null;
+    proposalId: string;
+    handoffId?: string | null;
+    analysisId?: string | null;
+    intakeId?: string | null;
+    riskDecisionId?: string | null;
+    analysisGeneration?: number;
+  }) {
+    const { runPhase3FromPrecheck, getAtPhase3PipelineStore } = await import("./phase3-pipeline.js");
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const { getAtBrokerExecutionStore } = await import("./broker-execution/index.js");
+    const { getDemoExecutionGrantStore } = await import("./demo-execution/grant-store.js");
+    const state = this.store.getState();
+    const envState = state.environments[state.selectedEnvironment];
+    const verification = envState.lastVerification;
+    const account = verification?.account ?? null;
+    const market = verification?.market ?? null;
+    const inst = verification?.instrument ?? null;
+    const foundation = getAtBrokerExecutionStore().get();
+    const master = getAtSystemMasterStore().get();
+    const generation =
+      typeof input.analysisGeneration === "number"
+        ? input.analysisGeneration
+        : master.analysisGeneration;
+
+    let demoMutationAllowed = false;
+    try {
+      const raw = String(process.env.KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION ?? "0").trim();
+      demoMutationAllowed = raw === "1" || raw.toLowerCase() === "true";
+    } catch {
+      demoMutationAllowed = false;
+    }
+    let activeDemoGrant = false;
+    try {
+      const grants = getDemoExecutionGrantStore().listActive();
+      activeDemoGrant = Array.isArray(grants) && grants.length > 0;
+    } catch {
+      activeDemoGrant = false;
+    }
+
+    const out = await runPhase3FromPrecheck({
+      precheckId: input.precheckId,
+      precheckStatus: input.precheckStatus,
+      precheckPassedDomain: input.precheckPassedDomain,
+      precheckExpiresAtUtc: input.precheckExpiresAtUtc ?? null,
+      proposalId: input.proposalId,
+      handoffId: input.handoffId ?? null,
+      analysisId: input.analysisId ?? null,
+      intakeId: input.intakeId ?? null,
+      riskDecisionId: input.riskDecisionId ?? null,
+      analysisGeneration: generation,
+      store: getAtPhase3PipelineStore(),
+      service: {
+        getProposal: (id) => (id ? getAtOrderProposalStore().get(id) : null),
+        getAccountIdForPayload: () =>
+          account?.accountIdMasked
+          ?? envState.lastVerifiedAccountId
+          ?? null,
+        getContractMeta: () => ({
+          offerId: inst?.offerId != null ? String(inst.offerId) : null,
+          baseUnitSize: inst?.baseUnitSize ?? null,
+          quantityMin: inst?.quantityMin ?? null,
+          quantityStep: inst?.quantityStep ?? null,
+          contractSource: inst?.contractSource ?? null,
+          contractFresh: Boolean(inst?.contractVerified && account?.isFresh),
+          symbol: inst?.symbol ?? envState.selectedInstrument,
+        }),
+        getQuote: () => ({
+          bid: market?.bid ?? null,
+          ask: market?.ask ?? null,
+          fresh: Boolean(
+            market
+            && (market as { feedStatus?: string }).feedStatus === "LIVE"
+            && market.bid != null
+            && market.ask != null,
+          ),
+        }),
+        getSafety: () => ({
+          executionMasterEnabled: foundation.executionMasterEnabled === true,
+          emergencyEntryLock: envState.controls.emergencyEntryLock === true,
+          demoMutationAllowed,
+          activeDemoGrant,
+        }),
+      },
+    });
+
+    await this.store.appendAudit({
+      action: "phase3_execution_boundary",
+      environment: state.selectedEnvironment,
+      ok: out.chain.status === "EXECUTION_BLOCKED",
+      code: out.boundary?.reasonCode ?? out.chain.status,
+      detail: String(out.chain.note || "").slice(0, 160),
+    });
+
+    return {
+      ok: true as const,
+      chain: out.chain,
+      payloadPackage: out.payloadPackage
+        ? {
+            ...out.payloadPackage,
+            // Never return raw account id in API surfaces.
+            fxcmPayload: undefined,
+            fxcmPayloadRedacted: out.payloadPackage.fxcmPayloadRedacted,
+          }
+        : null,
+      boundary: out.boundary,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      brokerExecution: "DISABLED" as const,
+      note: "Phase 3 handoff reaches EXECUTION_BLOCKED — no FXCM order submitted.",
+    };
   }
 
   getMonitorStatus(): AtMonitorPublicStatus {
@@ -2170,6 +2310,39 @@ export class AutomatedTradingService {
             placesOrders: false as const,
             acceptsForExecution: false as const,
             mutatesBroker: false as const,
+          };
+        } catch {
+          return null;
+        }
+      })(),
+      phase3Pipeline: await (async () => {
+        try {
+          const { getAtPhase3PipelineStore } = await import("./phase3-pipeline.js");
+          const latest = getAtPhase3PipelineStore().getLatest();
+          if (!latest) return null;
+          return {
+            analysisId: latest.analysisId,
+            intakeId: latest.intakeId,
+            proposalId: latest.proposalId,
+            riskDecisionId: latest.riskDecisionId,
+            handoffId: latest.handoffId,
+            precheckId: latest.precheckId,
+            payloadId: latest.payloadId,
+            executionBoundaryDecisionId: latest.executionBoundaryDecisionId,
+            status: latest.status,
+            boundaryStatus: latest.boundaryStatus,
+            boundaryReason: latest.boundaryReason,
+            blockers: [...latest.blockers],
+            direction: latest.direction,
+            instrument: latest.instrument,
+            amount: latest.amount,
+            quantityLots: latest.quantityLots,
+            offerId: latest.offerId,
+            note: latest.note,
+            placesOrders: false as const,
+            acceptsForExecution: false as const,
+            mutatesBroker: false as const,
+            submissionAttempted: false as const,
           };
         } catch {
           return null;

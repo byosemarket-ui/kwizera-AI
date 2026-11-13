@@ -215,6 +215,31 @@ export interface AutomatedTradingPublicStatus {
     acceptsForExecution: false;
     mutatesBroker: false;
   } | null;
+  /** Phase 3 — payload → execution boundary (always blocked). */
+  phase3Pipeline?: {
+    analysisId: string | null;
+    intakeId: string | null;
+    proposalId: string | null;
+    riskDecisionId: string | null;
+    handoffId: string | null;
+    precheckId: string | null;
+    payloadId: string | null;
+    executionBoundaryDecisionId: string | null;
+    status: string | null;
+    boundaryStatus: "EXECUTION_BLOCKED" | null;
+    boundaryReason: string | null;
+    blockers: string[];
+    direction: "BUY" | "SELL" | null;
+    instrument: string | null;
+    amount: number | null;
+    quantityLots: number | null;
+    offerId: string | null;
+    note: string | null;
+    placesOrders: false;
+    acceptsForExecution: false;
+    mutatesBroker: false;
+    submissionAttempted: false;
+  } | null;
 }
 
 export function defaultEnvControls(): AutomatedTradingEnvControls {

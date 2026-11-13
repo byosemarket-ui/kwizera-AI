@@ -2000,6 +2000,60 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 3 — FXCM payload + hard execution boundary (never submits).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-engine/phase3-handoff")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      let body: Record<string, unknown> = {};
+      try {
+        const raw = await readJsonBody(req, 8_000);
+        if (raw && typeof raw === "object") body = raw as Record<string, unknown>;
+      } catch {
+        body = {};
+      }
+      const precheckId = typeof body.precheckId === "string" ? body.precheckId.trim() : "";
+      const proposalId = typeof body.proposalId === "string" ? body.proposalId.trim() : "";
+      if (!precheckId || !proposalId) {
+        sendJson(res, 400, {
+          ok: false,
+          error: {
+            code: "MISSING_IDS",
+            message: "precheckId and proposalId are required for Phase 3 handoff.",
+          },
+          placesOrders: false,
+          acceptsForExecution: false,
+          mutatesBroker: false,
+        });
+        return true;
+      }
+      const result = await service.runPhase3FromPrecheck({
+        precheckId,
+        proposalId,
+        precheckStatus: typeof body.precheckStatus === "string" ? body.precheckStatus : "PASSED",
+        precheckPassedDomain: body.precheckPassedDomain !== false,
+        precheckExpiresAtUtc:
+          typeof body.precheckExpiresAtUtc === "string" ? body.precheckExpiresAtUtc : null,
+        handoffId: typeof body.handoffId === "string" ? body.handoffId : null,
+        analysisId: typeof body.analysisId === "string" ? body.analysisId : null,
+        intakeId: typeof body.intakeId === "string" ? body.intakeId : null,
+        riskDecisionId: typeof body.riskDecisionId === "string" ? body.riskDecisionId : null,
+      });
+      sendJson(res, 200, {
+        ...result,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        executionAuthorized: false,
+        brokerExecution: "DISABLED",
+        note:
+          "Phase 3 broker handoff only. Payload may be validated; execution boundary always blocks. "
+          + "No FXCM order is submitted.",
+      });
+      return true;
+    }
+
     // Stage 1 reopen — LIVE spread evidence readiness (read-only; never auto-approves).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/stage1-readiness")) {
       if (req.method !== "GET" && req.method !== "HEAD") {

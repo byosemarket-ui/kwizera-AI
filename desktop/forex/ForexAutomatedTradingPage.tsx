@@ -209,6 +209,30 @@ type PublicStatus = {
     acceptsForExecution: false;
     mutatesBroker: false;
   } | null;
+  phase3Pipeline?: {
+    analysisId: string | null;
+    intakeId: string | null;
+    proposalId: string | null;
+    riskDecisionId: string | null;
+    handoffId: string | null;
+    precheckId: string | null;
+    payloadId: string | null;
+    executionBoundaryDecisionId: string | null;
+    status: string | null;
+    boundaryStatus: "EXECUTION_BLOCKED" | null;
+    boundaryReason: string | null;
+    blockers: string[];
+    direction: "BUY" | "SELL" | null;
+    instrument: string | null;
+    amount: number | null;
+    quantityLots: number | null;
+    offerId: string | null;
+    note: string | null;
+    placesOrders: false;
+    acceptsForExecution: false;
+    mutatesBroker: false;
+    submissionAttempted: false;
+  } | null;
 };
 
 type AuditEvent = {
@@ -2414,6 +2438,53 @@ export function ForexAutomatedTradingPage(props: {
           <li data-fx-at-phase2-note="true">
             {status?.phase2Pipeline?.note
               ?? "No Phase 2 chain yet. Eligible BUY/SELL analyses auto-advance when System Master is ON."}
+          </li>
+        </ul>
+        <h2 className="fx-auto-trading-h2" style={{ marginTop: "0.85rem" }}>
+          Phase 3 handoff (payload → execution boundary)
+        </h2>
+        <p className="fx-auto-trading-hint" style={{ marginTop: 0 }}>
+          Valid FXCM payload may be prepared and handed internally.{" "}
+          <strong>ORDER_SUBMITTED never occurs in Phase 3.</strong>{" "}
+          Final state is <strong>EXECUTION_BLOCKED</strong>.
+        </p>
+        <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+          <li data-fx-at-phase3-status="true">
+            Chain: <strong>{status?.phase3Pipeline?.status ?? "—"}</strong>
+            {" · boundary "}
+            <strong>{status?.phase3Pipeline?.boundaryStatus ?? "—"}</strong>
+            {status?.phase3Pipeline?.boundaryReason
+              ? ` · ${status.phase3Pipeline.boundaryReason}`
+              : ""}
+          </li>
+          <li data-fx-at-phase3-ids="true">
+            precheck → payload → boundary:{" "}
+            <code>
+              {status?.phase3Pipeline?.precheckId ?? "—"}
+              {" → "}
+              {status?.phase3Pipeline?.payloadId ?? "—"}
+              {" → "}
+              {status?.phase3Pipeline?.executionBoundaryDecisionId ?? "—"}
+            </code>
+          </li>
+          <li data-fx-at-phase3-qty="true">
+            {status?.phase3Pipeline?.instrument ?? "XAU/USD"}
+            {status?.phase3Pipeline?.direction ? ` · ${status.phase3Pipeline.direction}` : ""}
+            {status?.phase3Pipeline?.amount != null ? ` · AMOUNT ${status.phase3Pipeline.amount}` : ""}
+            {status?.phase3Pipeline?.quantityLots != null
+              ? ` · lots ${status.phase3Pipeline.quantityLots}`
+              : ""}
+            {status?.phase3Pipeline?.offerId ? ` · offer ${status.phase3Pipeline.offerId}` : ""}
+          </li>
+          <li data-fx-at-phase3-blockers="true">
+            Blockers:{" "}
+            {(status?.phase3Pipeline?.blockers ?? []).length
+              ? status!.phase3Pipeline!.blockers.join(", ")
+              : "—"}
+          </li>
+          <li data-fx-at-phase3-note="true">
+            {status?.phase3Pipeline?.note
+              ?? "No Phase 3 chain yet. Runs after a domain-passing precheck; submission remains disabled."}
           </li>
         </ul>
       </section>

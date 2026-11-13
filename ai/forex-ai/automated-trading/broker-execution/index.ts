@@ -21,3 +21,16 @@ export {
   applyPreExecutionValidation,
   type ApplyPreExecutionValidationResult,
 } from "./precheck-apply.js";
+export {
+  evaluateExecutionBoundary,
+  AT_EXECUTION_BOUNDARY_SCHEMA,
+  AT_EXECUTION_BOUNDARY_PHASE,
+  type ExecutionBoundaryDecision,
+  type ExecutionBoundaryInput,
+} from "./execution-boundary.js";
+export {
+  validatePhase3PayloadPackage,
+  AT_PHASE3_PAYLOAD_SCHEMA,
+  type Phase3PayloadPackage,
+  type Phase3PayloadBlockCode,
+} from "./phase3-payload-validator.js";
