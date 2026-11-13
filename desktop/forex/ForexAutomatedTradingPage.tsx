@@ -286,6 +286,15 @@ type PublicStatus = {
       boundaryReason: string | null;
       note: string;
     };
+    xauAmountCompatibility?: {
+      classification: string;
+      code: string;
+      message: string;
+      amount: number | null;
+      minLotsFromBroker: number | null;
+      placesOrders: false;
+      mutatesBroker: false;
+    } | null;
     placesOrders: false;
     acceptsForExecution: false;
     mutatesBroker: false;
@@ -2624,6 +2633,18 @@ export function ForexAutomatedTradingPage(props: {
               .slice(0, 4)
               .map((a) => `${a.severity}:${a.code}`)
               .join(" · ") || "none (non-info)"}
+          </li>
+          <li data-fx-at-phase4-xau-compat="true">
+            XAU AMOUNT:{" "}
+            <strong>
+              {status?.phase4Observability?.xauAmountCompatibility?.classification ?? "—"}
+            </strong>
+            {status?.phase4Observability?.xauAmountCompatibility?.code
+              ? ` · ${status.phase4Observability.xauAmountCompatibility.code}`
+              : ""}
+            {status?.phase4Observability?.xauAmountCompatibility?.message
+              ? ` — ${status.phase4Observability.xauAmountCompatibility.message}`
+              : ""}
           </li>
           <li data-fx-at-phase4-note="true">
             {status?.phase4Observability?.correlation?.note

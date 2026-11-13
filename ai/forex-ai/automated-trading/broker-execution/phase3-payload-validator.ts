@@ -29,6 +29,8 @@ export type Phase3PayloadBlockCode =
   | "DUPLICATE_HANDOFF"
   | "DIRECTION_MISMATCH"
   | "INVALID_AMOUNT"
+  | "AMOUNT_BELOW_MIN_QUANTITY"
+  | "BROKER_MINIMUM_EXCEEDS_OWNER_LIMIT"
   | "OFFER_ID_MISSING"
   | "EXECUTION_DISABLED"
   | "UNKNOWN_FIELD";
@@ -176,14 +178,23 @@ export function validatePhase3PayloadPackage(
     if (!finitePositive(input.baseUnitSize)) blockers.push("BROKER_METADATA_MISSING");
   }
 
+  // quantityMin / quantityStep are FXCM AMOUNT (contract) units — never compare to lots.
   const step = input.quantityStep;
-  if (finitePositive(step) && payload && Number.isFinite(payload.lots)) {
-    const units = payload.lots / step;
+  if (finitePositive(step) && payload && Number.isFinite(payload.amount)) {
+    const units = payload.amount / step;
     if (Math.abs(units - Math.round(units)) > 1e-9) blockers.push("QUANTITY_STEP_MISMATCH");
   }
   const minQ = input.quantityMin;
-  if (finitePositive(minQ) && payload && payload.lots + 1e-12 < minQ) {
+  if (finitePositive(minQ) && payload && Number.isFinite(payload.amount) && payload.amount + 1e-12 < minQ) {
+    blockers.push("AMOUNT_BELOW_MIN_QUANTITY");
     blockers.push("INVALID_QUANTITY");
+    // Owner-sized lots that cannot meet broker AMOUNT minimum (e.g. XAU baseUnitSize=1, min=1, lots=0.01).
+    if (finitePositive(payload.lots) && finitePositive(input.baseUnitSize)) {
+      const minLots = minQ / Number(input.baseUnitSize);
+      if (payload.lots + 1e-12 < minLots) {
+        blockers.push("BROKER_MINIMUM_EXCEEDS_OWNER_LIMIT");
+      }
+    }
   }
 
   if (input.quoteFresh === false) blockers.push("QUOTE_STALE");

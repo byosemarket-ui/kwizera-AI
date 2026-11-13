@@ -2407,6 +2407,13 @@ export class AutomatedTradingService {
             phase3: p3,
             instrument: envState.selectedInstrument ?? "XAU/USD",
           });
+          const { classifyXauAmountCompatibility } = await import("./order-execution/xau-amount-compatibility.js");
+          const { OWNER_MAX_QUANTITY } = await import("./order-proposal/types.js");
+          const xauCompat = classifyXauAmountCompatibility({
+            baseUnitSize: verificationRaw?.instrument?.baseUnitSize ?? null,
+            minQuantity: verificationRaw?.instrument?.quantityMin ?? null,
+            ownerMaxLots: OWNER_MAX_QUANTITY,
+          });
           return {
             schemaVersion: AT_PHASE4_OBSERVABILITY_SCHEMA,
             boot: {
@@ -2424,6 +2431,15 @@ export class AutomatedTradingService {
             modules: health.modules,
             alerts: health.alerts,
             correlation,
+            xauAmountCompatibility: {
+              classification: xauCompat.classification,
+              code: xauCompat.code,
+              message: xauCompat.message,
+              amount: xauCompat.amount,
+              minLotsFromBroker: xauCompat.minLotsFromBroker,
+              placesOrders: false as const,
+              mutatesBroker: false as const,
+            },
             placesOrders: false as const,
             acceptsForExecution: false as const,
             mutatesBroker: false as const,

@@ -170,6 +170,16 @@ export interface AtPhase4ObservabilityPublic {
   modules: AtModuleHealthRow[];
   alerts: AtObservabilityAlert[];
   correlation: AtCorrelationChain;
+  /** XAU owner-lot vs FXCM AMOUNT readiness (never raises owner limits). */
+  xauAmountCompatibility?: {
+    classification: string;
+    code: string;
+    message: string;
+    amount: number | null;
+    minLotsFromBroker: number | null;
+    placesOrders: false;
+    mutatesBroker: false;
+  } | null;
   placesOrders: false;
   acceptsForExecution: false;
   mutatesBroker: false;

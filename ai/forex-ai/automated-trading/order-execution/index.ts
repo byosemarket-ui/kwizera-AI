@@ -4,6 +4,7 @@ export * from "./map-lots.js";
 export * from "./lots-to-broker-amount.js";
 export * from "./broker-quantity-contract.js";
 export * from "./xau-owner-lot-compatibility.js";
+export * from "./xau-amount-compatibility.js";
 export * from "./margin-ro-metadata.js";
 export * from "./stage3-position-feasibility.js";
 export * from "./stage3-live-ro.js";

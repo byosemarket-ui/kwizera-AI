@@ -171,8 +171,9 @@ describe("Phase 3 FXCM payload builder + validator", () => {
       handoffId: "hand-1",
       offerId: "4001",
       baseUnitSize: 100,
-      quantityMin: 0.01,
-      quantityStep: 0.01,
+      // quantityMin/Step are FXCM AMOUNT (contract) units, not lots.
+      quantityMin: 1,
+      quantityStep: 1,
       contractFresh: true,
       quoteFresh: true,
       quoteBid: 2650,
@@ -184,6 +185,67 @@ describe("Phase 3 FXCM payload builder + validator", () => {
     expect(pkg.blockers).toContain("EXECUTION_DISABLED");
     expect(pkg.quantityUnit).toBe("FXCM_AMOUNT");
     expect(pkg.amount).toBe(1);
+  });
+
+  it("compares broker minQuantity to AMOUNT not lots (XAU unit fix)", () => {
+    const proposal = proposalFixture();
+    const built = buildFxcmTrueMarketOpenPayload({
+      proposal,
+      accountId: "demo-acct-1",
+      offerId: "4001",
+      baseUnitSize: 100,
+      bid: 2650,
+      ask: 2650.5,
+    });
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+    // lots=0.01 would falsely fail if compared to minQuantity AMOUNT=1; amount=1 must pass.
+    const pkg = validatePhase3PayloadPackage({
+      proposal,
+      payload: built.payload,
+      precheckId: "pre-amt-min",
+      precheckStatus: "PASSED",
+      precheckPassedDomain: true,
+      offerId: "4001",
+      baseUnitSize: 100,
+      quantityMin: 1,
+      quantityStep: 1,
+      contractFresh: true,
+      quoteFresh: true,
+    });
+    expect(pkg.validationStatus).toBe("PAYLOAD_VALIDATED");
+    expect(pkg.blockers).not.toContain("AMOUNT_BELOW_MIN_QUANTITY");
+    expect(pkg.blockers).not.toContain("BROKER_MINIMUM_EXCEEDS_OWNER_LIMIT");
+  });
+
+  it("flags AMOUNT below broker minQuantity with owner-limit classification", () => {
+    const proposal = proposalFixture();
+    const built = buildFxcmTrueMarketOpenPayload({
+      proposal,
+      accountId: "demo-acct-1",
+      offerId: "4001",
+      baseUnitSize: 100,
+      bid: 2650,
+      ask: 2650.5,
+    });
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+    const pkg = validatePhase3PayloadPackage({
+      proposal,
+      payload: built.payload,
+      precheckId: "pre-below-min",
+      precheckStatus: "PASSED",
+      precheckPassedDomain: true,
+      offerId: "4001",
+      baseUnitSize: 100,
+      quantityMin: 2, // AMOUNT min above computed amount=1
+      quantityStep: 1,
+      contractFresh: true,
+      quoteFresh: true,
+    });
+    expect(pkg.validationStatus).toBe("PAYLOAD_INVALID");
+    expect(pkg.blockers).toContain("AMOUNT_BELOW_MIN_QUANTITY");
+    expect(pkg.blockers).toContain("BROKER_MINIMUM_EXCEEDS_OWNER_LIMIT");
   });
 
   it("rejects stale quote and expired precheck", () => {
@@ -283,8 +345,8 @@ describe("Phase 3 pipeline orchestration", () => {
         getContractMeta: () => ({
           offerId: "4001",
           baseUnitSize: 100,
-          quantityMin: 0.01,
-          quantityStep: 0.01,
+          quantityMin: 1,
+          quantityStep: 1,
           contractSource: "test",
           contractFresh: true,
           symbol: "XAU/USD",
@@ -328,8 +390,8 @@ describe("Phase 3 pipeline orchestration", () => {
         getContractMeta: () => ({
           offerId: "4001",
           baseUnitSize: 100,
-          quantityMin: 0.01,
-          quantityStep: 0.01,
+          quantityMin: 1,
+          quantityStep: 1,
           contractSource: "FOREXCONNECT",
           contractFresh: true,
           symbol: "XAU/USD",
@@ -366,8 +428,8 @@ describe("Phase 3 pipeline orchestration", () => {
         getContractMeta: () => ({
           offerId: "4001",
           baseUnitSize: 100,
-          quantityMin: 0.01,
-          quantityStep: 0.01,
+          quantityMin: 1,
+          quantityStep: 1,
           contractSource: "FOREXCONNECT",
           contractFresh: true,
           symbol: "XAU/USD",
@@ -407,8 +469,8 @@ describe("Phase 3 pipeline orchestration", () => {
         getContractMeta: () => ({
           offerId: "4001",
           baseUnitSize: 100,
-          quantityMin: 0.01,
-          quantityStep: 0.01,
+          quantityMin: 1,
+          quantityStep: 1,
           contractSource: "test",
           contractFresh: true,
           symbol: "XAU/USD",
