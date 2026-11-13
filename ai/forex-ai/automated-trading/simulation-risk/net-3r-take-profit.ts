@@ -222,6 +222,21 @@ export function proposeTakeProfitNetAware3R(input: {
         quantityUnchanged: true,
       };
     }
+    if (
+      finitePositive(input.technicalRewardDistanceMax)
+      && rewardDistance > input.technicalRewardDistanceMax + 1e-12
+    ) {
+      return {
+        ok: false,
+        code: "TECHNICAL_TARGET_CANNOT_SUPPORT_NET_3R",
+        message:
+          `Required 3R reward distance ${rewardDistance} exceeds technical maximum `
+          + `${input.technicalRewardDistanceMax} — rejecting rather than inventing TP beyond structure.`,
+        takeProfit: null,
+        stopLossUnchanged: true,
+        quantityUnchanged: true,
+      };
+    }
     return {
       ok: true,
       takeProfit: tp,

@@ -184,7 +184,7 @@ describe("XAU position lock (FIXTURE)", () => {
 
   it("separate OS processes → exactly one reservation (multi-instance)", async () => {
     const storeTs = path.resolve(process.cwd(), "ai/forex-ai/automated-trading/position-lock/store.ts");
-    const script = path.join(root, "acquire-child.ts");
+    const script = path.join(root, "acquire-child.mts");
     fs.writeFileSync(
       script,
       `import { XauPositionLockStore } from ${JSON.stringify(storeTs)};
