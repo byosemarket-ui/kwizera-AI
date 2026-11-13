@@ -54,7 +54,8 @@ export type SizeOrderQuantityResult =
     riskPerUnit: number;
     requiredMargin: number | null;
     freeMargin: number | null;
-    remainingStrategyBudgetAfter: number;
+    /** null under the ACCOUNT_BALANCE basis (no strategy budget is consumed). */
+    remainingStrategyBudgetAfter: number | null;
     constraints: QuantityConstraintsResult;
     method: "POINT_COST" | "CONTRACT_MULTIPLIER";
     notes: string[];
@@ -220,6 +221,48 @@ export function sizeOrderQuantityFromAllocation(
     );
   }
 
+  return sizeFromRiskBaseCore(
+    input,
+    ccy,
+    orderAllocationAccountCcy,
+    input.remainingStrategyBudget - orderAllocationAccountCcy,
+    notes,
+  );
+}
+
+type SizeCoreInput = Pick<
+  SizeOrderQuantityInput,
+  | "entryPrice"
+  | "stopLoss"
+  | "contract"
+  | "freeMargin"
+  | "exposureAuthoritative"
+  | "marginPerUnitAccount"
+  | "sdkMinQuantity"
+  | "legacyLotStep"
+  | "brokerMaxQuantity"
+  | "conversionRateSnapshot"
+  | "nowMs"
+> & {
+  /**
+   * Instrument P/L currency. When supplied and the risk-per-lot method yields
+   * instrument-currency amounts, they are converted into account currency (fail-closed).
+   */
+  profitCurrency?: string | null;
+};
+
+/**
+ * Shared quantity core: risk base (account currency) × 25% → floored lots → integer AMOUNT.
+ * Used by both the legacy allocation basis and the XAU/USD account-balance basis.
+ */
+function sizeFromRiskBaseCore(
+  input: SizeCoreInput,
+  accountCurrency: string,
+  riskBase: number,
+  budgetAfter: number | null,
+  notes: string[],
+): SizeOrderQuantityResult {
+  const c = input.contract!;
   if (input.exposureAuthoritative !== true) {
     return fail(
       "SIZE_QTY_EXPOSURE_UNVERIFIED",
@@ -296,9 +339,38 @@ export function sizeOrderQuantityFromAllocation(
     );
   }
 
-  const riskTargetAmount = computePerOrderRiskTarget(orderAllocationAccountCcy);
-  const maxPermittedOrderLoss = computePerOrderLossLimit(orderAllocationAccountCcy);
-  const allowedRiskAmount = computeAllowedRiskAmount(orderAllocationAccountCcy);
+  // pipCostAccount is already account currency; a contract multiplier yields instrument P/L currency.
+  if (method === "CONTRACT_MULTIPLIER" && input.profitCurrency !== undefined) {
+    const profitCcy = String(input.profitCurrency ?? "").trim().toUpperCase();
+    if (!profitCcy) {
+      return fail(
+        "SIZE_QTY_PROFIT_CURRENCY_UNKNOWN",
+        "Instrument P/L currency unknown — risk cannot be expressed in account currency.",
+        notes,
+        constraints,
+      );
+    }
+    if (profitCcy !== accountCurrency) {
+      const conv = ensureAmountInAccountCurrency({
+        amount: riskPerLot,
+        amountCurrency: profitCcy,
+        accountCurrency,
+        rateSnapshot: input.conversionRateSnapshot,
+        nowMs: input.nowMs,
+      });
+      if (!conv.ok) {
+        return fail(conv.code, conv.message, notes, constraints);
+      }
+      notes.push(
+        `Risk per lot converted ${profitCcy}→${accountCurrency} via ${conv.source} (age ${conv.ageMs}ms).`,
+      );
+      riskPerLot = conv.amount;
+    }
+  }
+
+  const riskTargetAmount = computePerOrderRiskTarget(riskBase);
+  const maxPermittedOrderLoss = computePerOrderLossLimit(riskBase);
+  const allowedRiskAmount = computeAllowedRiskAmount(riskBase);
   // Size to the allowed risk (25% target under v3). Never round upward to meet broker min.
   const rawLots = allowedRiskAmount / riskPerLot;
   let quantity = floorQuantityToStep(rawLots, lotsStep, lotsMin);
@@ -427,8 +499,7 @@ export function sizeOrderQuantityFromAllocation(
               riskPerUnit: riskPerLot,
               requiredMargin: need,
               freeMargin,
-              remainingStrategyBudgetAfter:
-                input.remainingStrategyBudget - orderAllocationAccountCcy,
+              remainingStrategyBudgetAfter: budgetAfter,
               constraints,
               method,
               notes: [
@@ -465,10 +536,47 @@ export function sizeOrderQuantityFromAllocation(
     riskPerUnit: riskPerLot,
     requiredMargin,
     freeMargin,
-    remainingStrategyBudgetAfter:
-      input.remainingStrategyBudget - orderAllocationAccountCcy,
+    remainingStrategyBudgetAfter: budgetAfter,
     constraints,
     method,
     notes,
   };
+}
+
+export interface SizeFromAccountBalanceInput extends SizeCoreInput {
+  /** Captured, verified FXCM account balance (account currency). */
+  accountBalance: number | null | undefined;
+  accountCurrency: string | null | undefined;
+}
+
+/**
+ * XAU/USD account-balance basis: maximum modeled SL loss = balance × 25%.
+ * 25% is a ceiling — quantity is floored, never raised to consume the budget or meet broker minimums.
+ */
+export function sizeOrderQuantityFromAccountBalance(
+  input: SizeFromAccountBalanceInput,
+): SizeOrderQuantityResult {
+  const notes: string[] = [];
+  const c = input.contract;
+  if (!c?.verified) {
+    return fail("SIZE_QTY_CONTRACT_UNVERIFIED", "Contract metadata unverified — quantity not invented.", notes, null, null);
+  }
+  if (c.quantityUnitAmbiguous || c.quantityUnit !== "contracts") {
+    return fail(
+      "SIZE_QTY_UNIT_AMBIGUOUS",
+      "Quantity unit ambiguous — monetary sizing blocked.",
+      notes,
+      null,
+      c.quantityUnit === "contracts" ? "contracts" : "unknown",
+    );
+  }
+  if (!finitePositive(input.accountBalance)) {
+    return fail("SIZE_QTY_ACCOUNT_BALANCE_UNVERIFIED", "Verified FXCM account balance required.", notes);
+  }
+  const ccy = String(input.accountCurrency ?? "").trim().toUpperCase();
+  if (!ccy) {
+    return fail("SIZE_QTY_ACCOUNT_CURRENCY_MISSING", "Account currency unverified — conversion not invented.", notes);
+  }
+  notes.push(`Risk basis ACCOUNT_BALANCE: ${input.accountBalance} ${ccy} × 25% ceiling.`);
+  return sizeFromRiskBaseCore(input, ccy, input.accountBalance, null, notes);
 }

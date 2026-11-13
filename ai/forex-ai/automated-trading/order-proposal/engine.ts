@@ -20,7 +20,16 @@ import {
   floorQuantityToStep,
   resolveXauQuantityConstraints,
 } from "../simulation-risk/quantity-constraints.js";
-import { sizeOrderQuantityFromAllocation } from "../simulation-risk/size-order-quantity.js";
+import {
+  sizeOrderQuantityFromAccountBalance,
+  sizeOrderQuantityFromAllocation,
+} from "../simulation-risk/size-order-quantity.js";
+import type { AccountBalanceRiskSnapshot } from "../account-risk/balance-snapshot.js";
+import {
+  XAU_ACCOUNT_RISK_POLICY_ID,
+  XAU_ACCOUNT_RISK_POLICY_VERSION,
+  type AtRiskBasis,
+} from "../account-risk/policy.js";
 import {
   allowlistRejectionMessage,
   isInstrumentAllowlisted,
@@ -250,6 +259,16 @@ export interface BuildOrderProposalInput {
   strategyAllocationPercent?: number | null;
   individualOrderAllocation?: number | null;
   allocationCurrency?: string | null;
+  /**
+   * ACCOUNT_BALANCE (XAU/USD Automated Trading): 25% ceiling on the captured FXCM balance;
+   * allocation/strategy-% inputs are ignored. Default: legacy INDIVIDUAL_ORDER_ALLOCATION.
+   */
+  riskBasis?: AtRiskBasis | null;
+  accountBalanceSnapshot?: AccountBalanceRiskSnapshot | null;
+  /** Why the balance snapshot could not be captured (ACCOUNT_BALANCE_* code). */
+  accountBalanceBlocker?: AtOrderProposalBlocker | null;
+  /** Instrument P/L currency (e.g. USD for XAU/USD) for conversion of contract-multiplier risk. */
+  instrumentProfitCurrency?: string | null;
   existingCommittedExposure?: number | null;
   pendingProposalReservations?: number | null;
   configVersion?: number | null;
@@ -463,33 +482,64 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
   }
 
   // Capital allocation (A)
-  const pctCheck = validateStrategyAllocationPercent(input.strategyAllocationPercent);
+  const balanceBasis = input.riskBasis === "ACCOUNT_BALANCE";
+  const balanceSnap = balanceBasis ? (input.accountBalanceSnapshot ?? null) : null;
+  const pctCheck = balanceBasis
+    ? ({ ok: true, capitalAllocationPercent: 0 } as const)
+    : validateStrategyAllocationPercent(input.strategyAllocationPercent);
   const equity = input.verifiedEquity;
-  const accountCurrency = String(input.accountCurrency ?? "").trim().toUpperCase() || null;
+  const accountCurrency = balanceSnap?.accountCurrency
+    ?? (String(input.accountCurrency ?? "").trim().toUpperCase() || null);
 
   base.capital.verifiedEquity = finitePositive(equity) ? equity : null;
   base.capital.accountCurrency = accountCurrency;
   base.capital.currency = accountCurrency;
-  base.capital.strategyAllocationPercent = pctCheck.ok ? pctCheck.capitalAllocationPercent : null;
+  base.capital.strategyAllocationPercent =
+    !balanceBasis && pctCheck.ok ? pctCheck.capitalAllocationPercent : null;
   base.capital.configVersion = input.configVersion ?? null;
   base.capital.lastUpdateAtUtc = input.allocationUpdatedAtUtc ?? null;
   base.capital.existingCommittedExposure =
     finiteNonNeg(input.existingCommittedExposure) ? input.existingCommittedExposure : null;
   base.capital.pendingProposalReservations =
     finiteNonNeg(input.pendingProposalReservations) ? input.pendingProposalReservations : null;
+  base.capital.riskBasis = balanceBasis ? "ACCOUNT_BALANCE" : "INDIVIDUAL_ORDER_ALLOCATION";
+  base.capital.riskBaseAmount = null;
+  base.capital.accountRiskSnapshot = null;
 
-  if (input.equityFresh === false) {
-    blockers.push(block("STALE_ACCOUNT_EQUITY", "Account equity is stale — proposal blocked."));
-  }
-  if (!finitePositive(equity)) {
-    blockers.push(block("MISSING_ACCOUNT_EQUITY", "Verified account equity is missing."));
-  }
-  if (!pctCheck.ok) {
-    blockers.push(block("INVALID_STRATEGY_ALLOCATION_PCT", pctCheck.message));
+  if (balanceBasis) {
+    base.capital.riskPolicyId = XAU_ACCOUNT_RISK_POLICY_ID;
+    base.capital.riskPolicyVersion = XAU_ACCOUNT_RISK_POLICY_VERSION;
+    if (!balanceSnap) {
+      blockers.push(
+        input.accountBalanceBlocker
+          ?? block("ACCOUNT_BALANCE_UNAVAILABLE", "Verified FXCM account balance snapshot is required."),
+      );
+    } else {
+      base.capital.riskBaseAmount = balanceSnap.balance;
+      base.capital.accountRiskSnapshot = balanceSnap;
+      base.capital.riskTargetAmount = balanceSnap.maximumRiskAccountCurrency;
+      base.capital.maximumPermittedOrderLoss = balanceSnap.maximumRiskAccountCurrency;
+      base.capital.allowedRiskAmount = balanceSnap.maximumRiskAccountCurrency;
+      base.notes.push(
+        `RISK_BASIS=ACCOUNT_BALANCE: balance ${balanceSnap.balance} ${balanceSnap.accountCurrency} `
+        + `@ ${balanceSnap.balanceTimestampUtc} × 25% = max modeled SL loss `
+        + `${balanceSnap.maximumRiskAccountCurrency} (snapshot ${balanceSnap.snapshotId}).`,
+      );
+    }
+  } else {
+    if (input.equityFresh === false) {
+      blockers.push(block("STALE_ACCOUNT_EQUITY", "Account equity is stale — proposal blocked."));
+    }
+    if (!finitePositive(equity)) {
+      blockers.push(block("MISSING_ACCOUNT_EQUITY", "Verified account equity is missing."));
+    }
+    if (!pctCheck.ok) {
+      blockers.push(block("INVALID_STRATEGY_ALLOCATION_PCT", pctCheck.message));
+    }
   }
 
   let strategyBudget: number | null = null;
-  if (pctCheck.ok && finitePositive(equity)) {
+  if (!balanceBasis && pctCheck.ok && finitePositive(equity)) {
     const budget = computeCapitalAllocationBudget(equity, pctCheck.capitalAllocationPercent);
     if (budget.ok) {
       strategyBudget = budget.capitalAllocationBudget;
@@ -503,15 +553,17 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
     (finiteNonNeg(input.existingCommittedExposure) ? input.existingCommittedExposure : 0)
     + (finiteNonNeg(input.pendingProposalReservations) ? input.pendingProposalReservations : 0);
 
-  const perOrderRaw = input.individualOrderAllocation;
-  if (perOrderRaw == null) {
-    blockers.push(block("PER_ORDER_ALLOCATION_MISSING", "Per-order allocation amount is required."));
-  } else if (!finitePositive(perOrderRaw)) {
-    blockers.push(block("PER_ORDER_ALLOCATION_INVALID", "Per-order allocation must be a finite positive number."));
+  const perOrderRaw = balanceBasis ? null : input.individualOrderAllocation;
+  if (!balanceBasis) {
+    if (perOrderRaw == null) {
+      blockers.push(block("PER_ORDER_ALLOCATION_MISSING", "Per-order allocation amount is required."));
+    } else if (!finitePositive(perOrderRaw)) {
+      blockers.push(block("PER_ORDER_ALLOCATION_INVALID", "Per-order allocation must be a finite positive number."));
+    }
   }
 
   let perOrderAccount: number | null = null;
-  if (finitePositive(perOrderRaw) && strategyBudget != null && accountCurrency) {
+  if (!balanceBasis && finitePositive(perOrderRaw) && strategyBudget != null && accountCurrency) {
     const allocCcy = String(input.allocationCurrency ?? "USD").trim().toUpperCase() || "USD";
     const converted = ensureAmountInAccountCurrency({
       amount: perOrderRaw,
@@ -726,34 +778,52 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
     && !hardBlockCodes.has("INVALID_STRATEGY_ALLOCATION_PCT")
     && !hardBlockCodes.has("MISSING_FX_CONVERSION")
     && !hardBlockCodes.has("STALE_FX_CONVERSION")
-    && perOrderAccount != null
-    && strategyBudget != null
-    && pctCheck.ok
-    && finitePositive(equity);
+    && (balanceBasis
+      ? balanceSnap != null
+      : perOrderAccount != null
+        && strategyBudget != null
+        && pctCheck.ok
+        && finitePositive(equity));
 
   let normalizedQty: number | null = null;
 
   if (canSize) {
-    const remainingBefore = strategyBudget! - reserved;
-    const sized = sizeOrderQuantityFromAllocation({
-      verifiedEquity: equity!,
-      accountCurrency,
-      strategyAllocationPercent: pctCheck.capitalAllocationPercent,
-      remainingStrategyBudget: remainingBefore,
-      individualOrderAllocation: perOrderAccount!,
-      entryPrice,
-      stopLoss,
-      contract: contract!,
-      freeMargin: input.usableMargin,
-      exposureAuthoritative: input.exposureAuthoritative === true,
-      marginPerUnitAccount: input.marginPerUnitAccount,
-      sdkMinQuantity: input.sdkMinQuantity,
-      legacyLotStep: input.legacyLotStep,
-      brokerMaxQuantity: input.brokerMaxQuantity,
-      allocationCurrency: accountCurrency, // already converted above
-      conversionRateSnapshot: null,
-      nowMs,
-    });
+    const sized = balanceBasis
+      ? sizeOrderQuantityFromAccountBalance({
+        accountBalance: balanceSnap!.balance,
+        accountCurrency: balanceSnap!.accountCurrency,
+        profitCurrency: input.instrumentProfitCurrency ?? null,
+        entryPrice,
+        stopLoss,
+        contract: contract!,
+        freeMargin: input.usableMargin,
+        exposureAuthoritative: input.exposureAuthoritative === true,
+        marginPerUnitAccount: input.marginPerUnitAccount,
+        sdkMinQuantity: input.sdkMinQuantity,
+        legacyLotStep: input.legacyLotStep,
+        brokerMaxQuantity: input.brokerMaxQuantity,
+        conversionRateSnapshot: input.conversionRateSnapshot ?? null,
+        nowMs,
+      })
+      : sizeOrderQuantityFromAllocation({
+        verifiedEquity: equity!,
+        accountCurrency,
+        strategyAllocationPercent: pctCheck.ok ? pctCheck.capitalAllocationPercent : null,
+        remainingStrategyBudget: strategyBudget! - reserved,
+        individualOrderAllocation: perOrderAccount!,
+        entryPrice,
+        stopLoss,
+        contract: contract!,
+        freeMargin: input.usableMargin,
+        exposureAuthoritative: input.exposureAuthoritative === true,
+        marginPerUnitAccount: input.marginPerUnitAccount,
+        sdkMinQuantity: input.sdkMinQuantity,
+        legacyLotStep: input.legacyLotStep,
+        brokerMaxQuantity: input.brokerMaxQuantity,
+        allocationCurrency: accountCurrency, // already converted above
+        conversionRateSnapshot: null,
+        nowMs,
+      });
 
     const constraints = sized.constraints ?? resolveXauQuantityConstraints({
       quantityUnit: contract?.quantityUnit,
@@ -775,7 +845,15 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
     base.quantity.pipTickValue = contract?.pipCostAccount ?? null;
 
     if (!sized.ok) {
-      blockers.push(block(mapSizerCode(sized.code), sized.message));
+      const mapped = mapSizerCode(sized.code);
+      blockers.push(block(
+        balanceBasis && mapped === "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY"
+          ? "BROKER_MINIMUM_EXCEEDS_RISK_AFFORDABLE_QUANTITY"
+          : balanceBasis && mapped === "INSUFFICIENT_AVAILABLE_MARGIN"
+            ? "MARGIN_INSUFFICIENT"
+            : mapped,
+        sized.message,
+      ));
       base.capital.riskValidationStatus = "FAIL";
     } else {
       base.quantity.calculatedQuantity = sized.quantity;
@@ -787,8 +865,8 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
       base.capital.allowedRiskAmount = sized.allowedRiskAmount;
       base.capital.riskTargetPercent = PER_ORDER_RISK_TARGET_PERCENT;
       base.capital.riskMaximumPercent = PER_ORDER_RISK_MAXIMUM_PERCENT;
-      base.capital.riskPolicyId = RISK_POLICY_ID;
-      base.capital.riskPolicyVersion = RISK_POLICY_VERSION;
+      base.capital.riskPolicyId = balanceBasis ? XAU_ACCOUNT_RISK_POLICY_ID : RISK_POLICY_ID;
+      base.capital.riskPolicyVersion = balanceBasis ? XAU_ACCOUNT_RISK_POLICY_VERSION : RISK_POLICY_VERSION;
       base.capital.remainingStrategyBudget = sized.remainingStrategyBudgetAfter;
       if (sized.allowedRiskAmount != null && sized.estimatedStopLossRisk != null) {
         base.capital.remainingRiskBudget =
@@ -897,7 +975,9 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
         const brokerMin = constraints.quantityMin;
         if (finitePositive(brokerMin) && brokerAmt + 1e-12 < brokerMin) {
           blockers.push(block(
-            "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
+            balanceBasis
+              ? "BROKER_MINIMUM_EXCEEDS_RISK_AFFORDABLE_QUANTITY"
+              : "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
             `Broker AMOUNT minimum ${brokerMin} exceeds risk-affordable AMOUNT ${brokerAmt} `
             + `(${qty} lots). Quantity is not rounded up to satisfy broker minimum.`,
           ));
@@ -986,7 +1066,13 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
     }
 
     const costsOk = costsVerifiedFlag || claimedCosts === 0;
-    if (!costsOk) {
+    const structureMax = input.technicalRewardDistanceMax;
+    if (balanceBasis && !(structureMax != null && Number.isFinite(structureMax) && structureMax > 0)) {
+      blockers.push(block(
+        "TECHNICAL_TARGET_UNVERIFIED",
+        "No technical structure target is available — Take Profit is not stretched to manufacture 3R.",
+      ));
+    } else if (!costsOk) {
       blockers.push(block(
         "TRADING_COST_UNVERIFIED",
         "Non-zero trading costs were supplied without costsVerified=true — refusing invented cost accounting.",

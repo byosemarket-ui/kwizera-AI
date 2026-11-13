@@ -242,6 +242,8 @@ export interface AutomatedTradingPublicStatus {
   } | null;
   /** Phase 4 — boot / health / recovery / correlation observability. */
   phase4Observability?: import("./observability/types.js").AtPhase4ObservabilityPublic | null;
+  /** XAU/USD account-balance risk (25%, net ≥3R) and single-position lock — read-only. */
+  xauRiskAndLock?: Record<string, unknown> | null;
 }
 
 export function defaultEnvControls(): AutomatedTradingEnvControls {

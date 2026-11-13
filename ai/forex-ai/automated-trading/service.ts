@@ -4,6 +4,15 @@
  */
 import { getForexConnectProfilesManager } from "../../market-data/forexconnect/profiles.js";
 import { getForexConnectBridge } from "../../market-data/forexconnect/client.js";
+import {
+  accountBindingHash,
+  captureAccountBalanceRiskSnapshot,
+  instrumentProfitCurrency,
+  XAU_ACCOUNT_RISK_PERCENT,
+  XAU_ACCOUNT_RISK_POLICY_VERSION,
+  XAU_MIN_NET_REWARD_RISK,
+} from "./account-risk/index.js";
+import type { XauBrokerEvidence } from "./position-lock/types.js";
 import { getForexConnectLiveCandleService } from "../../market-data/forexconnect/live-service.js";
 import { resolveForexConnectLiveTimeframe } from "../../market-data/forexconnect/timeframes.js";
 import { getAutomatedTradingStore, type AutomatedTradingStore } from "./store.js";
@@ -160,6 +169,9 @@ export class AutomatedTradingService {
         runBrokerPrecheck: async (args) =>
           (await this.runBrokerPrecheck(args ?? {})) as unknown as Record<string, unknown>,
         getProposalAllocationConfig: () => this.getProposalAllocationConfig(),
+        riskBasis: "ACCOUNT_BALANCE",
+        acquirePositionReservation: (args) => this.acquireXauPositionReservation(args),
+        releaseUnsubmittedReservation: (args) => this.releaseXauUnsubmittedReservation(args),
       },
     });
     if (
@@ -230,6 +242,27 @@ export class AutomatedTradingService {
       activeDemoGrant = false;
     }
 
+    const lockedProposal = getAtOrderProposalStore().get(input.proposalId);
+    const balanceBasis = lockedProposal?.capital?.riskBasis === "ACCOUNT_BALANCE";
+    if (balanceBasis) {
+      const { getXauPositionLockStore } = await import("./position-lock/index.js");
+      if (!getXauPositionLockStore().isReservedFor(input.proposalId)) {
+        return {
+          ok: false as const,
+          code: "POSITION_LOCK_NOT_HELD",
+          message: "XAU/USD Phase 3 handoff requires this proposal to hold the single-position reservation.",
+          chain: null,
+          payloadPackage: null,
+          boundary: null,
+          placesOrders: false as const,
+          acceptsForExecution: false as const,
+          mutatesBroker: false as const,
+          brokerExecution: "DISABLED" as const,
+          note: "Blocked before payload construction — no FXCM order submitted.",
+        };
+      }
+    }
+
     const out = await runPhase3FromPrecheck({
       precheckId: input.precheckId,
       precheckStatus: input.precheckStatus,
@@ -284,6 +317,15 @@ export class AutomatedTradingService {
       detail: String(out.chain.note || "").slice(0, 160),
     });
 
+    if (balanceBasis) {
+      // Execution boundary is disabled: nothing was submitted, so the reservation ends here
+      // (still only on broker-confirmed flat evidence).
+      await this.releaseXauUnsubmittedReservation({
+        proposalId: input.proposalId,
+        reason: `PHASE3_${out.chain.status}`,
+      }).catch(() => undefined);
+    }
+
     return {
       ok: true as const,
       chain: out.chain,
@@ -301,6 +343,305 @@ export class AutomatedTradingService {
       mutatesBroker: false as const,
       brokerExecution: "DISABLED" as const,
       note: "Phase 3 handoff reaches EXECUTION_BLOCKED — no FXCM order submitted.",
+    };
+  }
+
+  // --- XAU/USD account-balance risk & single-position lock (read-only broker access) ---
+
+  private positionMonitorTimer: ReturnType<typeof setTimeout> | null = null;
+  private positionMonitorTickRunning = false;
+  private positionMonitorMode: "LIFECYCLE" | "SAFETY_RECONCILIATION" | "STOPPED" = "STOPPED";
+  private positionMonitorLastTickAtUtc: string | null = null;
+  private positionMonitorLastAlerts: Array<{ code: string; severity: string; message: string; tradeId: string | null }> = [];
+
+  private xauLockContext(): { symbol: string; offerId: string | null; accountBindingHash: string | null } {
+    const state = this.store.getState();
+    const envState = state.environments[state.selectedEnvironment];
+    const inst = envState.lastVerification?.instrument;
+    const isXau = String(inst?.symbol ?? "").toUpperCase().replace(/[^A-Z]/g, "") === "XAUUSD";
+    const accountId = envState.lastVerifiedAccountId ?? null;
+    return {
+      symbol: "XAU/USD",
+      offerId: isXau && inst?.offerId != null ? String(inst.offerId) : null,
+      accountBindingHash: accountId ? accountBindingHash(accountId) : null,
+    };
+  }
+
+  /** Fresh read-only FXCM Accounts read bound to the verified account (never equity/allocation). */
+  private async fetchFreshAccountForRisk(): Promise<{
+    account: import("./verification-types.js").VerifiedAccountMetadataPublic | null;
+    accountId: string | null;
+    identityVerified: boolean;
+    reason: string | null;
+  }> {
+    const state = this.store.getState();
+    const env = state.selectedEnvironment;
+    const bound = state.environments[env].lastVerifiedAccountId ?? null;
+    if (!bound) return { account: null, accountId: null, identityVerified: false, reason: "NO_VERIFIED_ACCOUNT_BINDING" };
+    try {
+      const bridge = getForexConnectBridge();
+      const fc = await bridge.getStatus();
+      if (String(fc.status ?? "").toUpperCase() !== "CONNECTED") {
+        return { account: null, accountId: null, identityVerified: false, reason: "PROVIDER_DISCONNECTED" };
+      }
+      const sessionEnv = uiEnvFromFc(fc.environment ?? fc.environmentLabel ?? null);
+      if (sessionEnv && sessionEnv !== env) {
+        return { account: null, accountId: null, identityVerified: false, reason: "ENVIRONMENT_MISMATCH" };
+      }
+      const accountsResult = await bridge.listAccounts();
+      const { buildAccountSnapshotFromAccountsResult } = await import("../position-sizing/account-snapshot.js");
+      const { mapAccountMetadata } = await import("./verification-engine.js");
+      const { ACCOUNT_SNAPSHOT_MAX_AGE_MS } = await import("./verification-types.js");
+      const snap = buildAccountSnapshotFromAccountsResult({
+        result: accountsResult,
+        selectedAccountId: bound,
+        expectedEnvironment: env === "LIVE" ? "live" : "demo",
+        maxAgeMs: ACCOUNT_SNAPSHOT_MAX_AGE_MS,
+      });
+      const identityVerified = Boolean(snap.accountId) && snap.accountId === bound;
+      return {
+        account: snap.accountId ? mapAccountMetadata(snap) : null,
+        accountId: snap.accountId ?? null,
+        identityVerified,
+        reason: identityVerified ? null : "ACCOUNT_IDENTITY_MISMATCH",
+      };
+    } catch {
+      return { account: null, accountId: null, identityVerified: false, reason: "ACCOUNT_FETCH_FAILED" };
+    }
+  }
+
+  /** Read-only FXCM Trades/Orders/ClosedTrades → XAU/USD exposure evidence. */
+  async collectXauBrokerEvidence(): Promise<XauBrokerEvidence> {
+    const { classifyXauBrokerExposure, getXauPositionLockStore } = await import("./position-lock/index.js");
+    type Snap = import("./simulation-risk/exposure-reconciliation.js").BrokerRoTableSnapshot;
+    const ctx = this.xauLockContext();
+    const bridge = getForexConnectBridge();
+    const rec = getXauPositionLockStore().get();
+    const [trades, orders, closed] = await Promise.all([
+      bridge.listTrades().catch(() => null),
+      bridge.listOrders().catch(() => null),
+      bridge.listClosedTrades().catch(() => null),
+    ]);
+    return classifyXauBrokerExposure({
+      trades: trades as Snap | null,
+      orders: orders as Snap | null,
+      closedTrades: closed as Snap | null,
+      symbol: ctx.symbol,
+      offerId: ctx.offerId,
+      trackedTradeIds: rec.trackedTradeIds,
+      trackedOrderIds: rec.trackedOrderIds,
+      accountBindingHash: ctx.accountBindingHash,
+    });
+  }
+
+  async acquireXauPositionReservation(input: {
+    proposalId: string;
+    idempotencyKey: string;
+    riskDecisionId: string | null;
+  }): Promise<{ ok: boolean; code?: string; message?: string; reservationId?: string | null }> {
+    const { getXauPositionLockStore } = await import("./position-lock/index.js");
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const snap = getAtOrderProposalStore().get(input.proposalId)?.capital?.accountRiskSnapshot ?? null;
+    const evidence = await this.collectXauBrokerEvidence();
+    const out = await getXauPositionLockStore().acquireReservation({
+      proposalId: input.proposalId,
+      idempotencyKey: input.idempotencyKey,
+      riskDecisionId: input.riskDecisionId,
+      accountBindingHash: snap?.accountBindingHash ?? null,
+      accountRiskSnapshotId: snap?.snapshotId ?? null,
+      maxRiskAccountCurrency: snap?.maximumRiskAccountCurrency ?? null,
+      accountCurrency: snap?.accountCurrency ?? null,
+      evidence,
+    });
+    await this.store.appendAudit({
+      action: "xau_position_lock_acquire",
+      environment: this.store.getState().selectedEnvironment,
+      ok: out.ok,
+      code: out.ok ? (out.duplicate ? "DUPLICATE_RESERVATION" : "RESERVED") : out.code,
+      detail: `proposal ${input.proposalId}; broker ${evidence.status}`,
+    });
+    this.schedulePositionMonitor();
+    return out.ok
+      ? { ok: true, reservationId: out.reservationId }
+      : { ok: false, code: out.code, message: out.message };
+  }
+
+  async releaseXauUnsubmittedReservation(input: { proposalId: string; reason: string }) {
+    const { getXauPositionLockStore } = await import("./position-lock/index.js");
+    const store = getXauPositionLockStore();
+    if (store.get().reservation?.proposalId !== input.proposalId) return { released: false, code: "NOT_RESERVED_FOR_PROPOSAL" };
+    const evidence = await this.collectXauBrokerEvidence();
+    const out = await store.releaseUnsubmittedReservation({ ...input, evidence });
+    await this.store.appendAudit({
+      action: "xau_position_lock_release_unsubmitted",
+      environment: this.store.getState().selectedEnvironment,
+      ok: out.released,
+      code: out.released ? out.reason : out.code,
+      detail: `proposal ${input.proposalId}; broker ${evidence.status}`,
+    });
+    this.schedulePositionMonitor();
+    return out.released ? { released: true, reason: out.reason } : { released: false, code: out.code, message: out.message };
+  }
+
+  /**
+   * One read-only reconciliation tick. LIFECYCLE when System Master is ON; otherwise
+   * SAFETY_RECONCILIATION only while the lock is held (keeps lock truth; never releases on doubt).
+   */
+  async runXauPositionMonitorTickNow(): Promise<Record<string, unknown>> {
+    const { getXauPositionLockStore, runXauPositionMonitorTick } = await import("./position-lock/index.js");
+    if (this.positionMonitorTickRunning) {
+      return { ok: false, code: "TICK_IN_PROGRESS", lock: getXauPositionLockStore().get() };
+    }
+    this.positionMonitorTickRunning = true;
+    try {
+      const ctx = this.xauLockContext();
+      const bridge = getForexConnectBridge();
+      type Snap = import("./simulation-risk/exposure-reconciliation.js").BrokerRoTableSnapshot;
+      const out = await runXauPositionMonitorTick({
+        store: getXauPositionLockStore(),
+        fetchTrades: async () => (await bridge.listTrades()) as Snap,
+        fetchOrders: async () => (await bridge.listOrders()) as Snap,
+        fetchClosedTrades: async () => (await bridge.listClosedTrades()) as Snap,
+        symbol: ctx.symbol,
+        offerId: ctx.offerId,
+        accountBindingHash: ctx.accountBindingHash,
+      });
+      this.positionMonitorLastTickAtUtc = new Date().toISOString();
+      this.positionMonitorLastAlerts = out.alerts.slice(0, 10);
+      return { ok: true, evidenceStatus: out.evidence.status, alerts: out.alerts, lock: out.record, readOnly: true };
+    } finally {
+      this.positionMonitorTickRunning = false;
+    }
+  }
+
+  /** (Re)arm the monitor timer according to System Master state and lock occupancy. */
+  schedulePositionMonitor(): void {
+    void (async () => {
+      const { getXauPositionLockStore } = await import("./position-lock/index.js");
+      const master = getAtSystemMasterStore().get();
+      const smOn = master.ownerState === "ON" && master.masterEnabled === true;
+      const held = getXauPositionLockStore().get().state !== "AVAILABLE";
+      const mode = smOn ? "LIFECYCLE" : held ? "SAFETY_RECONCILIATION" : "STOPPED";
+      if (this.positionMonitorTimer) {
+        clearTimeout(this.positionMonitorTimer);
+        this.positionMonitorTimer = null;
+      }
+      this.positionMonitorMode = mode;
+      if (mode === "STOPPED") return;
+      const delay = mode === "LIFECYCLE" ? 15_000 : 60_000;
+      this.positionMonitorTimer = setTimeout(() => {
+        this.positionMonitorTimer = null;
+        void this.runXauPositionMonitorTickNow()
+          .catch(() => undefined)
+          .finally(() => this.schedulePositionMonitor());
+      }, delay);
+      this.positionMonitorTimer.unref?.();
+    })().catch(() => undefined);
+  }
+
+  stopPositionMonitorTimer(): void {
+    if (this.positionMonitorTimer) clearTimeout(this.positionMonitorTimer);
+    this.positionMonitorTimer = null;
+    this.positionMonitorMode = "STOPPED";
+  }
+
+  async acknowledgeXauRiskBreach(input: { operator?: string }) {
+    const { getXauPositionLockStore } = await import("./position-lock/index.js");
+    const out = await getXauPositionLockStore().acknowledgeRiskBreach({ operator: input.operator || "owner_ui" });
+    await this.store.appendAudit({
+      action: "xau_risk_breach_acknowledge",
+      environment: this.store.getState().selectedEnvironment,
+      ok: out.ok,
+      code: out.ok ? "ACKNOWLEDGED" : out.code,
+      detail: out.ok ? "Entry freeze cleared by owner." : out.message,
+    });
+    return { ...out, placesOrders: false as const, mutatesBroker: false as const };
+  }
+
+  /** Public XAU/USD account-risk + position-lock status for UI/API (read-only). */
+  async getXauRiskAndLockStatus(): Promise<Record<string, unknown>> {
+    const { getXauPositionLockStore } = await import("./position-lock/index.js");
+    const { getAtOrderProposalStore } = await import("./order-proposal/index.js");
+    const lock = getXauPositionLockStore().get();
+    const latest = getAtOrderProposalStore().latest();
+    const snap = latest?.capital?.accountRiskSnapshot ?? null;
+    const state = this.store.getState();
+    const acct = state.environments[state.selectedEnvironment].lastVerification?.account ?? null;
+    const fetchedMs = acct?.fetchedAtUtc ? Date.parse(acct.fetchedAtUtc) : NaN;
+    return {
+      accountRisk: {
+        riskBasis: "ACCOUNT_BALANCE",
+        policyVersion: XAU_ACCOUNT_RISK_POLICY_VERSION,
+        riskPercent: XAU_ACCOUNT_RISK_PERCENT,
+        minimumNetRewardRisk: XAU_MIN_NET_REWARD_RISK,
+        accountIdMasked: acct?.accountIdMasked ?? null,
+        accountCurrency: acct?.accountCurrency ?? null,
+        balance: acct?.balance ?? null,
+        balanceFetchedAtUtc: acct?.fetchedAtUtc ?? null,
+        balanceAgeMs: Number.isFinite(fetchedMs) ? Math.max(0, Date.now() - fetchedMs) : null,
+        maximumRiskAccountCurrency:
+          typeof acct?.balance === "number" && acct.balance > 0 ? acct.balance * 0.25 : null,
+        note: "Display only — each proposal captures its own fresh balance snapshot; status values are not reused for risk.",
+      },
+      latestProposalRisk: latest
+        ? {
+          proposalId: latest.proposalId,
+          lifecycle: latest.lifecycle,
+          direction: latest.direction,
+          riskBasis: latest.capital?.riskBasis ?? "INDIVIDUAL_ORDER_ALLOCATION",
+          snapshotId: snap?.snapshotId ?? null,
+          snapshotBalance: snap?.balance ?? null,
+          snapshotCurrency: snap?.accountCurrency ?? null,
+          maximumRiskAccountCurrency: snap?.maximumRiskAccountCurrency ?? latest.capital?.maximumPermittedOrderLoss ?? null,
+          entry: latest.pricePlan.entryPrice,
+          stopLoss: latest.pricePlan.stopLoss,
+          takeProfit: latest.pricePlan.takeProfit,
+          quantityLots: latest.quantity.normalizedQuantity ?? latest.quantity.calculatedQuantity,
+          brokerAmount: latest.quantity.brokerAmount,
+          quantityUnit: "LOTS / FXCM AMOUNT",
+          grossRisk: latest.capital?.projectedLossAtStopLoss ?? latest.pricePlan.modeledStopLossRiskAccount,
+          netRisk: latest.pricePlan.modeledStopLossRiskAccount ?? latest.capital?.projectedLossAtStopLoss ?? null,
+          grossReward: latest.pricePlan.grossTakeProfitRewardAccount,
+          netReward: latest.pricePlan.netTakeProfitRewardAccount,
+          netRewardRisk: latest.pricePlan.netRewardRiskRatio,
+          estimatedMargin: latest.quantity.estimatedMargin ?? null,
+          brokerMinimum: latest.quantity.brokerMinimum,
+          verdict: latest.lifecycle === "PROPOSAL_READY" ? "PASS" : "BLOCKED",
+          blockers: latest.blockers.map((b) => b.code),
+        }
+        : null,
+      positionLock: {
+        state: lock.state,
+        stateVersion: lock.stateVersion,
+        reservation: lock.reservation
+          ? {
+            proposalId: lock.reservation.proposalId,
+            reservedAtUtc: lock.reservation.reservedAtUtc,
+            expiresAtUtc: lock.reservation.expiresAtUtc,
+            maxRiskAccountCurrency: lock.reservation.maxRiskAccountCurrency,
+          }
+          : null,
+        submissionState: lock.submission.state,
+        positions: lock.lastEvidence?.positions ?? [],
+        pendingOrders: lock.lastEvidence?.pendingOrders ?? [],
+        brokerEvidenceStatus: lock.lastEvidence?.status ?? null,
+        brokerReasonCodes: lock.lastEvidence?.reasonCodes ?? [],
+        lastReconciliationAtUtc: lock.lastReconciliationAtUtc,
+        lastReleaseReason: lock.lastReleaseReason,
+        lastReleasedAtUtc: lock.lastReleasedAtUtc,
+        entryFreeze: lock.entryFreeze,
+        recentEvents: lock.events.slice(-8),
+      },
+      monitor: {
+        mode: this.positionMonitorMode,
+        lastTickAtUtc: this.positionMonitorLastTickAtUtc,
+        alerts: this.positionMonitorLastAlerts,
+      },
+      executionAuthorized: false,
+      brokerExecution: "DISABLED",
+      placesOrders: false,
+      acceptsForExecution: false,
+      mutatesBroker: false,
     };
   }
 
@@ -579,6 +920,8 @@ export class AutomatedTradingService {
       changedBy: operator,
       lastStopAtUtc: prev.lastStopAtUtc ?? new Date().toISOString(),
     }));
+    // Lifecycle monitor stops; read-only safety reconciliation continues only while the XAU lock is held.
+    this.schedulePositionMonitor();
 
     await this.store.appendAudit({
       action: "system_master_off",
@@ -737,6 +1080,7 @@ export class AutomatedTradingService {
       changedBy: input.operator,
       lastStartAtUtc: prev.lastStartAtUtc ?? new Date().toISOString(),
     }));
+    this.schedulePositionMonitor();
     return {
       ok: true,
       code: "ON",
@@ -766,6 +1110,8 @@ export class AutomatedTradingService {
         lastBlockerCode: prev.lastBlockerCode === "OPERATOR_STOP" ? "OPERATOR_STOP" : prev.lastBlockerCode,
         changedBy: "boot_recovery",
       }));
+      // Restart: a persisted held XAU lock is re-reconciled read-only (never auto-released).
+      this.schedulePositionMonitor();
       return;
     }
 
@@ -2315,6 +2661,7 @@ export class AutomatedTradingService {
           return null;
         }
       })(),
+      xauRiskAndLock: await this.getXauRiskAndLockStatus().catch(() => null),
       phase3Pipeline: await (async () => {
         try {
           const { getAtPhase3PipelineStore } = await import("./phase3-pipeline.js");
@@ -3748,6 +4095,49 @@ export class AutomatedTradingService {
     const autoLevels = input.autoLevels !== false && input.autoLevels !== "false";
     const pendingReservations = getAtOrderProposalStore().activeReservationTotal();
 
+    // XAU/USD Automated Trading — risk basis is the live FXCM account balance (fresh RO read).
+    const { isStage3ActiveInstrument } = await import("./risk-policy/types.js");
+    const proposalInstrument = String(handoff?.instrument ?? inst?.symbol ?? env.selectedInstrument ?? "").trim();
+    const balanceBasis = Boolean(proposalInstrument) && isStage3ActiveInstrument(proposalInstrument);
+    let riskAccount = account ?? null;
+    let balanceSnapshot: import("./account-risk/index.js").AccountBalanceRiskSnapshot | null = null;
+    let balanceBlocker: { code: string; message: string } | null = null;
+    if (balanceBasis) {
+      const fresh = await this.fetchFreshAccountForRisk();
+      riskAccount = fresh.account;
+      const captured = captureAccountBalanceRiskSnapshot({
+        account: fresh.account,
+        accountId: fresh.accountId,
+        identityVerified: fresh.identityVerified,
+        environment: state.selectedEnvironment,
+        quote: {
+          bid,
+          ask,
+          timestampMs: market?.sourceTimestampMs ?? market?.receivedAtMs ?? null,
+        },
+        contract: inst
+          ? {
+            offerId: inst.offerId,
+            source: inst.contractSource,
+            baseUnitSize: inst.baseUnitSize,
+            quantityMin: inst.quantityMin,
+            quantityStep: inst.quantityStep,
+            pointSize: inst.pointSize,
+          }
+          : null,
+      });
+      if (captured.ok) balanceSnapshot = captured.snapshot;
+      else balanceBlocker = { code: captured.code, message: `${captured.message}${fresh.reason ? ` (${fresh.reason})` : ""}` };
+    }
+    const riskUsableMargin = balanceBasis ? (riskAccount?.usableMargin ?? null) : (account?.usableMargin ?? null);
+    const riskUsedMargin = balanceBasis ? (riskAccount?.usedMargin ?? null) : (account?.usedMargin ?? null);
+    const riskMarginFresh = balanceBasis
+      ? Boolean(riskAccount?.isFresh && riskAccount.usableMargin != null && riskAccount.fields?.usableMargin)
+      : marginFresh;
+    // Exposure is authoritative only when broker Orders/Trades were readable (never assumed).
+    const exposureEvidence = await this.collectXauBrokerEvidence().catch(() => null);
+    const exposureAuthoritative = exposureEvidence != null && exposureEvidence.status !== "UNKNOWN";
+
     const engineResult = runAutomatedPerOrderRiskEngine({
       handoff,
       entryPrice: num(input.entryPrice) ?? null,
@@ -3766,21 +4156,25 @@ export class AutomatedTradingService {
       verifiedEquity: equity,
       accountCurrency: account?.accountCurrency ?? null,
       equityFresh,
-      usableMargin: account?.usableMargin ?? null,
-      usedMargin: account?.usedMargin ?? null,
-      marginFresh,
-      accountIdMasked: account?.accountIdMasked ?? state.environments[state.selectedEnvironment].lastVerifiedAccountId,
+      usableMargin: riskUsableMargin,
+      usedMargin: riskUsedMargin,
+      marginFresh: riskMarginFresh,
+      accountIdMasked: riskAccount?.accountIdMasked ?? account?.accountIdMasked ?? null,
       strategyAllocationPercent: env.controls.capitalAllocationPercent,
-      individualOrderAllocation: perOrder ?? null,
+      individualOrderAllocation: balanceBasis ? null : (perOrder ?? null),
       allocationCurrency: allocCfg.allocationCurrency,
+      riskBasis: balanceBasis ? "ACCOUNT_BALANCE" : "INDIVIDUAL_ORDER_ALLOCATION",
+      accountBalanceSnapshot: balanceSnapshot,
+      accountBalanceBlocker: balanceBlocker,
+      instrumentProfitCurrency: instrumentProfitCurrency(proposalInstrument),
       existingCommittedExposure: 0,
       pendingProposalReservations: pendingReservations,
       contract,
-      contractFresh: contractVerified && equityFresh,
+      contractFresh: balanceBasis ? contractVerified && balanceSnapshot != null : contractVerified && equityFresh,
       sdkMinQuantity: inst?.quantityMin ?? null,
       legacyLotStep: inst?.quantityStep ?? null,
       marginPerUnitAccount: inst?.marginPerLotAccount ?? null,
-      exposureAuthoritative: true,
+      exposureAuthoritative,
       existingExposure: 0,
       systemMasterOn,
       tradingEnabled: env.controls.masterEnable === true,

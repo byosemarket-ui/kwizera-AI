@@ -216,7 +216,9 @@ export function buildPerOrderRiskRecord(input: {
     entryPrice: proposal.pricePlan.entryPrice,
     stopLossPrice: proposal.pricePlan.stopLoss,
     takeProfitPrice: proposal.pricePlan.takeProfit,
-    capitalAllocation: proposal.capital.allocatedAmount ?? proposal.capital.individualOrderAllocation,
+    capitalAllocation: proposal.capital.riskBasis === "ACCOUNT_BALANCE"
+      ? (proposal.capital.riskBaseAmount ?? null)
+      : (proposal.capital.allocatedAmount ?? proposal.capital.individualOrderAllocation),
     accountCurrency: proposal.capital.accountCurrency,
     operatingRiskPercent: proposal.capital.riskTargetPercent ?? DEFAULT_PER_ORDER_RISK_PERCENT,
     hardMaximumRiskPercent: proposal.capital.riskMaximumPercent ?? MAX_PER_ORDER_LOSS_PERCENT,

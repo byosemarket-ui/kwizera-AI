@@ -955,6 +955,44 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // XAU/USD account-balance risk + single-position lock (read-only broker observation).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/xau-position-lock")) {
+      if (req.method !== "GET") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      sendJson(res, 200, { ok: true, ...(await service.getXauRiskAndLockStatus()) });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/xau-position-lock/reconcile")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const tick = await service.runXauPositionMonitorTickNow();
+      service.schedulePositionMonitor();
+      sendJson(res, 200, {
+        ...tick,
+        readOnly: true,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/xau-position-lock/acknowledge-risk-breach")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const out = await service.acknowledgeXauRiskBreach({ operator: "owner" });
+      sendJson(res, out.ok ? 200 : 409, { ...out, brokerExecution: "DISABLED" });
+      return true;
+    }
+
     if (isAtPath(url.pathname, "/api/forex/automated-trading/system-master/off")) {
       if (req.method !== "POST") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });

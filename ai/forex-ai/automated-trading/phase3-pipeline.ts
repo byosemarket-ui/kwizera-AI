@@ -16,7 +16,7 @@ import {
   type Phase3PayloadPackage,
 } from "./broker-execution/phase3-payload-validator.js";
 import { buildFxcmTrueMarketOpenPayload } from "./demo-submission-adapter/fxcm-payload.js";
-import type { AtOrderProposalRecord } from "./order-proposal/types.js";
+import { resolveProposalRiskBase, type AtOrderProposalRecord } from "./order-proposal/types.js";
 
 export const PHASE3_PIPELINE_SCHEMA = "at-phase3-pipeline-v1" as const;
 
@@ -379,7 +379,7 @@ export async function runPhase3FromPrecheck(
     quoteBid: quote.bid,
     quoteAsk: quote.ask,
     quoteFresh: quote.fresh,
-    individualOrderAllocation: proposal.capital?.individualOrderAllocation ?? null,
+    individualOrderAllocation: resolveProposalRiskBase(proposal.capital),
     modeledMaxLoss: proposal.perOrderRisk?.actualModeledMonetaryRisk ?? null,
     idempotencyKey: `phase3:${input.precheckId}:${proposal.proposalId}`,
     nowMs,

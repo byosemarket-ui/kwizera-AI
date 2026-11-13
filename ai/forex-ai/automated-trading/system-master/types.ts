@@ -28,7 +28,8 @@ export type SystemMasterModuleId =
   | "canonical_reconciliation"
   | "analysis_history"
   | "result_intake"
-  | "dashboard_status";
+  | "dashboard_status"
+  | "position_lifecycle_monitor";
 
 /** Shared infrastructure NOT exclusively owned by System Master. */
 export const AT_SYSTEM_MASTER_SHARED_SERVICES = [
@@ -52,6 +53,7 @@ export const AT_SYSTEM_MASTER_OWNED_MODULES: SystemMasterModuleId[] = [
   "analysis_history",
   "result_intake",
   "dashboard_status",
+  "position_lifecycle_monitor",
 ];
 
 export interface SystemMasterPersisted {

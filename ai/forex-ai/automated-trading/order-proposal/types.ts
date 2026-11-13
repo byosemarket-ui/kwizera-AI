@@ -4,6 +4,8 @@
  */
 import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AtBinaryDirection } from "../analysis/direction.js";
+import type { AccountBalanceRiskSnapshot } from "../account-risk/balance-snapshot.js";
+import type { AtRiskBasis } from "../account-risk/policy.js";
 
 export const AT_ORDER_PROPOSAL_SCHEMA = "at-order-proposal-v1" as const;
 export const AT_ORDER_PROPOSAL_PHASE = "4.18G.2" as const;
@@ -133,6 +135,30 @@ export interface AtOrderProposalCapitalSnapshot {
   currency: string | null;
   configVersion: number | null;
   lastUpdateAtUtc: string | null;
+  /**
+   * Authoritative risk basis. XAU/USD Automated Trading uses ACCOUNT_BALANCE;
+   * legacy proposals (absent) used INDIVIDUAL_ORDER_ALLOCATION.
+   */
+  riskBasis?: AtRiskBasis;
+  /** Amount the 25% ceiling is applied to (captured balance, or legacy allocation). */
+  riskBaseAmount?: number | null;
+  /** Immutable FXCM balance snapshot captured for this proposal (ACCOUNT_BALANCE basis). */
+  accountRiskSnapshot?: AccountBalanceRiskSnapshot | null;
+}
+
+/** Amount every downstream 25% check must use — one authoritative risk base per proposal. */
+export function resolveProposalRiskBase(
+  capital: Partial<Pick<AtOrderProposalCapitalSnapshot, "riskBasis" | "riskBaseAmount" | "individualOrderAllocation">>
+    | null
+    | undefined,
+): number | null {
+  if (!capital) return null;
+  if (capital.riskBasis === "ACCOUNT_BALANCE") {
+    const b = capital.riskBaseAmount;
+    return typeof b === "number" && Number.isFinite(b) && b > 0 ? b : null;
+  }
+  const a = capital.individualOrderAllocation;
+  return typeof a === "number" && Number.isFinite(a) && a > 0 ? a : null;
 }
 
 export interface AtOrderProposalPricePlan {

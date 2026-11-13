@@ -25,6 +25,7 @@ export interface Phase2ChainRecord {
     | "ALLOCATION_BLOCKED"
     | "PROPOSAL_CREATED"
     | "PROPOSAL_REJECTED"
+    | "POSITION_LOCK_BLOCKED"
     | "HANDOFF_VALIDATED"
     | "HANDOFF_BLOCKED"
     | "PRECHECK_PASSED"
@@ -192,6 +193,16 @@ export type Phase2DownstreamService = {
     proposalId?: string | null;
   }) => Promise<Record<string, unknown>>;
   getProposalAllocationConfig?: () => Promise<{ individualOrderAllocation: number | null }>;
+  /** ACCOUNT_BALANCE: XAU/USD risk from the captured FXCM balance — no allocation gate. */
+  riskBasis?: "ACCOUNT_BALANCE" | "INDIVIDUAL_ORDER_ALLOCATION";
+  /** Single XAU/USD position lock — atomic reservation before handoff/precheck. */
+  acquirePositionReservation?: (input: {
+    proposalId: string;
+    idempotencyKey: string;
+    riskDecisionId: string | null;
+  }) => Promise<{ ok: boolean; code?: string; message?: string; reservationId?: string | null }>;
+  /** Release an unsubmitted reservation (broker-flat evidence required by the lock). */
+  releaseUnsubmittedReservation?: (input: { proposalId: string; reason: string }) => Promise<unknown>;
 };
 
 function asRecord(v: unknown): Record<string, unknown> | null {
@@ -277,22 +288,25 @@ export async function runPhase2Downstream(input: {
     });
   }
 
+  const balanceBasis = input.service.riskBasis === "ACCOUNT_BALANCE";
   let allocation: number | null = null;
-  try {
-    if (input.service.getProposalAllocationConfig) {
-      const cfg = await input.service.getProposalAllocationConfig();
-      allocation = cfg.individualOrderAllocation;
+  if (!balanceBasis) {
+    try {
+      if (input.service.getProposalAllocationConfig) {
+        const cfg = await input.service.getProposalAllocationConfig();
+        allocation = cfg.individualOrderAllocation;
+      }
+    } catch {
+      allocation = null;
     }
-  } catch {
-    allocation = null;
-  }
-  if (allocation == null || !Number.isFinite(allocation) || allocation <= 0) {
-    return store.upsert({
-      ...base,
-      status: "ALLOCATION_BLOCKED",
-      blockers: ["PER_ORDER_ALLOCATION_MISSING"],
-      note: "individualOrderAllocation not configured — fail closed; no fabricated allocation.",
-    });
+    if (allocation == null || !Number.isFinite(allocation) || allocation <= 0) {
+      return store.upsert({
+        ...base,
+        status: "ALLOCATION_BLOCKED",
+        blockers: ["PER_ORDER_ALLOCATION_MISSING"],
+        note: "individualOrderAllocation not configured — fail closed; no fabricated allocation.",
+      });
+    }
   }
 
   // Re-check generation before paid/downstream work
@@ -310,10 +324,11 @@ export async function runPhase2Downstream(input: {
     });
   }
 
-  const proposalOut = await input.service.generateProposal({
-    autoLevels: true,
-    individualOrderAllocation: allocation,
-  });
+  const proposalOut = await input.service.generateProposal(
+    balanceBasis
+      ? { autoLevels: true }
+      : { autoLevels: true, individualOrderAllocation: allocation },
+  );
   const proposal = asRecord(proposalOut.proposal);
   const proposalId = typeof proposal?.proposalId === "string" ? proposal.proposalId : null;
   const perOrderRisk = asRecord(proposalOut.perOrderRisk) ?? asRecord(proposal?.perOrderRisk);
@@ -376,6 +391,34 @@ export async function runPhase2Downstream(input: {
     });
   }
 
+  let reserved = false;
+  const releaseReservation = async (reason: string) => {
+    if (!reserved || !input.service.releaseUnsubmittedReservation) return;
+    await input.service.releaseUnsubmittedReservation({ proposalId, reason }).catch(() => undefined);
+  };
+  if (input.service.acquirePositionReservation) {
+    const lock = await input.service
+      .acquirePositionReservation({
+        proposalId,
+        idempotencyKey: `phase2:${input.record.analysisId}:${proposalId}`,
+        riskDecisionId,
+      })
+      .catch((err: unknown) => ({
+        ok: false,
+        code: "POSITION_LOCK_STORE_UNAVAILABLE",
+        message: String((err as Error)?.message ?? err),
+      }));
+    if (!lock.ok) {
+      return store.upsert({
+        ...chain,
+        status: "POSITION_LOCK_BLOCKED",
+        blockers: [String(lock.code ?? "POSITION_LOCK_HELD")],
+        note: String(lock.message ?? "XAU/USD single-position lock unavailable — terminal for this analysis."),
+      });
+    }
+    reserved = true;
+  }
+
   const handoffOut = await input.service.validateHandoff({ proposalId });
   const handoff = asRecord(handoffOut.handoff) ?? asRecord(handoffOut.record);
   const handoffId = typeof handoff?.handoffId === "string" ? handoff.handoffId : null;
@@ -386,6 +429,7 @@ export async function runPhase2Downstream(input: {
     && Boolean(handoffId)
     && !/BLOCK|REJECT|FAIL|EXPIRED/i.test(handoffLifecycle);
   if (!handoffOk) {
+    await releaseReservation("HANDOFF_BLOCKED");
     return store.upsert({
       ...chain,
       handoffId,
@@ -411,6 +455,7 @@ export async function runPhase2Downstream(input: {
     || masterBeforePrecheck.masterEnabled !== true
     || masterBeforePrecheck.analysisGeneration !== input.analysisGeneration
   ) {
+    await releaseReservation("SYSTEM_MASTER_OFF_BEFORE_PRECHECK");
     return store.upsert({
       ...chain,
       status: "ABORTED_SYSTEM_OFF",
@@ -451,6 +496,8 @@ export async function runPhase2Downstream(input: {
     && precheckOut.mutatesBroker !== true
     && precheckOut.placesOrders !== true
     && (/PASS|PASSED|OK|VALID|ACCEPT/i.test(outcome) || (outcome === "" && precheckBlockers.length === 0 && precheckOut.executionAuthorized === false));
+
+  if (!precheckPassed) await releaseReservation("PRECHECK_BLOCKED");
 
   return store.upsert({
     ...chain,

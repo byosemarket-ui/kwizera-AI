@@ -301,6 +301,56 @@ type PublicStatus = {
     brokerExecution: "DISABLED";
     note: string;
   } | null;
+  xauRiskAndLock?: XauRiskAndLockUi | null;
+};
+
+type XauRiskAndLockUi = {
+  accountRisk?: {
+    policyVersion: string;
+    riskPercent: number;
+    minimumNetRewardRisk: number;
+    accountIdMasked: string | null;
+    accountCurrency: string | null;
+    balance: number | null;
+    balanceFetchedAtUtc: string | null;
+    balanceAgeMs: number | null;
+    maximumRiskAccountCurrency: number | null;
+  };
+  latestProposalRisk?: {
+    proposalId: string;
+    lifecycle: string;
+    direction: string | null;
+    riskBasis: string;
+    snapshotBalance: number | null;
+    maximumRiskAccountCurrency: number | null;
+    entry: number | null;
+    stopLoss: number | null;
+    takeProfit: number | null;
+    quantityLots: number | null;
+    brokerAmount: number | null;
+    grossRisk: number | null;
+    netRisk: number | null;
+    grossReward: number | null;
+    netReward: number | null;
+    netRewardRisk: number | null;
+    estimatedMargin: number | null;
+    brokerMinimum: number | null;
+    verdict: "PASS" | "BLOCKED";
+    blockers: string[];
+  } | null;
+  positionLock?: {
+    state: string;
+    submissionState: string;
+    reservation: { proposalId: string; expiresAtUtc: string } | null;
+    positions: Array<{ tradeId: string | null; side: string | null; amount: number | null; floatingPl: number | null; ownership: string }>;
+    pendingOrders: Array<{ orderId: string | null; side: string | null; amount: number | null; ownership: string }>;
+    brokerEvidenceStatus: string | null;
+    brokerReasonCodes: string[];
+    lastReconciliationAtUtc: string | null;
+    lastReleaseReason: string | null;
+    entryFreeze: { active: boolean; reason: string | null };
+  };
+  monitor?: { mode: string; lastTickAtUtc: string | null; alerts: Array<{ code: string; severity: string }> };
 };
 
 type AuditEvent = {
@@ -2650,6 +2700,88 @@ export function ForexAutomatedTradingPage(props: {
             {status?.phase4Observability?.correlation?.note
               ?? status?.phase4Observability?.note
               ?? "Phase 4 observability populates after boot and status refresh."}
+          </li>
+        </ul>
+        <h2 className="fx-auto-trading-h2" style={{ marginTop: "0.85rem" }}>
+          XAU/USD account risk &amp; single-position lock
+        </h2>
+        <p className="fx-auto-trading-hint" style={{ marginTop: 0 }}>
+          Risk basis: live FXCM account <strong>balance</strong> · max modeled Stop Loss loss{" "}
+          {status?.xauRiskAndLock?.accountRisk?.riskPercent ?? 25}% (ceiling, not a target) · net R:R ≥{" "}
+          {status?.xauRiskAndLock?.accountRisk?.minimumNetRewardRisk ?? 3}. A risk PASS is not execution
+          authorization — broker execution remains <strong>DISABLED</strong>.
+        </p>
+        <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+          <li data-fx-at-xau-account-risk="true">
+            Account:{" "}
+            <strong>{status?.xauRiskAndLock?.accountRisk?.accountIdMasked ?? "—"}</strong>
+            {" · balance "}
+            <strong>
+              {fmtNum(status?.xauRiskAndLock?.accountRisk?.balance)}{" "}
+              {status?.xauRiskAndLock?.accountRisk?.accountCurrency ?? "(currency unknown)"}
+            </strong>
+            {" · age "}
+            {status?.xauRiskAndLock?.accountRisk?.balanceAgeMs != null
+              ? `${Math.round(status.xauRiskAndLock.accountRisk.balanceAgeMs / 1000)}s`
+              : "—"}
+            {" · max risk "}
+            {fmtNum(status?.xauRiskAndLock?.accountRisk?.maximumRiskAccountCurrency)}
+            {" · policy "}
+            <code>{status?.xauRiskAndLock?.accountRisk?.policyVersion ?? "—"}</code>
+          </li>
+          <li data-fx-at-xau-proposal-risk="true">
+            Latest proposal:{" "}
+            {status?.xauRiskAndLock?.latestProposalRisk ? (
+              <>
+                <strong>{status.xauRiskAndLock.latestProposalRisk.verdict}</strong>
+                {` · ${status.xauRiskAndLock.latestProposalRisk.direction ?? "—"}`}
+                {` · entry ${fmtNum(status.xauRiskAndLock.latestProposalRisk.entry)}`}
+                {` · SL ${fmtNum(status.xauRiskAndLock.latestProposalRisk.stopLoss)}`}
+                {` · TP ${fmtNum(status.xauRiskAndLock.latestProposalRisk.takeProfit)}`}
+                {` · ${fmtNum(status.xauRiskAndLock.latestProposalRisk.quantityLots, 2)} lots / AMOUNT ${fmtNum(status.xauRiskAndLock.latestProposalRisk.brokerAmount, 0)}`}
+                {` · gross risk ${fmtNum(status.xauRiskAndLock.latestProposalRisk.grossRisk)} · net risk ${fmtNum(status.xauRiskAndLock.latestProposalRisk.netRisk)} / max ${fmtNum(status.xauRiskAndLock.latestProposalRisk.maximumRiskAccountCurrency)}`}
+                {` · gross reward ${fmtNum(status.xauRiskAndLock.latestProposalRisk.grossReward)} · net reward ${fmtNum(status.xauRiskAndLock.latestProposalRisk.netReward)}`}
+                {` · net R:R ${fmtNum(status.xauRiskAndLock.latestProposalRisk.netRewardRisk)}`}
+                {` · margin ${fmtNum(status.xauRiskAndLock.latestProposalRisk.estimatedMargin)}`}
+                {` · broker min ${fmtNum(status.xauRiskAndLock.latestProposalRisk.brokerMinimum, 0)}`}
+                {status.xauRiskAndLock.latestProposalRisk.blockers.length
+                  ? ` — ${status.xauRiskAndLock.latestProposalRisk.blockers.slice(0, 5).join(", ")}`
+                  : ""}
+              </>
+            ) : (
+              "no proposal yet"
+            )}
+          </li>
+          <li data-fx-at-xau-position-lock="true">
+            Position lock: <strong>{status?.xauRiskAndLock?.positionLock?.state ?? "—"}</strong>
+            {" · broker "}
+            {status?.xauRiskAndLock?.positionLock?.brokerEvidenceStatus ?? "not reconciled"}
+            {" · positions "}
+            {(status?.xauRiskAndLock?.positionLock?.positions ?? [])
+              .map((p) => `${p.ownership}:${p.side ?? "?"} ${p.amount ?? "?"} P/L ${fmtNum(p.floatingPl)}`)
+              .join(" · ") || "none"}
+            {" · pending orders "}
+            {(status?.xauRiskAndLock?.positionLock?.pendingOrders ?? []).length}
+            {" · last reconciled "}
+            {status?.xauRiskAndLock?.positionLock?.lastReconciliationAtUtc ?? "—"}
+            {status?.xauRiskAndLock?.positionLock?.lastReleaseReason
+              ? ` · last release ${status.xauRiskAndLock.positionLock.lastReleaseReason}`
+              : ""}
+            {(status?.xauRiskAndLock?.positionLock?.brokerReasonCodes ?? []).length
+              ? ` — ${(status?.xauRiskAndLock?.positionLock?.brokerReasonCodes ?? []).join(", ")}`
+              : ""}
+          </li>
+          <li data-fx-at-xau-entry-freeze="true">
+            Entry freeze:{" "}
+            <strong>{status?.xauRiskAndLock?.positionLock?.entryFreeze?.active ? "ACTIVE" : "inactive"}</strong>
+            {status?.xauRiskAndLock?.positionLock?.entryFreeze?.reason
+              ? ` · ${status.xauRiskAndLock.positionLock.entryFreeze.reason}`
+              : ""}
+            {" · monitor "}
+            {status?.xauRiskAndLock?.monitor?.mode ?? "—"}
+            {(status?.xauRiskAndLock?.monitor?.alerts ?? []).length
+              ? ` · alerts ${(status?.xauRiskAndLock?.monitor?.alerts ?? []).map((a) => `${a.severity}:${a.code}`).join(", ")}`
+              : ""}
           </li>
         </ul>
       </section>

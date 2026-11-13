@@ -12,6 +12,8 @@ import {
   measureSlippageAbsolute,
 } from "../risk-policy/index.js";
 import { validateBidAsk } from "../verification-engine.js";
+import { evaluateRiskSnapshotValidity } from "../account-risk/balance-snapshot.js";
+import { resolveProposalRiskBase } from "../order-proposal/types.js";
 import {
   AT_BROKER_PRECHECK_DEFAULT_TTL_MS,
   AT_BROKER_PRECHECK_PHASE,
@@ -816,7 +818,39 @@ export function runPreExecutionValidation(
     const orderAlloc = proposal.capital?.individualOrderAllocation
       ?? handoff?.riskCapital?.individualOrderAllocation
       ?? null;
-    if (
+    if (proposal.capital?.riskBasis === "ACCOUNT_BALANCE") {
+      const snap = proposal.capital.accountRiskSnapshot ?? null;
+      const riskBase = resolveProposalRiskBase(proposal.capital);
+      if (!snap || riskBase == null) {
+        checks.push(check(
+          "capital_config",
+          "account",
+          "FAIL",
+          "ACCOUNT_BALANCE_UNAVAILABLE",
+          "ACCOUNT_BALANCE risk basis requires the captured FXCM balance snapshot.",
+        ));
+      } else {
+        checks.push(check(
+          "capital_config",
+          "account",
+          "PASS",
+          "ACCOUNT_BALANCE_RISK_BASIS",
+          `Risk basis FXCM balance ${snap.balance} ${snap.accountCurrency} (snapshot ${snap.snapshotId}).`,
+        ));
+        const validity = evaluateRiskSnapshotValidity(snap, input.account
+          ? { accountIdMasked: input.account.accountIdMasked, balance: input.account.balance }
+          : null);
+        checks.push(check(
+          "risk_snapshot",
+          "account",
+          validity === "VALID" ? "PASS" : "FAIL",
+          validity === "VALID" ? "RISK_SNAPSHOT_VALID" : `RISK_SNAPSHOT_${validity}`,
+          validity === "VALID"
+            ? "Captured balance snapshot still matches the connected account."
+            : `Proposal risk snapshot ${validity} — recalculate with a fresh analysis/proposal.`,
+        ));
+      }
+    } else if (
       allocPct == null
       || !Number.isFinite(allocPct)
       || orderAlloc == null
@@ -1346,7 +1380,7 @@ export function runPreExecutionValidation(
         ?? null,
       contract: contractForDs,
       orderAllocationAccount: dsIn?.orderAllocationAccount
-        ?? proposal?.capital?.individualOrderAllocation
+        ?? resolveProposalRiskBase(proposal?.capital)
         ?? null,
       allocationId: dsIn?.allocationId
         ?? (proposal?.proposalId ? `alloc:${proposal.proposalId}` : null),
