@@ -2450,7 +2450,7 @@ export function ForexAutomatedTradingPage(props: {
           <span data-fx-at-master-generation="true">
             Gen: {systemMaster?.analysisGeneration ?? status?.phase4Observability?.correlation?.analysisGeneration ?? "—"}
           </span>
-          <span data-fx-at-automation-recovery="true">
+          <span data-fx-at-automation-recovery="true" data-fx-at-recovery-status="true">
             Recovery: {automation?.recoveryStatus ?? status?.phase4Observability?.recovery?.recoveryStatus ?? "—"}
           </span>
           {systemMaster?.lastBlockerCode ? (
@@ -3743,6 +3743,9 @@ export function ForexAutomatedTradingPage(props: {
             Last success: <strong>{monitor?.health?.lastSuccessfulAnalysisAtUtc ?? "—"}</strong>
           </li>
           <li data-fx-at-execution-detail="true">
+            Monitoring:{" "}
+            <strong>{automation?.lifecycle ?? automation?.marketMonitoring ?? "OFF"}</strong>
+            {" · "}
             Broker execution: <strong>{automation?.brokerExecution ?? "DISABLED"}</strong>
             {" · "}
             Code: <strong data-fx-at-execution-code="true">{automation?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}</strong>

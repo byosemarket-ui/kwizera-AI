@@ -155,7 +155,8 @@ describe("Phase 57.2 boot recovery decisions", () => {
     expect(d.action).toBe("BLOCK_AND_ALIGN_MONITOR_STOP");
     expect(d.nextLifecycle).toBe("BLOCKED");
     expect(d.reasonCode).toBe("QUOTE_NOT_FRESH");
-    expect(d.stopMonitorWorker).toBe(true);
+    // Phase 4.18F.8 / System Master — analysis schedule is independent of trading-automation BLOCKED.
+    expect(d.stopMonitorWorker).toBe(false);
     expect(d.recoveryStatus).toBe("RECOVERY_BLOCKED");
   });
 
@@ -171,7 +172,8 @@ describe("Phase 57.2 boot recovery decisions", () => {
     });
     expect(d.action).toBe("BLOCK_AND_ALIGN_MONITOR_STOP");
     expect(d.reasonCode).toBe("RECOVERY_REQUIRES_START");
-    expect(d.stopMonitorWorker).toBe(true);
+    // Analysis worker stop is owned by System Master OFF, not automation BLOCKED.
+    expect(d.stopMonitorWorker).toBe(false);
   });
 
   it("STOPPING recovers to OFF without soft-resume", () => {
@@ -187,7 +189,8 @@ describe("Phase 57.2 boot recovery decisions", () => {
     expect(d.action).toBe("FORCE_OFF_FROM_STOPPING");
     expect(d.nextLifecycle).toBe("OFF");
     expect(d.requestedMode).toBe("OFF");
-    expect(d.stopMonitorWorker).toBe(true);
+    // Trading-automation STOPPING→OFF must not kill the analysis schedule (System Master owns that).
+    expect(d.stopMonitorWorker).toBe(false);
   });
 
   it("OFF stays OFF and does not invent MONITORING", () => {
