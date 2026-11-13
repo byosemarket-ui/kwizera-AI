@@ -1000,6 +1000,30 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 4 — boot / health / recovery / correlation summary (never execution).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/observability/summary")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const status = await service.buildStatus();
+      sendJson(res, 200, {
+        ok: true,
+        phase4Observability: status.phase4Observability ?? null,
+        systemMaster: service.getSystemMasterStatus(),
+        monitor: service.getMonitorStatus(),
+        phase2Pipeline: status.phase2Pipeline ?? null,
+        phase3Pipeline: status.phase3Pipeline ?? null,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        brokerExecution: "DISABLED",
+        executionStatusLabel: "EXECUTION_FORBIDDEN",
+        note: "Phase 4 observability summary. Broker execution remains DISABLED.",
+      });
+      return true;
+    }
+
     // Phase 57.1 — master automation START/STOP (monitoring only; never broker execution).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/automation/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {

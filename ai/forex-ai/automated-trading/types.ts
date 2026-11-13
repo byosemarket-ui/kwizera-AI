@@ -240,6 +240,8 @@ export interface AutomatedTradingPublicStatus {
     mutatesBroker: false;
     submissionAttempted: false;
   } | null;
+  /** Phase 4 — boot / health / recovery / correlation observability. */
+  phase4Observability?: import("./observability/types.js").AtPhase4ObservabilityPublic | null;
 }
 
 export function defaultEnvControls(): AutomatedTradingEnvControls {

@@ -233,6 +233,65 @@ type PublicStatus = {
     mutatesBroker: false;
     submissionAttempted: false;
   } | null;
+  phase4Observability?: {
+    boot?: {
+      bootId: string | null;
+      status: string | null;
+      startedAtUtc: string | null;
+      completedAtUtc: string | null;
+      analysisScheduleResumed: boolean | null;
+      note: string | null;
+    };
+    recovery?: {
+      lastDecision: {
+        classification?: string;
+        action?: string;
+        code?: string;
+        message?: string;
+        suggestedAction?: string;
+        ownerInterventionRequired?: boolean;
+        keepExecutionBlocked?: true;
+      } | null;
+      recoveryStatus: string | null;
+    };
+    modules?: Array<{
+      id: string;
+      label: string;
+      state: string;
+      ready: boolean;
+      detail: string;
+      code: string | null;
+    }>;
+    alerts?: Array<{
+      severity: string;
+      code: string;
+      message: string;
+      suggestedAction: string;
+      component: string;
+    }>;
+    correlation?: {
+      bootId: string | null;
+      analysisGeneration: number | null;
+      analysisId: string | null;
+      intakeId: string | null;
+      proposalId: string | null;
+      riskDecisionId: string | null;
+      precheckId: string | null;
+      payloadId: string | null;
+      handoffId: string | null;
+      executionBoundaryDecisionId: string | null;
+      phase2Status: string | null;
+      phase3Status: string | null;
+      boundaryStatus: "EXECUTION_BLOCKED" | null;
+      boundaryReason: string | null;
+      note: string;
+    };
+    placesOrders: false;
+    acceptsForExecution: false;
+    mutatesBroker: false;
+    brokerExecution: "DISABLED";
+    note: string;
+  } | null;
 };
 
 type AuditEvent = {
@@ -720,6 +779,7 @@ export function ForexAutomatedTradingPage(props: {
     blockedModules?: string[];
     lastError?: string | null;
     lastBlockerCode?: string | null;
+    analysisGeneration?: number;
     placesOrders?: false;
     acceptsForExecution?: false;
     mutatesBroker?: false;
@@ -2387,6 +2447,12 @@ export function ForexAutomatedTradingPage(props: {
           <span data-fx-at-master-last-success="true">
             Last OK: {monitor?.health?.lastSuccessfulAnalysisAtUtc ?? "—"}
           </span>
+          <span data-fx-at-master-generation="true">
+            Gen: {systemMaster?.analysisGeneration ?? status?.phase4Observability?.correlation?.analysisGeneration ?? "—"}
+          </span>
+          <span data-fx-at-automation-recovery="true">
+            Recovery: {automation?.recoveryStatus ?? status?.phase4Observability?.recovery?.recoveryStatus ?? "—"}
+          </span>
           {systemMaster?.lastBlockerCode ? (
             <span className="fx-at-system-master-blocker" data-fx-at-master-blocker="true">
               {systemMaster.lastBlockerCode}
@@ -2485,6 +2551,84 @@ export function ForexAutomatedTradingPage(props: {
           <li data-fx-at-phase3-note="true">
             {status?.phase3Pipeline?.note
               ?? "No Phase 3 chain yet. Runs after a domain-passing precheck; submission remains disabled."}
+          </li>
+        </ul>
+        <h2 className="fx-auto-trading-h2" style={{ marginTop: "0.85rem" }}>
+          Phase 4 observability (boot · health · recovery · correlation)
+        </h2>
+        <p className="fx-auto-trading-hint" style={{ marginTop: 0 }}>
+          Integrated readiness only. Never shows EXECUTION_READY or ORDER_SUBMITTED.
+          Broker execution remains <strong>DISABLED</strong>.
+        </p>
+        <ul className="fx-auto-trading-hint" style={{ margin: 0, paddingLeft: "1.1rem" }}>
+          <li data-fx-at-phase4-boot="true">
+            Boot: <strong>{status?.phase4Observability?.boot?.status ?? "—"}</strong>
+            {status?.phase4Observability?.boot?.bootId
+              ? ` · ${status.phase4Observability.boot.bootId}`
+              : ""}
+            {status?.phase4Observability?.boot?.analysisScheduleResumed === true
+              ? " · schedule resumed"
+              : status?.phase4Observability?.boot?.analysisScheduleResumed === false
+                ? " · schedule standby"
+                : ""}
+          </li>
+          <li data-fx-at-phase4-recovery="true">
+            Recovery:{" "}
+            <strong>
+              {status?.phase4Observability?.recovery?.lastDecision?.classification
+                ?? automation?.recoveryStatus
+                ?? "—"}
+            </strong>
+            {status?.phase4Observability?.recovery?.lastDecision?.action
+              ? ` · ${status.phase4Observability.recovery.lastDecision.action}`
+              : ""}
+            {status?.phase4Observability?.recovery?.lastDecision?.code
+              ? ` · ${status.phase4Observability.recovery.lastDecision.code}`
+              : ""}
+          </li>
+          <li data-fx-at-phase4-correlation="true">
+            Correlation:{" "}
+            <code>
+              {status?.phase4Observability?.correlation?.bootId ?? "—"}
+              {" → "}
+              {status?.phase4Observability?.correlation?.analysisId ?? "—"}
+              {" → "}
+              {status?.phase4Observability?.correlation?.intakeId ?? "—"}
+              {" → "}
+              {status?.phase4Observability?.correlation?.proposalId ?? "—"}
+              {" → "}
+              {status?.phase4Observability?.correlation?.precheckId ?? "—"}
+              {" → "}
+              {status?.phase4Observability?.correlation?.payloadId ?? "—"}
+              {" → "}
+              {status?.phase4Observability?.correlation?.handoffId ?? "—"}
+              {" → "}
+              {status?.phase4Observability?.correlation?.executionBoundaryDecisionId ?? "—"}
+            </code>
+          </li>
+          <li data-fx-at-phase4-modules="true">
+            Modules:{" "}
+            {(status?.phase4Observability?.modules ?? [])
+              .filter((m) => !m.ready || m.state === "BLOCKED" || m.state === "FAILED" || m.state === "STALE" || m.state === "DISCONNECTED")
+              .slice(0, 6)
+              .map((m) => `${m.label}:${m.state}`)
+              .join(" · ")
+              || ((status?.phase4Observability?.modules?.length ?? 0) > 0
+                ? "all reported ready or stopped as expected"
+                : "—")}
+          </li>
+          <li data-fx-at-phase4-alerts="true">
+            Alerts:{" "}
+            {(status?.phase4Observability?.alerts ?? [])
+              .filter((a) => a.severity !== "INFO")
+              .slice(0, 4)
+              .map((a) => `${a.severity}:${a.code}`)
+              .join(" · ") || "none (non-info)"}
+          </li>
+          <li data-fx-at-phase4-note="true">
+            {status?.phase4Observability?.correlation?.note
+              ?? status?.phase4Observability?.note
+              ?? "Phase 4 observability populates after boot and status refresh."}
           </li>
         </ul>
       </section>

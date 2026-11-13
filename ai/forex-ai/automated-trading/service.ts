@@ -2348,6 +2348,92 @@ export class AutomatedTradingService {
           return null;
         }
       })(),
+      phase4Observability: await (async () => {
+        try {
+          const {
+            getAtBootAuditStore,
+            buildAtCorrelationChain,
+            buildAtModuleHealthMatrix,
+            decideAtRecovery,
+            AT_PHASE4_OBSERVABILITY_SCHEMA,
+          } = await import("./observability/index.js");
+          const { getAtPhase2PipelineStore } = await import("./phase2-pipeline.js");
+          const { getAtPhase3PipelineStore } = await import("./phase3-pipeline.js");
+          const master = getAtSystemMasterStore().get();
+          const mon = this.monitor.getPublicStatus();
+          const auto = getAtAutomationControlStore().get();
+          const boot = getAtBootAuditStore().getLatest();
+          const p2 = getAtPhase2PipelineStore().getLatest();
+          const p3 = getAtPhase3PipelineStore().getLatest();
+          const quoteFresh = Boolean(freshnessEval.fresh);
+          const quoteReason = String(freshnessEval.reasonCode ?? "");
+          const recovery = decideAtRecovery({
+            code: auto.reasonCode || quoteReason || null,
+            message: auto.reasonMessage ?? null,
+            quoteFresh,
+            quoteReasonCode: quoteReason,
+            brokerConnected: connectionStatus === "CONNECTED",
+            systemMasterOn: master.ownerState === "ON" && master.masterEnabled === true,
+            retryCount: 0,
+            maxRetries: 3,
+          });
+          const health = buildAtModuleHealthMatrix({
+            systemMasterOwnerState: master.ownerState === "ON" || master.ownerState === "OFF" ? master.ownerState : null,
+            systemMasterOperationalState: master.operationalState,
+            brokerConnected: connectionStatus === "CONNECTED",
+            quoteFresh,
+            quoteReasonCode: quoteReason,
+            monitorEnabled: Boolean(mon.config?.enabled),
+            workerState: mon.health?.workerState ?? null,
+            schedulerNextAtUtc: mon.health?.nextScheduledAnalysisAtUtc ?? null,
+            lastSuccessfulAnalysisAtUtc: mon.health?.lastSuccessfulAnalysisAtUtc ?? null,
+            phase2Status: p2?.status ?? null,
+            phase3Status: p3?.status ?? null,
+            boundaryStatus: p3?.boundaryStatus ?? null,
+            recovery,
+            openaiBlockedCode: null,
+          });
+          const correlation = buildAtCorrelationChain({
+            bootId: boot?.bootId ?? null,
+            systemMasterTransitionId: `${master.stateVersion}:${master.changedAtUtc}`,
+            analysisGeneration: master.analysisGeneration,
+            workerRunId:
+              mon.health?.recentCycleTerminals?.[0]?.analysisId
+              ?? mon.health?.recentCycleTerminals?.[0]?.scheduledAtUtc
+              ?? null,
+            schedulerRunId: mon.health?.nextScheduledAnalysisAtUtc ?? null,
+            marketSnapshotId: freshnessEval.snapshotFingerprint ?? null,
+            phase2: p2,
+            phase3: p3,
+            instrument: envState.selectedInstrument ?? "XAU/USD",
+          });
+          return {
+            schemaVersion: AT_PHASE4_OBSERVABILITY_SCHEMA,
+            boot: {
+              bootId: boot?.bootId ?? null,
+              status: boot?.status ?? null,
+              startedAtUtc: boot?.startedAtUtc ?? null,
+              completedAtUtc: boot?.completedAtUtc ?? null,
+              analysisScheduleResumed: boot?.analysisScheduleResumed ?? null,
+              note: boot?.note ?? null,
+            },
+            recovery: {
+              lastDecision: recovery,
+              recoveryStatus: auto.recoveryStatus ?? null,
+            },
+            modules: health.modules,
+            alerts: health.alerts,
+            correlation,
+            placesOrders: false as const,
+            acceptsForExecution: false as const,
+            mutatesBroker: false as const,
+            brokerExecution: "DISABLED" as const,
+            note: "Phase 4 observability — boot, health, recovery, correlation. Broker execution DISABLED.",
+          };
+        } catch {
+          return null;
+        }
+      })(),
     };
   }
 
