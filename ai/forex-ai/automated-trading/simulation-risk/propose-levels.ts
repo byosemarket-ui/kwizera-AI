@@ -8,6 +8,7 @@ import {
   resolveXauQuantityConstraints,
 } from "./quantity-constraints.js";
 import type { AtSimContractMetaInput } from "./types.js";
+import { computeAllowedRiskAmount, computePerOrderLossLimit } from "./capital-budget.js";
 
 export interface AnalysisPriceLevelLite {
   price: number | null | undefined;
@@ -400,9 +401,9 @@ export function proposeQuantityFromAllocation(input: {
     };
   }
 
-  // Size to 20% risk target; 25% remains the hard ceiling enforced after flooring.
-  const maxPermittedLoss = alloc * 0.20;
-  const hardMaxLoss = alloc * 0.25;
+  // Same authoritative per-order budget as the proposal engine (v3: 25% target = 25% ceiling).
+  const maxPermittedLoss = computeAllowedRiskAmount(alloc);
+  const hardMaxLoss = computePerOrderLossLimit(alloc);
   const rawQty = maxPermittedLoss / riskPerUnit;
 
   // Phase 56.2.5 — never invent step=1 or min; resolve from BaseUnitSize + SDK min.
