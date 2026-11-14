@@ -40,7 +40,7 @@ describe("Phase 4.11 pipeline status + market-closed mapping (unit)", () => {
     expect(s.placesOrders).toBe(false);
   });
 
-  it("marks EXECUTION_BLOCKED when monitoring but 0.01 lots incompatible (mock)", () => {
+  it("live XAU metadata is evaluated at the broker minimum — no fixed 0.01 owner cap (mock)", () => {
     const s = deriveAtPipelineStatus({
       automationLifecycle: "MONITORING",
       quoteFresh: true,
@@ -55,9 +55,11 @@ describe("Phase 4.11 pipeline status + market-closed mapping (unit)", () => {
       },
       instrumentContractLive: true,
     });
-    expect(s.phase).toBe("EXECUTION_BLOCKED");
     expect(s.monitoringAllowed).toBe(true);
-    expect(s.quantityCompatibility?.compatible001Lot).toBe(false);
+    expect(s.executionAllowed).toBe(false);
+    expect(s.ownerMaxLots).toBeNull();
+    expect(s.quantityCompatibility?.compatible001Lot).toBe(true);
+    expect(s.blockers.some((b) => /OWNER_MAX/.test(b))).toBe(false);
     expect(s.blockers).toContain("GLOBAL_AT_EXECUTION_DISABLED");
   });
 

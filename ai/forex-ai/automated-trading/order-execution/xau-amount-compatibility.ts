@@ -76,7 +76,7 @@ export function classifyXauAmountCompatibility(
       minLotsFromBroker,
       code: "POSITION_SIZE_UNAVAILABLE",
       message:
-        `Dynamic sizing (no fixed owner cap): broker minimum ${input.minQuantity} AMOUNT = ${minLotsFromBroker} lots`
+        `Dynamic sizing (no fixed lot cap): broker minimum ${input.minQuantity} AMOUNT = ${minLotsFromBroker} lots`
         + `${step != null ? `, step ${step} AMOUNT` : ""}. Quantity is set per proposal from the 25% balance risk budget.`,
     };
   }

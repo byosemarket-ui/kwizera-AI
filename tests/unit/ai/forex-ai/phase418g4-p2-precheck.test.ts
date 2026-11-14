@@ -536,7 +536,7 @@ describe("Phase 4.18G.4-P2 pre-execution validator", () => {
     expect(hasCode(r, "INVALID_QUANTITY")).toBe(true);
   });
 
-  it("8. quantity above 0.01 blocks", () => {
+  it("8. quantity above 0.01 is not blocked by a fixed owner cap (dynamic sizing)", () => {
     const proposal = readyProposal();
     proposal.quantity.normalizedQuantity = 0.02;
     const handoff = readyHandoff(proposal);
@@ -546,7 +546,20 @@ describe("Phase 4.18G.4-P2 pre-execution validator", () => {
       handoff,
       expectedProposalId: proposal.proposalId,
     }));
-    expect(hasCode(r, "OWNER_MAX_QUANTITY_EXCEEDED")).toBe(true);
+    expect(hasCode(r, "OWNER_MAX_QUANTITY_EXCEEDED")).toBe(false);
+    expect(r.ownerMaxLots).toBeNull();
+  });
+
+  it("8b. handoff quantity differing from the proposal → QUANTITY_MISMATCH_BETWEEN_PIPELINE_STAGES", () => {
+    const proposal = readyProposal();
+    const handoff = readyHandoff(proposal);
+    handoff.directionOrder.normalizedQuantity = (proposal.quantity.normalizedQuantity ?? 0.01) * 2;
+    const r = runPreExecutionValidation(baseInput({
+      proposal,
+      handoff,
+      expectedProposalId: proposal.proposalId,
+    }));
+    expect(hasCode(r, "QUANTITY_MISMATCH_BETWEEN_PIPELINE_STAGES")).toBe(true);
   });
 
   it("9. insufficient margin blocks", () => {

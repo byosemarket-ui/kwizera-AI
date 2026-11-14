@@ -45,7 +45,7 @@ describe("Phase 4.18G.4-P1 Broker Execution Engine foundation", () => {
     expect(f.acceptsForExecution).toBe(false);
     expect(f.mutatesBroker).toBe(false);
     expect(f.brokerExecution).toBe("DISABLED");
-    expect(OWNER_MAX_LOTS_EXECUTION).toBe(0.01);
+    expect(OWNER_MAX_LOTS_EXECUTION).toBeNull();
   });
 
   it("rejects enabling Execution Master with structured DENY audit + correlationId", () => {

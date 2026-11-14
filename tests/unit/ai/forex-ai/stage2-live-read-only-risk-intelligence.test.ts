@@ -796,6 +796,6 @@ describe("Stage 2 — safety stamps", () => {
     expect(snapshot.placesOrders).toBe(false);
     expect(snapshot.acceptsForExecution).toBe(false);
     expect(snapshot.mutatesBroker).toBe(false);
-    expect(OWNER_MAX_LOTS_EXECUTION).toBe(0.01);
+    expect(OWNER_MAX_LOTS_EXECUTION).toBeNull();
   });
 });

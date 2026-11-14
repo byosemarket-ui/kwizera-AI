@@ -354,7 +354,7 @@ describe("Phase 4.18G.3 broker handoff", () => {
     });
     expect(
       codes(h).some((c) =>
-        c === "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY"
+        c === "BROKER_MINIMUM_EXCEEDS_RISK_BUDGET"
         || c === "BROKER_AMOUNT_UNIT_UNVERIFIED"
       ),
     ).toBe(true);
@@ -371,8 +371,9 @@ describe("Phase 4.18G.3 broker handoff", () => {
     });
     expect(h.lifecycle).toBe("HANDOFF_READY");
     expect(h.directionOrder.amount).toBe(1); // 100 * 0.01
-    expect(h.directionOrder.normalizedQuantity).toBe(OWNER_MAX_LOTS);
+    expect(h.directionOrder.normalizedQuantity).toBe(0.01);
     expect(h.directionOrder.ownerMaxLots).toBeNull();
+    expect(OWNER_MAX_LOTS).toBeNull();
   });
 
   it("14–18. Entry/SL/TP geometry and 3R for BUY and SELL", () => {

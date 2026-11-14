@@ -332,15 +332,26 @@ describe("Dynamic broker-compatible sizing — no fixed 0.01 cap (FIXTURE, $10 S
     expect(codes(p)).not.toContain("OWNER_MAX_QUANTITY_EXCEEDED");
   });
 
-  it("adapts to a different broker minimum/step: min 2, step 2 floors 3 → 2 lots", () => {
+  it("adapts to a different broker minimum (2); AMOUNT increment stays BaseUnitSize per the FXCM SDK", () => {
     const p = proposal({
       accountBalanceSnapshot: snap(120),
       contract: xauContract({ quantityMin: 2, quantityStep: 2 }),
       sdkMinQuantity: 2,
     });
     expect(p.lifecycle).toBe("PROPOSAL_READY");
-    expect(p.quantity.normalizedQuantity).toBe(2);
-    expect(p.quantity.brokerAmount! % 2).toBe(0);
+    expect(p.quantity.normalizedQuantity).toBe(3);
+    expect(p.quantity.brokerMinimum).toBe(2);
+    expect(p.quantity.quantityStep).toBe(1);
+  });
+
+  it("baseUnitSize 2 changes the AMOUNT conversion: 3 lots → AMOUNT 6", () => {
+    const p = proposal({
+      accountBalanceSnapshot: snap(120),
+      contract: xauContract({ baseUnitSize: 2, quantityMin: 2, quantityStep: 2 }),
+      sdkMinQuantity: 2,
+    });
+    expect(p.lifecycle).toBe("PROPOSAL_READY");
+    expect(p.quantity.brokerAmount).toBe(p.quantity.normalizedQuantity! * 2);
   });
 
   it("broker minimum above the risk budget → BROKER_MINIMUM_EXCEEDS_RISK_BUDGET (never rounded up)", () => {
