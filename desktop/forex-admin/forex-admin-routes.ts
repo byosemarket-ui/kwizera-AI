@@ -1,6 +1,7 @@
 export type ForexAdminRouteId =
   | "dashboard"
   | "forexconnect"
+  | "mt5-hfm"
   | "instruments"
   | "historical-data"
   | "stream"
@@ -51,6 +52,7 @@ export const FOREX_ADMIN_ROOT = "/admin/forex";
 export const FOREX_ADMIN_NAV: ForexAdminNavItem[] = [
   { id: "dashboard", label: "Dashboard", path: "/admin/forex", implemented: true, group: "overview", groupLabel: "Overview" },
   { id: "forexconnect", label: "ForexConnect", path: "/admin/forex/forexconnect", implemented: true, group: "market-data", groupLabel: "Market Data" },
+  { id: "mt5-hfm", label: "HFM MT5 Demo", path: "/admin/forex/mt5-hfm", implemented: true, group: "market-data", groupLabel: "Market Data" },
   { id: "instruments", label: "FXCM Instruments", path: "/admin/forex/instruments", implemented: true, group: "market-data", groupLabel: "Market Data" },
   { id: "historical-data", label: "FXCM Historical", path: "/admin/forex/historical-data", implemented: true, group: "market-data", groupLabel: "Market Data" },
   { id: "stream", label: "FXCM Stream", path: "/admin/forex/stream", implemented: true, group: "market-data", groupLabel: "Market Data" },
@@ -106,6 +108,9 @@ export function parseForexAdminRouteFromLocation(
 
   if (rest === "forexconnect") {
     return { view: "forexconnect", documentId: null, canonicalPath: "/admin/forex/forexconnect" };
+  }
+  if (rest === "mt5-hfm") {
+    return { view: "mt5-hfm", documentId: null, canonicalPath: "/admin/forex/mt5-hfm" };
   }
   if (rest === "instruments") {
     return { view: "instruments", documentId: null, canonicalPath: "/admin/forex/instruments" };
@@ -200,6 +205,8 @@ export function getForexAdminDocumentTitle(view: ForexAdminViewId): string {
       return "KWIZERA AI STUDIO — Forex Admin";
     case "forexconnect":
       return "KWIZERA AI STUDIO — ForexConnect";
+    case "mt5-hfm":
+      return "KWIZERA AI STUDIO — HFM MT5 Demo";
     case "instruments":
       return "KWIZERA AI STUDIO — FXCM Instruments";
     case "historical-data":

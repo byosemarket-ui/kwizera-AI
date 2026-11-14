@@ -127,6 +127,48 @@ export interface ForexConnectProfileActionResult {
   error?: { code: string; message: string };
 }
 
+export interface Mt5HfmDemoAccountInfo {
+  loginHint: string | null;
+  server: string | null;
+  currency: string | null;
+  balance: number | null;
+  equity: number | null;
+  freeMargin: number | null;
+  marginLevel: number | null;
+  leverage: string | null;
+  company: string | null;
+  syncedAt: string | null;
+  note: string | null;
+}
+
+export interface Mt5HfmDemoStatus {
+  ok: true;
+  environment: "demo";
+  liveAvailable: false;
+  liveNote: string;
+  vaultUnlocked: boolean;
+  storageMode: "encrypted-vault" | "unavailable";
+  persistenceWarning: string | null;
+  loginConfigured: boolean;
+  passwordConfigured: boolean;
+  serverConfigured: boolean;
+  configured: boolean;
+  loginHint: string | null;
+  server: string | null;
+  credentialsUpdatedAt: string | null;
+  connectionStatus: string | null;
+  lastAuthStatus: string | null;
+  lastAuthAt: string | null;
+  lastAuthError: string | null;
+  lastSyncAt: string | null;
+  lastProbeAt: string | null;
+  lastProbeSummary: string | null;
+  account: Mt5HfmDemoAccountInfo | null;
+  allowedServers: readonly string[];
+  mt5LoginBridge: "not_implemented";
+  note: string;
+}
+
 /**
  * Phase 60.0.14 — shared Forex Admin token service (browser-local persistence).
  * See desktop/forex/admin-access/forex-admin-token.ts.
@@ -486,6 +528,52 @@ export const forexProvidersApi = {
       method: "POST",
       body: "{}",
     }),
+  mt5HfmStatus: () => request<Mt5HfmDemoStatus>("/api/forex/providers/mt5-hfm/status"),
+  mt5HfmAuthCheck: () =>
+    request<{ ok: boolean; authorized: boolean; note?: string }>(
+      "/api/forex/providers/mt5-hfm/auth-check",
+      { method: "POST", body: "{}" },
+    ),
+  mt5HfmSaveCredentials: (body: { login: string; server: string; password: string }) =>
+    request<{ ok: boolean; status: Mt5HfmDemoStatus; note?: string }>(
+      "/api/forex/providers/mt5-hfm/credentials",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+  mt5HfmClearCredentials: () =>
+    request<{ ok: boolean; status: Mt5HfmDemoStatus; note?: string }>(
+      "/api/forex/providers/mt5-hfm/credentials/clear",
+      { method: "POST", body: "{}" },
+    ),
+  mt5HfmTestConnection: () =>
+    request<{
+      ok: boolean;
+      probe?: {
+        ok: boolean;
+        status: string;
+        server: string;
+        summary: string;
+        openCount: number;
+        mt5TerminalLogin: string;
+        accountSync: string;
+        note: string;
+      };
+      status: Mt5HfmDemoStatus;
+      account: Mt5HfmDemoAccountInfo | null;
+      note?: string;
+    }>("/api/forex/providers/mt5-hfm/test-connection", {
+      method: "POST",
+      body: "{}",
+    }),
+  mt5HfmAccount: () =>
+    request<{
+      ok: boolean;
+      configured: boolean;
+      account: Mt5HfmDemoAccountInfo | null;
+      lastSyncAt: string | null;
+      connectionStatus: string | null;
+      mt5LoginBridge: string;
+      note?: string;
+    }>("/api/forex/providers/mt5-hfm/account"),
   forexConnectInstruments: () =>
     request<{
       ok: boolean;

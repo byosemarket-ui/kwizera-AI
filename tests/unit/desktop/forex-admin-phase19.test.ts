@@ -74,4 +74,20 @@ describe("Phase 19 dedicated Forex Admin routing", () => {
     expect(FOREX_ADMIN_NAV.some((item) => item.label === "AI Training")).toBe(true);
     expect(FOREX_ADMIN_NAV.every((item) => item.label !== "Knowledge Base")).toBe(true);
   });
+
+  it("routes HFM MT5 Demo admin page under market data", () => {
+    expect(parseForexAdminRouteFromLocation("/admin/forex/mt5-hfm").view).toBe("mt5-hfm");
+    expect(parseForexAdminRouteFromLocation("/admin/forex/mt5-hfm").canonicalPath).toBe(
+      "/admin/forex/mt5-hfm",
+    );
+    expect(FOREX_ADMIN_NAV.some((item) => item.path === "/admin/forex/mt5-hfm")).toBe(true);
+    expect(read("desktop/forex-admin/ForexAdminPages.tsx")).toContain("ForexAdminMt5HfmPage");
+    expect(read("dev/server/index.ts")).toContain("handleMt5HfmApi");
+    expect(read("dev/server/mt5-hfm-api.ts")).toContain("LIVE_DISABLED");
+    expect(read("dev/server/mt5-hfm-api.ts")).not.toContain("/credentials/reveal");
+    expect(read("dev/server/mt5-hfm-api.ts")).not.toContain("password-reveal");
+    expect(read("dev/server/mt5-hfm-api.ts")).toContain("appendMt5HfmCredentialAudit");
+    expect(read("ai/market-data/mt5-hfm/login-bridge.ts")).toContain("not_implemented");
+    expect(read("ai/market-data/mt5-hfm/demo-profile.ts")).toContain("mt5-hfm:demo:password");
+  });
 });
