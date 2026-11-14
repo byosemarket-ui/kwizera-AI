@@ -335,13 +335,8 @@ export function buildBrokerHandoff(input: AtBrokerCompatibilityInput): AtBrokerH
   const normalizedQty = proposal?.quantity?.normalizedQuantity ?? null;
   if (!finitePositive(normalizedQty)) {
     add(check("QUANTITY_PRESENT", false, "Normalized quantity missing from proposal."), "QUANTITY_STEP_INVALID");
-  } else if (normalizedQty > OWNER_MAX_LOTS + 1e-12) {
-    add(
-      check("OWNER_MAX", false, `Quantity ${normalizedQty} exceeds owner max ${OWNER_MAX_LOTS}.`),
-      "OWNER_MAX_QUANTITY_EXCEEDED",
-    );
   } else {
-    add(check("OWNER_MAX", true, `Quantity ${normalizedQty} ≤ owner max ${OWNER_MAX_LOTS}.`));
+    add(check("QUANTITY_RISK_SIZED", true, `Quantity ${normalizedQty} lots from the proposal's risk sizing (no fixed owner lot cap).`));
   }
 
   if (finitePositive(normalizedQty) && instrument) {
@@ -352,6 +347,17 @@ export function buildBrokerHandoff(input: AtBrokerCompatibilityInput): AtBrokerH
       mmrPerLot: instrument.marginPerLotAccount,
       maxLotsPerOrder: OWNER_MAX_LOTS,
     });
+    const proposalAmount = proposal?.quantity?.brokerAmount ?? null;
+    if (
+      qtyContract.amountConversion.ok
+      && proposalAmount != null
+      && qtyContract.amountConversion.amount !== proposalAmount
+    ) {
+      add(
+        check("AMOUNT_CONSISTENCY", false, `Handoff AMOUNT ${qtyContract.amountConversion.amount} ≠ proposal AMOUNT ${proposalAmount}.`),
+        "QUANTITY_MISMATCH_BETWEEN_PIPELINE_STAGES",
+      );
+    }
     if (!qtyContract.amountConversion.ok) {
       add(
         check("AMOUNT_CONVERSION", false, qtyContract.amountConversion.message ?? "Amount conversion failed."),
@@ -366,18 +372,13 @@ export function buildBrokerHandoff(input: AtBrokerCompatibilityInput): AtBrokerH
       record.directionOrder.amount = qtyContract.amountConversion.amount;
       record.directionOrder.normalizedQuantity = normalizedQty;
     }
-    if (qtyContract.ownerMaxBelowBrokerMin) {
+    if (qtyContract.blockers.includes("REQUESTED_LOTS_BELOW_BROKER_MIN")) {
       add(
-        check("BROKER_MIN", false, "Broker minimum exceeds owner-approved 0.01 lots."),
-        "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
-      );
-    } else if (qtyContract.blockers.includes("REQUESTED_LOTS_BELOW_BROKER_MIN")) {
-      add(
-        check("BROKER_MIN", false, "Requested quantity below broker minimum."),
-        "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
+        check("BROKER_MIN", false, "Risk-sized quantity below broker minimum — never rounded up."),
+        "BROKER_MINIMUM_EXCEEDS_RISK_BUDGET",
       );
     } else if (finitePositive(instrument.quantityMin)) {
-      add(check("BROKER_MIN", true, "Quantity satisfies broker minimum relative to owner max."));
+      add(check("BROKER_MIN", true, "Risk-sized quantity satisfies the broker minimum."));
     }
     // Step alignment is on broker AMOUNT (contracts), not on owner lots.
     const brokerAmount = record.directionOrder.amount;

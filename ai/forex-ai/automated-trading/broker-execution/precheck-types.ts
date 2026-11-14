@@ -43,6 +43,8 @@ export type AtPrecheckReasonCode =
   | "REWARD_RISK_BELOW_3R"
   | "INVALID_QUANTITY"
   | "OWNER_MAX_QUANTITY_EXCEEDED"
+  | "QUANTITY_MISMATCH_BETWEEN_PIPELINE_STAGES"
+  | "BROKER_MINIMUM_EXCEEDS_RISK_BUDGET"
   | "BROKER_QUANTITY_CONTRACT_FAILED"
   | "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY"
   | "MISSING_ACCOUNT_DATA"
@@ -145,8 +147,9 @@ export interface AtPrecheckControlSnapshot {
 }
 
 export interface AtPrecheckRiskLimits {
-  maxLotsPerOrder: number;
-  maxTotalExposureLots: number;
+  /** Explicitly configured lot limits only; null = no fixed cap (dynamic risk sizing governs). */
+  maxLotsPerOrder: number | null;
+  maxTotalExposureLots: number | null;
   maxOpenPositions: number;
   /** Absolute day-loss cap in account currency; null = gate requires telemetry then fails closed. */
   maxDailyLossAccount: number | null;
@@ -295,8 +298,8 @@ export interface AtPreExecutionValidationResult {
 
 export function defaultPrecheckRiskLimits(): AtPrecheckRiskLimits {
   return {
-    maxLotsPerOrder: OWNER_MAX_LOTS_PRECHECK,
-    maxTotalExposureLots: OWNER_MAX_LOTS_PRECHECK,
+    maxLotsPerOrder: null,
+    maxTotalExposureLots: null,
     maxOpenPositions: 1,
     // Fail-closed: limits exist as proposed profile values but telemetry must be supplied.
     maxDailyLossAccount: 25,

@@ -53,6 +53,40 @@ async function getJson(pathName, init = {}) {
   return { status: res.status, body };
 }
 
+/**
+ * Owner policy: System Master rests OFF. Every exit path restores OFF and reports the verified
+ * final state; the workflow's always() cleanup step re-verifies independently.
+ */
+async function restoreSystemMasterOff(report) {
+  const out = { attempted: false, ownerState: null, operationalState: null, activeModuleCount: null, ok: false };
+  if (!token) return out;
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" };
+  try {
+    out.attempted = true;
+    await getJson("/api/forex/automated-trading/system-master/off", { method: "POST", headers, body: "{}" });
+    const st = await getJson("/api/forex/automated-trading/system-master/status", { headers });
+    const sm = st.body?.systemMaster ?? {};
+    out.ownerState = sm.ownerState ?? null;
+    out.operationalState = sm.operationalState ?? null;
+    out.activeModuleCount = sm.activeModuleCount ?? null;
+    out.ok = out.ownerState === "OFF" && out.operationalState === "OFF" && (out.activeModuleCount ?? 0) === 0;
+  } catch (err) {
+    out.error = err instanceof Error ? err.message.slice(0, 160) : "restore_failed";
+  }
+  if (report) report.finalSystemMaster = out;
+  return out;
+}
+
+async function finish(report, code) {
+  const restored = await restoreSystemMasterOff(report);
+  if (!restored.ok) {
+    report.blockers = [...(report.blockers || []), "SYSTEM_MASTER_OFF_RESTORE_FAILED"];
+    code = code === 0 ? 3 : code;
+  }
+  console.log(JSON.stringify(redact(report), null, 2));
+  process.exit(code);
+}
+
 function shaMatches(actual, expected) {
   if (!actual || !expected) return false;
   const a = String(actual).toLowerCase();
@@ -290,29 +324,33 @@ async function main() {
       || report.scheduledTerminals.some((c) => c.imageId),
   };
 
-  // Leave system ON for continuous operation after successful proof (owner intent verified).
-  // Re-assert execution safety.
+  // Re-assert execution safety, then restore the owner's resting state (System Master OFF).
   if (master.body?.systemMaster?.placesOrders === true) report.blockers.push("UNSAFE_MASTER_PLACES_ORDERS");
 
   if (report.blockers.includes("GATEWAY_HEALTH_FAILED") || report.blockers.includes("SIDECAR_HEALTH_FAILED")) {
-    console.log(JSON.stringify(redact(report), null, 2));
-    process.exit(1);
+    return finish(report, 1);
   }
   if (report.blockers.length) {
     report.labels.verdict = "FAIL";
-    console.log(JSON.stringify(redact(report), null, 2));
-    process.exit(2);
+    return finish(report, 2);
   }
   report.labels.verdict = "PASS_SYSTEM_MASTER_ON_OFF_SCHEDULED";
-  console.log(JSON.stringify(redact(report), null, 2));
-  process.exit(0);
+  return finish(report, 0);
 }
 
-main().catch((err) => {
+for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) {
+  process.on(sig, () => {
+    void restoreSystemMasterOff(null).finally(() => process.exit(130));
+  });
+}
+
+main().catch(async (err) => {
+  const restored = await restoreSystemMasterOff(null);
   console.error(JSON.stringify({
     phase: "4.18F.8R",
     ok: false,
     error: err instanceof Error ? err.message.slice(0, 200) : "fatal",
+    finalSystemMaster: restored,
     placesOrders: false,
   }));
   process.exit(1);

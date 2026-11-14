@@ -11,8 +11,8 @@ export const AT_BROKER_HANDOFF_PHASE = "4.18G.3" as const;
 export const AT_BROKER_HANDOFF_MAX_HISTORY = 80;
 export const AT_FUTURE_EXECUTION_CONTRACT_VERSION = "at-future-execution-contract-v1" as const;
 
-/** Owner-approved maximum — never raised. */
-export const OWNER_MAX_LOTS = 0.01;
+/** No fixed owner lot cap — quantity comes from the proposal's account-balance risk sizing. */
+export const OWNER_MAX_LOTS = null;
 
 export type AtBrokerHandoffLifecycle =
   | "RECEIVED"
@@ -41,6 +41,8 @@ export type AtBrokerHandoffBlockCode =
   | "MISSING_QUANTITY_UNIT"
   | "BROKER_AMOUNT_UNIT_UNVERIFIED"
   | "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY"
+  | "BROKER_MINIMUM_EXCEEDS_RISK_BUDGET"
+  | "QUANTITY_MISMATCH_BETWEEN_PIPELINE_STAGES"
   | "OWNER_MAX_QUANTITY_EXCEEDED"
   | "QUANTITY_STEP_INVALID"
   | "INVALID_ENTRY"

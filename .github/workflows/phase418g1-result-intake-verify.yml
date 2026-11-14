@@ -9,9 +9,10 @@ on:
         required: false
         default: "1bd40fcae37f49ddcc812b6d012740f6363d102a"
 
+# Shares the System Master ownership group with phase418f8r so their ON/OFF tests never overlap.
 concurrency:
-  group: phase418g1-result-intake-verify
-  cancel-in-progress: true
+  group: vps-system-master-ownership
+  cancel-in-progress: false
 
 permissions:
   contents: write

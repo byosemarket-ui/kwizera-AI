@@ -70,6 +70,8 @@ export interface XauBrokerEvidence {
   /** Rows whose instrument could not be identified (fail-closed → UNKNOWN). */
   unidentifiedRows: number;
   closedTradeIds: string[];
+  /** Opening order ids of ClosedTrades rows (when the SDK exposes them). */
+  closedOrderIds?: string[];
   accountBindingHash: string | null;
   reasonCodes: string[];
   readOnly: true;

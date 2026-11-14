@@ -45,10 +45,10 @@ function mergeLimits(partial?: Partial<AtPrecheckRiskLimits> | null): AtPrecheck
   if (!partial) return base;
   return {
     maxLotsPerOrder: finitePositive(partial.maxLotsPerOrder)
-      ? Math.min(partial.maxLotsPerOrder, OWNER_MAX_LOTS_PRECHECK)
+      ? partial.maxLotsPerOrder
       : base.maxLotsPerOrder,
     maxTotalExposureLots: finitePositive(partial.maxTotalExposureLots)
-      ? Math.min(partial.maxTotalExposureLots, OWNER_MAX_LOTS_PRECHECK)
+      ? partial.maxTotalExposureLots
       : base.maxTotalExposureLots,
     maxOpenPositions: Number.isInteger(partial.maxOpenPositions) && (partial.maxOpenPositions as number) > 0
       ? (partial.maxOpenPositions as number)
@@ -723,29 +723,32 @@ export function runPreExecutionValidation(
         "INVALID_QUANTITY",
         "Normalized quantity missing or invalid.",
       ));
-    } else if (qty > OWNER_MAX_LOTS_PRECHECK + 1e-12) {
+    } else if (
+      handoff?.directionOrder?.normalizedQuantity != null
+      && Math.abs(handoff.directionOrder.normalizedQuantity - qty) > 1e-9
+    ) {
       checks.push(check(
         "quantity",
         "risk",
         "FAIL",
-        "OWNER_MAX_QUANTITY_EXCEEDED",
-        `Quantity ${qty} exceeds owner maximum ${OWNER_MAX_LOTS_PRECHECK} lots.`,
+        "QUANTITY_MISMATCH_BETWEEN_PIPELINE_STAGES",
+        `Handoff quantity ${handoff.directionOrder.normalizedQuantity} ≠ proposal risk-sized quantity ${qty}.`,
       ));
-    } else if (qty > limits.maxLotsPerOrder + 1e-12) {
+    } else if (limits.maxLotsPerOrder != null && qty > limits.maxLotsPerOrder + 1e-12) {
       checks.push(check(
         "quantity",
         "risk",
         "FAIL",
         "OWNER_MAX_QUANTITY_EXCEEDED",
-        `Quantity ${qty} exceeds maxLotsPerOrder ${limits.maxLotsPerOrder}.`,
+        `Quantity ${qty} exceeds explicitly configured maxLotsPerOrder ${limits.maxLotsPerOrder}.`,
       ));
     } else {
       checks.push(check(
         "quantity",
         "risk",
         "PASS",
-        "QUANTITY_WITHIN_OWNER_MAX",
-        `Quantity ${qty} ≤ owner max ${OWNER_MAX_LOTS_PRECHECK}.`,
+        "QUANTITY_RISK_SIZED",
+        `Quantity ${qty} lots from the proposal's risk-sized calculation (no fixed owner lot cap).`,
       ));
     }
 
@@ -764,15 +767,28 @@ export function runPreExecutionValidation(
         baseUnitSize: contract.baseUnitSize,
         minQuantity: contract.minQuantity,
         mmrPerLot: contract.mmrPerLot,
-        maxLotsPerOrder: OWNER_MAX_LOTS_PRECHECK,
+        maxLotsPerOrder: limits.maxLotsPerOrder,
       });
-      if (qtyContract.ownerMaxBelowBrokerMin) {
+      const proposalAmount = proposal.quantity?.brokerAmount ?? null;
+      if (qtyContract.blockers.includes("REQUESTED_LOTS_BELOW_BROKER_MIN")) {
         checks.push(check(
           "qty_contract",
           "risk",
           "FAIL",
-          "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
-          "Broker minimum exceeds owner-approved 0.01 lots.",
+          "BROKER_MINIMUM_EXCEEDS_RISK_BUDGET",
+          `Risk-sized ${qty} lots is below the broker minimum — never rounded up.`,
+        ));
+      } else if (
+        qtyContract.amountConversion.ok
+        && proposalAmount != null
+        && qtyContract.amountConversion.amount !== proposalAmount
+      ) {
+        checks.push(check(
+          "qty_contract",
+          "risk",
+          "FAIL",
+          "QUANTITY_MISMATCH_BETWEEN_PIPELINE_STAGES",
+          `Precheck AMOUNT ${qtyContract.amountConversion.amount} ≠ proposal AMOUNT ${proposalAmount}.`,
         ));
       } else if (!qtyContract.amountConversion.ok || !qtyContract.requestedLotsSupported) {
         checks.push(check(
@@ -1078,7 +1094,10 @@ export function runPreExecutionValidation(
         "EXPOSURE_UNVERIFIED",
         "Open exposure lots unavailable.",
       ));
-    } else if (exposure.openExposureLots + (finitePositive(qty) ? qty : 0) > limits.maxTotalExposureLots + 1e-12) {
+    } else if (
+      limits.maxTotalExposureLots != null
+      && exposure.openExposureLots + (finitePositive(qty) ? qty : 0) > limits.maxTotalExposureLots + 1e-12
+    ) {
       checks.push(check(
         "exposure",
         "risk",

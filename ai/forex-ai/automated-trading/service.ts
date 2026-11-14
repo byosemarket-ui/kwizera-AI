@@ -606,6 +606,14 @@ export class AutomatedTradingService {
           netRewardRisk: latest.pricePlan.netRewardRiskRatio,
           estimatedMargin: latest.quantity.estimatedMargin ?? null,
           brokerMinimum: latest.quantity.brokerMinimum,
+          brokerQuantityStep: latest.quantity.quantityStep,
+          baseUnitSize: latest.quantity.contractSize,
+          quantityConversion: latest.quantity.contractSize != null
+            ? `AMOUNT = baseUnitSize(${latest.quantity.contractSize}) × lots`
+            : null,
+          usableMargin: latest.quantity.availableMargin,
+          grossRewardRisk: latest.pricePlan.grossRewardRiskRatio,
+          lotCap: null,
           verdict: latest.lifecycle === "PROPOSAL_READY" ? "PASS" : "BLOCKED",
           blockers: latest.blockers.map((b) => b.code),
         }
@@ -2755,11 +2763,15 @@ export class AutomatedTradingService {
             instrument: envState.selectedInstrument ?? "XAU/USD",
           });
           const { classifyXauAmountCompatibility } = await import("./order-execution/xau-amount-compatibility.js");
-          const { OWNER_MAX_QUANTITY } = await import("./order-proposal/types.js");
+          const { getAtOrderProposalStore: getProposalStoreForCompat } = await import("./order-proposal/index.js");
+          const sizedProposal = getProposalStoreForCompat().latest();
           const xauCompat = classifyXauAmountCompatibility({
             baseUnitSize: verificationRaw?.instrument?.baseUnitSize ?? null,
             minQuantity: verificationRaw?.instrument?.quantityMin ?? null,
-            ownerMaxLots: OWNER_MAX_QUANTITY,
+            quantityStep: verificationRaw?.instrument?.quantityStep ?? null,
+            lots: sizedProposal?.lifecycle === "PROPOSAL_READY"
+              ? (sizedProposal.quantity.normalizedQuantity ?? null)
+              : null,
           });
           return {
             schemaVersion: AT_PHASE4_OBSERVABILITY_SCHEMA,

@@ -151,6 +151,9 @@ export function classifyXauBrokerExposure(input: ClassifyXauExposureInput): XauB
   const closedTradeIds = closedRows
     .map((r) => str(r.tradeId))
     .filter((id): id is string => Boolean(id));
+  const closedOrderIds = closedRows
+    .map((r) => str(r.orderId ?? r.openOrderId))
+    .filter((id): id is string => Boolean(id));
 
   const reasonCodes: string[] = [];
   if (unidentified > 0) reasonCodes.push("ROW_INSTRUMENT_UNIDENTIFIED");
@@ -173,6 +176,7 @@ export function classifyXauBrokerExposure(input: ClassifyXauExposureInput): XauB
     pendingOrders,
     unidentifiedRows: unidentified,
     closedTradeIds,
+    closedOrderIds,
     reasonCodes: status === "CONFIRMED_FLAT" ? ["BROKER_CONFIRMED_NO_XAU_EXPOSURE"] : reasonCodes,
   };
 }

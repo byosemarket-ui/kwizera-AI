@@ -237,7 +237,7 @@ describe("XAU balance-basis proposal sizing (FIXTURE)", () => {
   it("broker minimum above risk-affordable quantity → BLOCKED (never rounded up)", () => {
     const p = proposal({ accountBalanceSnapshot: snap(20) });
     expect(p.lifecycle).toBe("BLOCKED");
-    expect(codes(p)).toContain("BROKER_MINIMUM_EXCEEDS_RISK_AFFORDABLE_QUANTITY");
+    expect(codes(p)).toContain("BROKER_MINIMUM_EXCEEDS_RISK_BUDGET");
     expect(p.quantity.normalizedQuantity).toBeNull();
   });
 
@@ -314,6 +314,58 @@ describe("XAU balance-basis proposal sizing (FIXTURE)", () => {
     const friction = p.pricePlan.verifiedTradingCostsAccount!;
     expect(friction).toBeCloseTo(0.5 * 12, 6);
     expect(p.pricePlan.grossTakeProfitRewardAccount! - p.pricePlan.netTakeProfitRewardAccount!).toBeCloseTo(friction, 6);
+  });
+});
+
+describe("Dynamic broker-compatible sizing — no fixed 0.01 cap (FIXTURE, $10 SL risk per lot)", () => {
+  it.each([
+    [40, 1],
+    [80, 2],
+    [120, 3],
+    [200, 5],
+  ])("balance %s → %s lots (AMOUNT = lots, risk ≤ 25%)", (balance, lots) => {
+    const p = proposal({ accountBalanceSnapshot: snap(balance) });
+    expect(codes(p)).toEqual([]);
+    expect(p.quantity.normalizedQuantity).toBe(lots);
+    expect(p.quantity.brokerAmount).toBe(lots);
+    expect(p.capital.projectedLossAtStopLoss!).toBeLessThanOrEqual(balance * 0.25 + 1e-9);
+    expect(codes(p)).not.toContain("OWNER_MAX_QUANTITY_EXCEEDED");
+  });
+
+  it("adapts to a different broker minimum/step: min 2, step 2 floors 3 → 2 lots", () => {
+    const p = proposal({
+      accountBalanceSnapshot: snap(120),
+      contract: xauContract({ quantityMin: 2, quantityStep: 2 }),
+      sdkMinQuantity: 2,
+    });
+    expect(p.lifecycle).toBe("PROPOSAL_READY");
+    expect(p.quantity.normalizedQuantity).toBe(2);
+    expect(p.quantity.brokerAmount! % 2).toBe(0);
+  });
+
+  it("broker minimum above the risk budget → BROKER_MINIMUM_EXCEEDS_RISK_BUDGET (never rounded up)", () => {
+    const p = proposal({
+      accountBalanceSnapshot: snap(80),
+      contract: xauContract({ quantityMin: 5, quantityStep: 1 }),
+      sdkMinQuantity: 5,
+    });
+    expect(p.lifecycle).toBe("BLOCKED");
+    expect(codes(p)).toContain("BROKER_MINIMUM_EXCEEDS_RISK_BUDGET");
+    expect(p.quantity.normalizedQuantity).toBeNull();
+  });
+
+  it("margin fails independently of risk → INSUFFICIENT_USABLE_MARGIN", () => {
+    const p = proposal({ accountBalanceSnapshot: snap(2_000), usableMargin: 40 });
+    expect(p.lifecycle).toBe("BLOCKED");
+    expect(codes(p)).toContain("INSUFFICIENT_USABLE_MARGIN");
+  });
+
+  it("a Stop Loss change re-sizes: wider SL → fewer lots, risk still ≤ 25%", () => {
+    const tight = proposal({ accountBalanceSnapshot: snap(200), stopLoss: 1990 });
+    const wide = proposal({ accountBalanceSnapshot: snap(200), stopLoss: 1975 });
+    expect(tight.quantity.normalizedQuantity).toBe(5);
+    expect(wide.quantity.normalizedQuantity).toBe(2);
+    expect(wide.capital.projectedLossAtStopLoss!).toBeLessThanOrEqual(50 + 1e-9);
   });
 });
 

@@ -27,6 +27,7 @@ import type { AtResultIntakeRecord } from "../../../../ai/forex-ai/automated-tra
 
 const T0 = Date.parse("2026-11-13T12:00:00.000Z");
 const OFFER = "4001";
+const ACCOUNT = "acct-binding-fixture";
 
 type Row = Record<string, unknown>;
 
@@ -60,7 +61,15 @@ function tables(opts: {
 }
 
 function evidence(
-  opts: { trades?: Row[]; orders?: Row[]; cap?: string; closed?: Row[]; tracked?: string[]; nowMs?: number } = {},
+  opts: {
+    trades?: Row[];
+    orders?: Row[];
+    cap?: string;
+    closed?: Row[];
+    tracked?: string[];
+    nowMs?: number;
+    account?: string | null;
+  } = {},
 ): XauBrokerEvidence {
   const nowMs = opts.nowMs ?? T0;
   const t = tables({ ...opts, fetchedAtMs: nowMs });
@@ -71,6 +80,7 @@ function evidence(
     symbol: "XAU/USD",
     offerId: OFFER,
     trackedTradeIds: opts.tracked ?? [],
+    accountBindingHash: opts.account === undefined ? ACCOUNT : opts.account,
     nowMs,
   });
 }
@@ -227,7 +237,7 @@ process.stdout.write(JSON.stringify({ ok: out.ok }));
     expect(new XauPositionLockStore(root).get().state).toBe("UNKNOWN_BROKER_STATE");
   });
 
-  it("automated position: open → broker disconnect keeps lock → close confirmed twice → released", async () => {
+  it("automated position: open → disconnect keeps lock → flat reads never release → ClosedTrades releases", async () => {
     const a = await acquire(store, "p1");
     if (!a.ok) throw new Error("acquire failed");
     await store.recordSubmissionPending({ reservationId: a.reservationId, requestId: "req-1", nowMs: T0 });
@@ -246,9 +256,33 @@ process.stdout.write(JSON.stringify({ ok: out.ok }));
     expect(rec.state).toBe("RECONCILIATION_PENDING");
     rec = await store.reconcile(evidence({ nowMs: T0 + 5_000 }), { nowMs: T0 + 5_000 });
     expect(rec.state).toBe("RECONCILIATION_PENDING");
-    rec = await store.reconcile(evidence({ nowMs: T0 + 13_000 }), { nowMs: T0 + 13_000 });
+    for (const dt of [13_000, 60_000, 300_000]) {
+      rec = await store.reconcile(evidence({ nowMs: T0 + dt }), { nowMs: T0 + dt });
+      expect(rec.state).toBe("RECONCILIATION_PENDING");
+    }
+    expect(await acquire(store, "p3", evidence({ nowMs: T0 + 300_000 }))).toMatchObject({ ok: false });
+    rec = await store.reconcile(
+      evidence({ closed: [{ tradeId: "T1" }], nowMs: T0 + 301_000 }),
+      { nowMs: T0 + 301_000 },
+    );
     expect(rec.state).toBe("AVAILABLE");
-    expect(rec.lastReleaseReason).toBe("BROKER_CONFIRMED_FLAT");
+    expect(rec.lastReleaseReason).toBe("BROKER_CONFIRMED_CLOSED");
+  });
+
+  it("flat broker reads without a verified account binding never release", async () => {
+    await acquire(store, "p1", evidence({ trades: [xauTrade("ext")] }));
+    for (const dt of [1_000, 12_000, 30_000]) {
+      const rec = await store.reconcile(evidence({ account: null, nowMs: T0 + dt }), { nowMs: T0 + dt });
+      expect(rec.state).not.toBe("AVAILABLE");
+    }
+  });
+
+  it("missing lock file after initialization is UNKNOWN_BROKER_STATE (never a fresh AVAILABLE)", async () => {
+    await acquire(store, "p1");
+    fs.rmSync(store.file);
+    const rec = new XauPositionLockStore(root).get();
+    expect(rec.state).toBe("UNKNOWN_BROKER_STATE");
+    expect(await acquire(new XauPositionLockStore(root), "p2")).toMatchObject({ ok: false });
   });
 
   it("ClosedTrades containing the tracked trade releases on first flat observation", async () => {
@@ -333,7 +367,7 @@ describe("XAU lifecycle monitor (FIXTURE, read-only)", () => {
       fetchOrders: async () => tables({ fetchedAtMs: extra.nowMs ?? T0 }).orders,
       symbol: "XAU/USD",
       offerId: OFFER,
-      accountBindingHash: null,
+      accountBindingHash: ACCOUNT,
       nowMs: T0,
       ...extra,
     };
@@ -363,9 +397,24 @@ describe("XAU lifecycle monitor (FIXTURE, read-only)", () => {
     expect(out.record.state).toBe("POSITION_OPEN");
     const ack = await store.acknowledgeRiskBreach({ operator: "test" });
     expect(ack.ok).toBe(false);
+    const afterAck = store.get();
+    expect(afterAck.entryFreeze.active).toBe(true);
+    expect(afterAck.entryFreeze.acknowledgedBy).toBe("test");
+    expect(afterAck.state).toBe("POSITION_OPEN");
+    expect(afterAck.events.some((e) => e.type === "RISK_BREACH_ACKNOWLEDGED" && e.code === "RISK_BREACH_UNRESOLVED")).toBe(true);
     const blocked = await store.acquireReservation({ proposalId: "p9", idempotencyKey: "k9", evidence: evidence(), nowMs: T0 });
     expect(blocked.ok).toBe(false);
     if (!blocked.ok) expect(blocked.code).toBe("RISK_BREACH_ENTRY_FREEZE");
+
+    const closed = await runXauPositionMonitorTick({
+      ...deps([], { nowMs: T0 + 1_000 }),
+      fetchClosedTrades: async () => ({ ok: true, capabilityStatus: "AVAILABLE", code: "OK", trades: [{ tradeId: "T1" }] }),
+    });
+    expect(closed.record.state).toBe("AVAILABLE");
+    expect(closed.record.entryFreeze.active).toBe(true);
+    const cleared = await store.acknowledgeRiskBreach({ operator: "owner" });
+    expect(cleared.ok).toBe(true);
+    expect(store.get().entryFreeze.active).toBe(false);
   });
 
   it("Stop Loss / Take Profit hit (simulated): position disappears into ClosedTrades → released", async () => {

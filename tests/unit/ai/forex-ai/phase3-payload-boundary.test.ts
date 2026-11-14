@@ -215,10 +215,10 @@ describe("Phase 3 FXCM payload builder + validator", () => {
     });
     expect(pkg.validationStatus).toBe("PAYLOAD_VALIDATED");
     expect(pkg.blockers).not.toContain("AMOUNT_BELOW_MIN_QUANTITY");
-    expect(pkg.blockers).not.toContain("BROKER_MINIMUM_EXCEEDS_OWNER_LIMIT");
+    expect(pkg.blockers).not.toContain("BROKER_MINIMUM_EXCEEDS_RISK_BUDGET");
   });
 
-  it("flags AMOUNT below broker minQuantity with owner-limit classification", () => {
+  it("flags AMOUNT below broker minQuantity as BROKER_MINIMUM_EXCEEDS_RISK_BUDGET", () => {
     const proposal = proposalFixture();
     const built = buildFxcmTrueMarketOpenPayload({
       proposal,
@@ -245,7 +245,7 @@ describe("Phase 3 FXCM payload builder + validator", () => {
     });
     expect(pkg.validationStatus).toBe("PAYLOAD_INVALID");
     expect(pkg.blockers).toContain("AMOUNT_BELOW_MIN_QUANTITY");
-    expect(pkg.blockers).toContain("BROKER_MINIMUM_EXCEEDS_OWNER_LIMIT");
+    expect(pkg.blockers).toContain("BROKER_MINIMUM_EXCEEDS_RISK_BUDGET");
   });
 
   it("rejects stale quote and expired precheck", () => {

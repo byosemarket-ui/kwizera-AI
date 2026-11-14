@@ -4,8 +4,6 @@ import type {
   AtBrokerExecutionBlocker,
   AtBrokerExecutionFoundationPersisted,
 } from "./types.js";
-import { OWNER_MAX_LOTS_EXECUTION } from "./types.js";
-
 export interface ExecutionAuthorizationEvalInput {
   foundation: AtBrokerExecutionFoundationPersisted;
   environment: AutomatedTradingEnvironment;
@@ -91,14 +89,10 @@ export function evaluateExecutionAuthorization(
     });
   }
 
-  if (
-    input.quantityLots != null
-    && Number.isFinite(input.quantityLots)
-    && input.quantityLots > OWNER_MAX_LOTS_EXECUTION + 1e-12
-  ) {
+  if (input.quantityLots != null && !(Number.isFinite(input.quantityLots) && input.quantityLots > 0)) {
     blockers.push({
-      code: "OWNER_MAX_EXCEEDED",
-      message: `Quantity ${input.quantityLots} exceeds owner maximum ${OWNER_MAX_LOTS_EXECUTION} lots.`,
+      code: "POSITION_SIZE_UNAVAILABLE",
+      message: `Quantity ${input.quantityLots} is not a positive risk-sized quantity.`,
     });
   }
 

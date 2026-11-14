@@ -121,6 +121,10 @@ function decode(raw: unknown, nowIso: string): XauPositionLockRecord {
   } as XauPositionLockRecord;
 }
 
+function nowMarker(): string {
+  return JSON.stringify({ initializedAtUtc: new Date().toISOString() });
+}
+
 function evidenceIsFresh(e: XauBrokerEvidence, nowMs: number): boolean {
   const t = Date.parse(e.observedAtUtc);
   return Number.isFinite(t) && nowMs - t <= XAU_LOCK_EVIDENCE_MAX_AGE_MS;
@@ -129,18 +133,23 @@ function evidenceIsFresh(e: XauBrokerEvidence, nowMs: number): boolean {
 export class XauPositionLockStore {
   readonly file: string;
   private readonly mutexFile: string;
+  /** Written once the lock has persisted state; a later missing lock file is then fail-closed. */
+  private readonly markerFile: string;
 
   constructor(storageRoot?: string) {
     const dir = path.join(storageRoot ?? resolveStorageRoot(), "forex-automated-trading");
     fs.mkdirSync(dir, { recursive: true });
     this.file = path.join(dir, "xau-position-lock.json");
     this.mutexFile = path.join(dir, ".xau-position-lock.mutex");
+    this.markerFile = path.join(dir, ".xau-position-lock.initialized");
   }
 
   /** Fresh read from disk (restart-safe; no cached authority). */
   get(): XauPositionLockRecord {
     const nowIso = new Date().toISOString();
-    if (!fs.existsSync(this.file)) return emptyRecord(nowIso);
+    if (!fs.existsSync(this.file)) {
+      return fs.existsSync(this.markerFile) ? decode(null, nowIso) : emptyRecord(nowIso);
+    }
     try {
       return decode(JSON.parse(fs.readFileSync(this.file, "utf8")), nowIso);
     } catch {
@@ -152,6 +161,7 @@ export class XauPositionLockStore {
     const tmp = `${this.file}.${process.pid}.${randomUUID().slice(0, 8)}.tmp`;
     fs.writeFileSync(tmp, JSON.stringify(rec, null, 2));
     fs.renameSync(tmp, this.file);
+    if (!fs.existsSync(this.markerFile)) fs.writeFileSync(this.markerFile, nowMarker());
   }
 
   private async mutate<T>(
@@ -460,10 +470,32 @@ export class XauPositionLockStore {
         }
         return rec;
       }
-      const tracked = new Set(rec.trackedTradeIds);
-      if (tracked.size > 0 && evidence.closedTradeIds.some((id) => tracked.has(id))) {
+      if (!evidence.accountBindingHash) {
+        if (rec.state !== "RECONCILIATION_PENDING") {
+          T(rec, "RECONCILIATION_PENDING", nowIso, "ACCOUNT_IDENTITY_UNVERIFIED", "POSITION_RECONCILIATION_REQUIRED",
+            "Broker flat but account identity unverified — kept locked.");
+        }
+        return rec;
+      }
+      const trackedTrades = new Set(rec.trackedTradeIds);
+      const trackedOrders = new Set(rec.trackedOrderIds);
+      const closedMatch = evidence.closedTradeIds.some((id) => trackedTrades.has(id))
+        || (evidence.closedOrderIds ?? []).some((id) => trackedOrders.has(id));
+      if (closedMatch) {
         XauPositionLockStore.release(rec, nowIso, "BROKER_CONFIRMED_CLOSED",
           `ClosedTrades contains tracked trade; no XAU positions/orders @ ${evidence.observedAtUtc}`);
+        return rec;
+      }
+      // A tracked automated position/order is released only by broker ClosedTrades evidence —
+      // flat Trades/Orders reads alone can lag the broker lifecycle.
+      const trackedExposure = trackedTrades.size > 0 || (trackedOrders.size > 0 && sub !== "REJECTED");
+      if (trackedExposure) {
+        rec.flatConfirmations = { count: 0, firstAtUtc: null };
+        if (rec.state !== "RECONCILIATION_PENDING") {
+          T(rec, "RECONCILIATION_PENDING", nowIso, "FLAT_WITHOUT_CLOSE_CONFIRMATION", "POSITION_RECONCILIATION_REQUIRED",
+            "Tracked position absent from Trades but no ClosedTrades confirmation — kept locked.");
+        }
+        rec.priorState = null;
         return rec;
       }
       const first = rec.flatConfirmations.firstAtUtc ? Date.parse(rec.flatConfirmations.firstAtUtc) : NaN;
@@ -522,21 +554,27 @@ export class XauPositionLockStore {
   > {
     return this.mutate((rec, nowIso) => {
       if (!rec.entryFreeze.active) return { ok: true as const, record: rec };
+      const operator = input.operator.slice(0, 60);
+      // Acknowledgement is always recorded; it never releases the lock or touches the broker.
+      rec.entryFreeze = { ...rec.entryFreeze, acknowledgedAtUtc: nowIso, acknowledgedBy: operator };
       if (rec.state !== "AVAILABLE") {
+        rec.events.push({
+          atUtc: nowIso,
+          type: "RISK_BREACH_ACKNOWLEDGED",
+          from: rec.state,
+          to: rec.state,
+          code: "RISK_BREACH_UNRESOLVED",
+          detail: `${operator}: acknowledged; freeze kept until broker-confirmed close`,
+        });
         return {
           ok: false as const,
           code: "POSITION_RECONCILIATION_REQUIRED",
-          message: `Lock is ${rec.state} — broker must confirm the position closed before the freeze can be cleared.`,
+          message: `Acknowledged, but lock is ${rec.state} — entries stay frozen until the broker confirms the position closed.`,
           record: rec,
         };
       }
-      rec.entryFreeze = {
-        ...rec.entryFreeze,
-        active: false,
-        acknowledgedAtUtc: nowIso,
-        acknowledgedBy: input.operator.slice(0, 60),
-      };
-      rec.events.push({ atUtc: nowIso, type: "RISK_BREACH_ACKNOWLEDGED", from: rec.state, to: rec.state, code: null, detail: input.operator.slice(0, 60) });
+      rec.entryFreeze = { ...rec.entryFreeze, active: false };
+      rec.events.push({ atUtc: nowIso, type: "RISK_BREACH_ACKNOWLEDGED", from: rec.state, to: rec.state, code: "RISK_BREACH_CLEARED", detail: `${operator}: lock AVAILABLE — freeze cleared` });
       return { ok: true as const, record: rec };
     }, input.nowMs);
   }

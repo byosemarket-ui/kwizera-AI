@@ -30,7 +30,8 @@ export type Phase3PayloadBlockCode =
   | "DIRECTION_MISMATCH"
   | "INVALID_AMOUNT"
   | "AMOUNT_BELOW_MIN_QUANTITY"
-  | "BROKER_MINIMUM_EXCEEDS_OWNER_LIMIT"
+  | "BROKER_MINIMUM_EXCEEDS_RISK_BUDGET"
+  | "QUANTITY_MISMATCH_BETWEEN_PIPELINE_STAGES"
   | "OFFER_ID_MISSING"
   | "EXECUTION_DISABLED"
   | "UNKNOWN_FIELD";
@@ -161,6 +162,11 @@ export function validatePhase3PayloadPackage(
     const expectedLots = proposal.quantity.normalizedQuantity ?? proposal.quantity.calculatedQuantity;
     if (finitePositive(expectedLots) && Math.abs(expectedLots - payload.lots) > 1e-9) {
       blockers.push("INVALID_QUANTITY");
+      blockers.push("QUANTITY_MISMATCH_BETWEEN_PIPELINE_STAGES");
+    }
+    const expectedAmount = proposal.quantity.brokerAmount;
+    if (finitePositive(expectedAmount) && Number.isFinite(payload.amount) && expectedAmount !== payload.amount) {
+      blockers.push("QUANTITY_MISMATCH_BETWEEN_PIPELINE_STAGES");
     }
     if (finitePositive(proposal.pricePlan.stopLoss) && Math.abs(proposal.pricePlan.stopLoss - (payload.rateStop ?? 0)) > 1e-8) {
       blockers.push("INVALID_STOP_LOSS");
@@ -188,11 +194,11 @@ export function validatePhase3PayloadPackage(
   if (finitePositive(minQ) && payload && Number.isFinite(payload.amount) && payload.amount + 1e-12 < minQ) {
     blockers.push("AMOUNT_BELOW_MIN_QUANTITY");
     blockers.push("INVALID_QUANTITY");
-    // Owner-sized lots that cannot meet broker AMOUNT minimum (e.g. XAU baseUnitSize=1, min=1, lots=0.01).
+    // Risk-sized lots that cannot meet the broker AMOUNT minimum (never rounded up).
     if (finitePositive(payload.lots) && finitePositive(input.baseUnitSize)) {
       const minLots = minQ / Number(input.baseUnitSize);
       if (payload.lots + 1e-12 < minLots) {
-        blockers.push("BROKER_MINIMUM_EXCEEDS_OWNER_LIMIT");
+        blockers.push("BROKER_MINIMUM_EXCEEDS_RISK_BUDGET");
       }
     }
   }

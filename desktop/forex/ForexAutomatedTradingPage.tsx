@@ -98,7 +98,7 @@ type PublicStatus = {
     label: string;
     monitoringAllowed: boolean;
     executionAllowed: false;
-    ownerMaxLots: number;
+    ownerMaxLots: number | null;
     quantityCompatibility?: {
       compatible001Lot?: boolean;
       providerSymbol?: string;
@@ -335,6 +335,11 @@ type XauRiskAndLockUi = {
     netRewardRisk: number | null;
     estimatedMargin: number | null;
     brokerMinimum: number | null;
+    brokerQuantityStep?: number | null;
+    baseUnitSize?: number | null;
+    quantityConversion?: string | null;
+    usableMargin?: number | null;
+    grossRewardRisk?: number | null;
     verdict: "PASS" | "BLOCKED";
     blockers: string[];
   } | null;
@@ -2741,9 +2746,14 @@ export function ForexAutomatedTradingPage(props: {
                 {` · ${fmtNum(status.xauRiskAndLock.latestProposalRisk.quantityLots, 2)} lots / AMOUNT ${fmtNum(status.xauRiskAndLock.latestProposalRisk.brokerAmount, 0)}`}
                 {` · gross risk ${fmtNum(status.xauRiskAndLock.latestProposalRisk.grossRisk)} · net risk ${fmtNum(status.xauRiskAndLock.latestProposalRisk.netRisk)} / max ${fmtNum(status.xauRiskAndLock.latestProposalRisk.maximumRiskAccountCurrency)}`}
                 {` · gross reward ${fmtNum(status.xauRiskAndLock.latestProposalRisk.grossReward)} · net reward ${fmtNum(status.xauRiskAndLock.latestProposalRisk.netReward)}`}
+                {` · gross R:R ${fmtNum(status.xauRiskAndLock.latestProposalRisk.grossRewardRisk)}`}
                 {` · net R:R ${fmtNum(status.xauRiskAndLock.latestProposalRisk.netRewardRisk)}`}
-                {` · margin ${fmtNum(status.xauRiskAndLock.latestProposalRisk.estimatedMargin)}`}
-                {` · broker min ${fmtNum(status.xauRiskAndLock.latestProposalRisk.brokerMinimum, 0)}`}
+                {` · required margin ${fmtNum(status.xauRiskAndLock.latestProposalRisk.estimatedMargin)} / usable ${fmtNum(status.xauRiskAndLock.latestProposalRisk.usableMargin)}`}
+                {` · broker min ${fmtNum(status.xauRiskAndLock.latestProposalRisk.brokerMinimum, 0)} step ${fmtNum(status.xauRiskAndLock.latestProposalRisk.brokerQuantityStep, 0)}`}
+                {status.xauRiskAndLock.latestProposalRisk.quantityConversion
+                  ? ` · ${status.xauRiskAndLock.latestProposalRisk.quantityConversion}`
+                  : ""}
+                {" · no fixed lot cap"}
                 {status.xauRiskAndLock.latestProposalRisk.blockers.length
                   ? ` — ${status.xauRiskAndLock.latestProposalRisk.blockers.slice(0, 5).join(", ")}`
                   : ""}
@@ -3776,11 +3786,11 @@ export function ForexAutomatedTradingPage(props: {
                   {" · "}
                   Execution allowed: <strong>{String(status.pipelineStatus.executionAllowed)}</strong>
                   {" · "}
-                  Owner max lots: <strong>{status.pipelineStatus.ownerMaxLots}</strong>
+                  Lot cap: <strong>{status.pipelineStatus.ownerMaxLots ?? "none — dynamic risk sizing"}</strong>
                 </li>
                 {status.pipelineStatus.quantityCompatibility ? (
                   <li data-fx-at-quantity-compatibility="true">
-                    0.01-lot contract:{" "}
+                    Broker-minimum contract:{" "}
                     <strong>
                       {status.pipelineStatus.quantityCompatibility.compatible001Lot ? "COMPATIBLE" : "INCOMPATIBLE"}
                     </strong>

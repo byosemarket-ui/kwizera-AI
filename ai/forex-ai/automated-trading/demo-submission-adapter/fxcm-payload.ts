@@ -4,10 +4,7 @@
  * Construction ≠ submission.
  */
 import type { AtOrderProposalRecord } from "../order-proposal/types.js";
-import {
-  DEMO_ADAPTER_OWNER_MAX_LOTS,
-  type FxcmTrueMarketOpenPayload,
-} from "./types.js";
+import type { FxcmTrueMarketOpenPayload } from "./types.js";
 
 function finitePositive(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
@@ -42,15 +39,6 @@ export function buildFxcmTrueMarketOpenPayload(input: {
   if (!finitePositive(lots)) {
     return { ok: false, code: "QUANTITY_MISSING", message: "Proposal quantity missing or invalid.", payload: null };
   }
-  if (lots > DEMO_ADAPTER_OWNER_MAX_LOTS + 1e-12) {
-    return {
-      ok: false,
-      code: "OWNER_MAX_LOT_EXCEEDED",
-      message: `Quantity ${lots} exceeds owner maximum ${DEMO_ADAPTER_OWNER_MAX_LOTS}.`,
-      payload: null,
-    };
-  }
-
   const accountId = String(input.accountId || "").trim();
   if (!accountId) {
     return { ok: false, code: "ACCOUNT_IDENTITY_MISSING", message: "Account ID required for FXCM payload.", payload: null };

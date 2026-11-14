@@ -8,8 +8,11 @@ export const AT_BROKER_EXECUTION_SCHEMA = "at-broker-execution-foundation-v1" as
 export const AT_BROKER_EXECUTION_PHASE = "4.18G.4-P1" as const;
 export const AT_BROKER_EXECUTION_MAX_AUDIT = 200;
 
-/** Owner-approved maximum — never raised. */
-export const OWNER_MAX_LOTS_EXECUTION = 0.01;
+/**
+ * No fixed owner lot cap (owner-approved dynamic sizing): quantity is set per proposal by the
+ * account-balance risk engine within broker min/step/max and verified margin. Null = no cap.
+ */
+export const OWNER_MAX_LOTS_EXECUTION = null;
 
 /**
  * Execution request lifecycle.

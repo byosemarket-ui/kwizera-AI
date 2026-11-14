@@ -848,9 +848,9 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
       const mapped = mapSizerCode(sized.code);
       blockers.push(block(
         balanceBasis && mapped === "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY"
-          ? "BROKER_MINIMUM_EXCEEDS_RISK_AFFORDABLE_QUANTITY"
+          ? "BROKER_MINIMUM_EXCEEDS_RISK_BUDGET"
           : balanceBasis && mapped === "INSUFFICIENT_AVAILABLE_MARGIN"
-            ? "MARGIN_INSUFFICIENT"
+            ? "INSUFFICIENT_USABLE_MARGIN"
             : mapped,
         sized.message,
       ));
@@ -976,7 +976,7 @@ export function buildOrderProposal(input: BuildOrderProposalInput): AtOrderPropo
         if (finitePositive(brokerMin) && brokerAmt + 1e-12 < brokerMin) {
           blockers.push(block(
             balanceBasis
-              ? "BROKER_MINIMUM_EXCEEDS_RISK_AFFORDABLE_QUANTITY"
+              ? "BROKER_MINIMUM_EXCEEDS_RISK_BUDGET"
               : "BROKER_MINIMUM_EXCEEDS_ALLOWED_QUANTITY",
             `Broker AMOUNT minimum ${brokerMin} exceeds risk-affordable AMOUNT ${brokerAmt} `
             + `(${qty} lots). Quantity is not rounded up to satisfy broker minimum.`,

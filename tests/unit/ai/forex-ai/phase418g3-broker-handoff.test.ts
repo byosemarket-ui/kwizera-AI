@@ -372,7 +372,7 @@ describe("Phase 4.18G.3 broker handoff", () => {
     expect(h.lifecycle).toBe("HANDOFF_READY");
     expect(h.directionOrder.amount).toBe(1); // 100 * 0.01
     expect(h.directionOrder.normalizedQuantity).toBe(OWNER_MAX_LOTS);
-    expect(h.directionOrder.ownerMaxLots).toBe(0.01);
+    expect(h.directionOrder.ownerMaxLots).toBeNull();
   });
 
   it("14–18. Entry/SL/TP geometry and 3R for BUY and SELL", () => {

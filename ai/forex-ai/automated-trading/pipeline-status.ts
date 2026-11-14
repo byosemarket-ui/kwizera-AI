@@ -7,7 +7,6 @@
  */
 import {
   scoreInstrumentFor001Lots,
-  OWNER_MAX_LOTS_001,
   type DiscoverableInstrumentRow,
   type Instrument001LotScore,
 } from "./order-execution/discover-001-lot-instruments.js";
@@ -57,7 +56,8 @@ export interface AtPipelineStatus {
   executionAllowed: false;
   placesOrders: false;
   acceptsForExecution: false;
-  ownerMaxLots: typeof OWNER_MAX_LOTS_001;
+  /** Null — no fixed owner lot cap; quantity is risk-sized per proposal. */
+  ownerMaxLots: null;
   quantityCompatibility: Instrument001LotScore | null;
   blockers: string[];
   remediation: string[];
@@ -93,12 +93,23 @@ export function deriveAtPipelineStatus(input: AtPipelineStatusInput = {}): AtPip
         ? "live_broker"
         : (input.instrumentContract.evidenceSource ?? "inferred"),
     };
-    quantityCompatibility = scoreInstrumentFor001Lots(row, OWNER_MAX_LOTS_001);
-    if (!quantityCompatibility.compatible001Lot) {
-      blockers.push(...quantityCompatibility.blockers.slice(0, 8));
-      remediation.push(
-        `Owner max ${OWNER_MAX_LOTS_001} lots is incompatible with this instrument's live broker min/AMOUNT/MMR. Do not raise owner size to force a fit.`,
-      );
+    // Dynamic sizing: evaluate the broker's own minimum quantity (no fixed owner lot cap).
+    const minLots =
+      typeof row.minQuantity === "number" && typeof row.baseUnitSize === "number"
+      && row.minQuantity > 0 && row.baseUnitSize > 0
+        ? row.minQuantity / row.baseUnitSize
+        : null;
+    if (minLots == null) {
+      blockers.push("BROKER_METADATA_UNAVAILABLE");
+      remediation.push("Live broker minQuantity/baseUnitSize unavailable — refresh TradingSettings; quantity is not invented.");
+    } else {
+      quantityCompatibility = scoreInstrumentFor001Lots(row, minLots);
+      if (!quantityCompatibility.compatible001Lot) {
+        blockers.push(...quantityCompatibility.blockers.slice(0, 8));
+        remediation.push(
+          `Broker minimum ${minLots} lots does not form a valid AMOUNT/margin under live metadata — sizing blocked.`,
+        );
+      }
     }
   } else {
     blockers.push("INSTRUMENT_CONTRACT_NOT_EVALUATED");
@@ -174,7 +185,7 @@ export function deriveAtPipelineStatus(input: AtPipelineStatusInput = {}): AtPip
     executionAllowed,
     placesOrders,
     acceptsForExecution,
-    ownerMaxLots: OWNER_MAX_LOTS_001,
+    ownerMaxLots: null,
     quantityCompatibility,
     blockers: [...new Set(blockers)],
     remediation: [...new Set(remediation)],
