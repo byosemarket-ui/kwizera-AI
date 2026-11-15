@@ -47,9 +47,19 @@ DEMO_SERVER_ALLOW = {
 }
 
 _LIVE_RE = re.compile(r"live|real|prod", re.I)
-_AUTH_OK_RE = re.compile(r"(authorized|connected|login\s+succeeded|'.*?account)", re.I)
-_AUTH_FAIL_RE = re.compile(r"(invalid account|authorization failed|login failed|password)", re.I)
-_ACCOUNT_RE = re.compile(r"(?:account|login)\s*[#: ]\s*(\d{4,})", re.I)
+# Prefer exact MT5 Network journal lines over loose keywords.
+_AUTH_OK_RE = re.compile(
+    r"'(\d{4,})'\s*:\s*authorized on\s+([A-Za-z0-9._-]+)|"
+    r"'(\d{4,})'\s*:\s*terminal synchronized with\s+(.+?):\s*(\d+)\s+positions",
+    re.I,
+)
+_AUTH_FAIL_RE = re.compile(
+    r"(invalid account|authorization failed|login failed|password\s+incorrect|authentication\s+failed)",
+    re.I,
+)
+_ACCOUNT_RE = re.compile(r"'(\d{4,})'\s*:\s*(?:authorized|terminal synchronized|trading has been)", re.I)
+_COMPANY_RE = re.compile(r"'(\d{4,})'\s*:\s*terminal synchronized with\s+(.+?):\s*(\d+)\s+positions,\s*(\d+)\s+orders,\s*(\d+)\s+symbols", re.I)
+_DEMO_MODE_RE = re.compile(r"'(\d{4,})'\s*:\s*trading has been enabled,\s*demo account", re.I)
 
 # Last successful Demo login meta (non-secret) for snapshot enrichment.
 _last_demo_meta: dict[str, str] = {}
@@ -69,7 +79,7 @@ def mcp_status() -> dict[str, Any]:
     key_present = mt5_mcp.load_mcp_api_key() is not None
     reachable = mt5_mcp.mcp_reachable()
     return {
-        "mcpUrl": mt5_mcp.DEFAULT_MCP_URL,
+        "mcpUrl": mt5_mcp.resolve_mcp_url(),
         "apiKeyConfigured": key_present,
         "reachable": reachable,
     }
@@ -119,9 +129,28 @@ def _validate_demo(login: str, server: str) -> None:
         raise ValueError("LIVE_SERVER_REJECTED")
 
 
-def _write_login_ini(login: str, server: str, password: str) -> Path:
+SNAPSHOT_REL = "MQL5/Files/kwizera_readonly_snapshot.json"
+SNAPSHOT_COMMON = (
+    Path(WINEPREFIX)
+    / "drive_c/users/mt5/AppData/Roaming/MetaQuotes/Terminal/Common/Files/kwizera_readonly_snapshot.json"
+)
+SNAPSHOT_LOCAL = TERM_ROOT / "MQL5/Files/kwizera_readonly_snapshot.json"
+EXPERT_MQ5_NAME = "KwizeraReadonlySnapshot.mq5"
+EXPERT_EX5_NAME = "KwizeraReadonlySnapshot.ex5"
+
+
+def _write_login_ini(login: str, server: str, password: str, *, start_snapshot_expert: bool = True) -> Path:
     RUN_DIR.mkdir(parents=True, exist_ok=True)
     path = RUN_DIR / f"login-{os.getpid()}-{int(time.time())}.ini"
+    startup = ""
+    if start_snapshot_expert and (TERM_ROOT / "MQL5/Experts" / EXPERT_EX5_NAME).is_file():
+        # Attach read-only snapshot Expert once on EURUSD H1, then ExpertRemove().
+        startup = (
+            "\n[StartUp]\n"
+            f"Expert={EXPERT_EX5_NAME.replace('.ex5', '')}\n"
+            "Symbol=EURUSD\n"
+            "Period=H1\n"
+        )
     content = (
         "[Common]\n"
         f"Login={login}\n"
@@ -129,6 +158,7 @@ def _write_login_ini(login: str, server: str, password: str) -> Path:
         f"Password={password}\n"
         "KeepPrivate=1\n"
         "ProxyEnable=0\n"
+        f"{startup}"
     )
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     fd = os.open(str(path), flags, 0o600)
@@ -206,22 +236,57 @@ def _latest_journal_text(max_bytes: int = 200_000) -> str:
     return ""
 
 
-def parse_journal_snapshot(login_hint: str | None = None) -> dict[str, Any]:
+def parse_journal_snapshot(login_hint: str | None = None, expected_login: str | None = None) -> dict[str, Any]:
     text = _latest_journal_text()
-    authenticated = bool(_AUTH_OK_RE.search(text)) and not bool(_AUTH_FAIL_RE.search(text[-4000:]))
-    if _AUTH_FAIL_RE.search(text[-2000:]):
+    tail = text[-12000:] if text else ""
+    found_login = None
+    server = None
+    company = None
+    positions = None
+    orders = None
+    symbols = None
+    demo_account = None
+
+    m_co = _COMPANY_RE.search(tail)
+    if m_co:
+        found_login = m_co.group(1)
+        company = m_co.group(2).strip()
+        positions = int(m_co.group(3))
+        orders = int(m_co.group(4))
+        symbols = int(m_co.group(5))
+    m_ok = _AUTH_OK_RE.search(tail)
+    if m_ok and not found_login:
+        found_login = m_ok.group(1) or m_ok.group(3)
+        server = m_ok.group(2) if m_ok.group(2) else None
+    if not found_login:
+        m = _ACCOUNT_RE.search(tail)
+        if m:
+            found_login = m.group(1)
+    if _DEMO_MODE_RE.search(tail):
+        demo_account = True
+
+    auth_fail = bool(_AUTH_FAIL_RE.search(tail[-4000:]))
+    authenticated = bool(m_ok or m_co) and not auth_fail
+    if expected_login and found_login and found_login != expected_login:
+        authenticated = False
+        auth_error = "ACCOUNT_MISMATCH"
+    elif auth_fail:
         authenticated = False
         auth_error = "AUTH_FAILED"
     else:
         auth_error = None
-    found_login = None
-    m = _ACCOUNT_RE.search(text[-8000:])
-    if m:
-        found_login = m.group(1)
+
     return {
         "authenticated": authenticated,
         "authError": auth_error,
+        "loginExact": found_login,
         "loginHint": (f"••••{found_login[-4:]}" if found_login else login_hint),
+        "server": server,
+        "company": company,
+        "openPositionsCount": positions,
+        "pendingOrdersCount": orders,
+        "symbolsCount": symbols,
+        "demoAccount": demo_account,
         "journalAvailable": bool(text),
         "source": "journal",
     }
@@ -234,6 +299,109 @@ def _mcp_account(server_hint: str | None = None) -> dict[str, Any] | None:
         return mt5_mcp.normalize_account_info(raw, server_hint=server_hint)
     except ValueError as exc:
         return {"error": str(exc), "source": "mt5_mcp"}
+
+
+def _read_mql_snapshot(max_age_sec: float = 120.0) -> dict[str, Any] | None:
+    """Read read-only MQL5 Expert dump if fresh. Never contains passwords."""
+    import json
+
+    candidates = [SNAPSHOT_COMMON, SNAPSHOT_LOCAL]
+    newest: Path | None = None
+    newest_mtime = 0.0
+    for p in candidates:
+        try:
+            if p.is_file():
+                m = p.stat().st_mtime
+                if m > newest_mtime:
+                    newest = p
+                    newest_mtime = m
+        except OSError:
+            continue
+    if newest is None:
+        return None
+    age = time.time() - newest_mtime
+    if age > max_age_sec:
+        return {"error": "MQL_SNAPSHOT_STALE", "ageSec": age, "source": "mql5_readonly_snapshot"}
+    try:
+        data = json.loads(newest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"error": f"MQL_SNAPSHOT_BAD_JSON:{type(exc).__name__}", "source": "mql5_readonly_snapshot"}
+    if not isinstance(data, dict):
+        return {"error": "MQL_SNAPSHOT_BAD_JSON", "source": "mql5_readonly_snapshot"}
+    acct = data.get("account") if isinstance(data.get("account"), dict) else {}
+    return {
+        "loginExact": acct.get("loginExact"),
+        "loginHint": (f"••••{str(acct.get('loginExact'))[-4:]}" if acct.get("loginExact") else None),
+        "server": acct.get("server"),
+        "company": acct.get("company"),
+        "currency": acct.get("currency"),
+        "leverage": str(acct.get("leverage")) if acct.get("leverage") is not None else None,
+        "balance": acct.get("balance"),
+        "equity": acct.get("equity"),
+        "credit": acct.get("credit"),
+        "profit": acct.get("profit"),
+        "usedMargin": acct.get("usedMargin"),
+        "freeMargin": acct.get("freeMargin"),
+        "marginLevel": acct.get("marginLevel"),
+        "demoAccount": acct.get("demoAccount"),
+        "accountType": "demo" if acct.get("demoAccount") else None,
+        "tradePermissions": "allowed" if acct.get("tradeAllowed") else "restricted",
+        "quotes": data.get("quotes") if isinstance(data.get("quotes"), list) else [],
+        "authenticated": bool(acct.get("loginExact")),
+        "source": "mql5_readonly_snapshot",
+        "path": str(newest),
+        "ageSec": age,
+    }
+
+
+def ensure_readonly_expert_installed() -> dict[str, Any]:
+    """Copy + compile the read-only snapshot Expert into the Wine MT5 tree."""
+    src_dir = Path(__file__).resolve().parent / "mql5"
+    src = src_dir / EXPERT_MQ5_NAME
+    experts = TERM_ROOT / "MQL5/Experts"
+    dst = experts / EXPERT_MQ5_NAME
+    ex5 = experts / EXPERT_EX5_NAME
+    if not src.is_file():
+        return {"installed": False, "reason": "SOURCE_MQ5_MISSING", "src": str(src)}
+    experts.mkdir(parents=True, exist_ok=True)
+    dst.write_bytes(src.read_bytes())
+    metaeditor = TERM_ROOT / "metaeditor64.exe"
+    if not metaeditor.is_file():
+        return {"installed": False, "reason": "METAEDITOR_MISSING", "mq5": str(dst), "ex5Present": ex5.is_file()}
+    env = os.environ.copy()
+    env.update(
+        {
+            "WINEPREFIX": WINEPREFIX,
+            "WINEARCH": "win64",
+            "WINEDEBUG": "-all",
+            "DISPLAY": DISPLAY,
+            "XAUTHORITY": XAUTHORITY,
+            "HOME": "/home/mt5",
+        }
+    )
+    win_src = r"C:\Program Files\HFM Metatrader 5\MQL5\Experts\\" + EXPERT_MQ5_NAME
+    try:
+        proc = subprocess.run(
+            [WINE_BIN, str(metaeditor), f"/compile:{win_src}", "/log"],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        return {
+            "installed": ex5.is_file(),
+            "compileReturncode": proc.returncode,
+            "ex5Present": ex5.is_file(),
+            "mq5": str(dst),
+            "ex5": str(ex5),
+        }
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        return {
+            "installed": ex5.is_file(),
+            "reason": type(exc).__name__,
+            "ex5Present": ex5.is_file(),
+            "mq5": str(dst),
+        }
 
 
 def _wait_for_mcp_account(
@@ -264,13 +432,22 @@ def _wait_for_mcp_account(
         if exact == expected_login or acct.get("balance") is not None or acct.get("currency"):
             return {**acct, "authenticated": True, "authError": None}
         last = acct
+        # Parallel path: MQL5 read-only snapshot Expert dump.
+        mql = _read_mql_snapshot(max_age_sec=180.0)
+        if mql and not mql.get("error") and (
+            str(mql.get("loginExact") or "") == expected_login or mql.get("balance") is not None
+        ):
+            return {**mql, "authenticated": True, "authError": None}
         time.sleep(2.0)
-    # Fallback: journal inference
-    journal = parse_journal_snapshot(login_hint="••••" + expected_login[-4:])
+    # Fallback: journal inference (identity + sync counts). Financials stay null without MCP/MQL dump.
+    journal = parse_journal_snapshot(
+        login_hint="••••" + expected_login[-4:],
+        expected_login=expected_login,
+    )
     return {
         "loginHint": journal.get("loginHint"),
-        "loginExact": None,
-        "server": server,
+        "loginExact": journal.get("loginExact"),
+        "server": journal.get("server") or server,
         "currency": None,
         "balance": None,
         "equity": None,
@@ -280,12 +457,25 @@ def _wait_for_mcp_account(
         "usedMargin": None,
         "marginLevel": None,
         "leverage": None,
-        "company": None,
+        "company": journal.get("company"),
+        "openPositionsCount": journal.get("openPositionsCount"),
+        "pendingOrdersCount": journal.get("pendingOrdersCount"),
+        "symbolsCount": journal.get("symbolsCount"),
+        "demoAccount": journal.get("demoAccount"),
+        "accountType": "demo" if journal.get("demoAccount") else None,
         "authenticated": bool(journal.get("authenticated")),
-        "authError": journal.get("authError") or last.get("error") or "MCP_ACCOUNT_TIMEOUT",
+        "authError": (
+            None
+            if journal.get("authenticated")
+            else (journal.get("authError") or last.get("error") or "MCP_ACCOUNT_TIMEOUT")
+        ),
         "source": "journal_fallback",
-        "note": "MCP account info not available yet; journal-only inference.",
-        **{k: v for k, v in last.items() if k not in {"error"}},
+        "note": (
+            "Journal-verified Demo identity; balance/equity/margin require working MT5 MCP ApiKey."
+            if journal.get("authenticated")
+            else "MCP account info not available yet; journal-only inference."
+        ),
+        **{k: v for k, v in last.items() if k not in {"error", "authenticated", "authError"}},
     }
 
 
@@ -306,9 +496,16 @@ def demo_login(login: str, server: str, password: str) -> dict[str, Any]:
         except OSError:
             pass
 
-    ini = _write_login_ini(login, server, password)
+    expert_meta = ensure_readonly_expert_installed()
+    ini = _write_login_ini(login, server, password, start_snapshot_expert=bool(expert_meta.get("ex5Present") or expert_meta.get("installed")))
     password = ""
     try:
+        # Remove stale snapshot so we only accept a post-login dump.
+        for stale in (SNAPSHOT_COMMON, SNAPSHOT_LOCAL):
+            try:
+                stale.unlink(missing_ok=True)
+            except OSError:
+                pass
         _stop_terminal()
         _start_terminal_with_config(ini)
         # Allow Wine + terminal + MCP to come up before shredding INI.
@@ -372,17 +569,51 @@ def demo_login(login: str, server: str, password: str) -> dict[str, Any]:
 def account_snapshot() -> dict[str, Any]:
     status = connection_status()
     server = _last_demo_meta.get("server")
+    expected = _last_demo_meta.get("login")
     snap = _mcp_account(server_hint=server)
     if not snap or snap.get("error"):
-        journal = parse_journal_snapshot()
+        mql = _read_mql_snapshot(max_age_sec=300.0)
+        if mql and not mql.get("error"):
+            if expected and mql.get("loginExact") and str(mql["loginExact"]) != expected:
+                pass
+            else:
+                return {
+                    "terminalRunning": status["terminalRunning"],
+                    "terminalConnected": status["terminalConnected"],
+                    "authenticated": True,
+                    "mcp": status.get("mcp"),
+                    "account": {
+                        "loginHint": mql.get("loginHint"),
+                        "loginExact": mql.get("loginExact"),
+                        "server": mql.get("server") or server,
+                        "currency": mql.get("currency"),
+                        "balance": mql.get("balance"),
+                        "equity": mql.get("equity"),
+                        "credit": mql.get("credit"),
+                        "profit": mql.get("profit"),
+                        "freeMargin": mql.get("freeMargin"),
+                        "usedMargin": mql.get("usedMargin"),
+                        "marginLevel": mql.get("marginLevel"),
+                        "leverage": mql.get("leverage"),
+                        "company": mql.get("company"),
+                        "demoAccount": mql.get("demoAccount"),
+                        "accountType": mql.get("accountType"),
+                        "syncedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                        "source": "mql5_readonly_snapshot",
+                        "note": "Account fields from read-only MQL5 snapshot Expert.",
+                    },
+                    "quotes": mql.get("quotes") or [],
+                }
+        journal = parse_journal_snapshot(expected_login=expected)
         return {
             "terminalRunning": status["terminalRunning"],
             "terminalConnected": status["terminalConnected"],
-            "authenticated": False,
+            "authenticated": bool(journal.get("authenticated")),
             "mcp": status.get("mcp"),
             "account": {
                 "loginHint": journal.get("loginHint"),
-                "server": server,
+                "loginExact": journal.get("loginExact"),
+                "server": journal.get("server") or server,
                 "currency": None,
                 "balance": None,
                 "equity": None,
@@ -390,11 +621,20 @@ def account_snapshot() -> dict[str, Any]:
                 "usedMargin": None,
                 "marginLevel": None,
                 "leverage": None,
-                "company": None,
-                "syncedAt": None,
-                "source": "unavailable",
-                "note": snap.get("error") if snap else "MCP_UNAVAILABLE",
-                "unavailableReason": snap.get("error") if snap else "MCP_UNAVAILABLE",
+                "company": journal.get("company"),
+                "openPositionsCount": journal.get("openPositionsCount"),
+                "pendingOrdersCount": journal.get("pendingOrdersCount"),
+                "symbolsCount": journal.get("symbolsCount"),
+                "demoAccount": journal.get("demoAccount"),
+                "accountType": "demo" if journal.get("demoAccount") else None,
+                "syncedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) if journal.get("authenticated") else None,
+                "source": "journal_fallback" if journal.get("authenticated") else "unavailable",
+                "note": (
+                    "Journal-verified Demo identity; balance/equity require MQL snapshot or working MCP."
+                    if journal.get("authenticated")
+                    else (snap.get("error") if snap else "MCP_UNAVAILABLE")
+                ),
+                "unavailableReason": None if journal.get("authenticated") else (snap.get("error") if snap else "MCP_UNAVAILABLE"),
             },
         }
 
@@ -458,6 +698,51 @@ def symbols_snapshot() -> dict[str, Any]:
 
 
 def quotes_snapshot(symbols: list[str] | None = None) -> dict[str, Any]:
+    mql = _read_mql_snapshot(max_age_sec=300.0)
+    if mql and not mql.get("error") and mql.get("quotes"):
+        wanted = {s.upper() for s in (symbols or []) if s}
+        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        quotes = []
+        for item in mql.get("quotes") or []:
+            if not isinstance(item, dict):
+                continue
+            sym = str(item.get("symbol") or "")
+            if wanted and sym.upper() not in wanted:
+                continue
+            bid = item.get("bid")
+            ask = item.get("ask")
+            spread = item.get("spread")
+            fresh = None
+            stale = None
+            if isinstance(bid, (int, float)) and isinstance(ask, (int, float)):
+                ok = float(bid) > 0 and float(ask) > 0 and float(ask) >= float(bid)
+                fresh = ok
+                stale = not ok
+            quotes.append(
+                {
+                    "symbol": sym,
+                    "bid": bid,
+                    "ask": ask,
+                    "spread": spread,
+                    "tickTime": item.get("tickTime"),
+                    "retrievedAt": now,
+                    "fresh": fresh,
+                    "stale": stale,
+                    "source": "mql5_readonly_snapshot",
+                    "provider": "HFM_MT5",
+                    "environment": "demo",
+                }
+            )
+        any_fresh = any(q.get("fresh") for q in quotes)
+        return {
+            "quotesAvailable": bool(quotes) and any_fresh is not False,
+            "stale": all(q.get("stale") for q in quotes) if quotes else None,
+            "quotes": quotes,
+            "requestedSymbols": symbols or [],
+            "source": "mql5_readonly_snapshot",
+            "retrievedAt": now,
+            "note": None if quotes else "MQL snapshot had no matching quotes.",
+        }
     try:
         client = mt5_mcp.Mt5McpClient()
         raw = client.call_tool("get_marketwatch_symbols", {})

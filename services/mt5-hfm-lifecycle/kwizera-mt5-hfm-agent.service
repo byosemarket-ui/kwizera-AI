@@ -42,7 +42,8 @@ Environment=KWIZERA_MT5_HFM_AGENT_ALLOW_UIDS=999,1000
 ExecStartPre=+/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/prepare-agent-runtime.sh
 ExecStartPre=/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/wait-mt5-ready.sh
 ExecStart=/usr/bin/python3 /opt/kwizera-ai/services/mt5-hfm-agent/agent.py
-ExecStartPost=+/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/fix-agent-socket.sh
+# "-" = do not fail the unit if post-check races; "+" = root for chown/chmod.
+ExecStartPost=-+/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/fix-agent-socket.sh
 
 Restart=on-failure
 RestartSec=10

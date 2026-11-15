@@ -6,7 +6,8 @@
  * Usage (as kwizera, cwd=/opt/kwizera-ai):
  *   node services/mt5-hfm-lifecycle/bin/sync-agent-token-from-vault.mjs
  */
-import { randomBytes, writeFileSync, openSync, writeSync, closeSync, fchmodSync } from "node:fs";
+import { openSync, writeSync, closeSync, fchmodSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";

@@ -19,9 +19,6 @@ from typing import Any
 
 LOG = logging.getLogger("mt5-hfm-mcp")
 
-DEFAULT_MCP_URL = os.environ.get(
-    "KWIZERA_MT5_MCP_URL", "http://127.0.0.1:22346/mcp"
-)
 ASSISTANT_INI = Path(
     os.environ.get(
         "KWIZERA_MT5_ASSISTANT_INI",
@@ -81,6 +78,7 @@ FORBIDDEN_MCP_TOOLS = frozenset(
 
 _API_KEY_RE = re.compile(r"(?im)^\s*ApiKey\s*=\s*(.+?)\s*$")
 _SECTION_RE = re.compile(r"(?im)^\s*\[MCP\.MetaTrader\]\s*$")
+_ENDPOINT_RE = re.compile(r"(?im)^\s*Endpoint\s*=\s*(.+?)\s*$")
 
 
 def _decode_ini(raw: bytes) -> str:
@@ -90,6 +88,35 @@ def _decode_ini(raw: bytes) -> str:
         except UnicodeDecodeError:
             continue
     return ""
+
+
+def resolve_mcp_url(path: Path | None = None) -> str:
+    """Prefer KWIZERA_MT5_MCP_URL, else [MCP.MetaTrader] Endpoint from assistant.ini."""
+    env_url = (os.environ.get("KWIZERA_MT5_MCP_URL") or "").strip()
+    if env_url:
+        return env_url.rstrip("/")
+    p = path or ASSISTANT_INI
+    if p.is_file():
+        text = _decode_ini(p.read_bytes())
+        in_section = False
+        for line in text.splitlines():
+            if _SECTION_RE.match(line):
+                in_section = True
+                continue
+            if line.strip().startswith("[") and line.strip().endswith("]"):
+                in_section = False
+                continue
+            if not in_section:
+                continue
+            m = _ENDPOINT_RE.match(line)
+            if m:
+                url = m.group(1).strip().strip('"').strip("'")
+                if url.startswith("http://127.0.0.1:") or url.startswith("http://localhost:"):
+                    return url.rstrip("/")
+    return "http://127.0.0.1:22346/mcp"
+
+
+DEFAULT_MCP_URL = resolve_mcp_url()
 
 
 def load_mcp_api_key(path: Path | None = None) -> str | None:
@@ -126,7 +153,7 @@ def load_mcp_api_key(path: Path | None = None) -> str | None:
 
 
 def mcp_reachable(url: str | None = None, timeout: float = 2.0) -> bool:
-    endpoint = url or DEFAULT_MCP_URL
+    endpoint = url or resolve_mcp_url()
     try:
         # Expect 401 without auth — proves listener is the MCP server.
         req = urllib.request.Request(endpoint, method="GET")
@@ -142,7 +169,7 @@ class Mt5McpClient:
     """Minimal streamable-HTTP MCP client for read-only terminal tools."""
 
     def __init__(self, url: str | None = None, api_key: str | None = None) -> None:
-        self.url = (url or DEFAULT_MCP_URL).rstrip("/")
+        self.url = (url or resolve_mcp_url()).rstrip("/")
         self._api_key = api_key
         self._session_id: str | None = None
         self._initialized = False
