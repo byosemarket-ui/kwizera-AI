@@ -31,6 +31,12 @@ import {
   assertLiveActivationAllowed,
   publicLiveGate,
 } from "../../ai/market-data/mt5-hfm/live-gate.js";
+import { mt5HfmBridgeSecurityAuditSummary } from "../../ai/market-data/mt5-hfm/bridge-security-audit.js";
+import {
+  demoLoginPlanSummary,
+  initialConnectionStagesFromProbe,
+} from "../../ai/market-data/mt5-hfm/demo-login-plan.js";
+import { mt5HfmSystemdProposalSummary } from "../../ai/market-data/mt5-hfm/systemd-proposal.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -176,8 +182,14 @@ export async function handleMt5HfmApi(
 
     if (url.pathname === "/api/forex/providers/mt5-hfm/status" && (req.method === "GET" || req.method === "HEAD")) {
       const status = manager.publicStatus();
-      assertNoSecretsInMt5HfmPayload(status);
-      sendJson(res, 200, status);
+      const payload = {
+        ...status,
+        bridgeSecurity: mt5HfmBridgeSecurityAuditSummary(),
+        demoLoginPlan: demoLoginPlanSummary(),
+        systemdProposal: mt5HfmSystemdProposalSummary(),
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
       return true;
     }
 
@@ -415,9 +427,10 @@ export async function handleMt5HfmApi(
         return true;
       }
 
-      // Never touch Live password during Demo probe.
+      // Never touch Live password during Demo probe (getDemoPassword only).
       const probe = await probeHfmDemoNetwork(meta.server);
       const bridge = await requestMt5HfmDemoLoginBridge();
+      const stages = initialConnectionStagesFromProbe(probe);
       await manager.recordProbeResult("demo", {
         status: probe.status,
         errorMessage: probe.ok ? null : probe.summary,
@@ -428,13 +441,15 @@ export async function handleMt5HfmApi(
         ok: true,
         environment: "demo" as const,
         probe,
+        stages,
         bridge,
         status,
         account: status.demo.account,
         liveGate: status.liveGate,
+        authenticatedLogin: false as const,
         note: probe.ok
-          ? "HFM Demo network reachable. MT5 terminal login and account sync are not verified until the local mt5 agent is approved and enabled."
-          : "HFM Demo network probe failed. Credentials were not sent to any host.",
+          ? "DNS/TCP Demo endpoints reachable. This is NOT an authenticated MT5 Demo login. Terminal login, account sync, and market data remain not_verified."
+          : "HFM Demo network probe failed. Credentials were not sent to any host. Authenticated login was not attempted.",
       };
       assertNoSecretsInMt5HfmPayload(payload);
       await appendMt5HfmCredentialAudit({

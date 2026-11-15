@@ -602,6 +602,12 @@ export const forexProvidersApi = {
         accountSync: string;
         note: string;
       };
+      stages?: Array<{
+        stage: "dns_tcp" | "mt5_terminal" | "demo_login" | "market_data";
+        status: string;
+        summary: string;
+      }>;
+      authenticatedLogin?: false;
       status: Mt5HfmDemoStatus;
       account: Mt5HfmDemoAccountInfo | null;
       liveGate?: Mt5HfmLiveGate;

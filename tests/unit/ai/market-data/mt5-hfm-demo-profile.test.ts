@@ -14,12 +14,15 @@ import {
 import { assertNoSecretsInMt5HfmPayload } from "../../../../ai/market-data/mt5-hfm/secrets-guard";
 import { endpointsForDemoServer } from "../../../../ai/market-data/mt5-hfm/connection-probe";
 import { appendMt5HfmCredentialAudit } from "../../../../ai/market-data/mt5-hfm/credential-audit";
-import { requestMt5HfmDemoLoginBridge } from "../../../../ai/market-data/mt5-hfm/login-bridge";
 import {
   assertLiveActivationAllowed,
   Mt5HfmLiveActivationLockedError,
   publicLiveGate,
 } from "../../../../ai/market-data/mt5-hfm/live-gate";
+import { assertBridgeEnvironmentIsDemo, requestMt5HfmDemoLoginBridge } from "../../../../ai/market-data/mt5-hfm/login-bridge";
+import { initialConnectionStagesFromProbe } from "../../../../ai/market-data/mt5-hfm/demo-login-plan";
+import { mt5HfmBridgeSecurityAuditSummary } from "../../../../ai/market-data/mt5-hfm/bridge-security-audit";
+import { mt5HfmSystemdProposalSummary } from "../../../../ai/market-data/mt5-hfm/systemd-proposal";
 
 describe("MT5 HFM Demo + Live profile manager", () => {
   const roots: string[] = [];
@@ -153,9 +156,46 @@ describe("MT5 HFM Demo + Live profile manager", () => {
     expect(raw).not.toMatch(/password/i);
   });
 
-  it("login bridge placeholder stays not_implemented", async () => {
+  it("login bridge stays not_implemented and Demo-only", async () => {
     const bridge = await requestMt5HfmDemoLoginBridge();
     expect(bridge.status).toBe("not_implemented");
+    expect(bridge.environment).toBe("demo");
     expect(bridge.account).toBeNull();
+    expect(bridge.security.implementationAllowed).toBe(false);
+    expect(bridge.note).toMatch(/NOT an authenticated Demo login|not an authenticated/i);
+    expect(() => assertBridgeEnvironmentIsDemo("live")).toThrow(Mt5HfmLiveActivationLockedError);
+  });
+
+  it("blocks Live password activation reads while gate is locked", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "mt5-hfm-live-read-"));
+    roots.push(root);
+    process.env.KWIZERA_SECRETS_PASSPHRASE = "unit-test-passphrase-mt5-hfm";
+    const manager = createMt5HfmDemoProfileManager();
+    await manager.initialize(root);
+    await manager.saveCredentials({
+      environment: "live",
+      login: "80123456",
+      server: "HFMarketsGlobal-Live1",
+      password: "LiveSecretPass88",
+    });
+    expect(manager.getLivePassword()).toBe("LiveSecretPass88");
+    expect(() => manager.getLivePasswordForActivation()).toThrow(Mt5HfmLiveActivationLockedError);
+    // Demo bridge path still only sees Demo vault.
+    expect(manager.getDemoPassword()).toBeNull();
+  });
+
+  it("distinguishes TCP probe from login stages and keeps systemd proposal uninstalled", () => {
+    const stages = initialConnectionStagesFromProbe({
+      ok: true,
+      status: "demo_network_reachable",
+      summary: "3/4 Demo endpoints open",
+    });
+    expect(stages[0]?.stage).toBe("dns_tcp");
+    expect(stages[0]?.status).toBe("ok");
+    expect(stages.find((s) => s.stage === "demo_login")?.status).toBe("not_verified");
+    expect(stages.find((s) => s.stage === "market_data")?.status).toBe("not_verified");
+    expect(mt5HfmBridgeSecurityAuditSummary().publicTcpForbidden).toBe(true);
+    expect(mt5HfmSystemdProposalSummary().installed).toBe(false);
+    expect(mt5HfmSystemdProposalSummary().enabled).toBe(false);
   });
 });

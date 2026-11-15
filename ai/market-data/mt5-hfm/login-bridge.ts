@@ -1,40 +1,26 @@
 /**
  * HFM MT5 Demo login bridge — ARCHITECTURE ONLY (not implemented).
  *
- * Goal: allow the KWIZERA Node backend (user `kwizera`) to request a Demo login
- * against the already-running Wine/MT5 process under Linux user `mt5`, then
- * return non-secret account fields (balance, equity, leverage, currency).
+ * Full Unix-socket security requirements: `./bridge-security-audit.ts`
+ * Demo login sequence + Test Connection stages: `./demo-login-plan.ts`
+ * Systemd proposal: `./systemd-proposal.ts`
  *
- * Approved constraints:
- * - Demo connection only until separate Live owner authorization.
- * - Live credentials may exist in vault (`mt5-hfm:live:password`) but must never
- *   be used by this bridge while live-gate remains fail-closed.
+ * Goal: KWIZERA Node (`kwizera`) requests Demo login against Wine/MT5 under
+ * Linux user `mt5`, then returns non-secret account fields.
+ *
+ * Hard rules while Live gate is locked:
+ * - Demo only — never read `mt5-hfm:live:password` on this path.
  * - No order placement, EA attach, or AT submit.
  * - Never put passwords in argv, shell, environment dumps, or logs.
- * - Do not expose a new unauthenticated public port.
- * - Browser must never talk to the VPS Wine stack directly.
- *
- * Proposed architecture (implement only after security review):
- *
- * 1. Local agent `services/mt5-hfm-agent/` running as `mt5` via systemd user or
- *    a dedicated unit (`kwizera-mt5-hfm-agent.service`).
- * 2. Agent listens on a Unix domain socket owned by `mt5:kwizera` mode 0660,
- *    path e.g. `/run/kwizera/mt5-hfm-agent.sock` (tmpfs), NOT TCP 0.0.0.0.
- * 3. Backend connects over the socket with a short-lived HMAC / shared token
- *    from AiSecretsManager (id `mt5-hfm:agent:token`), never the trading password.
- * 4. For login: backend decrypts Demo password in-process via AiSecretsManager,
- *    writes it once into an O_EXCL 0600 file under `/run/kwizera/mt5-hfm/` that
- *    the agent reads and shreds immediately, OR sends it in a single length-
- *    prefixed socket frame (preferred: socket frame; never argv).
- * 5. Agent drives the existing terminal via Wine UI automation / MT5 config
- *    update (UTF-16-LE aware) under `/home/mt5/.wine-hfm`, then reads Journal /
- *    account panels / portable config for public account fields.
- * 6. Agent returns JSON: `{ ok, account: { currency, balance, equity, ... } }`
- *    with no password. Backend persists snapshot into demo-profile metadata.
- *
- * Out of scope until approved: SSH from Node, public reverse tunnels, password
- * reveal APIs, Live credentials, systemd enablement of the MT5 terminal itself.
+ * - No public unauthenticated TCP ports.
+ * - Browser never talks to Wine/MT5 directly.
  */
+
+import {
+  MT5_HFM_BRIDGE_SECURITY_STATUS,
+  mt5HfmBridgeSecurityAuditSummary,
+} from "./bridge-security-audit.js";
+import { assertLiveActivationAllowed } from "./live-gate.js";
 
 export const MT5_HFM_LOGIN_BRIDGE_STATUS = "not_implemented" as const;
 
@@ -45,26 +31,44 @@ export interface Mt5HfmLoginBridgeAccountSnapshot {
   balance: number | null;
   equity: number | null;
   freeMargin: number | null;
+  usedMargin: number | null;
   marginLevel: number | null;
   leverage: string | null;
   company: string | null;
+  symbols: string[] | null;
+  quotesAvailable: boolean | null;
   syncedAt: string;
 }
 
 export interface Mt5HfmLoginBridgeResult {
   ok: boolean;
   status: typeof MT5_HFM_LOGIN_BRIDGE_STATUS;
+  environment: "demo";
   account: Mt5HfmLoginBridgeAccountSnapshot | null;
+  security: ReturnType<typeof mt5HfmBridgeSecurityAuditSummary>;
   note: string;
 }
 
-/** Placeholder — always returns not_implemented. */
+/** Reject Live environment before any vault read in a future bridge client. */
+export function assertBridgeEnvironmentIsDemo(environment: string): asserts environment is "demo" {
+  if (environment !== "demo") {
+    assertLiveActivationAllowed("login");
+  }
+}
+
+/** Placeholder — always returns not_implemented. Never touches Live vault. */
 export async function requestMt5HfmDemoLoginBridge(): Promise<Mt5HfmLoginBridgeResult> {
+  // Demo-only path: do not call getLivePassword / getLivePasswordForActivation.
+  assertBridgeEnvironmentIsDemo("demo");
   return {
     ok: false,
     status: MT5_HFM_LOGIN_BRIDGE_STATUS,
+    environment: "demo",
     account: null,
+    security: mt5HfmBridgeSecurityAuditSummary(),
     note:
-      "MT5 terminal login bridge is designed but not enabled. Test Connection performs DNS/TCP probe only.",
+      `MT5 terminal login bridge is ${MT5_HFM_LOGIN_BRIDGE_STATUS}. ` +
+      `Security design status: ${MT5_HFM_BRIDGE_SECURITY_STATUS}. ` +
+      "Test Connection DNS/TCP probe is not an authenticated Demo login.",
   };
 }

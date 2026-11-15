@@ -165,6 +165,12 @@ export function ForexAdminMt5HfmPage() {
       if (result.probe && !result.probe.ok) {
         setError(result.probe.summary ?? "Demo network probe failed.");
       }
+      if (result.authenticatedLogin === false && result.probe?.ok) {
+        setNote(
+          (result.note ?? "DNS/TCP reachable.") +
+            " Authenticated MT5 Demo login and market-data sync remain not verified.",
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Test connection failed.");
     } finally {

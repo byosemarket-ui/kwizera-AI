@@ -93,5 +93,9 @@ describe("Phase 19 dedicated Forex Admin routing", () => {
     expect(read("ai/market-data/mt5-hfm/live-gate.ts")).toContain("credentialStorageEnabled: true");
     expect(read("ai/market-data/mt5-hfm/live-gate.ts")).toContain("loginEnabled: false");
     expect(read("desktop/forex-admin/ForexAdminMt5HfmPage.tsx")).toContain("LIVE login locked");
+    expect(read("ai/market-data/mt5-hfm/bridge-security-audit.ts")).toContain("/run/kwizera/mt5-hfm-agent.sock");
+    expect(read("ai/market-data/mt5-hfm/demo-login-plan.ts")).toContain("dns_tcp");
+    expect(read("ai/market-data/mt5-hfm/systemd-proposal.ts")).toContain("proposal_only");
+    expect(read("dev/server/mt5-hfm-api.ts")).toContain("authenticatedLogin: false");
   });
 });

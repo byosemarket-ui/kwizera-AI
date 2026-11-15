@@ -18,6 +18,7 @@ import { AiSecretsManager } from "../../connector-management/secrets-manager.js"
 import { maskCredential } from "../../admin-control-plane/admin-auth-boundary.js";
 import {
   MT5_HFM_LIVE_PASSWORD_SECRET_ID,
+  assertLiveActivationAllowed,
   publicLiveGate,
   type Mt5HfmLiveGatePublic,
 } from "./live-gate.js";
@@ -378,8 +379,12 @@ export class Mt5HfmDemoProfileManager {
     return this.publicStatus();
   }
 
-  /** Runtime-only decrypt. Never call from GET handlers that return JSON to browsers. */
-  getPassword(environment: Mt5HfmEnvironment): string | null {
+  /**
+   * Runtime-only decrypt. Never call from GET handlers that return JSON to browsers.
+   * Live decrypt for operational use must go through `getLivePasswordForActivation()`
+   * which is fail-closed while the Live gate is locked.
+   */
+  private readPassword(environment: Mt5HfmEnvironment): string | null {
     this.ensureInitialized();
     const sid = secretIdFor(environment);
     if (!this.vaultUnlocked() || !this.secrets?.has(sid)) return null;
@@ -391,13 +396,30 @@ export class Mt5HfmDemoProfileManager {
     }
   }
 
+  /** Demo bridge / Demo test paths only. Never returns Live secrets. */
   getDemoPassword(): string | null {
-    return this.getPassword("demo");
+    return this.readPassword("demo");
   }
 
-  /** Present for symmetry — callers must still pass Live gate before any use. */
+  /**
+   * Live password for future activation only.
+   * Always throws LIVE_ACTIVATION_LOCKED while the fail-closed gate is set.
+   * Demo bridge code must never call this.
+   */
+  getLivePasswordForActivation(): string {
+    assertLiveActivationAllowed("credential_use");
+    const value = this.readPassword("live");
+    if (!value) throw new Error("Live password is not configured in the vault.");
+    return value;
+  }
+
+  /**
+   * @deprecated Prefer getLivePasswordForActivation(). Presence-only checks should use
+   * publicStatus().live.passwordConfigured. This method remains for unit tests of vault
+   * isolation and must not be used by Demo bridge operations.
+   */
   getLivePassword(): string | null {
-    return this.getPassword("live");
+    return this.readPassword("live");
   }
 
   getLoginMeta(environment: Mt5HfmEnvironment): { login: string; server: string } | null {
