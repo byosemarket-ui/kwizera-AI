@@ -101,12 +101,17 @@ export async function requestMt5HfmDemoLoginBridge(): Promise<Mt5HfmLoginBridgeR
   }
 
   try {
-    const response = await callMt5HfmAgent("demo.login", {
-      environment: "demo",
-      login: meta.login,
-      server: meta.server,
-      password,
-    });
+    const response = await callMt5HfmAgent(
+      "demo.login",
+      {
+        environment: "demo",
+        login: meta.login,
+        server: meta.server,
+        password,
+      },
+      // Terminal restart + MQL StartUp + journal/MQL wait routinely exceeds 90s on 1-vCPU Wine.
+      { timeoutMs: 180_000 },
+    );
     // Drop local password reference ASAP (immutable string remains until GC).
     const safeAgent = redactAgentPayload(response) as Record<string, unknown>;
     if (!response.ok) {

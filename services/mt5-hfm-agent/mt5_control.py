@@ -546,20 +546,33 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
         }
     )
     win_src = r"C:\Program Files\HFM Metatrader 5\MQL5\Experts\\" + EXPERT_MQ5_NAME
+    prev_mtime = ex5.stat().st_mtime if ex5.is_file() else 0.0
+    # Force MetaEditor to rewrite EX5 (stale binary otherwise keeps one-shot ExpertRemove behavior).
+    try:
+        if ex5.is_file():
+            ex5.unlink()
+    except OSError:
+        pass
     try:
         proc = subprocess.run(
             [WINE_BIN, str(metaeditor), f"/compile:{win_src}", "/log"],
             env=env,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=180,
         )
+        new_mtime = ex5.stat().st_mtime if ex5.is_file() else 0.0
+        rebuilt = bool(ex5.is_file() and new_mtime > prev_mtime)
         return {
-            "installed": ex5.is_file(),
+            "installed": rebuilt,
             "compileReturncode": proc.returncode,
             "ex5Present": ex5.is_file(),
+            "ex5Rebuilt": rebuilt,
+            "ex5Mtime": new_mtime or None,
             "mq5": str(dst),
             "ex5": str(ex5),
+            "stdoutTail": (proc.stdout or "")[-400:],
+            "stderrTail": (proc.stderr or "")[-400:],
         }
     except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
         return {
