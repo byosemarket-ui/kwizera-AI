@@ -587,11 +587,13 @@ def account_snapshot() -> dict[str, Any]:
     expected = _last_demo_meta.get("login")
     snap = _mcp_account(server_hint=server)
     if not snap or snap.get("error"):
-        mql = _read_mql_snapshot(max_age_sec=300.0)
+        mql = _read_mql_snapshot(max_age_sec=3600.0)
         if mql and not mql.get("error"):
             if expected and mql.get("loginExact") and str(mql["loginExact"]) != expected:
                 pass
             else:
+                age = mql.get("ageSec")
+                stale = isinstance(age, (int, float)) and float(age) > 180.0
                 return {
                     "terminalRunning": status["terminalRunning"],
                     "terminalConnected": status["terminalConnected"],
@@ -615,7 +617,13 @@ def account_snapshot() -> dict[str, Any]:
                         "accountType": mql.get("accountType"),
                         "syncedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                         "source": "mql5_readonly_snapshot",
-                        "note": "Account fields from read-only MQL5 snapshot Expert.",
+                        "stale": stale,
+                        "ageSec": age,
+                        "note": (
+                            "Account fields from read-only MQL5 snapshot Expert (stale; re-login/sync to refresh)."
+                            if stale
+                            else "Account fields from read-only MQL5 snapshot Expert."
+                        ),
                     },
                     "quotes": mql.get("quotes") or [],
                 }
@@ -713,10 +721,12 @@ def symbols_snapshot() -> dict[str, Any]:
 
 
 def quotes_snapshot(symbols: list[str] | None = None) -> dict[str, Any]:
-    mql = _read_mql_snapshot(max_age_sec=300.0)
+    mql = _read_mql_snapshot(max_age_sec=3600.0)
     if mql and not mql.get("error") and mql.get("quotes"):
         wanted = {s.upper() for s in (symbols or []) if s}
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        age = mql.get("ageSec")
+        snapshot_stale = isinstance(age, (int, float)) and float(age) > 180.0
         quotes = []
         for item in mql.get("quotes") or []:
             if not isinstance(item, dict):
@@ -731,8 +741,8 @@ def quotes_snapshot(symbols: list[str] | None = None) -> dict[str, Any]:
             stale = None
             if isinstance(bid, (int, float)) and isinstance(ask, (int, float)):
                 ok = float(bid) > 0 and float(ask) > 0 and float(ask) >= float(bid)
-                fresh = ok
-                stale = not ok
+                fresh = ok and not snapshot_stale
+                stale = (not ok) or snapshot_stale
             quotes.append(
                 {
                     "symbol": sym,
@@ -746,6 +756,7 @@ def quotes_snapshot(symbols: list[str] | None = None) -> dict[str, Any]:
                     "source": "mql5_readonly_snapshot",
                     "provider": "HFM_MT5",
                     "environment": "demo",
+                    "ageSec": age,
                 }
             )
         any_fresh = any(q.get("fresh") for q in quotes)
@@ -756,7 +767,11 @@ def quotes_snapshot(symbols: list[str] | None = None) -> dict[str, Any]:
             "requestedSymbols": symbols or [],
             "source": "mql5_readonly_snapshot",
             "retrievedAt": now,
-            "note": None if quotes else "MQL snapshot had no matching quotes.",
+            "note": (
+                None
+                if quotes and any_fresh
+                else ("MQL snapshot quotes are stale; re-login/sync to refresh." if quotes else "MQL snapshot had no matching quotes.")
+            ),
         }
     try:
         client = mt5_mcp.Mt5McpClient()
