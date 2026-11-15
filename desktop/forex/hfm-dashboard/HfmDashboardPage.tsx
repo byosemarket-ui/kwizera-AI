@@ -166,7 +166,7 @@ export function HfmDashboardPage() {
               >
                 Menu
               </button>
-              <div>
+              <div className="hfm-topbar-titles">
                 <h1 className="hfm-title">HFM MT5 Dashboard</h1>
                 <p className="hfm-subtitle">HFM MT5 (Demo) · Read-Only · No Trading</p>
               </div>

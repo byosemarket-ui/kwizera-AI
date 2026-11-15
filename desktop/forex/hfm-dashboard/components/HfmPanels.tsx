@@ -31,58 +31,68 @@ export function HfmAccountOverview({
   freshness: HfmFreshness;
 }) {
   const ccy = account?.currency ?? null;
+  const marginLevel =
+    account?.marginLevel != null && Number.isFinite(account.marginLevel)
+      ? `${account.marginLevel.toFixed(2)}%`
+      : null;
   return (
-    <section className="hfm-card" aria-label="Account overview">
-      <h2>Account overview · HFM_MT5 Demo</h2>
+    <section className="hfm-card hfm-account-panel" aria-label="Account overview">
+      <h2 className="hfm-sr-only">Account overview · HFM_MT5 Demo</h2>
       <div className="hfm-account">
         <div className="hfm-account-id">
-          <strong>{account?.loginExact ?? account?.loginHint ?? "—"}</strong>
-          <div className="hfm-subtitle">
-            {account?.server ?? "Server unavailable"} · {ccy ?? "—"}
+          <strong className="hfm-account-login">
+            {account?.loginExact ?? account?.loginHint ?? "—"}
+          </strong>
+          <div className="hfm-account-meta">
+            {account?.server ?? "Server unavailable"}
+            {ccy ? ` · ${ccy}` : ""}
+            {marginLevel ? ` · ML ${marginLevel}` : ""}
           </div>
-          <HfmFreshnessBadge freshness={freshness} />
-          {account?.connectionStatus ? (
-            <span className="hfm-badge" data-tone={account.connectionStatus === "connected" ? "live" : "wait"}>
-              {account.connectionStatus}
-            </span>
-          ) : null}
+          <div className="hfm-account-badges">
+            <HfmFreshnessBadge freshness={freshness} />
+            {account?.connectionStatus ? (
+              <span
+                className="hfm-badge"
+                data-tone={account.connectionStatus === "connected" ? "live" : "wait"}
+              >
+                {account.connectionStatus}
+              </span>
+            ) : null}
+          </div>
         </div>
-        <div className="hfm-metric">
-          <span>Balance</span>
-          <strong>{formatMoney(account?.balance, ccy)}</strong>
-        </div>
-        <div className="hfm-metric">
-          <span>Equity</span>
-          <strong>{formatMoney(account?.equity, ccy)}</strong>
-        </div>
-        <div className="hfm-metric">
-          <span>Free Margin</span>
-          <strong>{formatMoney(account?.freeMargin, ccy)}</strong>
-        </div>
-        <div className="hfm-metric">
-          <span>Used Margin</span>
-          <strong>{formatMoney(account?.usedMargin, ccy)}</strong>
-        </div>
-        <div className="hfm-metric">
-          <span>Leverage</span>
-          <strong>
-            {account?.leverage != null && String(account.leverage) !== ""
-              ? `1:${account.leverage}`
-              : "—"}
-          </strong>
-        </div>
-        <div className="hfm-metric">
-          <span>Positions / Pending</span>
-          <strong>
-            {account?.openPositionsCount ?? "—"} / {account?.pendingOrdersCount ?? "—"}
-          </strong>
+        <div className="hfm-account-metrics" role="group" aria-label="Account financial metrics">
+          <div className="hfm-metric">
+            <span>Balance</span>
+            <strong>{formatMoney(account?.balance, ccy)}</strong>
+          </div>
+          <div className="hfm-metric">
+            <span>Equity</span>
+            <strong>{formatMoney(account?.equity, ccy)}</strong>
+          </div>
+          <div className="hfm-metric">
+            <span>Free Margin</span>
+            <strong>{formatMoney(account?.freeMargin, ccy)}</strong>
+          </div>
+          <div className="hfm-metric">
+            <span>Used Margin</span>
+            <strong>{formatMoney(account?.usedMargin, ccy)}</strong>
+          </div>
+          <div className="hfm-metric">
+            <span>Leverage</span>
+            <strong>
+              {account?.leverage != null && String(account.leverage) !== ""
+                ? `1:${account.leverage}`
+                : "—"}
+            </strong>
+          </div>
+          <div className="hfm-metric">
+            <span>Pos / Pending</span>
+            <strong>
+              {account?.openPositionsCount ?? "—"} / {account?.pendingOrdersCount ?? "—"}
+            </strong>
+          </div>
         </div>
       </div>
-      {account?.marginLevel != null ? (
-        <p className="hfm-subtitle" style={{ marginTop: 8 }}>
-          Margin level: {Number.isFinite(account.marginLevel) ? `${account.marginLevel.toFixed(2)}%` : "—"}
-        </p>
-      ) : null}
     </section>
   );
 }
