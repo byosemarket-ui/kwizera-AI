@@ -196,5 +196,7 @@ describe("MT5 HFM Demo + Live profile manager", () => {
     expect(mt5HfmBridgeSecurityAuditSummary().publicTcpForbidden).toBe(true);
     expect(mt5HfmSystemdProposalSummary().installed).toBe(false);
     expect(mt5HfmSystemdProposalSummary().enabled).toBe(false);
+    expect(mt5HfmSystemdProposalSummary().autoStart).toBe(false);
+    expect(mt5HfmSystemdProposalSummary().status).toBe("phase4_units_authored_not_enabled");
   });
 });

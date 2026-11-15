@@ -308,10 +308,25 @@ export function ForexAdminMt5HfmPage() {
         </div>
         <p className="fxa-muted" style={{ marginTop: 8 }}>
           {tab === "demo"
-            ? "Demo connection testing allowed (network probe). Terminal login bridge not enabled yet."
+            ? "Demo: vault → AF_UNIX agent → Wine MT5 MCP (read-only). Live login remains locked."
             : (status?.liveGate.note ?? status?.liveNote ?? "Live login and trading are disabled pending explicit owner authorization.")}
         </p>
       </section>
+
+      {tab === "demo" && status?.connectionStates?.length ? (
+        <section className="fxa-card" data-mt5-connection-states>
+          <h3>Connection states</h3>
+          <ul>
+            {status.connectionStates.filter((s) => s.active).map((s) => (
+              <li key={s.id}>
+                <span className="fxa-badge" data-tone={s.tone === "neutral" ? "warn" : s.tone}>
+                  {s.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="fxa-card" data-mt5-credentials>
         <h3>{tab === "demo" ? "Demo" : "Live"} credentials</h3>
@@ -503,19 +518,61 @@ export function ForexAdminMt5HfmPage() {
             <li>Currency: {account.currency ?? "—"}</li>
             <li>Balance: {account.balance ?? "—"}</li>
             <li>Equity: {account.equity ?? "—"}</li>
+            <li>Credit: {account.credit ?? "—"}</li>
+            <li>Floating P/L: {account.profit ?? "—"}</li>
             <li>Free margin: {account.freeMargin ?? "—"}</li>
+            <li>Used margin: {account.usedMargin ?? "—"}</li>
             <li>Margin level: {account.marginLevel ?? "—"}</li>
             <li>Leverage: {account.leverage ?? "—"}</li>
+            <li>Source: {account.source ?? "—"}</li>
             <li>Synced: {account.syncedAt ?? "—"}</li>
             {account.note ? <li>{account.note}</li> : null}
           </ul>
         ) : (
           <p className="fxa-muted">
-            No verified Demo account snapshot yet. Network Test Connection does not log into MT5.
-            Account balance/equity require the approved local `mt5` agent (proposed, not enabled).
+            No verified Demo account snapshot yet. Use Demo login then Sync account.
+            TCP Test Connection alone does not authenticate MT5.
           </p>
         )}
       </section>
+
+      {tab === "demo" ? (
+        <section className="fxa-card" data-mt5-market>
+          <h3>Demo market data</h3>
+          <p className="fxa-muted">
+            Source must be HFM_MT5 / mt5_mcp. No silent ForexConnect or Binance fallback.
+          </p>
+          {status?.market?.quotes?.length ? (
+            <ul>
+              <li>
+                Quotes:{" "}
+                <span className="fxa-badge" data-tone={status.market.quotesAvailable ? "ok" : "warn"}>
+                  {status.market.quotesAvailable ? "available" : "unavailable"}
+                </span>
+                {status.market.stale ? (
+                  <>
+                    {" · "}
+                    <span className="fxa-badge" data-tone="warn">stale</span>
+                  </>
+                ) : null}
+              </li>
+              <li>Retrieved: {status.market.retrievedAt ?? "—"}</li>
+              <li>Provider: {status.market.source ?? "—"}</li>
+              {status.market.quotes.slice(0, 12).map((q) => (
+                <li key={q.symbol}>
+                  {q.symbol}: bid {q.bid ?? "—"} / ask {q.ask ?? "—"} · spread {q.spread ?? "—"}
+                  {q.tickTime ? ` · tick ${q.tickTime}` : ""}
+                </li>
+              ))}
+              {status.market.note ? <li>{status.market.note}</li> : null}
+            </ul>
+          ) : (
+            <p className="fxa-muted">
+              No verified quotes yet. Authenticate Demo, then refresh status or request market/quotes.
+            </p>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

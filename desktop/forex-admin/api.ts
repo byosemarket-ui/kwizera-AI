@@ -133,12 +133,23 @@ export interface Mt5HfmDemoAccountInfo {
   currency: string | null;
   balance: number | null;
   equity: number | null;
+  credit?: number | null;
+  profit?: number | null;
   freeMargin: number | null;
+  usedMargin?: number | null;
   marginLevel: number | null;
   leverage: string | null;
   company: string | null;
   syncedAt: string | null;
   note: string | null;
+  source?: string | null;
+}
+
+export interface Mt5HfmConnectionStateView {
+  id: string;
+  label: string;
+  tone: "ok" | "warn" | "danger" | "neutral";
+  active: boolean;
 }
 
 export interface Mt5HfmLiveGate {
@@ -187,6 +198,22 @@ export interface Mt5HfmDemoStatus {
   demo: Mt5HfmEnvStatus;
   live: Mt5HfmEnvStatus;
   mt5LoginBridge: "implemented_agent_optional";
+  connectionStates?: Mt5HfmConnectionStateView[];
+  market?: {
+    quotesAvailable: boolean | null;
+    stale: boolean | null;
+    quotes: Array<{
+      symbol: string;
+      bid: number | null;
+      ask: number | null;
+      spread: number | null;
+      tickTime: string | null;
+      source: string;
+    }>;
+    source: string | null;
+    retrievedAt: string | null;
+    note: string | null;
+  };
   note: string;
   /** Flat Demo compatibility fields */
   environment: "demo";

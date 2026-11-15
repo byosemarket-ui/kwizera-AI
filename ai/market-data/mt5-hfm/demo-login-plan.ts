@@ -6,7 +6,7 @@
 
 import type { DemoProbeResult } from "./connection-probe.js";
 
-export const MT5_HFM_DEMO_LOGIN_PLAN_STATUS = "design_only" as const;
+export const MT5_HFM_DEMO_LOGIN_PLAN_STATUS = "implemented_mcp_agent" as const;
 
 /** Distinct stages for Test Connection / sync reporting. */
 export type Mt5HfmConnectionStageId =
@@ -76,7 +76,7 @@ export function initialConnectionStagesFromProbe(
     {
       stage: "mt5_terminal",
       status: "not_verified",
-      summary: "MT5 terminal connectivity requires approved local agent (not implemented).",
+      summary: "MT5 terminal connectivity requires local AF_UNIX agent + MCP.",
     },
     {
       stage: "demo_login",

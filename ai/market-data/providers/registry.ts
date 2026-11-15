@@ -1,5 +1,5 @@
 /**
- * Market data provider registry — BINANCE + FXCM Socket REST + FOREXCONNECT SDK.
+ * Market data provider registry — BINANCE + FXCM Socket REST + FOREXCONNECT SDK + HFM MT5.
  */
 import { createBinanceMarketDataService } from "../binance/service.js";
 import {
@@ -7,6 +7,10 @@ import {
   type ForexConnectMarketDataProvider,
 } from "../forexconnect/provider.js";
 import { createFxcmMarketDataProvider, type FxcmMarketDataProvider } from "../fxcm/provider.js";
+import {
+  createHfmMt5MarketDataProvider,
+  type HfmMt5MarketDataProvider,
+} from "../mt5-hfm/provider.js";
 import type {
   MarketDataCapabilities,
   MarketDataProvider,
@@ -26,6 +30,7 @@ export interface MarketProviderRegistrySnapshot {
 export class MarketDataProviderRegistry {
   private readonly fxcm: FxcmMarketDataProvider;
   private readonly forexconnect: ForexConnectMarketDataProvider;
+  private readonly hfmMt5: HfmMt5MarketDataProvider;
   private readonly binanceEnv?: Record<string, string | undefined>;
 
   constructor(options?: {
@@ -41,10 +46,11 @@ export class MarketDataProviderRegistry {
       env: options?.env,
       fetchImpl: options?.fetchImpl,
     });
+    this.hfmMt5 = createHfmMt5MarketDataProvider();
   }
 
   listProviderIds(): MarketProviderId[] {
-    return ["BINANCE", "FXCM", "FOREXCONNECT"];
+    return ["BINANCE", "FXCM", "FOREXCONNECT", "HFM_MT5"];
   }
 
   getFxcm(): FxcmMarketDataProvider {
@@ -55,9 +61,14 @@ export class MarketDataProviderRegistry {
     return this.forexconnect;
   }
 
+  getHfmMt5(): HfmMt5MarketDataProvider {
+    return this.hfmMt5;
+  }
+
   getProvider(id: MarketProviderId): MarketDataProvider | null {
     if (id === "FXCM") return this.fxcm;
     if (id === "FOREXCONNECT") return this.forexconnect;
+    if (id === "HFM_MT5") return this.hfmMt5;
     if (id === "BINANCE") {
       // Binance remains on its existing service; expose a thin adapter for registry consumers.
       return createBinanceRegistryAdapter(this.binanceEnv);
@@ -71,6 +82,7 @@ export class MarketDataProviderRegistry {
     const binanceConfig = binance.getConfig();
     const fxcmHealth = await this.fxcm.healthCheck();
     const forexconnectHealth = await this.forexconnect.healthCheck();
+    const hfmMt5Health = await this.hfmMt5.healthCheck();
 
     const binanceCaps: MarketDataCapabilities = {
       instruments: true,
@@ -129,6 +141,10 @@ export class MarketDataProviderRegistry {
         {
           info: this.forexconnect.getProviderInfo(),
           health: forexconnectHealth,
+        },
+        {
+          info: this.hfmMt5.getProviderInfo(),
+          health: hfmMt5Health,
         },
       ],
     };

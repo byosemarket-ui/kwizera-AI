@@ -42,11 +42,11 @@ const sampleCandles = [
 
 describe("Forex Phase 31 — Unified Market Data Layer", () => {
   it("1-4 provider registry registers BINANCE and FXCM", async () => {
-    expect(MARKET_PROVIDERS).toEqual(["BINANCE", "FXCM", "FOREXCONNECT"]);
+    expect(MARKET_PROVIDERS).toEqual(["BINANCE", "FXCM", "FOREXCONNECT", "HFM_MT5"]);
     const registry = createMarketDataProviderRegistry({
       env: { KWIZERA_FXCM_ENABLED: "0", KWIZERA_BINANCE_PUBLIC_ENABLED: "1" },
     });
-    expect(registry.listProviderIds()).toEqual(["BINANCE", "FXCM", "FOREXCONNECT"]);
+    expect(registry.listProviderIds()).toEqual(["BINANCE", "FXCM", "FOREXCONNECT", "HFM_MT5"]);
     expect(registry.getProvider("BINANCE")).toBeTruthy();
     expect(registry.getProvider("FXCM")).toBeTruthy();
     const snap = await registry.snapshot();

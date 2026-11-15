@@ -61,12 +61,16 @@ export interface Mt5HfmAccountInfoPublic {
   currency: string | null;
   balance: number | null;
   equity: number | null;
+  credit?: number | null;
+  profit?: number | null;
   freeMargin: number | null;
+  usedMargin?: number | null;
   marginLevel: number | null;
   leverage: string | null;
   company: string | null;
   syncedAt: string | null;
   note: string | null;
+  source?: string | null;
 }
 
 /** @deprecated Use Mt5HfmAccountInfoPublic */

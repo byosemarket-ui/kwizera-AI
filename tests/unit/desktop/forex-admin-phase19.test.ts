@@ -95,7 +95,13 @@ describe("Phase 19 dedicated Forex Admin routing", () => {
     expect(read("desktop/forex-admin/ForexAdminMt5HfmPage.tsx")).toContain("LIVE login locked");
     expect(read("ai/market-data/mt5-hfm/bridge-security-audit.ts")).toContain("/run/kwizera/mt5-hfm-agent.sock");
     expect(read("ai/market-data/mt5-hfm/demo-login-plan.ts")).toContain("dns_tcp");
+    expect(read("ai/market-data/mt5-hfm/systemd-proposal.ts")).toContain("phase4_units_authored_not_enabled");
     expect(read("ai/market-data/mt5-hfm/systemd-proposal.ts")).toContain("proposal_only");
+    expect(read("services/mt5-hfm-lifecycle/kwizera-mt5-xvfb.service")).toContain("Xvfb :97");
+    expect(read("services/mt5-hfm-lifecycle/kwizera-mt5-hfm-demo.service")).toContain("Requires=kwizera-mt5-xvfb.service");
+    expect(read("services/mt5-hfm-lifecycle/kwizera-mt5-hfm-demo.service")).not.toContain("kwizera-ai.service");
+    expect(read("services/mt5-hfm-lifecycle/bin/stop-mt5-demo.sh")).toContain("WINEPREFIX");
+    expect(read("services/mt5-hfm-lifecycle/bin/stop-mt5-demo.sh")).not.toContain("pkill -u");
     expect(read("dev/server/mt5-hfm-api.ts")).toContain("authenticatedLogin: false");
     expect(read("dev/server/mt5-hfm-api.ts")).toContain("/api/forex/providers/mt5-hfm/login");
     expect(read("services/mt5-hfm-agent/agent.py")).toContain("SO_PEERCRED");

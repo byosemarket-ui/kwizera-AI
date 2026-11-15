@@ -3,7 +3,7 @@
  * Binance and FXCM both register through this layer.
  */
 
-export const MARKET_PROVIDERS = ["BINANCE", "FXCM", "FOREXCONNECT"] as const;
+export const MARKET_PROVIDERS = ["BINANCE", "FXCM", "FOREXCONNECT", "HFM_MT5"] as const;
 export type MarketProviderId = (typeof MARKET_PROVIDERS)[number];
 
 export const MARKET_ASSET_TYPES = [

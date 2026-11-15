@@ -19,12 +19,16 @@ ALLOWED_METHODS = frozenset(
         "demo.account_snapshot",
         "demo.quotes_snapshot",
         "demo.candles",
+        "demo.symbols",
+        "demo.open_positions_snapshot",
+        "demo.pending_orders_snapshot",
+        "demo.trade_history_snapshot",
         "demo.logout",
         "demo.connection_status",
     }
 )
 
-FORBIDDEN_PREFIX = re.compile(r"^(live\.|order\.|ea\.|shell\.|buy|sell|position)", re.I)
+FORBIDDEN_PREFIX = re.compile(r"^(live\.|order\.|ea\.|shell\.|buy|sell|trade_)", re.I)
 SECRET_KEY_RE = re.compile(r"pass|token|mac|secret|pwd|hmac", re.I)
 
 

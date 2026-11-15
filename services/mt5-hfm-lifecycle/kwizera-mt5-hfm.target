@@ -1,0 +1,12 @@
+# Optional grouping target for HFM MT5 Demo stack.
+# Does not reference kwizera-ai or kwizera-forexconnect.
+# Enabling this target does NOT auto-enable the agent unless the agent unit is also enabled.
+
+[Unit]
+Description=KWIZERA HFM MT5 Demo stack
+Documentation=file:///opt/kwizera-ai/services/mt5-hfm-lifecycle/README.md
+Wants=kwizera-mt5-xvfb.service kwizera-mt5-hfm-demo.service
+After=kwizera-mt5-xvfb.service kwizera-mt5-hfm-demo.service
+
+[Install]
+WantedBy=multi-user.target

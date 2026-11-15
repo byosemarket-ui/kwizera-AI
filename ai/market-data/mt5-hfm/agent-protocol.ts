@@ -16,6 +16,10 @@ export const MT5_HFM_AGENT_METHODS = [
   "demo.account_snapshot",
   "demo.quotes_snapshot",
   "demo.candles",
+  "demo.symbols",
+  "demo.open_positions_snapshot",
+  "demo.pending_orders_snapshot",
+  "demo.trade_history_snapshot",
   "demo.logout",
   "demo.connection_status",
 ] as const;
@@ -27,7 +31,7 @@ export function isAllowedMt5HfmAgentMethod(method: string): method is Mt5HfmAgen
 }
 
 export function isForbiddenTradingMethod(method: string): boolean {
-  return /^(live\.|order\.|ea\.|shell\.|buy|sell|position)/i.test(method);
+  return /^(live\.|order\.|ea\.|shell\.|buy|sell|trade_)/i.test(method);
 }
 
 export interface Mt5HfmAgentRequest {

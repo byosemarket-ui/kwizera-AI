@@ -1,0 +1,64 @@
+# KWIZERA HFM MT5 Demo Agent (AF_UNIX)
+# PROPOSED — create only because Phase 3 agent code is present on disk.
+# Do NOT enable until: (1) token file provisioned, (2) Demo terminal verified ready,
+# (3) explicit owner approval. Not a dummy unit.
+
+[Unit]
+Description=KWIZERA HFM MT5 Demo Agent (AF_UNIX)
+Documentation=file:///opt/kwizera-ai/services/mt5-hfm-lifecycle/README.md
+After=network-online.target kwizera-mt5-hfm-demo.service
+# Soft dependency: allow agent while MT5 is still running manually
+# (pre-systemd cutover). Prefer Wants over Requires so a missing demo
+# unit does not block agent start when terminal64 is already up.
+Wants=kwizera-mt5-hfm-demo.service
+# Agent failure must not stop KWIZERA AI / ForexConnect.
+# Terminal does not PartOf this unit.
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=mt5
+Group=mt5
+UMask=0007
+WorkingDirectory=/opt/kwizera-ai/services/mt5-hfm-agent
+Environment=HOME=/home/mt5
+Environment=USER=mt5
+Environment=LOGNAME=mt5
+Environment=WINEPREFIX=/home/mt5/.wine-hfm
+Environment=WINEARCH=win64
+Environment=WINEDEBUG=-all
+Environment=DISPLAY=:97
+Environment=XAUTHORITY=/home/mt5/.mt5-xauth/Xauthority
+Environment=PATH=/opt/wine-staging/bin:/usr/bin:/bin
+Environment=KWIZERA_MT5_WINE_BIN=/opt/wine-staging/bin/wine
+Environment=KWIZERA_MT5_HFM_AGENT_SOCK=/run/kwizera/mt5-hfm-agent.sock
+Environment=KWIZERA_MT5_HFM_AGENT_TOKEN_FILE=/run/kwizera/mt5-hfm-agent.token
+Environment=KWIZERA_MT5_HFM_RUN_DIR=/run/kwizera/mt5-hfm
+Environment=KWIZERA_MT5_HFM_AGENT_ALLOW_UIDS=999,1000
+# Token path only — never put the token value in Environment=.
+
+# + = full privileges for directory/socket bootstrap; service itself is User=mt5.
+ExecStartPre=+/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/prepare-agent-runtime.sh
+ExecStartPre=/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/wait-mt5-ready.sh
+ExecStart=/usr/bin/python3 /opt/kwizera-ai/services/mt5-hfm-agent/agent.py
+ExecStartPost=+/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/fix-agent-socket.sh
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=90
+TimeoutStopSec=20
+KillMode=control-group
+LimitCORE=0
+MemoryMax=128M
+CPUQuota=20%
+Nice=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/mt5/.wine-hfm /home/mt5/.mt5-xauth /run/kwizera
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

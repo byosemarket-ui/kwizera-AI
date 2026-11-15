@@ -130,7 +130,13 @@ def handle_request(token: str, nonces: NonceCache, req: dict[str, Any]) -> dict[
 
     try:
         if method == "health":
-            result = {"status": "ok", "environment": "demo", "ordersEnabled": False}
+            result = {
+                "status": "ok",
+                "environment": "demo",
+                "ordersEnabled": False,
+                "mcp": mt5_control.mcp_status(),
+                "terminalRunning": mt5_control.terminal_running(),
+            }
         elif method == "demo.connection_status":
             result = mt5_control.connection_status()
         elif method == "demo.login":
@@ -154,6 +160,15 @@ def handle_request(token: str, nonces: NonceCache, req: dict[str, Any]) -> dict[
                 str(body.get("timeframe") or ""),
                 int(body.get("limit") or 100),
             )
+        elif method == "demo.symbols":
+            result = mt5_control.symbols_snapshot()
+        elif method == "demo.open_positions_snapshot":
+            result = mt5_control.open_positions_snapshot()
+        elif method == "demo.pending_orders_snapshot":
+            # Open-positions MCP tool returns positions + pending in current builds.
+            result = mt5_control.open_positions_snapshot()
+        elif method == "demo.trade_history_snapshot":
+            result = mt5_control.trade_history_snapshot()
         elif method == "demo.logout":
             result = mt5_control.demo_logout()
         else:

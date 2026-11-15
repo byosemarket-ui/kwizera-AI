@@ -1,0 +1,51 @@
+# KWIZERA HFM MT5 — Xvfb display :97
+# PROPOSED — install/enable only after owner approval. Do not reboot VPS to test.
+# Migration: if Xvfb :97 is already running manually, this unit will FAIL to bind
+# (by design — no pkill). Stop the manual session in a controlled window, then start.
+
+[Unit]
+Description=KWIZERA HFM MT5 Xvfb display :97
+Documentation=file:///opt/kwizera-ai/services/mt5-hfm-lifecycle/README.md
+After=network-online.target
+# Independent of kwizera-ai / kwizera-forexconnect — no Requires/BindsTo/PartOf those units.
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=mt5
+Group=mt5
+UMask=0077
+Environment=HOME=/home/mt5
+Environment=USER=mt5
+Environment=LOGNAME=mt5
+Environment=XAUTHORITY=/home/mt5/.mt5-xauth/Xauthority
+Environment=KWIZERA_MT5_XAUTH_DIR=/home/mt5/.mt5-xauth
+Environment=KWIZERA_MT5_DISPLAY_NUM=97
+WorkingDirectory=/home/mt5
+
+# Cookie before Xvfb; Xvfb is the main process (never ExecStartPre foreground Xvfb).
+ExecStartPre=/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/prepare-xauth.sh
+ExecStart=/usr/bin/Xvfb :97 -screen 0 1600x900x24 -nolisten tcp -auth /home/mt5/.mt5-xauth/Xauthority
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=30
+TimeoutStopSec=15
+KillMode=control-group
+KillSignal=SIGTERM
+
+MemoryMax=256M
+CPUQuota=20%
+Nice=5
+LimitCORE=0
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/mt5/.mt5-xauth
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

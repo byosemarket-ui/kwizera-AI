@@ -47,6 +47,7 @@ import { mt5HfmSystemdProposalSummary } from "../../ai/market-data/mt5-hfm/syste
 import { callMt5HfmAgent } from "../../ai/market-data/mt5-hfm/agent-client.js";
 import { mt5HfmThreatModelSummary } from "../../ai/market-data/mt5-hfm/threat-model.js";
 import { redactAgentPayload } from "../../ai/market-data/mt5-hfm/agent-protocol.js";
+import { buildMt5HfmConnectionStates } from "../../ai/market-data/mt5-hfm/connection-states.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -192,8 +193,93 @@ export async function handleMt5HfmApi(
 
     if (url.pathname === "/api/forex/providers/mt5-hfm/status" && (req.method === "GET" || req.method === "HEAD")) {
       const status = manager.publicStatus();
+      let agentOk: boolean | null = null;
+      let terminalRunning: boolean | null = null;
+      let authenticated: boolean | null = null;
+      try {
+        const agentRes = await callMt5HfmAgent("demo.connection_status", {}, { timeoutMs: 5_000 });
+        agentOk = Boolean(agentRes.ok);
+        const result = (agentRes.result ?? {}) as Record<string, unknown>;
+        terminalRunning = Boolean(result.terminalRunning);
+        authenticated = Boolean(result.authenticated);
+      } catch {
+        agentOk = false;
+      }
+      let market: {
+        quotesAvailable: boolean | null;
+        stale: boolean | null;
+        quotes: Array<{
+          symbol: string;
+          bid: number | null;
+          ask: number | null;
+          spread: number | null;
+          tickTime: string | null;
+          source: string;
+        }>;
+        source: string | null;
+        retrievedAt: string | null;
+        note: string | null;
+      } | null = null;
+      if (agentOk && authenticated) {
+        try {
+          const qRes = await callMt5HfmAgent(
+            "demo.quotes_snapshot",
+            { symbols: ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD"] },
+            { timeoutMs: 15_000 },
+          );
+          const q = (qRes.result ?? {}) as Record<string, unknown>;
+          const rawQuotes = Array.isArray(q.quotes) ? q.quotes : [];
+          market = {
+            quotesAvailable: Boolean(q.quotesAvailable),
+            stale: typeof q.stale === "boolean" ? q.stale : null,
+            quotes: rawQuotes.slice(0, 24).map((row) => {
+              const r = row as Record<string, unknown>;
+              return {
+                symbol: String(r.symbol ?? ""),
+                bid: typeof r.bid === "number" ? r.bid : null,
+                ask: typeof r.ask === "number" ? r.ask : null,
+                spread: typeof r.spread === "number" ? r.spread : null,
+                tickTime: r.tickTime != null ? String(r.tickTime) : null,
+                source: String(r.source ?? "mt5_mcp"),
+              };
+            }),
+            source: String(q.source ?? "mt5_mcp"),
+            retrievedAt: q.retrievedAt != null ? String(q.retrievedAt) : null,
+            note: q.note != null ? String(q.note) : null,
+          };
+        } catch {
+          market = {
+            quotesAvailable: false,
+            stale: null,
+            quotes: [],
+            source: null,
+            retrievedAt: null,
+            note: "Market quote snapshot unavailable.",
+          };
+        }
+      }
+      const connectionStates = buildMt5HfmConnectionStates({
+        credentialsConfigured: Boolean(status.demo.configured),
+        agentOk,
+        terminalRunning,
+        hfmTcpOk: status.demo.lastProbeAt
+          ? status.demo.lastProbeSummary?.toLowerCase().includes("fail")
+            ? false
+            : status.demo.connectionStatus === "ok" || status.demo.lastAuthStatus === "ok"
+              ? true
+              : null
+          : null,
+        authenticated,
+        authFailed: Boolean(status.demo.lastAuthError) && authenticated !== true,
+        accountSynced: Boolean(status.demo.account?.syncedAt && status.demo.account.balance != null),
+        marketDataAvailable: market?.quotesAvailable ?? null,
+        marketDataStale: market?.stale ?? null,
+        syncFailed: Boolean(status.demo.lastAuthError?.includes("SYNC")),
+      });
       const payload = {
         ...status,
+        connectionStates,
+        market,
         bridgeSecurity: mt5HfmBridgeSecurityAuditSummary(),
         demoLoginPlan: demoLoginPlanSummary(),
         systemdProposal: mt5HfmSystemdProposalSummary(),
@@ -584,12 +670,16 @@ export async function handleMt5HfmApi(
           currency: bridge.account.currency,
           balance: bridge.account.balance,
           equity: bridge.account.equity,
+          credit: (bridge.account as { credit?: number | null }).credit ?? null,
+          profit: (bridge.account as { profit?: number | null }).profit ?? null,
           freeMargin: bridge.account.freeMargin,
+          usedMargin: (bridge.account as { usedMargin?: number | null }).usedMargin ?? null,
           marginLevel: bridge.account.marginLevel,
           leverage: bridge.account.leverage,
           company: bridge.account.company,
           syncedAt: bridge.account.syncedAt,
           note: bridge.account.note,
+          source: (bridge.account as { source?: string | null }).source ?? "mt5_mcp",
         });
       }
       const status = manager.publicStatus();

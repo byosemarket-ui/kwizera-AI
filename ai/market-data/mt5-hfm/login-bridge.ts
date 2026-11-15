@@ -27,6 +27,8 @@ export interface Mt5HfmLoginBridgeAccountSnapshot {
   currency: string | null;
   balance: number | null;
   equity: number | null;
+  credit: number | null;
+  profit: number | null;
   freeMargin: number | null;
   usedMargin: number | null;
   marginLevel: number | null;
@@ -37,6 +39,7 @@ export interface Mt5HfmLoginBridgeAccountSnapshot {
   quotesAvailable: boolean | null;
   syncedAt: string | null;
   note: string | null;
+  source: string | null;
 }
 
 export interface Mt5HfmLoginBridgeResult {
@@ -60,6 +63,8 @@ function asAccount(raw: unknown, server: string | null): Mt5HfmLoginBridgeAccoun
     currency: a.currency != null ? String(a.currency) : null,
     balance: typeof a.balance === "number" ? a.balance : null,
     equity: typeof a.equity === "number" ? a.equity : null,
+    credit: typeof a.credit === "number" ? a.credit : null,
+    profit: typeof a.profit === "number" ? a.profit : null,
     freeMargin: typeof a.freeMargin === "number" ? a.freeMargin : null,
     usedMargin: typeof a.usedMargin === "number" ? a.usedMargin : null,
     marginLevel: typeof a.marginLevel === "number" ? a.marginLevel : null,
@@ -70,6 +75,7 @@ function asAccount(raw: unknown, server: string | null): Mt5HfmLoginBridgeAccoun
     quotesAvailable: typeof a.quotesAvailable === "boolean" ? a.quotesAvailable : null,
     syncedAt: a.syncedAt != null ? String(a.syncedAt) : null,
     note: a.note != null ? String(a.note) : null,
+    source: a.source != null ? String(a.source) : null,
   };
 }
 
