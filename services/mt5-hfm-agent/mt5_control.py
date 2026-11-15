@@ -102,6 +102,18 @@ def connection_status() -> dict[str, Any]:
                 account_hint = acct.get("loginHint")
         except ValueError:
             authenticated = False
+    if not authenticated and running:
+        mql = _read_mql_snapshot(max_age_sec=600.0)
+        if mql and not mql.get("error") and mql.get("loginExact"):
+            authenticated = True
+            auth_source = "mql5_readonly_snapshot"
+            account_hint = mql.get("loginHint")
+        else:
+            journal = parse_journal_snapshot(expected_login=_last_demo_meta.get("login"))
+            if journal.get("authenticated"):
+                authenticated = True
+                auth_source = "journal"
+                account_hint = journal.get("loginHint")
     return {
         "terminalRunning": running,
         "terminalConnected": running,
@@ -113,7 +125,7 @@ def connection_status() -> dict[str, Any]:
         "mcp": mcp,
         "note": (
             "terminalConnected reflects process presence under Xvfb. "
-            "authenticated requires MCP account info from the logged-in terminal."
+            "authenticated may come from MCP, MQL snapshot, or journal identity lines."
         ),
     }
 
@@ -512,7 +524,8 @@ def demo_login(login: str, server: str, password: str) -> dict[str, Any]:
         _start_terminal_with_config(ini)
         # Allow Wine + terminal + MCP to come up before shredding INI.
         time.sleep(10)
-        snap = _wait_for_mcp_account(expected_login=login, server=server, timeout_sec=50)
+        # Journal auth often lands before the StartUp Expert writes the MQL snapshot.
+        snap = _wait_for_mcp_account(expected_login=login, server=server, timeout_sec=90)
         status = connection_status()
         authenticated = bool(snap.get("authenticated")) and not snap.get("authError")
         if snap.get("loginExact") and snap["loginExact"] != login:
