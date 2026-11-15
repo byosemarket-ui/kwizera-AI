@@ -11,6 +11,7 @@ import { ForexHeader } from "./ForexHeader";
 import { ForexModulePage } from "./ForexModulePage";
 import { ForexNotFound } from "./ForexNotFound";
 import { ForexSidebar } from "./ForexSidebar";
+import { HfmDashboardPage } from "./hfm-dashboard/HfmDashboardPage";
 import {
   getForexDocumentTitle,
   getForexNavItem,
@@ -252,6 +253,13 @@ export function ForexShell({
         timeframe={chartTimeframe}
         onSelectMarket={selectMarket}
       />
+    );
+  } else if (route === "hfm-mt5-dashboard") {
+    // Full-page HFM shell (isolated from Binance/FXCM chrome).
+    return (
+      <ForexPageBoundary route={route}>
+        <HfmDashboardPage />
+      </ForexPageBoundary>
     );
   } else if (route === "trade-monitor") {
     content = (

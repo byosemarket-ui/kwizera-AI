@@ -2454,6 +2454,10 @@ export function ForexAutomatedTradingPage(props: {
 
   return (
     <section className="fx-auto-trading" data-forex-page="automated-trading" aria-label="Automated Trading">
+      <p className="fx-page-desc" style={{ marginBottom: 12 }}>
+        HFM MT5 read-only dashboard:{" "}
+        <a href="/forex/automated-trading/hfm/dashboard">/forex/automated-trading/hfm/dashboard</a>
+      </p>
       <div
         className="fx-at-system-master-bar"
         data-fx-at-system-master="true"

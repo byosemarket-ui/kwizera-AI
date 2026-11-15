@@ -9,6 +9,7 @@ export type ForexRouteId =
   | "ai-analysis"
   | "signals"
   | "automated-trading"
+  | "hfm-mt5-dashboard"
   | "trade-monitor"
   | "strategies"
   | "trade-journal"
@@ -197,6 +198,18 @@ export const FOREX_NAV: ForexNavItem[] = [
     phaseNote: "Phase 51",
   },
   {
+    id: "hfm-mt5-dashboard",
+    label: "HFM MT5 Dashboard",
+    path: "/forex/automated-trading/hfm/dashboard",
+    implemented: true,
+    inSidebar: true,
+    group: "trading",
+    groupLabel: "Trading",
+    icon: "candlestick",
+    description: "Read-only HFM MT5 Demo dashboard with live SSE account, quotes, and candles. No order execution.",
+    phaseNote: "Phase 2",
+  },
+  {
     id: "trade-monitor",
     label: "Trade Monitor",
     path: "/forex/trade-monitor",
@@ -305,7 +318,12 @@ export const FOREX_PATH_ALIASES: Record<string, ForexRouteId> = {
   "/forex/positions": "trade-monitor",
   "/forex/journal": "trade-journal",
   "/forex/risk": "risk-management",
+  "/forex/hfm/dashboard": "hfm-mt5-dashboard",
+  "/forex/automated-trading/hfm": "hfm-mt5-dashboard",
 };
+
+/** Canonical Phase 2 HFM MT5 Dashboard route (URL-safe, no spaces). */
+export const HFM_MT5_DASHBOARD_PATH = "/forex/automated-trading/hfm/dashboard";
 
 export const FOREX_GROUP_ORDER: ForexNavGroupId[] = [
   "overview",
@@ -379,6 +397,17 @@ export function resolveForexLocation(
   if (exact) {
     return { view: exact.id, canonicalPath: exact.path, shouldCanonicalize: false };
   }
+  // Nested HFM dashboard under automated-trading (exact + trailing variants).
+  if (
+    path === HFM_MT5_DASHBOARD_PATH ||
+    path === `${HFM_MT5_DASHBOARD_PATH}/`
+  ) {
+    return {
+      view: "hfm-mt5-dashboard",
+      canonicalPath: HFM_MT5_DASHBOARD_PATH,
+      shouldCanonicalize: path !== HFM_MT5_DASHBOARD_PATH,
+    };
+  }
   const aliased = FOREX_PATH_ALIASES[path];
   if (aliased) {
     return { view: aliased, canonicalPath: forexPathFor(aliased), shouldCanonicalize: true };
@@ -425,6 +454,7 @@ export function getForexDocumentTitle(view: ForexViewId): string {
   if (view === "not-found") return "KWIZERA AI STUDIO — Forex Page not found";
   const item = getForexNavItem(view);
   if (item.id === "dashboard") return "KWIZERA AI STUDIO — Forex Dashboard";
+  if (item.id === "hfm-mt5-dashboard") return "KWIZERA AI STUDIO — HFM MT5 Dashboard";
   return `KWIZERA AI STUDIO — ${item.label}`;
 }
 
