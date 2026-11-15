@@ -156,7 +156,7 @@ def _write_login_ini(login: str, server: str, password: str, *, start_snapshot_e
     path = RUN_DIR / f"login-{os.getpid()}-{int(time.time())}.ini"
     startup = ""
     if start_snapshot_expert and (TERM_ROOT / "MQL5/Experts" / EXPERT_EX5_NAME).is_file():
-        # Attach read-only snapshot Expert once on EURUSD H1, then ExpertRemove().
+        # Attach periodic read-only snapshot Expert on EURUSD H1 (timer-driven; no trading).
         startup = (
             "\n[StartUp]\n"
             f"Expert={EXPERT_EX5_NAME.replace('.ex5', '')}\n"
@@ -547,34 +547,92 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
     )
     win_src = r"C:\Program Files\HFM Metatrader 5\MQL5\Experts\\" + EXPERT_MQ5_NAME
     prev_mtime = ex5.stat().st_mtime if ex5.is_file() else 0.0
-    # Force MetaEditor to rewrite EX5 (stale binary otherwise keeps one-shot ExpertRemove behavior).
+    prev_size = ex5.stat().st_size if ex5.is_file() else 0
+    # Keep a backup until the new EX5 lands. Wine MetaEditor often returns from
+    # `wine MetaEditor64.exe /compile:...` before the async compile finishes writing EX5;
+    # deleting first left the VPS with no Expert binary.
+    bak = experts / (EXPERT_EX5_NAME + ".bak")
     try:
         if ex5.is_file():
-            ex5.unlink()
+            try:
+                if bak.is_file():
+                    bak.unlink()
+            except OSError:
+                pass
+            ex5.replace(bak)
     except OSError:
         pass
     try:
-        proc = subprocess.run(
+        # Launch compile; poll for EX5 (MetaEditor under Wine is async).
+        proc = subprocess.Popen(
             [WINE_BIN, str(metaeditor), f"/compile:{win_src}", "/log"],
             env=env,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=180,
         )
+        deadline = time.time() + 120.0
+        rebuilt = False
+        while time.time() < deadline:
+            if ex5.is_file():
+                try:
+                    st = ex5.stat()
+                    # Accept a freshly written EX5 (mtime advanced or size changed vs pre-compile).
+                    if st.st_mtime > prev_mtime or (prev_mtime == 0.0 and st.st_size > 0):
+                        # Require file to stop growing for a short settle window.
+                        size1 = st.st_size
+                        time.sleep(0.4)
+                        size2 = ex5.stat().st_size if ex5.is_file() else 0
+                        if size1 == size2 and size2 > 0:
+                            rebuilt = True
+                            break
+                except OSError:
+                    pass
+            if proc.poll() is not None and time.time() > deadline - 90:
+                # Process exited early; keep polling a bit longer for delayed write.
+                pass
+            time.sleep(0.5)
+        stdout = ""
+        stderr = ""
+        try:
+            if proc.poll() is None:
+                proc.terminate()
+                try:
+                    stdout, stderr = proc.communicate(timeout=10)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    stdout, stderr = proc.communicate(timeout=5)
+            else:
+                stdout, stderr = proc.communicate(timeout=5)
+        except Exception:
+            pass
+        if not rebuilt and not ex5.is_file() and bak.is_file():
+            # Restore previous binary so Demo StartUp Expert remains attachable.
+            try:
+                bak.replace(ex5)
+            except OSError:
+                pass
         new_mtime = ex5.stat().st_mtime if ex5.is_file() else 0.0
-        rebuilt = bool(ex5.is_file() and new_mtime > prev_mtime)
+        new_size = ex5.stat().st_size if ex5.is_file() else 0
         return {
-            "installed": rebuilt,
+            "installed": rebuilt and ex5.is_file(),
             "compileReturncode": proc.returncode,
             "ex5Present": ex5.is_file(),
             "ex5Rebuilt": rebuilt,
             "ex5Mtime": new_mtime or None,
+            "ex5Size": new_size or None,
+            "prevSize": prev_size or None,
             "mq5": str(dst),
             "ex5": str(ex5),
-            "stdoutTail": (proc.stdout or "")[-400:],
-            "stderrTail": (proc.stderr or "")[-400:],
+            "stdoutTail": (stdout or "")[-400:],
+            "stderrTail": (stderr or "")[-400:],
         }
     except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        if not ex5.is_file() and bak.is_file():
+            try:
+                bak.replace(ex5)
+            except OSError:
+                pass
         return {
             "installed": ex5.is_file(),
             "reason": type(exc).__name__,
