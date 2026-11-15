@@ -383,11 +383,41 @@ def _read_mql_snapshot(max_age_sec: float = 120.0) -> dict[str, Any] | None:
     }
 
 
-def _freshness_from_age(age_sec: float | None, live_max: float = 15.0, stale_max: float = 180.0) -> str:
+def _infer_market_closed(
+    broker_time: Any,
+    gmt_time: Any,
+    terminal_ok: bool,
+    lag_sec: float = 3600.0,
+) -> bool:
+    """Distinguish closed FX session from disconnected feed.
+
+    MT5 TimeCurrent (brokerTime) freezes when the market/session is closed while
+    TimeGMT continues. A large positive lag with a live terminal means MARKET_CLOSED,
+    not DISCONNECTED. Unchanged bid/ask alone is never treated as stale.
+    """
+    if not terminal_ok:
+        return False
+    try:
+        bt = float(broker_time)
+        gt = float(gmt_time)
+    except (TypeError, ValueError):
+        return False
+    if bt <= 0 or gt <= 0:
+        return False
+    return (gt - bt) >= lag_sec
+
+
+def _freshness_from_age(
+    age_sec: float | None,
+    live_max: float = 15.0,
+    stale_max: float = 180.0,
+    *,
+    market_closed: bool = False,
+) -> str:
     if age_sec is None:
         return "DATA_UNAVAILABLE"
     if age_sec <= live_max:
-        return "LIVE"
+        return "MARKET_CLOSED" if market_closed else "LIVE"
     if age_sec <= stale_max:
         return "STALE"
     return "DISCONNECTED"
@@ -440,9 +470,11 @@ def stream_snapshot(include_candles: bool = False) -> dict[str, Any]:
         }
 
     age = float(mql.get("ageSec") or 0.0)
-    freshness = _freshness_from_age(age)
+    market_closed = _infer_market_closed(mql.get("brokerTime"), mql.get("gmtTime"), terminal_ok)
+    freshness = _freshness_from_age(age, market_closed=market_closed)
     if not terminal_ok:
         freshness = "DISCONNECTED"
+        market_closed = False
     quotes_out = []
     for item in mql.get("quotes") or []:
         if not isinstance(item, dict):
@@ -479,6 +511,7 @@ def stream_snapshot(include_candles: bool = False) -> dict[str, Any]:
         "terminalConnected": bool(status.get("terminalConnected")),
         "authenticated": bool(mql.get("authenticated")),
         "freshness": freshness,
+        "marketClosed": market_closed,
         "seq": mql.get("seq"),
         "brokerTime": mql.get("brokerTime"),
         "gmtTime": mql.get("gmtTime"),

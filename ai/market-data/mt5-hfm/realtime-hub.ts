@@ -13,6 +13,7 @@ import {
 import {
   DEFAULT_MT5_HFM_FRESHNESS_POLICY,
   freshnessFromAgeSec,
+  inferMarketClosed,
   isValidOhlcCandle,
   isValidQuoteTick,
   type Mt5HfmFreshness,
@@ -182,14 +183,22 @@ async function pollOnce(): Promise<void> {
 
     const ageSec = typeof snap.ageSec === "number" ? snap.ageSec : null;
     const terminalRunning = snap.terminalRunning !== false;
-    const freshness =
+    const brokerTime = typeof snap.brokerTime === "number" ? snap.brokerTime : null;
+    const gmtTime = typeof snap.gmtTime === "number" ? snap.gmtTime : null;
+    const marketClosed =
+      snap.marketClosed === true ||
+      inferMarketClosed(brokerTime, gmtTime, { terminalRunning });
+    let freshness: Mt5HfmFreshness =
       typeof snap.freshness === "string"
         ? (snap.freshness as Mt5HfmFreshness)
-        : freshnessFromAgeSec(ageSec, policy, { terminalRunning });
+        : freshnessFromAgeSec(ageSec, policy, { terminalRunning, marketClosed });
+    // Never label a fresh closed-session acquisition as LIVE.
+    if (freshness === "LIVE" && marketClosed) {
+      freshness = "MARKET_CLOSED";
+    }
     hubState.lastFreshness = freshness;
 
     const seq = typeof snap.seq === "number" ? snap.seq : null;
-    const brokerTime = typeof snap.brokerTime === "number" ? snap.brokerTime : null;
     const serverReceivedAt =
       typeof snap.serverReceivedAt === "string" ? snap.serverReceivedAt : nowIso();
     const provenance =
@@ -203,7 +212,13 @@ async function pollOnce(): Promise<void> {
     if (seq != null) hubState.lastSeq = seq;
 
     // Full snapshot on first successful poll for each recovery, or when seq advances after gap.
-    if (!hubState.lastAccountJson || isNewSeq || freshness === "LIVE" || freshness === "STALE") {
+    if (
+      !hubState.lastAccountJson ||
+      isNewSeq ||
+      freshness === "LIVE" ||
+      freshness === "MARKET_CLOSED" ||
+      freshness === "STALE"
+    ) {
       // Account incremental
       const account = (snap.account && typeof snap.account === "object"
         ? (snap.account as Record<string, unknown>)

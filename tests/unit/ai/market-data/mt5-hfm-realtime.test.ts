@@ -6,6 +6,7 @@ import {
 } from "../../../../ai/market-data/mt5-hfm/event-contract";
 import {
   freshnessFromAgeSec,
+  inferMarketClosed,
   isValidOhlcCandle,
   isValidQuoteTick,
 } from "../../../../ai/market-data/mt5-hfm/freshness";
@@ -20,6 +21,13 @@ describe("HFM MT5 Phase 1 freshness + contract", () => {
     expect(freshnessFromAgeSec(5, undefined, { terminalRunning: false })).toBe("DISCONNECTED");
     expect(freshnessFromAgeSec(null)).toBe("WAITING_FOR_DATA");
     expect(freshnessFromAgeSec(2, undefined, { marketClosed: true })).toBe("MARKET_CLOSED");
+  });
+
+  it("infers MARKET_CLOSED from brokerTime lag without treating flat prices as stale", () => {
+    expect(inferMarketClosed(1_700_000_000, 1_700_000_100)).toBe(false);
+    expect(inferMarketClosed(1_700_000_000, 1_700_003_700)).toBe(true);
+    expect(inferMarketClosed(1_700_000_000, 1_700_003_700, { terminalRunning: false })).toBe(false);
+    expect(inferMarketClosed(null, 1_700_003_700)).toBe(false);
   });
 
   it("rejects invalid ticks and never invents prices", () => {

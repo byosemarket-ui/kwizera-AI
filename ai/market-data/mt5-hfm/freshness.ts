@@ -34,6 +34,23 @@ export const DEFAULT_MT5_HFM_FRESHNESS_POLICY: Mt5HfmFreshnessPolicy = {
   pollIntervalMs: 3000,
 };
 
+/**
+ * Infer FX session closed when MT5 broker time lags GMT while the terminal is up.
+ * Unchanged prices alone must not imply STALE or MARKET_CLOSED.
+ */
+export function inferMarketClosed(
+  brokerTime: number | null | undefined,
+  gmtTime: number | null | undefined,
+  opts?: { terminalRunning?: boolean; lagSec?: number },
+): boolean {
+  if (opts?.terminalRunning === false) return false;
+  if (typeof brokerTime !== "number" || typeof gmtTime !== "number") return false;
+  if (!Number.isFinite(brokerTime) || !Number.isFinite(gmtTime)) return false;
+  if (brokerTime <= 0 || gmtTime <= 0) return false;
+  const lagSec = opts?.lagSec ?? 3600;
+  return gmtTime - brokerTime >= lagSec;
+}
+
 export function freshnessFromAgeSec(
   ageSec: number | null | undefined,
   policy: Mt5HfmFreshnessPolicy = DEFAULT_MT5_HFM_FRESHNESS_POLICY,
