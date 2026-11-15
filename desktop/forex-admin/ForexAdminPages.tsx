@@ -942,7 +942,7 @@ export function titleForView(view: ForexAdminViewId): string {
   const map: Record<string, string> = {
     dashboard: "Forex AI Admin Dashboard",
     forexconnect: "ForexConnect",
-    "mt5-hfm": "HFM MT5 Demo",
+    "mt5-hfm": "HFM MT5",
     instruments: "FXCM Instruments",
     "historical-data": "FXCM Historical Data",
     stream: "FXCM Real-Time Stream",

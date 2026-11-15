@@ -1,15 +1,15 @@
 /**
- * HFM MT5 Demo Connection Manager API.
+ * HFM MT5 Connection Manager API (Demo + locked Live credential storage).
  *
  * GET  /api/forex/providers/mt5-hfm/status
  * POST /api/forex/providers/mt5-hfm/auth-check
  * POST /api/forex/providers/mt5-hfm/credentials
  * POST /api/forex/providers/mt5-hfm/credentials/clear
- * POST /api/forex/providers/mt5-hfm/test-connection
- * GET  /api/forex/providers/mt5-hfm/account
+ * POST /api/forex/providers/mt5-hfm/test-connection   (Demo only)
+ * GET  /api/forex/providers/mt5-hfm/account            (Demo snapshot only)
  *
- * Admin token required for all routes. Never returns stored passwords.
- * LIVE mutations are rejected. Stored passwords are never returned to clients.
+ * Admin token required. Never returns stored passwords.
+ * Live credential save/clear allowed. Live login / auth tests / trading locked.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
@@ -19,18 +19,25 @@ import {
 } from "../../ai/admin-control-plane/admin-auth-boundary.js";
 import {
   getMt5HfmDemoProfileManager,
-  isLiveLookingServer,
+  parseMt5HfmEnvironment,
+  type Mt5HfmEnvironment,
 } from "../../ai/market-data/mt5-hfm/demo-profile.js";
 import { probeHfmDemoNetwork } from "../../ai/market-data/mt5-hfm/connection-probe.js";
 import { assertNoSecretsInMt5HfmPayload } from "../../ai/market-data/mt5-hfm/secrets-guard.js";
 import { appendMt5HfmCredentialAudit } from "../../ai/market-data/mt5-hfm/credential-audit.js";
 import { requestMt5HfmDemoLoginBridge } from "../../ai/market-data/mt5-hfm/login-bridge.js";
+import {
+  Mt5HfmLiveActivationLockedError,
+  assertLiveActivationAllowed,
+  publicLiveGate,
+} from "../../ai/market-data/mt5-hfm/live-gate.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
 const MAX_BODY_BYTES = 4096;
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 20;
+const ACTOR = "forex-admin";
 
 const mutationHits = new Map<string, number[]>();
 
@@ -101,34 +108,20 @@ async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknow
   }
 }
 
-function rejectLive(
-  body: Record<string, unknown>,
+function sendLiveLocked(
   res: ServerResponse,
   sendJson: SendJson,
-): boolean {
-  const env = String(body.environment ?? body.env ?? "demo").trim().toLowerCase();
-  if (env === "live" || env === "real" || env === "production") {
-    sendJson(res, 403, {
-      ok: false,
-      error: {
-        code: "LIVE_DISABLED",
-        message: "HFM Live account operations are disabled. Demo only.",
-      },
-    });
-    return true;
-  }
-  const server = String(body.server ?? "").trim();
-  if (server && isLiveLookingServer(server)) {
-    sendJson(res, 403, {
-      ok: false,
-      error: {
-        code: "LIVE_DISABLED",
-        message: "Live server names are not allowed. Demo servers only.",
-      },
-    });
-    return true;
-  }
-  return false;
+  action: string,
+): void {
+  const gate = publicLiveGate();
+  sendJson(res, 403, {
+    ok: false,
+    error: {
+      code: "LIVE_ACTIVATION_LOCKED",
+      message: `HFM Live ${action} is locked. Credential storage is allowed; Live activation requires separate explicit owner authorization.`,
+    },
+    liveGate: gate,
+  });
 }
 
 export async function handleMt5HfmApi(
@@ -166,12 +159,14 @@ export async function handleMt5HfmApi(
       const payload = {
         ok: true,
         authorized: true,
-        note: "Admin API token accepted for HFM MT5 Demo credential actions.",
+        note: "Admin API token accepted for HFM MT5 credential actions.",
+        liveGate: publicLiveGate(),
       };
       assertNoSecretsInMt5HfmPayload(payload);
       await appendMt5HfmCredentialAudit({
         action: "auth_check",
         ok: true,
+        actor: ACTOR,
         path: url.pathname,
         remoteAddress: req.socket.remoteAddress ?? null,
       });
@@ -187,15 +182,42 @@ export async function handleMt5HfmApi(
     }
 
     if (url.pathname === "/api/forex/providers/mt5-hfm/account" && (req.method === "GET" || req.method === "HEAD")) {
+      const envParam = String(url.searchParams.get("environment") ?? "demo");
+      let env: Mt5HfmEnvironment = "demo";
+      try {
+        env = parseMt5HfmEnvironment(envParam);
+      } catch {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "VALIDATION_ERROR", message: "environment must be demo or live" },
+        });
+        return true;
+      }
+      if (env === "live") {
+        await appendMt5HfmCredentialAudit({
+          action: "live_activation_blocked",
+          ok: false,
+          actor: ACTOR,
+          environment: "live",
+          code: "LIVE_ACTIVATION_LOCKED",
+          path: url.pathname,
+          remoteAddress: req.socket.remoteAddress ?? null,
+          detail: "account_sync",
+        });
+        sendLiveLocked(res, sendJson, "account sync");
+        return true;
+      }
       const status = manager.publicStatus();
       const payload = {
         ok: true,
-        configured: status.configured,
-        account: status.account,
-        lastSyncAt: status.lastSyncAt,
-        connectionStatus: status.connectionStatus,
+        environment: "demo" as const,
+        configured: status.demo.configured,
+        account: status.demo.account,
+        lastSyncAt: status.demo.lastSyncAt,
+        connectionStatus: status.demo.connectionStatus,
         mt5LoginBridge: status.mt5LoginBridge,
-        note: status.account
+        liveGate: status.liveGate,
+        note: status.demo.account
           ? "Verified Demo account snapshot."
           : "No verified Demo account snapshot yet. Save credentials and run Test Connection; terminal login bridge still required for balance/equity.",
       };
@@ -206,36 +228,45 @@ export async function handleMt5HfmApi(
 
     if (url.pathname === "/api/forex/providers/mt5-hfm/credentials" && req.method === "POST") {
       const body = await readJsonBody(req);
-      if (rejectLive(body, res, sendJson)) {
-        await appendMt5HfmCredentialAudit({
-          action: "save",
+      let env: Mt5HfmEnvironment;
+      try {
+        env = parseMt5HfmEnvironment(body.environment ?? "demo");
+      } catch (error) {
+        sendJson(res, 400, {
           ok: false,
-          code: "LIVE_DISABLED",
-          path: url.pathname,
-          remoteAddress: req.socket.remoteAddress ?? null,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: error instanceof Error ? error.message : "Invalid environment.",
+          },
         });
         return true;
       }
-      // Password is accepted for vault write only — never logged or echoed.
       const password = String(body.password ?? "");
       try {
         const status = await manager.saveCredentials({
+          environment: env,
           login: String(body.login ?? body.account ?? body.username ?? ""),
           server: String(body.server ?? ""),
           password,
         });
+        const envStatus = env === "live" ? status.live : status.demo;
         const payload = {
           ok: true,
+          environment: env,
           status,
-          note: "Demo credentials saved to encrypted vault. Password is not returned.",
+          note: env === "live"
+            ? "Live credentials saved to encrypted vault. Live login and trading remain locked."
+            : "Demo credentials saved to encrypted vault. Password is not returned.",
         };
         assertNoSecretsInMt5HfmPayload(payload, [password]);
         await appendMt5HfmCredentialAudit({
           action: "save",
           ok: true,
+          actor: ACTOR,
+          environment: env,
           code: "SAVED",
-          loginHint: status.loginHint,
-          server: status.server,
+          loginHint: envStatus.loginHint,
+          server: envStatus.server,
           path: url.pathname,
           remoteAddress: req.socket.remoteAddress ?? null,
         });
@@ -246,6 +277,8 @@ export async function handleMt5HfmApi(
         await appendMt5HfmCredentialAudit({
           action: "save",
           ok: false,
+          actor: ACTOR,
+          environment: env,
           code: vaultLocked ? "VAULT_UNAVAILABLE" : "VALIDATION_ERROR",
           detail: message,
           path: url.pathname,
@@ -264,26 +297,34 @@ export async function handleMt5HfmApi(
 
     if (url.pathname === "/api/forex/providers/mt5-hfm/credentials/clear" && req.method === "POST") {
       const body = await readJsonBody(req);
-      if (rejectLive(body, res, sendJson)) {
-        await appendMt5HfmCredentialAudit({
-          action: "clear",
+      let env: Mt5HfmEnvironment;
+      try {
+        env = parseMt5HfmEnvironment(body.environment ?? "demo");
+      } catch (error) {
+        sendJson(res, 400, {
           ok: false,
-          code: "LIVE_DISABLED",
-          path: url.pathname,
-          remoteAddress: req.socket.remoteAddress ?? null,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: error instanceof Error ? error.message : "Invalid environment.",
+          },
         });
         return true;
       }
-      const status = await manager.clearCredentials();
+      const status = await manager.clearCredentials(env);
       const payload = {
         ok: true,
+        environment: env,
         status,
-        note: "Demo credentials cleared from vault and metadata.",
+        note: env === "live"
+          ? "Live credentials cleared from vault and metadata."
+          : "Demo credentials cleared from vault and metadata.",
       };
       assertNoSecretsInMt5HfmPayload(payload);
       await appendMt5HfmCredentialAudit({
         action: "clear",
         ok: true,
+        actor: ACTOR,
+        environment: env,
         code: "CLEARED",
         path: url.pathname,
         remoteAddress: req.socket.remoteAddress ?? null,
@@ -294,22 +335,50 @@ export async function handleMt5HfmApi(
 
     if (url.pathname === "/api/forex/providers/mt5-hfm/test-connection" && req.method === "POST") {
       const body = await readJsonBody(req);
-      if (rejectLive(body, res, sendJson)) {
-        await appendMt5HfmCredentialAudit({
-          action: "test_connection",
+      let env: Mt5HfmEnvironment = "demo";
+      try {
+        env = parseMt5HfmEnvironment(body.environment ?? "demo");
+      } catch (error) {
+        sendJson(res, 400, {
           ok: false,
-          code: "LIVE_DISABLED",
-          path: url.pathname,
-          remoteAddress: req.socket.remoteAddress ?? null,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: error instanceof Error ? error.message : "Invalid environment.",
+          },
         });
         return true;
       }
 
+      if (env === "live") {
+        try {
+          assertLiveActivationAllowed("connection_test");
+        } catch (error) {
+          const locked = error instanceof Mt5HfmLiveActivationLockedError;
+          await appendMt5HfmCredentialAudit({
+            action: "live_activation_blocked",
+            ok: false,
+            actor: ACTOR,
+            environment: "live",
+            code: "LIVE_ACTIVATION_LOCKED",
+            path: url.pathname,
+            remoteAddress: req.socket.remoteAddress ?? null,
+            detail: "connection_test",
+          });
+          if (locked) {
+            sendLiveLocked(res, sendJson, "connection testing");
+            return true;
+          }
+          throw error;
+        }
+      }
+
       const statusBefore = manager.publicStatus();
-      if (!statusBefore.configured) {
+      if (!statusBefore.demo.configured) {
         await appendMt5HfmCredentialAudit({
           action: "test_connection",
           ok: false,
+          actor: ACTOR,
+          environment: "demo",
           code: "NOT_CONFIGURED",
           path: url.pathname,
           remoteAddress: req.socket.remoteAddress ?? null,
@@ -325,12 +394,13 @@ export async function handleMt5HfmApi(
       }
 
       const meta = manager.getDemoLoginMeta();
-      // Touch vault presence without placing password into argv/logs.
       const hasPassword = Boolean(manager.getDemoPassword());
       if (!meta || !hasPassword) {
         await appendMt5HfmCredentialAudit({
           action: "test_connection",
           ok: false,
+          actor: ACTOR,
+          environment: "demo",
           code: "NOT_CONFIGURED",
           path: url.pathname,
           remoteAddress: req.socket.remoteAddress ?? null,
@@ -345,10 +415,10 @@ export async function handleMt5HfmApi(
         return true;
       }
 
+      // Never touch Live password during Demo probe.
       const probe = await probeHfmDemoNetwork(meta.server);
-      // Documented bridge — not enabled; keeps account sync NOT VERIFIED.
       const bridge = await requestMt5HfmDemoLoginBridge();
-      await manager.recordProbeResult({
+      await manager.recordProbeResult("demo", {
         status: probe.status,
         errorMessage: probe.ok ? null : probe.summary,
         summary: probe.summary,
@@ -356,10 +426,12 @@ export async function handleMt5HfmApi(
       const status = manager.publicStatus();
       const payload = {
         ok: true,
+        environment: "demo" as const,
         probe,
         bridge,
         status,
-        account: status.account,
+        account: status.demo.account,
+        liveGate: status.liveGate,
         note: probe.ok
           ? "HFM Demo network reachable. MT5 terminal login and account sync are not verified until the local mt5 agent is approved and enabled."
           : "HFM Demo network probe failed. Credentials were not sent to any host.",
@@ -368,9 +440,11 @@ export async function handleMt5HfmApi(
       await appendMt5HfmCredentialAudit({
         action: "test_connection",
         ok: probe.ok,
+        actor: ACTOR,
+        environment: "demo",
         code: probe.status,
-        loginHint: status.loginHint,
-        server: status.server,
+        loginHint: status.demo.loginHint,
+        server: status.demo.server,
         detail: probe.summary,
         path: url.pathname,
         remoteAddress: req.socket.remoteAddress ?? null,
@@ -385,8 +459,11 @@ export async function handleMt5HfmApi(
     });
     return true;
   } catch (error) {
+    if (error instanceof Mt5HfmLiveActivationLockedError) {
+      sendLiveLocked(res, sendJson, error.action.replace(/_/g, " "));
+      return true;
+    }
     const message = error instanceof Error ? error.message.slice(0, 300) : "MT5 HFM API error.";
-    // Never include request bodies in error responses.
     sendJson(res, 500, {
       ok: false,
       error: { code: "INTERNAL_ERROR", message },

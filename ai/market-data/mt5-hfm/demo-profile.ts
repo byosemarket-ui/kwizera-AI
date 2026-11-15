@@ -1,15 +1,31 @@
 /**
- * HFM MT5 Demo Connection Manager — credential metadata + vault.
- * Password: AES-256-GCM via AiSecretsManager id `mt5-hfm:demo:password`.
- * Metadata: `{storageRoot}/mt5-hfm/demo-profile.json` (never passwords).
- * LIVE credentials are intentionally unsupported in this phase.
+ * HFM MT5 Connection Manager — Demo + Live credential metadata + vault.
+ *
+ * Passwords (AES-256-GCM via AiSecretsManager):
+ * - Demo: `mt5-hfm:demo:password`
+ * - Live: `mt5-hfm:live:password`
+ *
+ * Metadata (never passwords):
+ * - `{storageRoot}/mt5-hfm/demo-profile.json`
+ * - `{storageRoot}/mt5-hfm/live-profile.json`
+ *
+ * Live credential storage is allowed. Live login / authenticated use is
+ * fail-closed via `live-gate.ts` until separate owner authorization.
  */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { AiSecretsManager } from "../../connector-management/secrets-manager.js";
 import { maskCredential } from "../../admin-control-plane/admin-auth-boundary.js";
+import {
+  MT5_HFM_LIVE_PASSWORD_SECRET_ID,
+  publicLiveGate,
+  type Mt5HfmLiveGatePublic,
+} from "./live-gate.js";
 
 export const MT5_HFM_DEMO_PASSWORD_SECRET_ID = "mt5-hfm:demo:password";
+export { MT5_HFM_LIVE_PASSWORD_SECRET_ID };
+
+export type Mt5HfmEnvironment = "demo" | "live";
 
 export const HFM_DEMO_SERVER_ALLOWLIST = [
   "HFMarketsGlobal-Demo",
@@ -27,9 +43,18 @@ export const HFM_DEMO_SERVER_ALLOWLIST = [
   "HFMarketsUK-Demo2",
 ] as const;
 
-export type HfmDemoServerName = (typeof HFM_DEMO_SERVER_ALLOWLIST)[number] | string;
+export const HFM_LIVE_SERVER_ALLOWLIST = [
+  "HFMarketsGlobal-Live1",
+  "HFMarketsGlobal-Live2",
+  "HFMarketsGlobal-Live3",
+  "HFMarketsSC-Live1",
+  "HFMarketsSC-Live2",
+  "HFMarketsSC-Live3",
+  "HFMarkets-Live1",
+  "HFMarkets-Live2",
+] as const;
 
-export interface Mt5HfmDemoAccountInfoPublic {
+export interface Mt5HfmAccountInfoPublic {
   loginHint: string | null;
   server: string | null;
   currency: string | null;
@@ -43,14 +68,11 @@ export interface Mt5HfmDemoAccountInfoPublic {
   note: string | null;
 }
 
-export interface Mt5HfmDemoPublicStatus {
-  ok: true;
-  environment: "demo";
-  liveAvailable: false;
-  liveNote: string;
-  vaultUnlocked: boolean;
-  storageMode: "encrypted-vault" | "unavailable";
-  persistenceWarning: string | null;
+/** @deprecated Use Mt5HfmAccountInfoPublic */
+export type Mt5HfmDemoAccountInfoPublic = Mt5HfmAccountInfoPublic;
+
+export interface Mt5HfmEnvPublicStatus {
+  environment: Mt5HfmEnvironment;
   loginConfigured: boolean;
   passwordConfigured: boolean;
   serverConfigured: boolean;
@@ -65,13 +87,55 @@ export interface Mt5HfmDemoPublicStatus {
   lastSyncAt: string | null;
   lastProbeAt: string | null;
   lastProbeSummary: string | null;
-  account: Mt5HfmDemoAccountInfoPublic | null;
+  account: Mt5HfmAccountInfoPublic | null;
   allowedServers: readonly string[];
-  mt5LoginBridge: "not_implemented";
+  /** Live-only flags */
+  activationLocked?: boolean;
+  loginEnabled?: boolean;
+  connectionTestEnabled?: boolean;
   note: string;
 }
 
-interface DemoMetaFile {
+export interface Mt5HfmPublicStatus {
+  ok: true;
+  vaultUnlocked: boolean;
+  storageMode: "encrypted-vault" | "unavailable";
+  persistenceWarning: string | null;
+  liveGate: Mt5HfmLiveGatePublic;
+  /** Convenience: Live login/trading unavailable */
+  liveAvailable: false;
+  liveNote: string;
+  demo: Mt5HfmEnvPublicStatus;
+  live: Mt5HfmEnvPublicStatus;
+  mt5LoginBridge: "not_implemented";
+  note: string;
+  /**
+   * Backward-compatible Demo flat fields (same as `demo.*`).
+   * Prefer `demo` / `live` for new clients.
+   */
+  environment: "demo";
+  loginConfigured: boolean;
+  passwordConfigured: boolean;
+  serverConfigured: boolean;
+  configured: boolean;
+  loginHint: string | null;
+  server: string | null;
+  credentialsUpdatedAt: string | null;
+  connectionStatus: string | null;
+  lastAuthStatus: string | null;
+  lastAuthAt: string | null;
+  lastAuthError: string | null;
+  lastSyncAt: string | null;
+  lastProbeAt: string | null;
+  lastProbeSummary: string | null;
+  account: Mt5HfmAccountInfoPublic | null;
+  allowedServers: readonly string[];
+}
+
+/** @deprecated Prefer Mt5HfmPublicStatus */
+export type Mt5HfmDemoPublicStatus = Mt5HfmPublicStatus;
+
+interface EnvMetaFile {
   login: string;
   server: string;
   credentialsUpdatedAt: string | null;
@@ -82,10 +146,10 @@ interface DemoMetaFile {
   lastSyncAt: string | null;
   lastProbeAt: string | null;
   lastProbeSummary: string | null;
-  account: Mt5HfmDemoAccountInfoPublic | null;
+  account: Mt5HfmAccountInfoPublic | null;
 }
 
-function emptyMeta(): DemoMetaFile {
+function emptyMeta(): EnvMetaFile {
   return {
     login: "",
     server: "",
@@ -107,28 +171,52 @@ function resolveStorageRoot(): string {
   return path.join(process.cwd(), "data");
 }
 
-export function normalizeHfmDemoServer(raw: unknown): string {
-  return String(raw ?? "").trim();
+function secretIdFor(env: Mt5HfmEnvironment): string {
+  return env === "live" ? MT5_HFM_LIVE_PASSWORD_SECRET_ID : MT5_HFM_DEMO_PASSWORD_SECRET_ID;
+}
+
+function metaFileName(env: Mt5HfmEnvironment): string {
+  return env === "live" ? "live-profile.json" : "demo-profile.json";
+}
+
+export function parseMt5HfmEnvironment(raw: unknown, fallback: Mt5HfmEnvironment = "demo"): Mt5HfmEnvironment {
+  const v = String(raw ?? fallback).trim().toLowerCase();
+  if (v === "live" || v === "real" || v === "production") return "live";
+  if (v === "demo") return "demo";
+  throw new Error("environment must be demo or live");
 }
 
 export function isLiveLookingServer(server: string): boolean {
   return /live|real|prod/i.test(server);
 }
 
-export function validateDemoLogin(raw: unknown): string {
+export function isDemoLookingServer(server: string): boolean {
+  return /demo/i.test(server);
+}
+
+export function validateAccountLogin(raw: unknown, env: Mt5HfmEnvironment): string {
   const login = String(raw ?? "").trim();
-  if (!login) throw new Error("Demo account number is required.");
+  const label = env === "live" ? "Live" : "Demo";
+  if (!login) throw new Error(`${label} account number is required.`);
   if (login.length < 4 || login.length > 32) {
-    throw new Error("Demo account number must be 4–32 characters.");
+    throw new Error(`${label} account number must be 4–32 characters.`);
   }
   if (!/^[A-Za-z0-9._-]+$/.test(login)) {
-    throw new Error("Demo account number contains invalid characters.");
+    throw new Error(`${label} account number contains invalid characters.`);
   }
   return login;
 }
 
+export function validateDemoLogin(raw: unknown): string {
+  return validateAccountLogin(raw, "demo");
+}
+
+export function validateLiveLogin(raw: unknown): string {
+  return validateAccountLogin(raw, "live");
+}
+
 export function validateDemoServer(raw: unknown): string {
-  const server = normalizeHfmDemoServer(raw);
+  const server = String(raw ?? "").trim();
   if (!server) throw new Error("Demo server name is required.");
   if (server.length < 3 || server.length > 64) {
     throw new Error("Demo server name must be 3–64 characters.");
@@ -137,12 +225,27 @@ export function validateDemoServer(raw: unknown): string {
     throw new Error("Demo server name contains invalid characters.");
   }
   if (isLiveLookingServer(server)) {
-    throw new Error("Live server names are not allowed. Demo servers only.");
+    throw new Error("Live server names are not allowed for Demo credentials.");
   }
   return server;
 }
 
-export function validateDemoPassword(raw: unknown): string {
+export function validateLiveServer(raw: unknown): string {
+  const server = String(raw ?? "").trim();
+  if (!server) throw new Error("Live server name is required.");
+  if (server.length < 3 || server.length > 64) {
+    throw new Error("Live server name must be 3–64 characters.");
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(server)) {
+    throw new Error("Live server name contains invalid characters.");
+  }
+  if (isDemoLookingServer(server)) {
+    throw new Error("Demo server names are not allowed for Live credentials.");
+  }
+  return server;
+}
+
+export function validatePassword(raw: unknown): string {
   const password = String(raw ?? "");
   if (password.length < 4) throw new Error("Password must be at least 4 characters.");
   if (password.length > 128) throw new Error("Password must be at most 128 characters.");
@@ -150,10 +253,34 @@ export function validateDemoPassword(raw: unknown): string {
   return password;
 }
 
+/** @deprecated Use validatePassword */
+export function validateDemoPassword(raw: unknown): string {
+  return validatePassword(raw);
+}
+
+async function readMetaFile(dir: string, env: Mt5HfmEnvironment): Promise<EnvMetaFile> {
+  try {
+    const raw = await fs.readFile(path.join(dir, metaFileName(env)), "utf8");
+    const parsed = JSON.parse(raw) as Partial<EnvMetaFile>;
+    const file: EnvMetaFile = {
+      ...emptyMeta(),
+      ...parsed,
+      login: String(parsed.login ?? ""),
+      server: String(parsed.server ?? ""),
+    };
+    delete (file as { password?: unknown }).password;
+    return file;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    return emptyMeta();
+  }
+}
+
 export class Mt5HfmDemoProfileManager {
   private storageRoot = "";
   private secrets: AiSecretsManager | null = null;
-  private file: DemoMetaFile = emptyMeta();
+  private demo: EnvMetaFile = emptyMeta();
+  private live: EnvMetaFile = emptyMeta();
   private initialized = false;
 
   async initialize(storageRoot = resolveStorageRoot()): Promise<void> {
@@ -167,21 +294,13 @@ export class Mt5HfmDemoProfileManager {
     } catch {
       this.secrets = null;
     }
-    try {
-      const raw = await fs.readFile(path.join(root, "demo-profile.json"), "utf8");
-      const parsed = JSON.parse(raw) as Partial<DemoMetaFile>;
-      this.file = { ...emptyMeta(), ...parsed, login: String(parsed.login ?? ""), server: String(parsed.server ?? "") };
-      // Never trust accidental password fields if present in old files.
-      delete (this.file as { password?: unknown }).password;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      this.file = emptyMeta();
-    }
+    this.demo = await readMetaFile(root, "demo");
+    this.live = await readMetaFile(root, "live");
     this.initialized = true;
   }
 
   ensureInitialized(): void {
-    if (!this.initialized) throw new Error("MT5 HFM demo profile manager is not initialized");
+    if (!this.initialized) throw new Error("MT5 HFM profile manager is not initialized");
   }
 
   vaultUnlocked(): boolean {
@@ -192,15 +311,27 @@ export class Mt5HfmDemoProfileManager {
     return this.vaultUnlocked() ? "encrypted-vault" : "unavailable";
   }
 
+  private meta(env: Mt5HfmEnvironment): EnvMetaFile {
+    return env === "live" ? this.live : this.demo;
+  }
+
+  private setMeta(env: Mt5HfmEnvironment, next: EnvMetaFile): void {
+    if (env === "live") this.live = next;
+    else this.demo = next;
+  }
+
   async saveCredentials(input: {
+    environment?: Mt5HfmEnvironment | string;
     login: string;
     server: string;
     password: string;
-  }): Promise<Mt5HfmDemoPublicStatus> {
+  }): Promise<Mt5HfmPublicStatus> {
     this.ensureInitialized();
-    const login = validateDemoLogin(input.login);
-    const server = validateDemoServer(input.server);
-    const password = validateDemoPassword(input.password);
+    const env = parseMt5HfmEnvironment(input.environment ?? "demo");
+    const login = validateAccountLogin(input.login, env);
+    const server = env === "live" ? validateLiveServer(input.server) : validateDemoServer(input.server);
+    const password = validatePassword(input.password);
+    const sid = secretIdFor(env);
 
     if (!this.vaultUnlocked() || !this.secrets) {
       throw new Error(
@@ -208,126 +339,213 @@ export class Mt5HfmDemoProfileManager {
       );
     }
 
-    this.file.login = login;
-    this.file.server = server;
-    this.file.credentialsUpdatedAt = new Date().toISOString();
-    this.file.connectionStatus = "credentials_saved";
-    this.file.lastAuthError = null;
-    // Account snapshot invalidated until a verified bridge sync.
-    this.file.account = null;
-    this.file.lastSyncAt = null;
+    const next: EnvMetaFile = {
+      ...this.meta(env),
+      login,
+      server,
+      credentialsUpdatedAt: new Date().toISOString(),
+      connectionStatus: "credentials_saved",
+      lastAuthError: null,
+      account: null,
+      lastSyncAt: null,
+    };
+    this.setMeta(env, next);
 
-    await this.secrets.set(MT5_HFM_DEMO_PASSWORD_SECRET_ID, password);
-    if (!this.secrets.has(MT5_HFM_DEMO_PASSWORD_SECRET_ID)) {
+    await this.secrets.set(sid, password);
+    if (!this.secrets.has(sid)) {
       throw new Error("Credential vault write verification failed. Credentials were not saved.");
     }
-    const stored = this.secrets.get(MT5_HFM_DEMO_PASSWORD_SECRET_ID);
+    const stored = this.secrets.get(sid);
     if (stored !== password) {
       throw new Error("Credential vault round-trip verification failed. Credentials were not saved.");
     }
-    await this.persistMeta();
+    // Isolation: never copy between namespaces.
+    await this.persistMeta(env);
     return this.publicStatus();
   }
 
-  async clearCredentials(): Promise<Mt5HfmDemoPublicStatus> {
+  async clearCredentials(environment: Mt5HfmEnvironment | string = "demo"): Promise<Mt5HfmPublicStatus> {
     this.ensureInitialized();
-    if (this.secrets?.has(MT5_HFM_DEMO_PASSWORD_SECRET_ID)) {
-      await this.secrets.remove(MT5_HFM_DEMO_PASSWORD_SECRET_ID);
+    const env = parseMt5HfmEnvironment(environment);
+    const sid = secretIdFor(env);
+    if (this.secrets?.has(sid)) {
+      await this.secrets.remove(sid);
     }
-    this.file = emptyMeta();
-    this.file.connectionStatus = "cleared";
-    await this.persistMeta();
+    const cleared = emptyMeta();
+    cleared.connectionStatus = "cleared";
+    this.setMeta(env, cleared);
+    await this.persistMeta(env);
     return this.publicStatus();
   }
 
   /** Runtime-only decrypt. Never call from GET handlers that return JSON to browsers. */
-  getDemoPassword(): string | null {
+  getPassword(environment: Mt5HfmEnvironment): string | null {
     this.ensureInitialized();
-    if (!this.vaultUnlocked() || !this.secrets?.has(MT5_HFM_DEMO_PASSWORD_SECRET_ID)) return null;
+    const sid = secretIdFor(environment);
+    if (!this.vaultUnlocked() || !this.secrets?.has(sid)) return null;
     try {
-      const value = this.secrets.get(MT5_HFM_DEMO_PASSWORD_SECRET_ID);
+      const value = this.secrets.get(sid);
       return value.length >= 4 ? value : null;
     } catch {
       return null;
     }
   }
 
-  getDemoLoginMeta(): { login: string; server: string } | null {
+  getDemoPassword(): string | null {
+    return this.getPassword("demo");
+  }
+
+  /** Present for symmetry — callers must still pass Live gate before any use. */
+  getLivePassword(): string | null {
+    return this.getPassword("live");
+  }
+
+  getLoginMeta(environment: Mt5HfmEnvironment): { login: string; server: string } | null {
     this.ensureInitialized();
-    const login = this.file.login.trim();
-    const server = this.file.server.trim();
+    const file = this.meta(environment);
+    const login = file.login.trim();
+    const server = file.server.trim();
     if (!login || !server) return null;
     return { login, server };
   }
 
-  async recordProbeResult(result: {
-    status: string;
-    errorMessage?: string | null;
-    summary?: string | null;
-  }): Promise<void> {
-    this.ensureInitialized();
-    this.file.lastProbeAt = new Date().toISOString();
-    this.file.lastProbeSummary = result.summary ? String(result.summary).slice(0, 400) : null;
-    this.file.lastAuthStatus = result.status;
-    this.file.lastAuthAt = this.file.lastProbeAt;
-    this.file.lastAuthError = result.errorMessage ? String(result.errorMessage).slice(0, 400) : null;
-    this.file.connectionStatus = result.status;
-    await this.persistMeta();
+  getDemoLoginMeta(): { login: string; server: string } | null {
+    return this.getLoginMeta("demo");
   }
 
-  publicStatus(): Mt5HfmDemoPublicStatus {
+  async recordProbeResult(
+    environment: Mt5HfmEnvironment,
+    result: {
+      status: string;
+      errorMessage?: string | null;
+      summary?: string | null;
+    },
+  ): Promise<void> {
     this.ensureInitialized();
-    const loginOk = Boolean(this.file.login.trim());
-    const serverOk = Boolean(this.file.server.trim());
-    const pwdOk = Boolean(this.vaultUnlocked() && this.secrets?.has(MT5_HFM_DEMO_PASSWORD_SECRET_ID));
-    const mode = this.storageMode();
+    if (environment !== "demo") {
+      throw new Error("Probe results may only be recorded for Demo while Live activation is locked.");
+    }
+    const file = this.meta("demo");
+    file.lastProbeAt = new Date().toISOString();
+    file.lastProbeSummary = result.summary ? String(result.summary).slice(0, 400) : null;
+    file.lastAuthStatus = result.status;
+    file.lastAuthAt = file.lastProbeAt;
+    file.lastAuthError = result.errorMessage ? String(result.errorMessage).slice(0, 400) : null;
+    file.connectionStatus = result.status;
+    await this.persistMeta("demo");
+  }
+
+  private envPublicStatus(env: Mt5HfmEnvironment): Mt5HfmEnvPublicStatus {
+    const file = this.meta(env);
+    const loginOk = Boolean(file.login.trim());
+    const serverOk = Boolean(file.server.trim());
+    const pwdOk = Boolean(this.vaultUnlocked() && this.secrets?.has(secretIdFor(env)));
+    const gate = publicLiveGate();
+    if (env === "demo") {
+      return {
+        environment: "demo",
+        loginConfigured: loginOk,
+        passwordConfigured: pwdOk,
+        serverConfigured: serverOk,
+        configured: loginOk && serverOk && pwdOk,
+        loginHint: file.login ? maskCredential(file.login) : null,
+        server: file.server || null,
+        credentialsUpdatedAt: file.credentialsUpdatedAt,
+        connectionStatus: file.connectionStatus,
+        lastAuthStatus: file.lastAuthStatus,
+        lastAuthAt: file.lastAuthAt,
+        lastAuthError: file.lastAuthError,
+        lastSyncAt: file.lastSyncAt,
+        lastProbeAt: file.lastProbeAt,
+        lastProbeSummary: file.lastProbeSummary,
+        account: file.account,
+        allowedServers: HFM_DEMO_SERVER_ALLOWLIST,
+        note: "Demo credentials. Passwords are never returned. Terminal login bridge not enabled yet.",
+      };
+    }
     return {
-      ok: true,
-      environment: "demo",
-      liveAvailable: false,
-      liveNote: "HFM Live login is disabled in this phase and is not available.",
-      vaultUnlocked: this.vaultUnlocked(),
-      storageMode: mode,
-      persistenceWarning: mode === "unavailable"
-        ? "Secrets vault locked or unavailable. Set KWIZERA_SECRETS_PASSPHRASE to enable encrypted Demo credential persistence."
-        : null,
+      environment: "live",
       loginConfigured: loginOk,
       passwordConfigured: pwdOk,
       serverConfigured: serverOk,
       configured: loginOk && serverOk && pwdOk,
-      loginHint: this.file.login ? maskCredential(this.file.login) : null,
-      server: this.file.server || null,
-      credentialsUpdatedAt: this.file.credentialsUpdatedAt,
-      connectionStatus: this.file.connectionStatus,
-      lastAuthStatus: this.file.lastAuthStatus,
-      lastAuthAt: this.file.lastAuthAt,
-      lastAuthError: this.file.lastAuthError,
-      lastSyncAt: this.file.lastSyncAt,
-      lastProbeAt: this.file.lastProbeAt,
-      lastProbeSummary: this.file.lastProbeSummary,
-      account: this.file.account,
-      allowedServers: HFM_DEMO_SERVER_ALLOWLIST,
-      mt5LoginBridge: "not_implemented",
-      note: "Demo credentials only. Passwords are never returned. MT5 terminal login bridge is designed but not enabled yet.",
+      loginHint: file.login ? maskCredential(file.login) : null,
+      server: file.server || null,
+      credentialsUpdatedAt: file.credentialsUpdatedAt,
+      connectionStatus: file.connectionStatus,
+      lastAuthStatus: file.lastAuthStatus,
+      lastAuthAt: file.lastAuthAt,
+      lastAuthError: file.lastAuthError,
+      lastSyncAt: null,
+      lastProbeAt: null,
+      lastProbeSummary: null,
+      account: null,
+      allowedServers: HFM_LIVE_SERVER_ALLOWLIST,
+      activationLocked: true,
+      loginEnabled: gate.loginEnabled,
+      connectionTestEnabled: gate.connectionTestEnabled,
+      note: gate.note,
     };
   }
 
-  private async persistMeta(): Promise<void> {
+  publicStatus(): Mt5HfmPublicStatus {
+    this.ensureInitialized();
+    const mode = this.storageMode();
+    const gate = publicLiveGate();
+    const demo = this.envPublicStatus("demo");
+    const live = this.envPublicStatus("live");
+    return {
+      ok: true,
+      vaultUnlocked: this.vaultUnlocked(),
+      storageMode: mode,
+      persistenceWarning: mode === "unavailable"
+        ? "Secrets vault locked or unavailable. Set KWIZERA_SECRETS_PASSPHRASE to enable encrypted credential persistence."
+        : null,
+      liveGate: gate,
+      liveAvailable: false,
+      liveNote: gate.note,
+      demo,
+      live,
+      mt5LoginBridge: "not_implemented",
+      note: "Demo connection testing only. Live credentials may be stored encrypted but Live activation is locked.",
+      // Flat Demo compatibility fields
+      environment: "demo",
+      loginConfigured: demo.loginConfigured,
+      passwordConfigured: demo.passwordConfigured,
+      serverConfigured: demo.serverConfigured,
+      configured: demo.configured,
+      loginHint: demo.loginHint,
+      server: demo.server,
+      credentialsUpdatedAt: demo.credentialsUpdatedAt,
+      connectionStatus: demo.connectionStatus,
+      lastAuthStatus: demo.lastAuthStatus,
+      lastAuthAt: demo.lastAuthAt,
+      lastAuthError: demo.lastAuthError,
+      lastSyncAt: demo.lastSyncAt,
+      lastProbeAt: demo.lastProbeAt,
+      lastProbeSummary: demo.lastProbeSummary,
+      account: demo.account,
+      allowedServers: demo.allowedServers,
+    };
+  }
+
+  private async persistMeta(env: Mt5HfmEnvironment): Promise<void> {
     const dir = path.join(this.storageRoot, "mt5-hfm");
-    const target = path.join(dir, "demo-profile.json");
+    const target = path.join(dir, metaFileName(env));
     const temporary = `${target}.${Date.now()}.tmp`;
-    const safe: DemoMetaFile = {
-      login: this.file.login,
-      server: this.file.server,
-      credentialsUpdatedAt: this.file.credentialsUpdatedAt,
-      connectionStatus: this.file.connectionStatus,
-      lastAuthStatus: this.file.lastAuthStatus,
-      lastAuthAt: this.file.lastAuthAt,
-      lastAuthError: this.file.lastAuthError,
-      lastSyncAt: this.file.lastSyncAt,
-      lastProbeAt: this.file.lastProbeAt,
-      lastProbeSummary: this.file.lastProbeSummary,
-      account: this.file.account,
+    const file = this.meta(env);
+    const safe: EnvMetaFile = {
+      login: file.login,
+      server: file.server,
+      credentialsUpdatedAt: file.credentialsUpdatedAt,
+      connectionStatus: file.connectionStatus,
+      lastAuthStatus: file.lastAuthStatus,
+      lastAuthAt: file.lastAuthAt,
+      lastAuthError: file.lastAuthError,
+      lastSyncAt: file.lastSyncAt,
+      lastProbeAt: file.lastProbeAt,
+      lastProbeSummary: file.lastProbeSummary,
+      account: file.account,
     };
     try {
       await fs.mkdir(dir, { recursive: true });

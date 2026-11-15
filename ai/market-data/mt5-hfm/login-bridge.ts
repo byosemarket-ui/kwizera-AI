@@ -5,8 +5,10 @@
  * against the already-running Wine/MT5 process under Linux user `mt5`, then
  * return non-secret account fields (balance, equity, leverage, currency).
  *
- * Approved constraints from Phase 2:
- * - Demo only — reject Live servers/accounts.
+ * Approved constraints:
+ * - Demo connection only until separate Live owner authorization.
+ * - Live credentials may exist in vault (`mt5-hfm:live:password`) but must never
+ *   be used by this bridge while live-gate remains fail-closed.
  * - No order placement, EA attach, or AT submit.
  * - Never put passwords in argv, shell, environment dumps, or logs.
  * - Do not expose a new unauthenticated public port.

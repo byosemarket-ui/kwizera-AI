@@ -1,5 +1,5 @@
 /**
- * Append-only credential action audit for HFM MT5 Demo.
+ * Append-only credential action audit for HFM MT5 Demo + Live storage.
  * Never records passwords, request bodies, or secret material.
  */
 import fs from "node:fs/promises";
@@ -11,12 +11,15 @@ export type Mt5HfmCredentialAuditAction =
   | "clear"
   | "test_connection"
   | "status_read"
-  | "account_read";
+  | "account_read"
+  | "live_activation_blocked";
 
 export interface Mt5HfmCredentialAuditEvent {
   at: string;
   action: Mt5HfmCredentialAuditAction;
   ok: boolean;
+  actor?: string;
+  environment?: "demo" | "live" | null;
   code?: string;
   /** Masked or truncated login hint only — never full password. */
   loginHint?: string | null;
@@ -34,7 +37,6 @@ function resolveStorageRoot(): string {
 
 function sanitizeDetail(detail: string | undefined): string | undefined {
   if (!detail) return undefined;
-  // Strip anything that looks like a long secret-bearing token.
   return detail.replace(/[A-Za-z0-9+/=_-]{24,}/g, "[redacted]").slice(0, 240);
 }
 
@@ -45,6 +47,8 @@ export async function appendMt5HfmCredentialAudit(
     at: event.at ?? new Date().toISOString(),
     action: event.action,
     ok: event.ok,
+    actor: event.actor ?? "forex-admin",
+    environment: event.environment ?? null,
     code: event.code,
     loginHint: event.loginHint ?? null,
     server: event.server ?? null,
@@ -53,7 +57,6 @@ export async function appendMt5HfmCredentialAudit(
     detail: sanitizeDetail(event.detail),
   };
 
-  // Defense: refuse to persist accidental password-shaped fields.
   const serialized = JSON.stringify(entry);
   if (/"password"\s*:/i.test(serialized)) {
     return;

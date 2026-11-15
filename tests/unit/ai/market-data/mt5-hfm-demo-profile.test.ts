@@ -5,16 +5,23 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createMt5HfmDemoProfileManager,
   MT5_HFM_DEMO_PASSWORD_SECRET_ID,
+  MT5_HFM_LIVE_PASSWORD_SECRET_ID,
   resetMt5HfmDemoProfileManagerForTests,
   validateDemoLogin,
   validateDemoServer,
+  validateLiveServer,
 } from "../../../../ai/market-data/mt5-hfm/demo-profile";
 import { assertNoSecretsInMt5HfmPayload } from "../../../../ai/market-data/mt5-hfm/secrets-guard";
 import { endpointsForDemoServer } from "../../../../ai/market-data/mt5-hfm/connection-probe";
 import { appendMt5HfmCredentialAudit } from "../../../../ai/market-data/mt5-hfm/credential-audit";
 import { requestMt5HfmDemoLoginBridge } from "../../../../ai/market-data/mt5-hfm/login-bridge";
+import {
+  assertLiveActivationAllowed,
+  Mt5HfmLiveActivationLockedError,
+  publicLiveGate,
+} from "../../../../ai/market-data/mt5-hfm/live-gate";
 
-describe("MT5 HFM Demo profile manager", () => {
+describe("MT5 HFM Demo + Live profile manager", () => {
   const roots: string[] = [];
 
   afterEach(async () => {
@@ -26,11 +33,13 @@ describe("MT5 HFM Demo profile manager", () => {
     }
   });
 
-  it("validates demo login/server and rejects live-looking servers", () => {
+  it("validates demo/live servers without cross-contamination", () => {
     expect(validateDemoLogin("12345678")).toBe("12345678");
     expect(() => validateDemoLogin("ab")).toThrow(/4–32/);
     expect(validateDemoServer("HFMarketsGlobal-Demo")).toBe("HFMarketsGlobal-Demo");
     expect(() => validateDemoServer("HFMarketsGlobal-Live1")).toThrow(/Live server/);
+    expect(validateLiveServer("HFMarketsGlobal-Live1")).toBe("HFMarketsGlobal-Live1");
+    expect(() => validateLiveServer("HFMarketsGlobal-Demo")).toThrow(/Demo server/);
   });
 
   it("maps demo servers to probe endpoints without secrets", () => {
@@ -38,45 +47,61 @@ describe("MT5 HFM Demo profile manager", () => {
     expect(endpointsForDemoServer("HFMarketsGlobal-Demo3")[0]?.port).toBe(40305);
   });
 
-  it("persists metadata without password and stores password only in vault", async () => {
+  it("persists demo and live passwords in separate vault namespaces", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "mt5-hfm-"));
     roots.push(root);
     process.env.KWIZERA_SECRETS_PASSPHRASE = "unit-test-passphrase-mt5-hfm";
 
     const manager = createMt5HfmDemoProfileManager();
     await manager.initialize(root);
-    const status = await manager.saveCredentials({
+    const afterDemo = await manager.saveCredentials({
+      environment: "demo",
       login: "90123456",
       server: "HFMarketsGlobal-Demo",
       password: "DemoSecretPass99",
     });
+    const afterLive = await manager.saveCredentials({
+      environment: "live",
+      login: "80123456",
+      server: "HFMarketsGlobal-Live1",
+      password: "LiveSecretPass88",
+    });
 
-    expect(status.configured).toBe(true);
-    expect(status.passwordConfigured).toBe(true);
-    expect(status.loginHint).toBeTruthy();
-    expect(JSON.stringify(status)).not.toContain("DemoSecretPass99");
+    expect(afterDemo.demo.configured).toBe(true);
+    expect(afterLive.live.configured).toBe(true);
+    expect(afterLive.liveAvailable).toBe(false);
+    expect(afterLive.liveGate.loginEnabled).toBe(false);
+    expect(JSON.stringify(afterLive)).not.toContain("DemoSecretPass99");
+    expect(JSON.stringify(afterLive)).not.toContain("LiveSecretPass88");
 
-    const metaRaw = await fs.readFile(path.join(root, "mt5-hfm", "demo-profile.json"), "utf8");
-    expect(metaRaw).toContain("90123456");
-    expect(metaRaw).toContain("HFMarketsGlobal-Demo");
-    expect(metaRaw).not.toContain("DemoSecretPass99");
-    expect(metaRaw).not.toMatch(/password/i);
+    const demoMeta = await fs.readFile(path.join(root, "mt5-hfm", "demo-profile.json"), "utf8");
+    const liveMeta = await fs.readFile(path.join(root, "mt5-hfm", "live-profile.json"), "utf8");
+    expect(demoMeta).toContain("90123456");
+    expect(demoMeta).not.toContain("DemoSecretPass99");
+    expect(liveMeta).toContain("80123456");
+    expect(liveMeta).not.toContain("LiveSecretPass88");
+    expect(demoMeta).not.toContain("80123456");
+    expect(liveMeta).not.toContain("90123456");
 
     const secretsRaw = await fs.readFile(
       path.join(root, "connector-management", "secrets.json"),
       "utf8",
     );
     expect(secretsRaw).toContain(MT5_HFM_DEMO_PASSWORD_SECRET_ID);
+    expect(secretsRaw).toContain(MT5_HFM_LIVE_PASSWORD_SECRET_ID);
     expect(secretsRaw).not.toContain("DemoSecretPass99");
+    expect(secretsRaw).not.toContain("LiveSecretPass88");
 
-    assertNoSecretsInMt5HfmPayload(status, ["DemoSecretPass99"]);
-    expect(() =>
-      assertNoSecretsInMt5HfmPayload({ password: "DemoSecretPass99" }, []),
-    ).toThrow(/password field/);
+    expect(manager.getDemoPassword()).toBe("DemoSecretPass99");
+    expect(manager.getLivePassword()).toBe("LiveSecretPass88");
 
-    const cleared = await manager.clearCredentials();
-    expect(cleared.configured).toBe(false);
-    expect(cleared.passwordConfigured).toBe(false);
+    assertNoSecretsInMt5HfmPayload(afterLive, ["DemoSecretPass99", "LiveSecretPass88"]);
+
+    const clearedLive = await manager.clearCredentials("live");
+    expect(clearedLive.live.configured).toBe(false);
+    expect(clearedLive.demo.configured).toBe(true);
+    expect(manager.getLivePassword()).toBeNull();
+    expect(manager.getDemoPassword()).toBe("DemoSecretPass99");
   });
 
   it("refuses durable save when vault passphrase is missing", async () => {
@@ -88,11 +113,23 @@ describe("MT5 HFM Demo profile manager", () => {
     await manager.initialize(root);
     await expect(
       manager.saveCredentials({
-        login: "90123456",
-        server: "HFMarketsGlobal-Demo",
-        password: "DemoSecretPass99",
+        environment: "live",
+        login: "80123456",
+        server: "HFMarketsGlobal-Live1",
+        password: "LiveSecretPass88",
       }),
     ).rejects.toThrow(/vault/i);
+  });
+
+  it("keeps Live activation fail-closed", () => {
+    const gate = publicLiveGate();
+    expect(gate.ownerAuthorized).toBe(false);
+    expect(gate.loginEnabled).toBe(false);
+    expect(gate.connectionTestEnabled).toBe(false);
+    expect(gate.orderExecutionEnabled).toBe(false);
+    expect(gate.credentialStorageEnabled).toBe(true);
+    expect(() => assertLiveActivationAllowed("login")).toThrow(Mt5HfmLiveActivationLockedError);
+    expect(() => assertLiveActivationAllowed("connection_test")).toThrow(Mt5HfmLiveActivationLockedError);
   });
 
   it("writes credential audit lines without password material", async () => {
@@ -102,13 +139,17 @@ describe("MT5 HFM Demo profile manager", () => {
     await appendMt5HfmCredentialAudit({
       action: "save",
       ok: true,
+      actor: "forex-admin",
+      environment: "live",
       code: "SAVED",
       loginHint: "••••3456",
-      server: "HFMarketsGlobal-Demo",
+      server: "HFMarketsGlobal-Live1",
       detail: "ok",
     });
     const raw = await fs.readFile(path.join(root, "mt5-hfm", "credential-audit.jsonl"), "utf8");
     expect(raw).toContain('"action":"save"');
+    expect(raw).toContain('"environment":"live"');
+    expect(raw).toContain('"actor":"forex-admin"');
     expect(raw).not.toMatch(/password/i);
   });
 

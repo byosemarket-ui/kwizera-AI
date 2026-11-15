@@ -141,14 +141,19 @@ export interface Mt5HfmDemoAccountInfo {
   note: string | null;
 }
 
-export interface Mt5HfmDemoStatus {
-  ok: true;
-  environment: "demo";
-  liveAvailable: false;
-  liveNote: string;
-  vaultUnlocked: boolean;
-  storageMode: "encrypted-vault" | "unavailable";
-  persistenceWarning: string | null;
+export interface Mt5HfmLiveGate {
+  ownerAuthorized: false;
+  loginEnabled: false;
+  connectionTestEnabled: false;
+  terminalSessionEnabled: false;
+  orderExecutionEnabled: false;
+  automationEnabled: false;
+  credentialStorageEnabled: true;
+  note: string;
+}
+
+export interface Mt5HfmEnvStatus {
+  environment: "demo" | "live";
   loginConfigured: boolean;
   passwordConfigured: boolean;
   serverConfigured: boolean;
@@ -165,8 +170,42 @@ export interface Mt5HfmDemoStatus {
   lastProbeSummary: string | null;
   account: Mt5HfmDemoAccountInfo | null;
   allowedServers: readonly string[];
+  activationLocked?: boolean;
+  loginEnabled?: boolean;
+  connectionTestEnabled?: boolean;
+  note: string;
+}
+
+export interface Mt5HfmDemoStatus {
+  ok: true;
+  vaultUnlocked: boolean;
+  storageMode: "encrypted-vault" | "unavailable";
+  persistenceWarning: string | null;
+  liveGate: Mt5HfmLiveGate;
+  liveAvailable: false;
+  liveNote: string;
+  demo: Mt5HfmEnvStatus;
+  live: Mt5HfmEnvStatus;
   mt5LoginBridge: "not_implemented";
   note: string;
+  /** Flat Demo compatibility fields */
+  environment: "demo";
+  loginConfigured: boolean;
+  passwordConfigured: boolean;
+  serverConfigured: boolean;
+  configured: boolean;
+  loginHint: string | null;
+  server: string | null;
+  credentialsUpdatedAt: string | null;
+  connectionStatus: string | null;
+  lastAuthStatus: string | null;
+  lastAuthAt: string | null;
+  lastAuthError: string | null;
+  lastSyncAt: string | null;
+  lastProbeAt: string | null;
+  lastProbeSummary: string | null;
+  account: Mt5HfmDemoAccountInfo | null;
+  allowedServers: readonly string[];
 }
 
 /**
@@ -530,23 +569,29 @@ export const forexProvidersApi = {
     }),
   mt5HfmStatus: () => request<Mt5HfmDemoStatus>("/api/forex/providers/mt5-hfm/status"),
   mt5HfmAuthCheck: () =>
-    request<{ ok: boolean; authorized: boolean; note?: string }>(
+    request<{ ok: boolean; authorized: boolean; note?: string; liveGate?: Mt5HfmLiveGate }>(
       "/api/forex/providers/mt5-hfm/auth-check",
       { method: "POST", body: "{}" },
     ),
-  mt5HfmSaveCredentials: (body: { login: string; server: string; password: string }) =>
-    request<{ ok: boolean; status: Mt5HfmDemoStatus; note?: string }>(
+  mt5HfmSaveCredentials: (body: {
+    environment: "demo" | "live";
+    login: string;
+    server: string;
+    password: string;
+  }) =>
+    request<{ ok: boolean; environment: "demo" | "live"; status: Mt5HfmDemoStatus; note?: string }>(
       "/api/forex/providers/mt5-hfm/credentials",
       { method: "POST", body: JSON.stringify(body) },
     ),
-  mt5HfmClearCredentials: () =>
-    request<{ ok: boolean; status: Mt5HfmDemoStatus; note?: string }>(
+  mt5HfmClearCredentials: (body?: { environment?: "demo" | "live" }) =>
+    request<{ ok: boolean; environment: "demo" | "live"; status: Mt5HfmDemoStatus; note?: string }>(
       "/api/forex/providers/mt5-hfm/credentials/clear",
-      { method: "POST", body: "{}" },
+      { method: "POST", body: JSON.stringify({ environment: body?.environment ?? "demo" }) },
     ),
-  mt5HfmTestConnection: () =>
+  mt5HfmTestConnection: (body?: { environment?: "demo" | "live" }) =>
     request<{
       ok: boolean;
+      environment?: "demo" | "live";
       probe?: {
         ok: boolean;
         status: string;
@@ -559,19 +604,22 @@ export const forexProvidersApi = {
       };
       status: Mt5HfmDemoStatus;
       account: Mt5HfmDemoAccountInfo | null;
+      liveGate?: Mt5HfmLiveGate;
       note?: string;
     }>("/api/forex/providers/mt5-hfm/test-connection", {
       method: "POST",
-      body: "{}",
+      body: JSON.stringify({ environment: body?.environment ?? "demo" }),
     }),
   mt5HfmAccount: () =>
     request<{
       ok: boolean;
+      environment?: "demo";
       configured: boolean;
       account: Mt5HfmDemoAccountInfo | null;
       lastSyncAt: string | null;
       connectionStatus: string | null;
       mt5LoginBridge: string;
+      liveGate?: Mt5HfmLiveGate;
       note?: string;
     }>("/api/forex/providers/mt5-hfm/account"),
   forexConnectInstruments: () =>
