@@ -365,7 +365,9 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
         return {"installed": False, "reason": "SOURCE_MQ5_MISSING", "src": str(src)}
     experts.mkdir(parents=True, exist_ok=True)
     dst.write_bytes(src.read_bytes())
-    metaeditor = TERM_ROOT / "metaeditor64.exe"
+    metaeditor = TERM_ROOT / "MetaEditor64.exe"
+    if not metaeditor.is_file():
+        metaeditor = TERM_ROOT / "metaeditor64.exe"
     if not metaeditor.is_file():
         return {"installed": False, "reason": "METAEDITOR_MISSING", "mq5": str(dst), "ex5Present": ex5.is_file()}
     env = os.environ.copy()
