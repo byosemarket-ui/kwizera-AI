@@ -11,6 +11,8 @@
  * POST /api/forex/providers/mt5-hfm/market/quotes      (Demo quotes via agent)
  * POST /api/forex/providers/mt5-hfm/market/candles     (Demo candles via agent)
  * GET  /api/forex/providers/mt5-hfm/account            (cached Demo snapshot only)
+ * GET  /api/forex/providers/mt5-hfm/stream             (Demo SSE realtime feed)
+ * GET  /api/forex/providers/mt5-hfm/realtime/status    (Hub freshness / subscribers)
  *
  * Admin token required. Never returns stored passwords.
  * Live credential save/clear allowed. Live login / auth tests / trading locked.
@@ -21,6 +23,11 @@ import {
   rolesFromHeaders,
   adminTokenFromHeaders,
 } from "../../ai/admin-control-plane/admin-auth-boundary.js";
+import {
+  ensureMt5HfmRealtimeHubStarted,
+  getMt5HfmRealtimeHubStatus,
+  subscribeMt5HfmSse,
+} from "../../ai/market-data/mt5-hfm/realtime-hub.js";
 import {
   getMt5HfmDemoProfileManager,
   parseMt5HfmEnvironment,
@@ -141,6 +148,35 @@ function sendLiveLocked(
   });
 }
 
+function requireAdminForStream(
+  req: IncomingMessage,
+  res: ServerResponse,
+  sendJson: SendJson,
+  url: URL,
+): boolean {
+  // EventSource cannot set custom headers; allow one-time query token for SSE only.
+  const headers = { ...headersRecord(req) };
+  const qToken = url.searchParams.get("adminToken")?.trim();
+  if (qToken && !adminTokenFromHeaders(headers)) {
+    headers["x-kwizera-admin-token"] = qToken;
+  }
+  const decision = assertAdminAccess({
+    roles: rolesFromHeaders(headers),
+    adminToken: adminTokenFromHeaders(headers),
+    path: url.pathname,
+    adminApi: true,
+    remoteAddress: req.socket.remoteAddress,
+  });
+  if (!decision.allowed) {
+    sendJson(res, 403, {
+      ok: false,
+      error: { code: "ADMIN_FORBIDDEN", message: decision.reason },
+    });
+    return false;
+  }
+  return true;
+}
+
 export async function handleMt5HfmApi(
   req: IncomingMessage,
   res: ServerResponse,
@@ -155,6 +191,31 @@ export async function handleMt5HfmApi(
       ok: false,
       error: { code: "METHOD_NOT_ALLOWED", message: "Unsupported method for MT5 HFM routes." },
     });
+    return true;
+  }
+
+  // SSE stream: auth first, then subscribe (do not use buffered sendJson body).
+  if (url.pathname === "/api/forex/providers/mt5-hfm/stream" && req.method === "GET") {
+    if (!requireAdminForStream(req, res, sendJson, url)) return true;
+    const symbolsRaw = url.searchParams.get("symbols") ?? "";
+    const symbols = symbolsRaw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 32);
+    const includeCandles = url.searchParams.get("candles") === "1" || url.searchParams.get("candles") === "true";
+    ensureMt5HfmRealtimeHubStarted();
+    const sub = subscribeMt5HfmSse(res, {
+      symbols: symbols.length ? symbols : undefined,
+      includeCandles,
+    });
+    if (!sub.ok) {
+      sendJson(res, 429, {
+        ok: false,
+        error: { code: sub.code, message: sub.message },
+      });
+      return true;
+    }
     return true;
   }
 
@@ -276,14 +337,30 @@ export async function handleMt5HfmApi(
         marketDataStale: market?.stale ?? null,
         syncFailed: Boolean(status.demo.lastAuthError?.includes("SYNC")),
       });
+      ensureMt5HfmRealtimeHubStarted();
       const payload = {
         ...status,
         connectionStates,
         market,
+        realtime: getMt5HfmRealtimeHubStatus(),
         bridgeSecurity: mt5HfmBridgeSecurityAuditSummary(),
         demoLoginPlan: demoLoginPlanSummary(),
         systemdProposal: mt5HfmSystemdProposalSummary(),
         threatModel: mt5HfmThreatModelSummary(),
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    if (
+      url.pathname === "/api/forex/providers/mt5-hfm/realtime/status" &&
+      (req.method === "GET" || req.method === "HEAD")
+    ) {
+      ensureMt5HfmRealtimeHubStarted();
+      const payload = {
+        ok: true,
+        ...getMt5HfmRealtimeHubStatus(),
       };
       assertNoSecretsInMt5HfmPayload(payload);
       sendJson(res, 200, payload);

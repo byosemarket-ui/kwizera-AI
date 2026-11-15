@@ -9,7 +9,7 @@ import struct
 from typing import Any
 
 MAX_REQUEST_BYTES = 8192
-MAX_RESPONSE_BYTES = 65536
+MAX_RESPONSE_BYTES = 262144
 TIMESTAMP_WINDOW_SEC = 30
 
 ALLOWED_METHODS = frozenset(
@@ -19,6 +19,7 @@ ALLOWED_METHODS = frozenset(
         "demo.account_snapshot",
         "demo.quotes_snapshot",
         "demo.candles",
+        "demo.stream_snapshot",
         "demo.symbols",
         "demo.open_positions_snapshot",
         "demo.pending_orders_snapshot",

@@ -160,6 +160,9 @@ def handle_request(token: str, nonces: NonceCache, req: dict[str, Any]) -> dict[
                 str(body.get("timeframe") or ""),
                 int(body.get("limit") or 100),
             )
+        elif method == "demo.stream_snapshot":
+            include_candles = bool(body.get("includeCandles"))
+            result = mt5_control.stream_snapshot(include_candles=include_candles)
         elif method == "demo.symbols":
             result = mt5_control.symbols_snapshot()
         elif method == "demo.open_positions_snapshot":

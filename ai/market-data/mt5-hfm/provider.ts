@@ -16,7 +16,7 @@ import type {
 const CAPS: MarketDataCapabilities = {
   instruments: true,
   liveQuotes: true,
-  streamingQuotes: false,
+  streamingQuotes: true,
   historicalPrices: true,
   candles: true,
   liveCandles: false,

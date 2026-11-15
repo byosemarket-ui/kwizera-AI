@@ -32,7 +32,7 @@ describe("MT5 HFM agent protocol security", () => {
 
   it("enforces frame size and round-trips", () => {
     const frame = encodeFrame({ ok: true });
-    const decoded = tryDecodeFrame(frame, 65536);
+    const decoded = tryDecodeFrame(frame, 262144);
     expect(decoded).not.toBeNull();
     expect(JSON.parse(decoded!.frame.toString("utf8"))).toEqual({ ok: true });
     const huge = Buffer.concat([

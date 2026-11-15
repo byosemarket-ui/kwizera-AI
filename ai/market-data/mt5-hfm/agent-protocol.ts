@@ -7,7 +7,7 @@ import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 export const MT5_HFM_AGENT_SOCKET_PATH = "/run/kwizera/mt5-hfm-agent.sock";
 export const MT5_HFM_AGENT_TOKEN_SECRET_ID = "mt5-hfm:agent:token";
 export const MT5_HFM_AGENT_MAX_REQUEST_BYTES = 8192;
-export const MT5_HFM_AGENT_MAX_RESPONSE_BYTES = 65536;
+export const MT5_HFM_AGENT_MAX_RESPONSE_BYTES = 262144;
 export const MT5_HFM_AGENT_TIMESTAMP_WINDOW_SEC = 30;
 
 export const MT5_HFM_AGENT_METHODS = [
@@ -16,6 +16,7 @@ export const MT5_HFM_AGENT_METHODS = [
   "demo.account_snapshot",
   "demo.quotes_snapshot",
   "demo.candles",
+  "demo.stream_snapshot",
   "demo.symbols",
   "demo.open_positions_snapshot",
   "demo.pending_orders_snapshot",

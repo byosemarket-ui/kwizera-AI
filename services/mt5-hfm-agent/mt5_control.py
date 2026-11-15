@@ -314,7 +314,11 @@ def _mcp_account(server_hint: str | None = None) -> dict[str, Any] | None:
 
 
 def _read_mql_snapshot(max_age_sec: float = 120.0) -> dict[str, Any] | None:
-    """Read read-only MQL5 Expert dump if fresh. Never contains passwords."""
+    """Read read-only MQL5 Expert dump if present. Never contains passwords.
+
+    When age exceeds max_age_sec, returns error=MQL_SNAPSHOT_STALE (callers may
+    still use a higher max_age and then set freshness from ageSec).
+    """
     import json
 
     candidates = [SNAPSHOT_COMMON, SNAPSHOT_LOCAL]
@@ -333,10 +337,14 @@ def _read_mql_snapshot(max_age_sec: float = 120.0) -> dict[str, Any] | None:
         return None
     age = time.time() - newest_mtime
     if age > max_age_sec:
-        return {"error": "MQL_SNAPSHOT_STALE", "ageSec": age, "source": "mql5_readonly_snapshot"}
+        return {"error": "MQL_SNAPSHOT_STALE", "ageSec": age, "source": "mql5_readonly_snapshot", "path": str(newest)}
     try:
-        data = json.loads(newest.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        # Cap read size to protect 1-vCPU / low-RAM VPS.
+        raw = newest.read_bytes()
+        if len(raw) > 512_000:
+            return {"error": "MQL_SNAPSHOT_TOO_LARGE", "ageSec": age, "source": "mql5_readonly_snapshot"}
+        data = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         return {"error": f"MQL_SNAPSHOT_BAD_JSON:{type(exc).__name__}", "source": "mql5_readonly_snapshot"}
     if not isinstance(data, dict):
         return {"error": "MQL_SNAPSHOT_BAD_JSON", "source": "mql5_readonly_snapshot"}
@@ -355,14 +363,158 @@ def _read_mql_snapshot(max_age_sec: float = 120.0) -> dict[str, Any] | None:
         "usedMargin": acct.get("usedMargin"),
         "freeMargin": acct.get("freeMargin"),
         "marginLevel": acct.get("marginLevel"),
+        "openPositionsCount": acct.get("openPositionsCount"),
+        "pendingOrdersCount": acct.get("pendingOrdersCount"),
         "demoAccount": acct.get("demoAccount"),
         "accountType": "demo" if acct.get("demoAccount") else None,
         "tradePermissions": "allowed" if acct.get("tradeAllowed") else "restricted",
         "quotes": data.get("quotes") if isinstance(data.get("quotes"), list) else [],
+        "candles": data.get("candles") if isinstance(data.get("candles"), dict) else {},
+        "candlesIncluded": bool(data.get("candlesIncluded")),
+        "seq": data.get("seq"),
+        "brokerTime": data.get("brokerTime"),
+        "gmtTime": data.get("gmtTime"),
+        "schemaVersion": data.get("schemaVersion"),
         "authenticated": bool(acct.get("loginExact")),
         "source": "mql5_readonly_snapshot",
         "path": str(newest),
         "ageSec": age,
+        "fileMtime": newest_mtime,
+    }
+
+
+def _freshness_from_age(age_sec: float | None, live_max: float = 15.0, stale_max: float = 180.0) -> str:
+    if age_sec is None:
+        return "DATA_UNAVAILABLE"
+    if age_sec <= live_max:
+        return "LIVE"
+    if age_sec <= stale_max:
+        return "STALE"
+    return "DISCONNECTED"
+
+
+def stream_snapshot(include_candles: bool = False) -> dict[str, Any]:
+    """Authoritative Demo feed for the Phase 1 realtime hub (read-only)."""
+    status = connection_status()
+    # Prefer a recent periodic dump; allow up to 600s so weekend/idle still returns state.
+    mql = _read_mql_snapshot(max_age_sec=600.0)
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    terminal_ok = bool(status.get("terminalRunning"))
+    if not mql or mql.get("error"):
+        journal = parse_journal_snapshot(expected_login=_last_demo_meta.get("login"))
+        freshness = "DISCONNECTED" if not terminal_ok else "WAITING_FOR_DATA"
+        return {
+            "broker": "HFM_MT5",
+            "environment": "demo",
+            "terminalRunning": terminal_ok,
+            "terminalConnected": bool(status.get("terminalConnected")),
+            "authenticated": bool(journal.get("authenticated")),
+            "freshness": freshness,
+            "seq": None,
+            "brokerTime": None,
+            "serverReceivedAt": now,
+            "account": {
+                "loginHint": journal.get("loginHint"),
+                "loginExact": journal.get("loginExact"),
+                "server": journal.get("server") or _last_demo_meta.get("server"),
+                "currency": None,
+                "balance": None,
+                "equity": None,
+                "freeMargin": None,
+                "usedMargin": None,
+                "marginLevel": None,
+                "leverage": None,
+                "openPositionsCount": journal.get("openPositionsCount"),
+                "pendingOrdersCount": journal.get("pendingOrdersCount"),
+                "company": journal.get("company"),
+                "demoAccount": journal.get("demoAccount"),
+                "connectionStatus": "connected" if journal.get("authenticated") else "waiting",
+            },
+            "quotes": [],
+            "candles": {},
+            "source": "journal_fallback" if journal.get("authenticated") else "unavailable",
+            "mqlError": (mql or {}).get("error") if isinstance(mql, dict) else "MQL_SNAPSHOT_MISSING",
+            "ageSec": (mql or {}).get("ageSec") if isinstance(mql, dict) else None,
+            "ordersEnabled": False,
+            "mutatesBroker": False,
+        }
+
+    age = float(mql.get("ageSec") or 0.0)
+    freshness = _freshness_from_age(age)
+    if not terminal_ok:
+        freshness = "DISCONNECTED"
+    quotes_out = []
+    for item in mql.get("quotes") or []:
+        if not isinstance(item, dict):
+            continue
+        bid = item.get("bid")
+        ask = item.get("ask")
+        if not isinstance(bid, (int, float)) or not isinstance(ask, (int, float)):
+            continue
+        if float(bid) <= 0 or float(ask) <= 0 or float(ask) < float(bid):
+            continue
+        quotes_out.append(
+            {
+                "symbol": item.get("symbol"),
+                "bid": bid,
+                "ask": ask,
+                "last": item.get("last"),
+                "spread": item.get("spread"),
+                "digits": item.get("digits"),
+                "point": item.get("point"),
+                "tickTime": item.get("tickTime"),
+                "tickVolume": item.get("tickVolume"),
+                "freshness": freshness,
+                "source": "mql5_readonly_snapshot",
+                "provider": "HFM_MT5",
+            }
+        )
+    candles_out: dict[str, Any] = {}
+    if include_candles and isinstance(mql.get("candles"), dict):
+        candles_out = mql["candles"]
+    return {
+        "broker": "HFM_MT5",
+        "environment": "demo",
+        "terminalRunning": terminal_ok,
+        "terminalConnected": bool(status.get("terminalConnected")),
+        "authenticated": bool(mql.get("authenticated")),
+        "freshness": freshness,
+        "seq": mql.get("seq"),
+        "brokerTime": mql.get("brokerTime"),
+        "gmtTime": mql.get("gmtTime"),
+        "schemaVersion": mql.get("schemaVersion"),
+        "serverReceivedAt": now,
+        "ageSec": age,
+        "account": {
+            "loginHint": mql.get("loginHint"),
+            "loginExact": mql.get("loginExact"),
+            "server": mql.get("server") or _last_demo_meta.get("server"),
+            "currency": mql.get("currency"),
+            "balance": mql.get("balance"),
+            "equity": mql.get("equity"),
+            "credit": mql.get("credit"),
+            "profit": mql.get("profit"),
+            "freeMargin": mql.get("freeMargin"),
+            "usedMargin": mql.get("usedMargin"),
+            "marginLevel": mql.get("marginLevel"),
+            "leverage": mql.get("leverage"),
+            "openPositionsCount": mql.get("openPositionsCount"),
+            "pendingOrdersCount": mql.get("pendingOrdersCount"),
+            "company": mql.get("company"),
+            "demoAccount": mql.get("demoAccount"),
+            "connectionStatus": "connected" if mql.get("authenticated") else "waiting",
+            "source": "mql5_readonly_snapshot",
+            "freshness": freshness,
+            "ageSec": age,
+        },
+        "quotes": quotes_out,
+        "candles": candles_out,
+        "candlesIncluded": bool(mql.get("candlesIncluded")) and bool(candles_out),
+        "source": "mql5_readonly_snapshot",
+        "ordersEnabled": False,
+        "mutatesBroker": False,
+        "placesOrders": False,
+        "acceptsForExecution": False,
     }
 
 
@@ -615,14 +767,17 @@ def account_snapshot() -> dict[str, Any]:
                         "company": mql.get("company"),
                         "demoAccount": mql.get("demoAccount"),
                         "accountType": mql.get("accountType"),
+                        "openPositionsCount": mql.get("openPositionsCount"),
+                        "pendingOrdersCount": mql.get("pendingOrdersCount"),
                         "syncedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                         "source": "mql5_readonly_snapshot",
                         "stale": stale,
                         "ageSec": age,
+                        "freshness": _freshness_from_age(float(age) if isinstance(age, (int, float)) else None),
                         "note": (
                             "Account fields from read-only MQL5 snapshot Expert (stale; re-login/sync to refresh)."
                             if stale
-                            else "Account fields from read-only MQL5 snapshot Expert."
+                            else "Account fields from periodic read-only MQL5 snapshot Expert."
                         ),
                     },
                     "quotes": mql.get("quotes") or [],
@@ -848,15 +1003,72 @@ def quotes_snapshot(symbols: list[str] | None = None) -> dict[str, Any]:
         }
 
 
+def _normalize_mql_candle_bars(raw_bars: list[Any], limit: int) -> list[dict[str, Any]]:
+    cleaned: list[dict[str, Any]] = []
+    for c in raw_bars:
+        if not isinstance(c, dict):
+            continue
+        try:
+            o = float(c["open"])
+            h = float(c["high"])
+            l = float(c["low"])
+            cl = float(c["close"])
+            t = int(c["time"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if h < max(o, cl) or l > min(o, cl) or h < l:
+            continue
+        cleaned.append(
+            {
+                "time": t,
+                "open": o,
+                "high": h,
+                "low": l,
+                "close": cl,
+                "tickVolume": c.get("tickVolume"),
+                "realVolume": c.get("realVolume"),
+                "spread": c.get("spread"),
+            }
+        )
+    if len(cleaned) > limit:
+        cleaned = cleaned[-limit:]
+    return cleaned
+
+
 def candles(symbol: str, timeframe: str, limit: int = 100) -> dict[str, Any]:
     if not re.fullmatch(r"[A-Za-z0-9._-]{2,32}", symbol):
         raise ValueError("INVALID_SYMBOL")
     if limit < 1 or limit > 300:
         raise ValueError("INVALID_LIMIT")
+    tf_key = timeframe.strip().upper()
+    # Prefer periodic MQL CopyRates dump (MCP is typically 401 under Wine).
+    mql = _read_mql_snapshot(max_age_sec=600.0)
+    if mql and not mql.get("error"):
+        by_symbol = mql.get("candles") if isinstance(mql.get("candles"), dict) else {}
+        sym_map = by_symbol.get(symbol.upper()) if isinstance(by_symbol, dict) else None
+        if isinstance(sym_map, dict) and isinstance(sym_map.get(tf_key), list):
+            cleaned = _normalize_mql_candle_bars(sym_map[tf_key], limit)
+            age = mql.get("ageSec")
+            return {
+                "symbol": symbol.upper(),
+                "timeframe": tf_key,
+                "candles": cleaned,
+                "count": len(cleaned),
+                "available": bool(cleaned),
+                "source": "mql5_readonly_snapshot",
+                "provider": "HFM_MT5",
+                "environment": "demo",
+                "ageSec": age,
+                "freshness": _freshness_from_age(float(age) if isinstance(age, (int, float)) else None),
+                "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "note": None
+                if cleaned
+                else "MQL snapshot present but requested symbol/timeframe candles empty (wait for candle cycle).",
+            }
+
     mt5_tf = mt5_mcp.map_timeframe(timeframe)
     try:
         client = mt5_mcp.Mt5McpClient()
-        # Prefer terminal chart history; fall back to marketdata history.
         raw = None
         last_err = None
         for args in (
@@ -886,9 +1098,9 @@ def candles(symbol: str, timeframe: str, limit: int = 100) -> dict[str, Any]:
                 "available": False,
                 "source": "mt5_mcp",
                 "unavailableReason": last_err or "MCP_CANDLES_FAILED",
+                "note": "MCP unavailable; wait for next MQL candle dump cycle after Expert re-attach.",
             }
         result = mt5_mcp.normalize_candles(raw, symbol=symbol, timeframe=timeframe)
-        # Trim to limit; validate OHLC.
         cleaned = []
         for c in result["candles"][-limit:]:
             o, h, l, cl = c["open"], c["high"], c["low"], c["close"]
