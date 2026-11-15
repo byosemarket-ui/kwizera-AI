@@ -186,7 +186,7 @@ export interface Mt5HfmDemoStatus {
   liveNote: string;
   demo: Mt5HfmEnvStatus;
   live: Mt5HfmEnvStatus;
-  mt5LoginBridge: "not_implemented";
+  mt5LoginBridge: "implemented_agent_optional";
   note: string;
   /** Flat Demo compatibility fields */
   environment: "demo";
@@ -628,6 +628,32 @@ export const forexProvidersApi = {
       liveGate?: Mt5HfmLiveGate;
       note?: string;
     }>("/api/forex/providers/mt5-hfm/account"),
+  mt5HfmLogin: () =>
+    request<{
+      ok: boolean;
+      authenticatedLogin: boolean;
+      terminalConnected: boolean | null;
+      account: Mt5HfmDemoAccountInfo | null;
+      note?: string;
+      status: Mt5HfmDemoStatus;
+    }>("/api/forex/providers/mt5-hfm/login", {
+      method: "POST",
+      body: JSON.stringify({ environment: "demo" }),
+    }),
+  mt5HfmAccountSync: () =>
+    request<{
+      ok: boolean;
+      account: Mt5HfmDemoAccountInfo | null;
+      status: Mt5HfmDemoStatus;
+    }>("/api/forex/providers/mt5-hfm/account/sync", {
+      method: "POST",
+      body: JSON.stringify({ environment: "demo" }),
+    }),
+  mt5HfmMarketQuotes: (symbols: string[] = []) =>
+    request<{ ok: boolean; quotes: unknown; note?: string }>(
+      "/api/forex/providers/mt5-hfm/market/quotes",
+      { method: "POST", body: JSON.stringify({ environment: "demo", symbols }) },
+    ),
   forexConnectInstruments: () =>
     request<{
       ok: boolean;

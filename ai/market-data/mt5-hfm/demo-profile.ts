@@ -108,7 +108,7 @@ export interface Mt5HfmPublicStatus {
   liveNote: string;
   demo: Mt5HfmEnvPublicStatus;
   live: Mt5HfmEnvPublicStatus;
-  mt5LoginBridge: "not_implemented";
+  mt5LoginBridge: "implemented_agent_optional";
   note: string;
   /**
    * Backward-compatible Demo flat fields (same as `demo.*`).
@@ -457,6 +457,27 @@ export class Mt5HfmDemoProfileManager {
     await this.persistMeta("demo");
   }
 
+  /** Persist non-secret Demo account snapshot only. */
+  async recordDemoAccountSnapshot(account: Mt5HfmAccountInfoPublic): Promise<void> {
+    this.ensureInitialized();
+    const file = this.meta("demo");
+    file.account = {
+      loginHint: account.loginHint,
+      server: account.server,
+      currency: account.currency,
+      balance: account.balance,
+      equity: account.equity,
+      freeMargin: account.freeMargin,
+      marginLevel: account.marginLevel,
+      leverage: account.leverage,
+      company: account.company,
+      syncedAt: account.syncedAt,
+      note: account.note,
+    };
+    file.lastSyncAt = account.syncedAt ?? new Date().toISOString();
+    await this.persistMeta("demo");
+  }
+
   private envPublicStatus(env: Mt5HfmEnvironment): Mt5HfmEnvPublicStatus {
     const file = this.meta(env);
     const loginOk = Boolean(file.login.trim());
@@ -528,8 +549,8 @@ export class Mt5HfmDemoProfileManager {
       liveNote: gate.note,
       demo,
       live,
-      mt5LoginBridge: "not_implemented",
-      note: "Demo connection testing only. Live credentials may be stored encrypted but Live activation is locked.",
+      mt5LoginBridge: "implemented_agent_optional",
+      note: "Demo TCP test + optional agent login. Live credentials may be stored encrypted but Live activation is locked.",
       // Flat Demo compatibility fields
       environment: "demo",
       loginConfigured: demo.loginConfigured,

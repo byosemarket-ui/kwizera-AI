@@ -9,7 +9,7 @@ import {
 } from "./api";
 
 type EnvTab = "demo" | "live";
-type Busy = "auth" | "save" | "clear" | "test" | "refresh" | null;
+type Busy = "auth" | "save" | "clear" | "test" | "login" | "sync" | "refresh" | null;
 
 function emptyDraft() {
   return { login: "", server: "", password: "" };
@@ -168,11 +168,51 @@ export function ForexAdminMt5HfmPage() {
       if (result.authenticatedLogin === false && result.probe?.ok) {
         setNote(
           (result.note ?? "DNS/TCP reachable.") +
-            " Authenticated MT5 Demo login and market-data sync remain not verified.",
+            " Use Demo Login for authenticated MT5 login (agent required).",
         );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Test connection failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function demoLogin() {
+    if (tab === "live") {
+      setError("Live login is locked.");
+      return;
+    }
+    setBusy("login");
+    setError(null);
+    setNote(null);
+    try {
+      const result = await forexProvidersApi.mt5HfmLogin();
+      setStatus(result.status);
+      setNote(result.note ?? (result.authenticatedLogin ? "Demo login authenticated." : "Demo login attempted."));
+      if (!result.authenticatedLogin) {
+        setError("Authenticated Demo login not confirmed (agent unavailable or journal unconfirmed).");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Demo login failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function syncAccount() {
+    if (tab === "live") {
+      setError("Live account sync is locked.");
+      return;
+    }
+    setBusy("sync");
+    setError(null);
+    try {
+      const result = await forexProvidersApi.mt5HfmAccountSync();
+      setStatus(result.status);
+      setNote("Account sync requested from agent.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Account sync failed.");
     } finally {
       setBusy(null);
     }
@@ -364,7 +404,24 @@ export function ForexAdminMt5HfmPage() {
             title={tab === "live" ? "Live connection testing is locked" : undefined}
             onClick={() => void testConnection()}
           >
-            {busy === "test" ? "Testing…" : tab === "live" ? "Test locked" : "Test connection"}
+            {busy === "test" ? "Testing…" : tab === "live" ? "Test locked" : "Test connection (TCP)"}
+          </button>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || !adminAuthorized || tab === "live"}
+            title={tab === "live" ? "Live login locked" : "Requires local MT5 agent"}
+            onClick={() => void demoLogin()}
+          >
+            {busy === "login" ? "Logging in…" : "Demo login"}
+          </button>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || !adminAuthorized || tab === "live"}
+            onClick={() => void syncAccount()}
+          >
+            {busy === "sync" ? "Syncing…" : "Sync account"}
           </button>
           <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void refresh()}>
             {busy === "refresh" ? "…" : "Refresh status"}

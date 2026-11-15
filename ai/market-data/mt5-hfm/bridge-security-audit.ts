@@ -11,7 +11,8 @@
 
 export const MT5_HFM_AGENT_SOCKET_PATH = "/run/kwizera/mt5-hfm-agent.sock" as const;
 export const MT5_HFM_AGENT_TOKEN_SECRET_ID = "mt5-hfm:agent:token" as const;
-export const MT5_HFM_BRIDGE_SECURITY_STATUS = "design_only" as const;
+/** Agent code is in-repo; VPS enablement still requires owner approval. */
+export const MT5_HFM_BRIDGE_SECURITY_STATUS = "implemented_pending_enablement" as const;
 
 /** Required controls before any agent implementation may proceed. */
 export const MT5_HFM_BRIDGE_SECURITY_REQUIREMENTS = {
@@ -121,6 +122,6 @@ export function mt5HfmBridgeSecurityAuditSummary(): Mt5HfmBridgeSecurityAuditSum
     publicTcpForbidden: true,
     implementationAllowed: false,
     note:
-      "Unix-socket agent bridge security design is documented. Implementation is blocked until owner security review approval.",
+      "Unix-socket Demo agent is implemented in-repo. Do not enable systemd units or deploy the agent until owner approval. Public TCP remains forbidden.",
   };
 }

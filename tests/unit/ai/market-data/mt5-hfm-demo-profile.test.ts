@@ -156,13 +156,12 @@ describe("MT5 HFM Demo + Live profile manager", () => {
     expect(raw).not.toMatch(/password/i);
   });
 
-  it("login bridge stays not_implemented and Demo-only", async () => {
+  it("login bridge is Demo-only and fails closed without agent socket", async () => {
     const bridge = await requestMt5HfmDemoLoginBridge();
-    expect(bridge.status).toBe("not_implemented");
     expect(bridge.environment).toBe("demo");
-    expect(bridge.account).toBeNull();
-    expect(bridge.security.implementationAllowed).toBe(false);
-    expect(bridge.note).toMatch(/NOT an authenticated Demo login|not an authenticated/i);
+    expect(bridge.authenticatedLogin).toBe(false);
+    expect(["agent_unavailable", "error", "implemented_agent_optional"]).toContain(bridge.status);
+    expect(bridge.security.publicTcpForbidden).toBe(true);
     expect(() => assertBridgeEnvironmentIsDemo("live")).toThrow(Mt5HfmLiveActivationLockedError);
   });
 

@@ -73,17 +73,26 @@ PrivateTmp=true
 WantedBy=multi-user.target
 `.trim();
 
+export const MT5_HFM_AGENT_UNIT_PROPOSAL_PATH =
+  "services/mt5-hfm-agent/kwizera-mt5-hfm-agent.service.proposal" as const;
+
 export function mt5HfmSystemdProposalSummary(): {
   status: typeof MT5_HFM_SYSTEMD_PROPOSAL_STATUS;
   installed: false;
   enabled: false;
+  units: string[];
   note: string;
 } {
   return {
     status: MT5_HFM_SYSTEMD_PROPOSAL_STATUS,
     installed: false,
     enabled: false,
+    units: [
+      "kwizera-mt5-xvfb.service",
+      "kwizera-mt5-hfm-demo.service",
+      "kwizera-mt5-hfm-agent.service",
+    ],
     note:
-      "Separate Xvfb and MT5 units proposed. Do not install/enable; do not kill working Xvfb :97 without a migration plan.",
+      "Separate Xvfb, MT5 terminal, and Demo agent units proposed. Do not install/enable; do not kill working Xvfb :97 without a migration plan.",
   };
 }

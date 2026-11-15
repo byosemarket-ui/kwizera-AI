@@ -1,0 +1,34 @@
+# PROPOSAL ONLY — do not install/enable without owner approval.
+# /etc/systemd/system/kwizera-mt5-hfm-agent.service
+
+[Unit]
+Description=KWIZERA HFM MT5 Demo Agent (AF_UNIX)
+After=network-online.target kwizera-mt5-xvfb.service
+# Do NOT BindsTo kwizera-ai — agent crash must not stop KWIZERA
+
+[Service]
+Type=simple
+User=mt5
+Group=mt5
+UMask=0007
+WorkingDirectory=/opt/kwizera-ai/services/mt5-hfm-agent
+Environment=HOME=/home/mt5
+Environment=WINEPREFIX=/home/mt5/.wine-hfm
+Environment=DISPLAY=:97
+Environment=XAUTHORITY=/home/mt5/.mt5-xauth/Xauthority
+Environment=KWIZERA_MT5_HFM_AGENT_SOCK=/run/kwizera/mt5-hfm-agent.sock
+Environment=KWIZERA_MT5_HFM_AGENT_TOKEN_FILE=/run/kwizera/mt5-hfm-agent.token
+Environment=KWIZERA_MT5_HFM_RUN_DIR=/run/kwizera/mt5-hfm
+ExecStartPre=/usr/bin/mkdir -p /run/kwizera/mt5-hfm
+ExecStart=/usr/bin/python3 /opt/kwizera-ai/services/mt5-hfm-agent/agent.py
+Restart=on-failure
+RestartSec=5
+MemoryMax=256M
+LimitCORE=0
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/mt5/.wine-hfm /home/mt5/.mt5-xauth /run/kwizera
+
+[Install]
+WantedBy=multi-user.target

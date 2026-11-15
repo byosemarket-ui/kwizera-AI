@@ -1,28 +1,25 @@
 /**
- * HFM MT5 Demo login bridge — ARCHITECTURE ONLY (not implemented).
+ * HFM MT5 Demo login bridge — talks to local AF_UNIX agent when available.
  *
- * Full Unix-socket security requirements: `./bridge-security-audit.ts`
- * Demo login sequence + Test Connection stages: `./demo-login-plan.ts`
- * Systemd proposal: `./systemd-proposal.ts`
+ * Security design: `./bridge-security-audit.ts`
+ * Threat model: `./threat-model.ts`
+ * Demo stages: `./demo-login-plan.ts`
  *
- * Goal: KWIZERA Node (`kwizera`) requests Demo login against Wine/MT5 under
- * Linux user `mt5`, then returns non-secret account fields.
- *
- * Hard rules while Live gate is locked:
- * - Demo only — never read `mt5-hfm:live:password` on this path.
- * - No order placement, EA attach, or AT submit.
- * - Never put passwords in argv, shell, environment dumps, or logs.
- * - No public unauthenticated TCP ports.
- * - Browser never talks to Wine/MT5 directly.
+ * Demo-only. Never reads Live vault. Never returns passwords.
  */
 
 import {
   MT5_HFM_BRIDGE_SECURITY_STATUS,
   mt5HfmBridgeSecurityAuditSummary,
 } from "./bridge-security-audit.js";
-import { assertLiveActivationAllowed } from "./live-gate.js";
+import { callMt5HfmAgent } from "./agent-client.js";
+import { getMt5HfmDemoProfileManager } from "./demo-profile.js";
+import { redactAgentPayload } from "./agent-protocol.js";
+import { assertBridgeEnvironmentIsDemo } from "./bridge-guards.js";
 
-export const MT5_HFM_LOGIN_BRIDGE_STATUS = "not_implemented" as const;
+export { assertBridgeEnvironmentIsDemo } from "./bridge-guards.js";
+
+export const MT5_HFM_LOGIN_BRIDGE_STATUS = "implemented_agent_optional" as const;
 
 export interface Mt5HfmLoginBridgeAccountSnapshot {
   loginHint: string | null;
@@ -35,40 +32,178 @@ export interface Mt5HfmLoginBridgeAccountSnapshot {
   marginLevel: number | null;
   leverage: string | null;
   company: string | null;
+  tradePermissions: string | null;
   symbols: string[] | null;
   quotesAvailable: boolean | null;
-  syncedAt: string;
+  syncedAt: string | null;
+  note: string | null;
 }
 
 export interface Mt5HfmLoginBridgeResult {
   ok: boolean;
-  status: typeof MT5_HFM_LOGIN_BRIDGE_STATUS;
+  status: typeof MT5_HFM_LOGIN_BRIDGE_STATUS | "agent_unavailable" | "auth_failed" | "error";
   environment: "demo";
+  authenticatedLogin: boolean;
+  terminalConnected: boolean | null;
   account: Mt5HfmLoginBridgeAccountSnapshot | null;
+  agent: Record<string, unknown> | null;
   security: ReturnType<typeof mt5HfmBridgeSecurityAuditSummary>;
   note: string;
 }
 
-/** Reject Live environment before any vault read in a future bridge client. */
-export function assertBridgeEnvironmentIsDemo(environment: string): asserts environment is "demo" {
-  if (environment !== "demo") {
-    assertLiveActivationAllowed("login");
+function asAccount(raw: unknown, server: string | null): Mt5HfmLoginBridgeAccountSnapshot | null {
+  if (!raw || typeof raw !== "object") return null;
+  const a = raw as Record<string, unknown>;
+  return {
+    loginHint: a.loginHint != null ? String(a.loginHint) : null,
+    server: a.server != null ? String(a.server) : server,
+    currency: a.currency != null ? String(a.currency) : null,
+    balance: typeof a.balance === "number" ? a.balance : null,
+    equity: typeof a.equity === "number" ? a.equity : null,
+    freeMargin: typeof a.freeMargin === "number" ? a.freeMargin : null,
+    usedMargin: typeof a.usedMargin === "number" ? a.usedMargin : null,
+    marginLevel: typeof a.marginLevel === "number" ? a.marginLevel : null,
+    leverage: a.leverage != null ? String(a.leverage) : null,
+    company: a.company != null ? String(a.company) : null,
+    tradePermissions: a.tradePermissions != null ? String(a.tradePermissions) : null,
+    symbols: Array.isArray(a.symbols) ? a.symbols.map(String) : null,
+    quotesAvailable: typeof a.quotesAvailable === "boolean" ? a.quotesAvailable : null,
+    syncedAt: a.syncedAt != null ? String(a.syncedAt) : null,
+    note: a.note != null ? String(a.note) : null,
+  };
+}
+
+/** Authenticated Demo login via local agent. Never touches Live vault. */
+export async function requestMt5HfmDemoLoginBridge(): Promise<Mt5HfmLoginBridgeResult> {
+  assertBridgeEnvironmentIsDemo("demo");
+  const security = mt5HfmBridgeSecurityAuditSummary();
+  const manager = await getMt5HfmDemoProfileManager();
+  const meta = manager.getDemoLoginMeta();
+  const password = manager.getDemoPassword();
+  if (!meta || !password) {
+    return {
+      ok: false,
+      status: "error",
+      environment: "demo",
+      authenticatedLogin: false,
+      terminalConnected: null,
+      account: null,
+      agent: null,
+      security,
+      note: "Demo credentials not configured in vault.",
+    };
+  }
+
+  try {
+    const response = await callMt5HfmAgent("demo.login", {
+      environment: "demo",
+      login: meta.login,
+      server: meta.server,
+      password,
+    });
+    // Drop local password reference ASAP (immutable string remains until GC).
+    const safeAgent = redactAgentPayload(response) as Record<string, unknown>;
+    if (!response.ok) {
+      const code = String(response.code ?? "AGENT_ERROR");
+      return {
+        ok: false,
+        status: code === "AGENT_UNAVAILABLE" ? "agent_unavailable" : "auth_failed",
+        environment: "demo",
+        authenticatedLogin: false,
+        terminalConnected: null,
+        account: null,
+        agent: safeAgent,
+        security,
+        note: `Demo login agent returned ${code}. TCP probe alone is not an authenticated login.`,
+      };
+    }
+    const result = (response.result ?? {}) as Record<string, unknown>;
+    const account = asAccount(result.account, meta.server);
+    const authenticated = Boolean(result.authenticated);
+    await manager.recordProbeResult("demo", {
+      status: authenticated ? "demo_login_authenticated" : "demo_login_unconfirmed",
+      errorMessage: authenticated ? null : String(result.authError ?? "AUTH_UNCONFIRMED"),
+      summary: authenticated
+        ? "Demo terminal login reported authenticated (journal inference)."
+        : "Demo login attempted; authentication not confirmed from journal.",
+    });
+    if (account) {
+      await manager.recordDemoAccountSnapshot({
+        loginHint: account.loginHint,
+        server: account.server,
+        currency: account.currency,
+        balance: account.balance,
+        equity: account.equity,
+        freeMargin: account.freeMargin,
+        marginLevel: account.marginLevel,
+        leverage: account.leverage,
+        company: account.company,
+        syncedAt: account.syncedAt,
+        note: account.note,
+      });
+    }
+    return {
+      ok: true,
+      status: MT5_HFM_LOGIN_BRIDGE_STATUS,
+      environment: "demo",
+      authenticatedLogin: authenticated,
+      terminalConnected: result.terminalConnected == null ? null : Boolean(result.terminalConnected),
+      account,
+      agent: safeAgent,
+      security,
+      note: authenticated
+        ? "Authenticated Demo login path invoked via local agent. Balance/equity may still be null without MT5 API enhancer."
+        : "Agent login invoked; journal did not confirm authentication. Not a TCP-only success claim.",
+    };
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error
+      ? String((error as { code?: string }).code)
+      : "AGENT_ERROR";
+    return {
+      ok: false,
+      status: code === "AGENT_UNAVAILABLE" ? "agent_unavailable" : "error",
+      environment: "demo",
+      authenticatedLogin: false,
+      terminalConnected: null,
+      account: null,
+      agent: null,
+      security,
+      note:
+        code === "AGENT_UNAVAILABLE"
+          ? "MT5 agent socket unavailable. Deploy/start agent after approval. TCP probe ≠ login."
+          : `Demo login bridge error (${code}).`,
+    };
   }
 }
 
-/** Placeholder — always returns not_implemented. Never touches Live vault. */
-export async function requestMt5HfmDemoLoginBridge(): Promise<Mt5HfmLoginBridgeResult> {
-  // Demo-only path: do not call getLivePassword / getLivePasswordForActivation.
+export async function requestMt5HfmDemoAccountSnapshot(): Promise<Mt5HfmLoginBridgeResult> {
   assertBridgeEnvironmentIsDemo("demo");
-  return {
-    ok: false,
-    status: MT5_HFM_LOGIN_BRIDGE_STATUS,
-    environment: "demo",
-    account: null,
-    security: mt5HfmBridgeSecurityAuditSummary(),
-    note:
-      `MT5 terminal login bridge is ${MT5_HFM_LOGIN_BRIDGE_STATUS}. ` +
-      `Security design status: ${MT5_HFM_BRIDGE_SECURITY_STATUS}. ` +
-      "Test Connection DNS/TCP probe is not an authenticated Demo login.",
-  };
+  const security = mt5HfmBridgeSecurityAuditSummary();
+  try {
+    const response = await callMt5HfmAgent("demo.account_snapshot", {});
+    const result = (response.result ?? {}) as Record<string, unknown>;
+    return {
+      ok: response.ok,
+      status: response.ok ? MT5_HFM_LOGIN_BRIDGE_STATUS : "error",
+      environment: "demo",
+      authenticatedLogin: Boolean(result.authenticated),
+      terminalConnected: result.terminalConnected == null ? null : Boolean(result.terminalConnected),
+      account: asAccount(result.account, null),
+      agent: redactAgentPayload(response) as Record<string, unknown>,
+      security,
+      note: "Demo account snapshot from agent (null fields are intentionally not fabricated).",
+    };
+  } catch {
+    return {
+      ok: false,
+      status: "agent_unavailable",
+      environment: "demo",
+      authenticatedLogin: false,
+      terminalConnected: null,
+      account: null,
+      agent: null,
+      security,
+      note: "Account snapshot unavailable — agent not running.",
+    };
+  }
 }

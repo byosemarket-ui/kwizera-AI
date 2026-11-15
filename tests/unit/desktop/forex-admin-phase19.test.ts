@@ -87,7 +87,7 @@ describe("Phase 19 dedicated Forex Admin routing", () => {
     expect(read("dev/server/mt5-hfm-api.ts")).not.toContain("/credentials/reveal");
     expect(read("dev/server/mt5-hfm-api.ts")).not.toContain("password-reveal");
     expect(read("dev/server/mt5-hfm-api.ts")).toContain("appendMt5HfmCredentialAudit");
-    expect(read("ai/market-data/mt5-hfm/login-bridge.ts")).toContain("not_implemented");
+    expect(read("ai/market-data/mt5-hfm/login-bridge.ts")).toContain("implemented_agent_optional");
     expect(read("ai/market-data/mt5-hfm/demo-profile.ts")).toContain("mt5-hfm:demo:password");
     expect(read("ai/market-data/mt5-hfm/demo-profile.ts")).toContain("mt5-hfm:live:password");
     expect(read("ai/market-data/mt5-hfm/live-gate.ts")).toContain("credentialStorageEnabled: true");
@@ -97,5 +97,8 @@ describe("Phase 19 dedicated Forex Admin routing", () => {
     expect(read("ai/market-data/mt5-hfm/demo-login-plan.ts")).toContain("dns_tcp");
     expect(read("ai/market-data/mt5-hfm/systemd-proposal.ts")).toContain("proposal_only");
     expect(read("dev/server/mt5-hfm-api.ts")).toContain("authenticatedLogin: false");
+    expect(read("dev/server/mt5-hfm-api.ts")).toContain("/api/forex/providers/mt5-hfm/login");
+    expect(read("services/mt5-hfm-agent/agent.py")).toContain("SO_PEERCRED");
+    expect(read("services/mt5-hfm-agent/mt5_control.py")).toContain("/portable");
   });
 });
