@@ -5,8 +5,7 @@
 //| Catalog discovery does NOT mass-SymbolSelect the universe.       |
 //+------------------------------------------------------------------+
 #property copyright "KWIZERA AI STUDIO"
-#property version   "1.20"
-#property strict
+#property version   "1.21"
 #property description "Periodic read-only snapshot + batched catalog. No trading."
 
 #include <Trade/AccountInfo.mqh>
@@ -264,11 +263,15 @@ string BuildSymbolRecord(const string symbol)
    json += "\"description\":" + JsonStringProp(symbol, SYMBOL_DESCRIPTION, "description", errors, firstErr) + ",";
    json += "\"path\":" + JsonStringProp(symbol, SYMBOL_PATH, "path", errors, firstErr) + ",";
    json += "\"isin\":" + JsonStringProp(symbol, SYMBOL_ISIN, "isin", errors, firstErr) + ",";
-   json += "\"categoryRaw\":" + JsonStringProp(symbol, SYMBOL_CATEGORY, "categoryRaw", errors, firstErr) + ",";
+   // Path + description drive classification. Sector/industry/category string APIs vary by build.
+   json += "\"categoryRaw\":null,";
    json += "\"sector\":" + JsonIntProp(symbol, SYMBOL_SECTOR, "sector", errors, firstErr) + ",";
    json += "\"industry\":" + JsonIntProp(symbol, SYMBOL_INDUSTRY, "industry", errors, firstErr) + ",";
-   json += "\"sectorName\":" + JsonStringProp(symbol, SYMBOL_SECTOR_NAME, "sectorName", errors, firstErr) + ",";
-   json += "\"industryName\":" + JsonStringProp(symbol, SYMBOL_INDUSTRY_NAME, "industryName", errors, firstErr) + ",";
+   json += "\"sectorName\":null,";
+   json += "\"industryName\":null,";
+   AppendFieldError(errors, firstErr, "categoryRaw", "NOT_QUERIED");
+   AppendFieldError(errors, firstErr, "sectorName", "NOT_QUERIED");
+   AppendFieldError(errors, firstErr, "industryName", "NOT_QUERIED");
    json += "\"selected\":" + JsonBoolProp(symbol, SYMBOL_SELECT, "selected", errors, firstErr) + ",";
    json += "\"visible\":" + JsonBoolProp(symbol, SYMBOL_VISIBLE, "visible", errors, firstErr) + ",";
    json += "\"digits\":" + JsonIntProp(symbol, SYMBOL_DIGITS, "digits", errors, firstErr) + ",";

@@ -588,7 +588,9 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
             "HOME": "/home/mt5",
         }
     )
+    # Quote the Windows path — unquoted "Program Files" breaks MetaEditor /compile parsing.
     win_src = r"C:\Program Files\HFM Metatrader 5\MQL5\Experts\\" + EXPERT_MQ5_NAME
+    compile_arg = f'/compile:"{win_src}"'
     prev_mtime = ex5.stat().st_mtime if ex5.is_file() else 0.0
     prev_size = ex5.stat().st_size if ex5.is_file() else 0
     # Keep a backup until the new EX5 lands. Wine MetaEditor often returns from
@@ -608,8 +610,9 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
     try:
         # Launch compile; poll for EX5 (MetaEditor under Wine is async).
         proc = subprocess.Popen(
-            [WINE_BIN, str(metaeditor), f"/compile:{win_src}", "/log"],
+            [WINE_BIN, str(metaeditor), compile_arg, "/log"],
             env=env,
+            cwd=str(TERM_ROOT),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
