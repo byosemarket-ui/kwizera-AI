@@ -489,26 +489,37 @@ def stream_snapshot(include_candles: bool = False) -> dict[str, Any]:
     for item in mql.get("quotes") or []:
         if not isinstance(item, dict):
             continue
-        bid = item.get("bid")
-        ask = item.get("ask")
-        if not isinstance(bid, (int, float)) or not isinstance(ask, (int, float)):
+        sym = item.get("symbol")
+        if not isinstance(sym, str) or not sym:
             continue
-        if float(bid) <= 0 or float(ask) <= 0 or float(ask) < float(bid):
+        bid = item.get("bid") if isinstance(item.get("bid"), (int, float)) else None
+        ask = item.get("ask") if isinstance(item.get("ask"), (int, float)) else None
+        last = item.get("last") if isinstance(item.get("last"), (int, float)) else None
+        # Pass incomplete/invalid sides through for Node validation — never silently
+        # omit a subscribed symbol row that the Expert emitted.
+        if bid is None and ask is None and last is None and item.get("tickTime") is None:
             continue
         quotes_out.append(
             {
-                "symbol": item.get("symbol"),
+                "symbol": sym,
                 "bid": bid,
                 "ask": ask,
-                "last": item.get("last"),
+                "last": last,
                 "spread": item.get("spread"),
+                "brokerSpreadPoints": item.get("brokerSpreadPoints"),
                 "digits": item.get("digits"),
                 "point": item.get("point"),
+                "tickSize": item.get("tickSize"),
                 "tickTime": item.get("tickTime"),
+                "tickTimeMs": item.get("tickTimeMs"),
                 "tickVolume": item.get("tickVolume"),
+                "realVolume": item.get("realVolume"),
+                "tickFlags": item.get("tickFlags"),
+                "acquisitionMethod": item.get("acquisitionMethod"),
                 "freshness": freshness,
                 "source": "mql5_readonly_snapshot",
                 "provider": "HFM_MT5",
+                "environment": item.get("environment") or "demo",
             }
         )
     candles_out: dict[str, Any] = {}

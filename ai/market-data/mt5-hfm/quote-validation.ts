@@ -195,8 +195,18 @@ export function validateHfmRawQuote(
   }
 
   if (quoteTimestamp != null) {
-    const nowSec = Date.now() / 1000;
-    if (quoteTimestamp > nowSec + 300) errors.push("FUTURE_TIMESTAMP");
+    const receivedMs = Date.parse(opts.receivedAt);
+    const nowSec = Number.isFinite(receivedMs) ? receivedMs / 1000 : Date.now() / 1000;
+    // MT5 MqlTick.time is broker-server time as unix seconds. HFM Demo commonly
+    // runs UTC+2 (or similar), so tick.time can appear hours ahead of VPS UTC
+    // without being invalid. Soft-warn within a timezone window; hard-reject
+    // only absurd futures that cannot be broker TZ skew.
+    const FUTURE_SKEW_WARN_SEC = 12 * 3600;
+    const FUTURE_SKEW_REJECT_SEC = 36 * 3600;
+    const ahead = quoteTimestamp - nowSec;
+    if (ahead > FUTURE_SKEW_REJECT_SEC) errors.push("FUTURE_TIMESTAMP");
+    else if (ahead > FUTURE_SKEW_WARN_SEC) warnings.push("FUTURE_TIMESTAMP_SKEW");
+    else if (ahead > 300) warnings.push("BROKER_TIME_AHEAD_OF_UTC");
     if (quoteTimestamp < 0) errors.push("INVALID_TIMESTAMP");
   }
 

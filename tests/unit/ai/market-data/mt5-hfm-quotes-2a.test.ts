@@ -201,6 +201,29 @@ describe("HFM STEP 2A quote validation (synthetic fixtures)", () => {
     expect(accepted).toBe(false);
     expect(quote.validation.errors).toContain("PROVIDER_MISMATCH");
   });
+
+  it("treats broker-TZ-ahead tick times as warnings, not hard rejects", () => {
+    // receivedAt = 2026-01-01T12:00:00Z ≈ 1767273600; +2h broker skew.
+    const tickTime = Math.floor(Date.parse(receivedAt) / 1000) + 7200;
+    const { accepted, quote } = validateHfmRawQuote(
+      { symbol: "EURUSD", bid: 1.1, ask: 1.1001, tickTime },
+      { receivedAt, server: null, sequence: 1, catalogBySymbol: catalog, requireCatalogMatch: true },
+    );
+    expect(accepted).toBe(true);
+    expect(quote.status).toBe("LIVE");
+    expect(quote.validation.errors).not.toContain("FUTURE_TIMESTAMP");
+    expect(quote.validation.warnings).toContain("BROKER_TIME_AHEAD_OF_UTC");
+  });
+
+  it("hard-rejects absurd future timestamps beyond broker TZ skew", () => {
+    const tickTime = Math.floor(Date.parse(receivedAt) / 1000) + 48 * 3600;
+    const { accepted, quote } = validateHfmRawQuote(
+      { symbol: "EURUSD", bid: 1.1, ask: 1.1001, tickTime },
+      { receivedAt, server: null, sequence: 1, catalogBySymbol: catalog, requireCatalogMatch: true },
+    );
+    expect(accepted).toBe(false);
+    expect(quote.validation.errors).toContain("FUTURE_TIMESTAMP");
+  });
 });
 
 describe("HFM STEP 2A subscriptions + LKG (synthetic)", () => {
