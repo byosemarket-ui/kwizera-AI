@@ -12,7 +12,7 @@ import type {
 } from "./catalog-types.js";
 
 /** Bump when classification rules change so sync re-enriches without full rediscovery. */
-export const HFM_CLASSIFIER_VERSION = "2.0.0";
+export const HFM_CLASSIFIER_VERSION = "2.0.1";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -87,11 +87,14 @@ function matchPathCategory(path: string): {
     return { category: "ENERGIES", subcategory: /spot/.test(p) ? "SPOT" : /futur/.test(p) ? "FUTURES_STYLE" : null, warnings: [] };
   }
   if (/(xau|xag|xpt|xpd|gold|silver|platinum|palladium)/.test(p)) {
+    // Prefer leaf symbol tokens when the folder name lists multiple metals (e.g. "Gold & Silver").
     let sub: string | null = null;
-    if (/xau|gold/.test(p)) sub = "GOLD";
-    else if (/xag|silver/.test(p)) sub = "SILVER";
-    else if (/xpt|platinum/.test(p)) sub = "PLATINUM";
-    else if (/xpd|palladium/.test(p)) sub = "PALLADIUM";
+    const leaf = p.split("/").pop() ?? p;
+    if (/xau|gold/.test(leaf) && !/xag|silver/.test(leaf)) sub = "GOLD";
+    else if (/xag|silver/.test(leaf)) sub = "SILVER";
+    else if (/xpt|platinum/.test(leaf)) sub = "PLATINUM";
+    else if (/xpd|palladium/.test(leaf)) sub = "PALLADIUM";
+    else if (/xau|gold/.test(p) && !/xag|xpt|xpd|silver|platinum|palladium/.test(leaf)) sub = "GOLD";
     return { category: "METALS", subcategory: sub, warnings: [] };
   }
   if (/metals\s*&\s*energies/.test(p) && !/(gold|silver|platinum|palladium|xau|xag|xpt|xpd)/.test(p)) {

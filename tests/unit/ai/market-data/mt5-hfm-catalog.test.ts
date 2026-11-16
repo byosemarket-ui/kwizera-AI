@@ -132,6 +132,12 @@ describe("HFM MT5 catalog classification (synthetic fixtures)", () => {
     expect(gold.classificationStatus).toBe("CONFIRMED");
     expect(gold.classifierVersion).toBe(HFM_CLASSIFIER_VERSION);
 
+    const xag = classifyHfmCatalogSymbol(
+      raw({ symbol: "XAGEUR", path: "Metals & Energies\\Spot\\Gold & Silver\\XAGEUR" }),
+    );
+    expect(xag.category).toBe("METALS");
+    expect(xag.subcategory).toBe("SILVER");
+
     const oil = classifyHfmCatalogSymbol(
       raw({ symbol: "USOIL", path: "Metals & Energies\\Futures\\USOIL", tradeCalcMode: 2 }),
     );
