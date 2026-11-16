@@ -413,5 +413,3 @@ export class MarketingBriefManager {
     }
   }
 }
-
-export { durationLabel };
