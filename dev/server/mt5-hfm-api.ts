@@ -856,6 +856,7 @@ export async function handleMt5HfmApi(
 
     // --- STEP 2A validated quotes (admin-auth, HFM-only) ---
     if (url.pathname === "/api/forex/providers/mt5-hfm/quotes/status" && (req.method === "GET" || req.method === "HEAD")) {
+      ensureMt5HfmRealtimeHubStarted();
       const snap = getHfmQuoteService().snapshot();
       const payload = {
         ok: true,
@@ -878,6 +879,7 @@ export async function handleMt5HfmApi(
     }
 
     if (url.pathname === "/api/forex/providers/mt5-hfm/quotes" && (req.method === "GET" || req.method === "HEAD")) {
+      ensureMt5HfmRealtimeHubStarted();
       const snap = getHfmQuoteService().snapshot();
       const payload = {
         ok: true,
