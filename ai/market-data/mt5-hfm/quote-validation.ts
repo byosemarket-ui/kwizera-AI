@@ -116,6 +116,10 @@ export function validateHfmRawQuote(
 
   const exactSymbol = catalog?.symbol ?? symbol ?? "";
 
+  if (typeof raw.bid === "number" && !Number.isFinite(raw.bid)) errors.push("BID_NAN");
+  if (typeof raw.ask === "number" && !Number.isFinite(raw.ask)) errors.push("ASK_NAN");
+  if (typeof raw.last === "number" && !Number.isFinite(raw.last)) errors.push("LAST_NAN");
+
   const bid = asFiniteNumber(raw.bid);
   const ask = asFiniteNumber(raw.ask);
   const last = asFiniteNumber(raw.last);
@@ -134,8 +138,6 @@ export function validateHfmRawQuote(
       ? raw.spread
       : null);
 
-  if (bid != null && (Number.isNaN(bid) || !Number.isFinite(bid))) errors.push("BID_NAN");
-  if (ask != null && (Number.isNaN(ask) || !Number.isFinite(ask))) errors.push("ASK_NAN");
   if (bid != null && bid < 0) errors.push("BID_NEGATIVE");
   if (ask != null && ask < 0) errors.push("ASK_NEGATIVE");
 
