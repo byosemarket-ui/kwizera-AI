@@ -144,14 +144,54 @@ describe("HFM MT5 catalog metadata + lifecycle (synthetic)", () => {
   });
 
   it("does not mass-remove on empty failed discovery input (caller keeps previous)", () => {
-    const prev = enrichCatalogSymbols([raw({ symbol: "EURUSD", path: "Forex\\EURUSD" })], {
-      brokerServer: "HFMarketsGlobal-Demo",
-      catalogVersion: "1",
-      discoveredAt: "2026-01-01T00:00:00Z",
-    });
+    const prev = enrichCatalogSymbols(
+      [
+        raw({
+          symbol: "EURUSD",
+          path: "Forex\\EURUSD",
+          description: "Euro vs US Dollar",
+          digits: 5,
+          point: 0.00001,
+          tickSize: 0.00001,
+          tickValue: 1,
+          contractSize: 100000,
+          volumeMin: 0.01,
+          volumeMax: 100,
+          volumeStep: 0.01,
+          tradeCalcMode: 0,
+          tradeMode: 4,
+          orderMode: 127,
+          executionMode: 2,
+          fillingMode: 1,
+          expirationMode: 15,
+          stopsLevel: 0,
+          freezeLevel: 0,
+          currencyBase: "EUR",
+          currencyProfit: "USD",
+          currencyMargin: "USD",
+          selected: true,
+          visible: true,
+          customSymbol: false,
+          sector: 0,
+          industry: 0,
+          sectorName: "Currency",
+          industryName: "Forex",
+          categoryRaw: "Forex",
+          marginInitial: 0,
+          marginMaintenance: 0,
+          sessions: { tradeSessionDays: 5, quoteSessionDays: 5 },
+        }),
+      ],
+      {
+        brokerServer: "HFMarketsGlobal-Demo",
+        catalogVersion: "1",
+        discoveredAt: "2026-01-01T00:00:00Z",
+      },
+    );
     // Failed discovery path never calls applyMissing with empty next in service; simulate retention.
     expect(prev).toHaveLength(1);
     expect(prev[0]!.lifecycle).toBe("ACTIVE");
+    expect(prev[0]!.symbol).toBe("EURUSD");
   });
 });
 
