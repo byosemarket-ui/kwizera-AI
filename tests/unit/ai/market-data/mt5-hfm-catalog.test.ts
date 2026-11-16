@@ -2,7 +2,8 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { classifyHfmCatalogSymbol, catalogCategoryToMarketType } from "../../../../ai/market-data/mt5-hfm/catalog-classify";
+import { classifyHfmCatalogSymbol, catalogCategoryToMarketType, HFM_CLASSIFIER_VERSION } from "../../../../ai/market-data/mt5-hfm/catalog-classify";
+import { computeMetadataQualityReport } from "../../../../ai/market-data/mt5-hfm/catalog-metadata-quality";
 import {
   applyMissingAfterSuccessfulDiscovery,
   computeMetadataCompleteness,
@@ -51,6 +52,14 @@ function raw(partial: Partial<HfmRawCatalogSymbol> & { symbol: string }): HfmRaw
     freezeLevel: null,
     marginInitial: null,
     marginMaintenance: null,
+    marginHedged: null,
+    marginHedgedUseLeg: null,
+    liquidityRate: null,
+    spread: null,
+    spreadFloat: null,
+    tradeAllowed: null,
+    startTime: null,
+    expirationTime: null,
     currencyBase: null,
     currencyProfit: null,
     currencyMargin: null,
@@ -58,6 +67,24 @@ function raw(partial: Partial<HfmRawCatalogSymbol> & { symbol: string }): HfmRaw
     sessions: null,
     fieldErrors: {},
     ...partial,
+  };
+}
+
+function emptyCategoryCounts() {
+  return {
+    FOREX: 0,
+    METALS: 0,
+    INDICES: 0,
+    ENERGIES: 0,
+    SHARES: 0,
+    COMMODITIES: 0,
+    CRYPTO: 0,
+    BONDS: 0,
+    ETFS: 0,
+    FUTURES: 0,
+    OPTIONS: 0,
+    OTHER: 0,
+    UNCLASSIFIED: 0,
   };
 }
 
@@ -95,12 +122,15 @@ describe("HFM MT5 catalog classification (synthetic fixtures)", () => {
     expect(hit.method).toBe("SYMBOL_PATH");
   });
 
-  it("disambiguates HFM Metals & Energies paths and maps crypto/etf/bond to OTHER", () => {
+  it("disambiguates HFM Metals & Energies paths and classifies crypto/etf/bond distinctly", () => {
     const gold = classifyHfmCatalogSymbol(
       raw({ symbol: "XAUUSD", path: "Metals & Energies\\Spot\\Gold & Silver\\XAUUSD", tradeCalcMode: 2 }),
     );
     expect(gold.category).toBe("METALS");
+    expect(gold.subcategory).toBe("GOLD");
     expect(gold.method).toBe("SYMBOL_PATH");
+    expect(gold.classificationStatus).toBe("CONFIRMED");
+    expect(gold.classifierVersion).toBe(HFM_CLASSIFIER_VERSION);
 
     const oil = classifyHfmCatalogSymbol(
       raw({ symbol: "USOIL", path: "Metals & Energies\\Futures\\USOIL", tradeCalcMode: 2 }),
@@ -112,13 +142,30 @@ describe("HFM MT5 catalog classification (synthetic fixtures)", () => {
     expect(oilSpot.category).toBe("ENERGIES");
 
     const crypto = classifyHfmCatalogSymbol(raw({ symbol: "#BTCUSD", path: "#Crypto\\#BTCUSD" }));
-    expect(crypto.category).toBe("OTHER");
+    expect(crypto.category).toBe("CRYPTO");
 
     const etf = classifyHfmCatalogSymbol(raw({ symbol: "SPY.US", path: "ETFs\\SPY.US" }));
-    expect(etf.category).toBe("OTHER");
+    expect(etf.category).toBe("ETFS");
 
     const bond = classifyHfmCatalogSymbol(raw({ symbol: "US10Y", path: "Bonds\\US10Y" }));
-    expect(bond.category).toBe("OTHER");
+    expect(bond.category).toBe("BONDS");
+  });
+
+  it("classifies Forex with suffix/prefix evidence and rejects USD-only name guesses", () => {
+    const suffixed = classifyHfmCatalogSymbol(
+      raw({
+        symbol: "EURUSD.a",
+        path: "Forex\\Majors\\EURUSD.a",
+        currencyBase: "EUR",
+        currencyProfit: "USD",
+        tradeCalcMode: 0,
+      }),
+    );
+    expect(suffixed.category).toBe("FOREX");
+    expect(suffixed.subcategory).toBe("MAJOR");
+
+    const usdOnly = classifyHfmCatalogSymbol(raw({ symbol: "USDINDEX" }));
+    expect(usdOnly.category).toBe("UNCLASSIFIED");
   });
 
   it("does not treat CFD calc mode 2 as INDICES", () => {
@@ -146,14 +193,51 @@ describe("HFM MT5 catalog metadata + lifecycle (synthetic)", () => {
       path: "Forex\\EURUSD",
       digits: 5,
       point: 0.00001,
+      marginInitial: 0,
       fieldErrors: { isin: "EMPTY" },
     });
     expect(n?.symbol).toBe("EURUSD");
     expect(n?.isin).toBeNull();
     expect(n?.fieldErrors.isin).toBe("EMPTY");
+    expect(n?.marginInitial).toBe(0);
     const completeness = computeMetadataCompleteness(n!);
     expect(completeness).toBeGreaterThan(0);
     expect(completeness).toBeLessThan(100);
+    const quality = computeMetadataQualityReport(n!, { classified: true });
+    expect(quality.fieldQuality.isin?.status).toBe("NOT_APPLICABLE");
+    expect(quality.fieldQuality.marginInitial?.status).toBe("AVAILABLE");
+    expect(quality.missingRequiredFields.length).toBeGreaterThan(0);
+    expect(quality.requiredFieldsComplete).toBe(false);
+  });
+
+  it("enrich attaches metadataQuality and classification evidence", () => {
+    const rows = enrichCatalogSymbols(
+      [
+        raw({
+          symbol: "EURUSD",
+          path: "Forex\\Majors\\EURUSD",
+          description: "Euro vs US Dollar",
+          digits: 5,
+          point: 0.00001,
+          tickSize: 0.00001,
+          contractSize: 100000,
+          volumeMin: 0.01,
+          volumeMax: 100,
+          volumeStep: 0.01,
+          tradeCalcMode: 0,
+          tradeMode: 4,
+          executionMode: 2,
+          currencyBase: "EUR",
+          currencyProfit: "USD",
+          selected: true,
+          customSymbol: false,
+        }),
+      ],
+      { brokerServer: "HFMarketsGlobal-Demo", catalogVersion: "v", discoveredAt: "2026-01-01T00:00:00Z" },
+    );
+    expect(rows[0]!.metadataQuality.metadataCompletenessPercent).toBe(rows[0]!.metadataCompleteness);
+    expect(rows[0]!.classification.classificationEvidence[0]).toContain("path:");
+    expect(rows[0]!.classification.classificationConfidence).toBeGreaterThan(0.9);
   });
 
   it("detects add/remove/spec changes and retains missing after successful discovery", () => {
@@ -268,20 +352,12 @@ describe("HFM MT5 catalog store atomicity (synthetic)", () => {
       customCount: 0,
       metadataCompletenessAvg: symbols[0]!.metadataCompleteness,
       fieldErrorSummary: {},
-      categoryCounts: {
-        FOREX: 1,
-        METALS: 0,
-        INDICES: 0,
-        ENERGIES: 0,
-        SHARES: 0,
-        COMMODITIES: 0,
-        OTHER: 0,
-        UNCLASSIFIED: 0,
-      },
+      categoryCounts: { ...emptyCategoryCounts(), FOREX: 1 },
       changes: null,
       symbols,
       source: "mql5_catalog" as const,
-      schemaVersion: 1 as const,
+      schemaVersion: 2 as const,
+      classifierVersion: HFM_CLASSIFIER_VERSION,
       mutatesBroker: false as const,
       placesOrders: false as const,
       acceptsForExecution: false as const,
@@ -330,20 +406,12 @@ describe("HFM MT5 catalog store atomicity (synthetic)", () => {
       customCount: 0,
       metadataCompletenessAvg: 50,
       fieldErrorSummary: {},
-      categoryCounts: {
-        FOREX: 1,
-        METALS: 1,
-        INDICES: 1,
-        ENERGIES: 0,
-        SHARES: 0,
-        COMMODITIES: 0,
-        OTHER: 0,
-        UNCLASSIFIED: 0,
-      },
+      categoryCounts: { ...emptyCategoryCounts(), FOREX: 1, METALS: 1, INDICES: 1 },
       changes: null,
       symbols,
       source: "mql5_catalog",
-      schemaVersion: 1,
+      schemaVersion: 2,
+      classifierVersion: HFM_CLASSIFIER_VERSION,
       mutatesBroker: false,
       placesOrders: false,
       acceptsForExecution: false,
@@ -354,6 +422,12 @@ describe("HFM MT5 catalog store atomicity (synthetic)", () => {
     const page = await svc.query({ offset: 1, limit: 1 });
     expect(page.returned).toBe(1);
     expect(page.total).toBe(3);
+    const byStatus = await svc.query({ classificationStatus: "CONFIRMED", limit: 50 });
+    expect(byStatus.total).toBeGreaterThanOrEqual(1);
+    const byComp = await svc.query({ minCompleteness: 0, maxCompleteness: 100, limit: 50 });
+    expect(byComp.total).toBe(3);
+    const energyAlias = await svc.query({ category: "ENERGY", limit: 50 });
+    expect(energyAlias.total).toBe(0);
     const cats = await svc.categories();
     expect(cats.counts.FOREX).toBe(1);
   });

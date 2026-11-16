@@ -1,11 +1,14 @@
 /**
- * HFM MT5 instrument catalog contracts (Phase 1).
+ * HFM MT5 instrument catalog contracts (STEP 1 discovery + STEP 2 metadata/classification).
  * Provider identity is always HFM_MT5. No live bid/ask persistence.
  */
+
+import type { HfmMetadataQualityReport } from "./catalog-metadata-quality.js";
 
 export const HFM_CATALOG_PROVIDER = "HFM_MT5" as const;
 export const HFM_CATALOG_ENVIRONMENT = "demo" as const;
 
+/** Primary categories. ENERGIES kept for STEP 1 compat; ENERGY accepted as API alias. */
 export const HFM_CATALOG_CATEGORIES = [
   "FOREX",
   "METALS",
@@ -13,10 +16,24 @@ export const HFM_CATALOG_CATEGORIES = [
   "ENERGIES",
   "SHARES",
   "COMMODITIES",
+  "CRYPTO",
+  "BONDS",
+  "ETFS",
+  "FUTURES",
+  "OPTIONS",
   "OTHER",
   "UNCLASSIFIED",
 ] as const;
 export type HfmCatalogCategory = (typeof HFM_CATALOG_CATEGORIES)[number];
+
+/** Normalize API filter aliases (e.g. ENERGY → ENERGIES). */
+export function normalizeHfmCatalogCategory(input: string | null | undefined): HfmCatalogCategory | null {
+  if (!input) return null;
+  const u = input.trim().toUpperCase();
+  if (u === "ENERGY") return "ENERGIES";
+  if ((HFM_CATALOG_CATEGORIES as readonly string[]).includes(u)) return u as HfmCatalogCategory;
+  return null;
+}
 
 export const HFM_CATALOG_LIFECYCLES = [
   "ACTIVE",
@@ -52,13 +69,29 @@ export type HfmClassificationMethod =
 
 export type HfmClassificationConfidence = "HIGH" | "MEDIUM" | "LOW" | "NONE";
 
+export type HfmClassificationStatus =
+  | "CONFIRMED"
+  | "HIGH_CONFIDENCE"
+  | "NEEDS_REVIEW"
+  | "UNCLASSIFIED";
+
 export interface HfmClassificationResult {
   category: HfmCatalogCategory;
-  method: HfmClassificationMethod;
+  subcategory: string | null;
+  classificationStatus: HfmClassificationStatus;
+  /** Legacy ordinal band kept for STEP 1 consumers. */
   confidence: HfmClassificationConfidence;
+  /** Documented 0..1 score. */
+  classificationConfidence: number;
+  classificationMethod: HfmClassificationMethod;
+  /** Alias of classificationMethod for STEP 1 field name `method`. */
+  method: HfmClassificationMethod;
+  classificationEvidence: string[];
+  /** Alias of classificationEvidence for STEP 1 field name `evidence`. */
   evidence: string[];
+  classificationWarnings: string[];
   classifiedAt: string;
-  classifierVersion?: string;
+  classifierVersion: string;
 }
 
 export interface HfmSessionDaySummary {
@@ -110,6 +143,14 @@ export interface HfmRawCatalogSymbol {
   freezeLevel: number | null;
   marginInitial: number | null;
   marginMaintenance: number | null;
+  marginHedged: number | null;
+  marginHedgedUseLeg: boolean | null;
+  liquidityRate: number | null;
+  spread: number | null;
+  spreadFloat: boolean | null;
+  tradeAllowed: boolean | null;
+  startTime: number | null;
+  expirationTime: number | null;
   currencyBase: string | null;
   currencyProfit: string | null;
   currencyMargin: string | null;
@@ -127,6 +168,7 @@ export interface HfmCatalogInstrument extends HfmRawCatalogSymbol {
   firstDiscoveredAt: string;
   lastDiscoveredAt: string;
   metadataCompleteness: number;
+  metadataQuality: HfmMetadataQualityReport;
   classification: HfmClassificationResult;
 }
 
@@ -162,7 +204,7 @@ export interface HfmCatalogSnapshot {
   changes: HfmCatalogChangeSummary | null;
   symbols: HfmCatalogInstrument[];
   source: "mql5_catalog";
-  schemaVersion: 1;
+  schemaVersion: 2;
   classifierVersion?: string;
   mutatesBroker: false;
   placesOrders: false;

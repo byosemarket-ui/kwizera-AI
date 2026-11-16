@@ -295,6 +295,24 @@ string BuildSymbolRecord(const string symbol)
    json += "\"freezeLevel\":" + JsonIntProp(symbol, SYMBOL_TRADE_FREEZE_LEVEL, "freezeLevel", errors, firstErr) + ",";
    json += "\"marginInitial\":" + JsonDoubleProp(symbol, SYMBOL_MARGIN_INITIAL, "marginInitial", errors, firstErr) + ",";
    json += "\"marginMaintenance\":" + JsonDoubleProp(symbol, SYMBOL_MARGIN_MAINTENANCE, "marginMaintenance", errors, firstErr) + ",";
+   json += "\"marginHedged\":" + JsonDoubleProp(symbol, SYMBOL_MARGIN_HEDGED, "marginHedged", errors, firstErr) + ",";
+   json += "\"marginHedgedUseLeg\":" + JsonBoolProp(symbol, SYMBOL_MARGIN_HEDGED_USE_LEG, "marginHedgedUseLeg", errors, firstErr) + ",";
+   json += "\"liquidityRate\":" + JsonDoubleProp(symbol, SYMBOL_TRADE_LIQUIDITY_RATE, "liquidityRate", errors, firstErr) + ",";
+   // Spread / float are static contract metadata here — not a live quote substitute.
+   json += "\"spread\":" + JsonIntProp(symbol, SYMBOL_SPREAD, "spread", errors, firstErr) + ",";
+   json += "\"spreadFloat\":" + JsonBoolProp(symbol, SYMBOL_SPREAD_FLOAT, "spreadFloat", errors, firstErr) + ",";
+   {
+      long tradeModeVal = 0;
+      if(SymbolInfoInteger(symbol, SYMBOL_TRADE_MODE, tradeModeVal))
+         json += "\"tradeAllowed\":" + (tradeModeVal != SYMBOL_TRADE_MODE_DISABLED ? "true" : "false") + ",";
+      else
+        {
+         AppendFieldError(errors, firstErr, "tradeAllowed", "UNAVAILABLE");
+         json += "\"tradeAllowed\":null,";
+        }
+   }
+   json += "\"startTime\":" + JsonIntProp(symbol, SYMBOL_START_TIME, "startTime", errors, firstErr) + ",";
+   json += "\"expirationTime\":" + JsonIntProp(symbol, SYMBOL_EXPIRATION_TIME, "expirationTime", errors, firstErr) + ",";
    json += "\"currencyBase\":" + JsonStringProp(symbol, SYMBOL_CURRENCY_BASE, "currencyBase", errors, firstErr) + ",";
    json += "\"currencyProfit\":" + JsonStringProp(symbol, SYMBOL_CURRENCY_PROFIT, "currencyProfit", errors, firstErr) + ",";
    json += "\"currencyMargin\":" + JsonStringProp(symbol, SYMBOL_CURRENCY_MARGIN, "currencyMargin", errors, firstErr) + ",";

@@ -920,12 +920,18 @@ export async function handleMt5HfmApi(
       }
       const selectedParam = url.searchParams.get("selected");
       const customParam = url.searchParams.get("custom");
+      const minCompRaw = url.searchParams.get("minCompleteness");
+      const maxCompRaw = url.searchParams.get("maxCompleteness");
       const result = await catalog.query({
         q: url.searchParams.get("q") ?? undefined,
         category: url.searchParams.get("category") ?? undefined,
+        subcategory: url.searchParams.get("subcategory") ?? undefined,
+        classificationStatus: url.searchParams.get("classificationStatus") ?? undefined,
         lifecycle: url.searchParams.get("lifecycle") ?? undefined,
         selected: selectedParam == null ? undefined : selectedParam === "1" || selectedParam === "true",
         custom: customParam == null ? undefined : customParam === "1" || customParam === "true",
+        minCompleteness: minCompRaw != null && minCompRaw !== "" ? Number(minCompRaw) : undefined,
+        maxCompleteness: maxCompRaw != null && maxCompRaw !== "" ? Number(maxCompRaw) : undefined,
         offset: Number(url.searchParams.get("offset") ?? 0),
         limit: Number(url.searchParams.get("limit") ?? 50),
       });

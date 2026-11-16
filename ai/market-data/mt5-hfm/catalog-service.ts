@@ -9,6 +9,7 @@ import {
   classifyHfmCatalogSymbol,
   HFM_CLASSIFIER_VERSION,
 } from "./catalog-classify.js";
+import { computeMetadataQualityReport } from "./catalog-metadata-quality.js";
 import { HfmCatalogStore, computeCatalogPayloadChecksum } from "./catalog-store.js";
 import type {
   HfmCatalogCategory,
@@ -17,6 +18,7 @@ import type {
   HfmCatalogLifecycle,
   HfmCatalogSnapshot,
   HfmCatalogStatusView,
+  HfmClassificationStatus,
   HfmRawCatalogSymbol,
 } from "./catalog-types.js";
 import {
@@ -24,44 +26,8 @@ import {
   HFM_CATALOG_ENVIRONMENT,
   HFM_CATALOG_PROVIDER,
   HFM_CATALOG_SPEC_KEYS,
+  normalizeHfmCatalogCategory,
 } from "./catalog-types.js";
-
-const METADATA_FIELDS = [
-  "description",
-  "path",
-  "isin",
-  "categoryRaw",
-  "sector",
-  "industry",
-  "digits",
-  "point",
-  "tickSize",
-  "tickValue",
-  "tickValueProfit",
-  "tickValueLoss",
-  "contractSize",
-  "volumeMin",
-  "volumeMax",
-  "volumeStep",
-  "volumeLimit",
-  "tradeCalcMode",
-  "tradeMode",
-  "orderMode",
-  "executionMode",
-  "fillingMode",
-  "expirationMode",
-  "stopsLevel",
-  "freezeLevel",
-  "marginInitial",
-  "marginMaintenance",
-  "currencyBase",
-  "currencyProfit",
-  "currencyMargin",
-  "selected",
-  "visible",
-  "customSymbol",
-  "sessions",
-] as const;
 
 let singleton: HfmCatalogService | null = null;
 let syncInFlight: Promise<HfmCatalogSyncResult> | null = null;
@@ -132,6 +98,14 @@ export function normalizeRawCatalogSymbol(row: Record<string, unknown>): HfmRawC
     freezeLevel: asNullableNumber(row.freezeLevel),
     marginInitial: asNullableNumber(row.marginInitial),
     marginMaintenance: asNullableNumber(row.marginMaintenance),
+    marginHedged: asNullableNumber(row.marginHedged),
+    marginHedgedUseLeg: asNullableBoolean(row.marginHedgedUseLeg),
+    liquidityRate: asNullableNumber(row.liquidityRate),
+    spread: asNullableNumber(row.spread),
+    spreadFloat: asNullableBoolean(row.spreadFloat),
+    tradeAllowed: asNullableBoolean(row.tradeAllowed),
+    startTime: asNullableNumber(row.startTime),
+    expirationTime: asNullableNumber(row.expirationTime),
     currencyBase: asNullableString(row.currencyBase),
     currencyProfit: asNullableString(row.currencyProfit),
     currencyMargin: asNullableString(row.currencyMargin),
@@ -144,14 +118,8 @@ export function normalizeRawCatalogSymbol(row: Record<string, unknown>): HfmRawC
   };
 }
 
-export function computeMetadataCompleteness(raw: HfmRawCatalogSymbol): number {
-  let present = 0;
-  for (const key of METADATA_FIELDS) {
-    const val = raw[key];
-    const errored = Boolean(raw.fieldErrors[key]);
-    if (!errored && val != null && val !== "") present += 1;
-  }
-  return Math.round((present / METADATA_FIELDS.length) * 1000) / 10;
+export function computeMetadataCompleteness(raw: HfmRawCatalogSymbol, classified = true): number {
+  return computeMetadataQualityReport(raw, { classified }).metadataCompletenessPercent;
 }
 
 export function resolveLifecycle(raw: HfmRawCatalogSymbol, completeness: number): HfmCatalogLifecycle {
@@ -232,8 +200,15 @@ export function enrichCatalogSymbols(
 ): HfmCatalogInstrument[] {
   const prevMap = new Map((ctx.previous ?? []).map((s) => [s.symbol, s]));
   return rawRows.map((raw) => {
-    const completeness = computeMetadataCompleteness(raw);
     const classification = classifyHfmCatalogSymbol(raw);
+    const classified =
+      classification.classificationStatus !== "UNCLASSIFIED" && classification.category !== "UNCLASSIFIED";
+    const metadataQuality = computeMetadataQualityReport(raw, {
+      classified,
+      collectedAt: ctx.discoveredAt,
+      updatedAt: ctx.discoveredAt,
+    });
+    const completeness = metadataQuality.metadataCompletenessPercent;
     const lifecycle = resolveLifecycle(raw, completeness);
     const prev = prevMap.get(raw.symbol);
     return {
@@ -246,6 +221,7 @@ export function enrichCatalogSymbols(
       firstDiscoveredAt: prev?.firstDiscoveredAt ?? ctx.discoveredAt,
       lastDiscoveredAt: ctx.discoveredAt,
       metadataCompleteness: completeness,
+      metadataQuality,
       classification,
     };
   });
@@ -281,9 +257,13 @@ export interface HfmCatalogSyncResult {
 export interface HfmCatalogQuery {
   q?: string;
   category?: HfmCatalogCategory | string;
+  subcategory?: string;
+  classificationStatus?: HfmClassificationStatus | string;
   lifecycle?: HfmCatalogLifecycle | string;
   selected?: boolean;
   custom?: boolean;
+  minCompleteness?: number;
+  maxCompleteness?: number;
   offset?: number;
   limit?: number;
 }
@@ -483,6 +463,7 @@ export class HfmCatalogService {
           freshness: "COMPLETE",
           discoveryStatus: "COMPLETE",
           ingestedAt: discoveredAt,
+          schemaVersion: 2,
           classifierVersion: HFM_CLASSIFIER_VERSION,
           metadataCompletenessAvg:
             enriched.length > 0 ? Math.round((completenessSum / enriched.length) * 10) / 10 : 0,
@@ -610,7 +591,7 @@ export class HfmCatalogService {
         changes,
         symbols: enriched,
         source: "mql5_catalog",
-        schemaVersion: 1,
+        schemaVersion: 2,
         classifierVersion: HFM_CLASSIFIER_VERSION,
         mutatesBroker: false,
         placesOrders: false,
@@ -670,8 +651,19 @@ export class HfmCatalogService {
     }
     const q = String(params.q ?? "").trim().toLowerCase();
     let rows = snap.symbols;
-    if (params.category) {
-      rows = rows.filter((s) => s.classification.category === params.category);
+    const category = normalizeHfmCatalogCategory(
+      typeof params.category === "string" ? params.category : params.category ?? null,
+    );
+    if (category) {
+      rows = rows.filter((s) => s.classification.category === category);
+    }
+    if (params.subcategory) {
+      const sub = String(params.subcategory).toUpperCase();
+      rows = rows.filter((s) => String(s.classification.subcategory ?? "").toUpperCase() === sub);
+    }
+    if (params.classificationStatus) {
+      const st = String(params.classificationStatus).toUpperCase();
+      rows = rows.filter((s) => s.classification.classificationStatus === st);
     }
     if (params.lifecycle) {
       rows = rows.filter((s) => s.lifecycle === params.lifecycle);
@@ -682,9 +674,15 @@ export class HfmCatalogService {
     if (typeof params.custom === "boolean") {
       rows = rows.filter((s) => s.customSymbol === params.custom);
     }
+    if (typeof params.minCompleteness === "number" && Number.isFinite(params.minCompleteness)) {
+      rows = rows.filter((s) => s.metadataCompleteness >= params.minCompleteness!);
+    }
+    if (typeof params.maxCompleteness === "number" && Number.isFinite(params.maxCompleteness)) {
+      rows = rows.filter((s) => s.metadataCompleteness <= params.maxCompleteness!);
+    }
     if (q) {
       rows = rows.filter((s) => {
-        const hay = `${s.symbol} ${s.description ?? ""} ${s.path ?? ""}`.toLowerCase();
+        const hay = `${s.symbol} ${s.description ?? ""} ${s.path ?? ""} ${s.classification.subcategory ?? ""}`.toLowerCase();
         return hay.includes(q);
       });
     }
