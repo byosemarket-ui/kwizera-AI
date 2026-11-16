@@ -5,7 +5,7 @@
 //| Catalog discovery does NOT mass-SymbolSelect the universe.       |
 //+------------------------------------------------------------------+
 #property copyright "KWIZERA AI STUDIO"
-#property version   "1.21"
+#property version   "1.30"
 #property description "Periodic read-only snapshot + batched catalog. No trading."
 
 #include <Trade/AccountInfo.mqh>
@@ -468,19 +468,29 @@ void ProcessCatalogBatch()
 
 void AppendQuote(string &json, const string symbol, bool &first)
   {
+   // Select only when acquiring a subscribed quote — never mass-select the catalog.
    if(!SymbolSelect(symbol, true))
       return;
    MqlTick tick;
    double bid = 0, ask = 0, last = 0;
    long tickTime = 0;
+   long tickTimeMs = 0;
    long volume = 0;
-   if(SymbolInfoTick(symbol, tick))
+   double realVolume = 0;
+   ulong flags = 0;
+   string acquisitionMethod = "SymbolInfoDouble";
+   bool haveTick = SymbolInfoTick(symbol, tick);
+   if(haveTick)
      {
       bid = tick.bid;
       ask = tick.ask;
       last = tick.last;
       tickTime = (long)tick.time;
+      tickTimeMs = (long)tick.time_msc;
       volume = (long)tick.volume;
+      realVolume = (double)tick.volume_real;
+      flags = tick.flags;
+      acquisitionMethod = "SymbolInfoTick";
      }
    else
      {
@@ -490,20 +500,34 @@ void AppendQuote(string &json, const string symbol, bool &first)
       tickTime = SymbolInfoInteger(symbol, SYMBOL_TIME);
      }
    double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   double tickSize = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE);
    long digits = SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+   long brokerSpreadPts = SymbolInfoInteger(symbol, SYMBOL_SPREAD);
    if(!first)
       json += ",";
    first = false;
    json += "{";
    json += "\"symbol\":\"" + JsonEscape(symbol) + "\",";
-   json += "\"bid\":" + NumOrNull(bid) + ",";
-   json += "\"ask\":" + NumOrNull(ask) + ",";
-   json += "\"last\":" + NumOrNull(last) + ",";
-   json += "\"spread\":" + NumOrNull((ask > 0 && bid > 0) ? (ask - bid) : 0) + ",";
+   // Never invent prices: emit null when Bid/Ask are non-positive.
+   json += "\"bid\":" + ((bid > 0 && MathIsValidNumber(bid)) ? NumOrNull(bid) : "null") + ",";
+   json += "\"ask\":" + ((ask > 0 && MathIsValidNumber(ask)) ? NumOrNull(ask) : "null") + ",";
+   json += "\"last\":" + (MathIsValidNumber(last) ? NumOrNull(last) : "null") + ",";
+   if(ask > 0 && bid > 0 && MathIsValidNumber(ask) && MathIsValidNumber(bid) && ask >= bid)
+      json += "\"spread\":" + NumOrNull(ask - bid) + ",";
+   else
+      json += "\"spread\":null,";
+   json += "\"brokerSpreadPoints\":" + IntegerToString(brokerSpreadPts) + ",";
    json += "\"digits\":" + IntegerToString(digits) + ",";
    json += "\"point\":" + NumOrNull(point) + ",";
+   json += "\"tickSize\":" + NumOrNull(tickSize) + ",";
    json += "\"tickTime\":" + IntegerToString(tickTime) + ",";
-   json += "\"tickVolume\":" + IntegerToString(volume);
+   json += "\"tickTimeMs\":" + IntegerToString(tickTimeMs) + ",";
+   json += "\"tickVolume\":" + IntegerToString(volume) + ",";
+   json += "\"realVolume\":" + NumOrNull(realVolume) + ",";
+   json += "\"tickFlags\":" + IntegerToString((long)flags) + ",";
+   json += "\"acquisitionMethod\":\"" + acquisitionMethod + "\",";
+   json += "\"provider\":\"HFM_MT5\",";
+   json += "\"environment\":\"demo\"";
    json += "}";
   }
 

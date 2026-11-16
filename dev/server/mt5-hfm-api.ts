@@ -13,6 +13,9 @@
  * GET  /api/forex/providers/mt5-hfm/account            (cached Demo snapshot only)
  * GET  /api/forex/providers/mt5-hfm/stream             (Demo SSE realtime feed)
  * GET  /api/forex/providers/mt5-hfm/realtime/status    (Hub freshness / subscribers)
+ * GET  /api/forex/providers/mt5-hfm/quotes             (Validated quote snapshot)
+ * GET  /api/forex/providers/mt5-hfm/quotes/status      (Quote status counts)
+ * GET  /api/forex/providers/mt5-hfm/quotes/:symbol     (Latest validated quote)
  * GET  /api/forex/providers/mt5-hfm/symbols            (HFM catalog query)
  * GET  /api/forex/providers/mt5-hfm/symbols/status     (Catalog discovery status)
  * GET  /api/forex/providers/mt5-hfm/symbols/categories (Category counts)
@@ -62,6 +65,8 @@ import { redactAgentPayload } from "../../ai/market-data/mt5-hfm/agent-protocol.
 import { buildMt5HfmConnectionStates } from "../../ai/market-data/mt5-hfm/connection-states.js";
 import { getHfmCatalogService } from "../../ai/market-data/mt5-hfm/catalog-service.js";
 import { HFM_CATALOG_CATEGORIES } from "../../ai/market-data/mt5-hfm/catalog-types.js";
+import { getHfmQuoteService } from "../../ai/market-data/mt5-hfm/quote-service.js";
+import { getHfmQuoteSubscriptionRegistry } from "../../ai/market-data/mt5-hfm/quote-subscriptions.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -846,6 +851,77 @@ export async function handleMt5HfmApi(
           error: { code: "AGENT_UNAVAILABLE", message: "MT5 agent socket unavailable." },
         });
       }
+      return true;
+    }
+
+    // --- STEP 2A validated quotes (admin-auth, HFM-only) ---
+    if (url.pathname === "/api/forex/providers/mt5-hfm/quotes/status" && (req.method === "GET" || req.method === "HEAD")) {
+      const snap = getHfmQuoteService().snapshot();
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        feedFreshness: snap.feedFreshness,
+        marketClosed: snap.marketClosed,
+        terminalRunning: snap.terminalRunning,
+        sequence: snap.sequence,
+        receivedAt: snap.receivedAt,
+        counts: snap.counts,
+        subscriptions: getHfmQuoteSubscriptionRegistry().list(),
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/quotes" && (req.method === "GET" || req.method === "HEAD")) {
+      const snap = getHfmQuoteService().snapshot();
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        snapshot: snap,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    const quoteDetailMatch = url.pathname.match(/^\/api\/forex\/providers\/mt5-hfm\/quotes\/([^/]+)$/);
+    if (quoteDetailMatch && (req.method === "GET" || req.method === "HEAD")) {
+      const rawSym = decodeURIComponent(quoteDetailMatch[1] ?? "");
+      if (!rawSym || rawSym === "status") {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "NOT_FOUND", message: "Unknown MT5 HFM quotes route." },
+        });
+        return true;
+      }
+      const q = getHfmQuoteService().getQuote(rawSym);
+      const rejected = getHfmQuoteService().getRejected(rawSym);
+      if (!q && !rejected) {
+        sendJson(res, 404, {
+          ok: false,
+          provider: "HFM_MT5",
+          environment: "demo",
+          error: { code: "QUOTE_NOT_FOUND", message: `No quote state for ${rawSym}` },
+        });
+        return true;
+      }
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        quote: q,
+        lastRejected: rejected,
+        placesOrders: false,
+        mutatesBroker: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
       return true;
     }
 

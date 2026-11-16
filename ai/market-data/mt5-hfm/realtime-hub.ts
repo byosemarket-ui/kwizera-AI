@@ -19,6 +19,8 @@ import {
   type Mt5HfmFreshness,
   type Mt5HfmFreshnessPolicy,
 } from "./freshness.js";
+import { getHfmQuoteService } from "./quote-service.js";
+import { getHfmQuoteSubscriptionRegistry } from "./quote-subscriptions.js";
 
 export interface Mt5HfmHubSubscriber {
   id: string;
@@ -32,6 +34,7 @@ interface QuoteFingerprint {
   bid: number;
   ask: number;
   tickTime: number | null;
+  status?: string;
 }
 
 interface HubState {
@@ -117,8 +120,19 @@ function normalizeQuotes(raw: unknown): Array<Record<string, unknown>> {
   for (const item of raw) {
     if (!item || typeof item !== "object") continue;
     const q = item as Record<string, unknown>;
+    // Keep lightweight filter for reconnect snapshot; full validation is in quote-service.
     if (!isValidQuoteTick(q)) continue;
     out.push(q);
+  }
+  return out;
+}
+
+function rawQuotesForIngest(raw: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(raw)) return [];
+  const out: Array<Record<string, unknown>> = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    out.push(item as Record<string, unknown>);
   }
   return out;
 }
@@ -247,43 +261,93 @@ async function pollOnce(): Promise<void> {
         );
       }
 
-      const quotes = normalizeQuotes(snap.quotes);
-      for (const q of quotes) {
-        const symbol = String(q.symbol).toUpperCase();
-        const bid = Number(q.bid);
-        const ask = Number(q.ask);
-        const tickTime = typeof q.tickTime === "number" ? q.tickTime : null;
-        const prev = hubState.lastQuotes.get(symbol);
+      const accountServer =
+        account && typeof account.server === "string" ? String(account.server) : null;
+      const ingest = await getHfmQuoteService().ingestRawQuotes(rawQuotesForIngest(snap.quotes), {
+        server: accountServer,
+        sequence: seq,
+        receivedAt: serverReceivedAt,
+        ageSec,
+        marketClosed,
+        terminalRunning,
+        feedFreshness: freshness,
+        requireCatalogMatch: false,
+      });
+      for (const q of ingest.published) {
+        if (!getHfmQuoteSubscriptionRegistry().isSubscribed(q.symbol)) continue;
+        if (q.bid == null || q.ask == null) continue;
+        const symbolKey = q.symbol.toUpperCase();
+        const tickTime = q.quoteTimestamp;
+        const prev = hubState.lastQuotes.get(symbolKey);
         const changed =
-          !prev || prev.bid !== bid || prev.ask !== ask || prev.tickTime !== tickTime || isNewSeq;
+          !prev ||
+          prev.bid !== q.bid ||
+          prev.ask !== q.ask ||
+          prev.tickTime !== tickTime ||
+          isNewSeq ||
+          prev.status !== q.status;
         if (!changed) continue;
-        hubState.lastQuotes.set(symbol, { bid, ask, tickTime });
+        hubState.lastQuotes.set(symbolKey, {
+          bid: q.bid,
+          ask: q.ask,
+          tickTime,
+          status: q.status,
+        });
+        const quoteFreshness: Mt5HfmFreshness =
+          q.status === "MARKET_CLOSED"
+            ? "MARKET_CLOSED"
+            : q.status === "STALE" || q.status === "DELAYED"
+              ? "STALE"
+              : q.status === "LIVE" || q.status === "INCOMPLETE"
+                ? freshness === "MARKET_CLOSED"
+                  ? "MARKET_CLOSED"
+                  : "LIVE"
+                : freshness;
         publish(
           "quote",
           buildEnvelope(
             "quote",
             {
-              symbol,
-              bid,
-              ask,
-              last: q.last ?? null,
-              spread: q.spread ?? ask - bid,
-              digits: q.digits ?? null,
-              point: q.point ?? null,
+              symbol: q.symbol,
+              bid: q.bid,
+              ask: q.ask,
+              last: q.last,
+              spread: q.spread,
+              spreadPoints: q.spreadPoints,
+              brokerSpreadPoints: q.brokerSpreadPoints,
+              digits: q.digits,
+              point: q.point,
+              tickSize: q.tickSize,
               tickTime,
-              tickVolume: q.tickVolume ?? null,
+              tickTimeMs: q.quoteTimestampMs,
+              tickVolume: q.tickVolume,
+              realVolume: q.realVolume,
+              status: q.status,
+              validation: q.validation,
               provider: "HFM_MT5",
+              environment: "demo",
+              server: q.server,
+              receivedAt: q.receivedAt,
+              sequence: q.sequence,
+              placesOrders: false,
+              mutatesBroker: false,
             },
             {
               eventId: randomUUID(),
               seq,
               brokerTimestamp: tickTime ?? brokerTime,
               serverReceivedAt,
-              freshness,
+              freshness: quoteFreshness,
               provenance,
+              validation:
+                q.validation.verdict === "ok"
+                  ? "ok"
+                  : q.validation.verdict === "partial" || q.validation.verdict === "warning"
+                    ? "partial"
+                    : "rejected",
             },
           ),
-          symbol,
+          symbolKey,
         );
       }
 
@@ -390,6 +454,7 @@ export function ensureMt5HfmRealtimeHubStarted(): void {
 }
 
 export function getMt5HfmRealtimeHubStatus(): Record<string, unknown> {
+  const quoteSnap = getHfmQuoteService().snapshot();
   return {
     broker: "HFM_MT5",
     environment: "demo",
@@ -403,6 +468,9 @@ export function getMt5HfmRealtimeHubStatus(): Record<string, unknown> {
     consecutiveFailures: hubState.consecutiveFailures,
     policy,
     streaming: true,
+    quoteSubscriptions: getHfmQuoteSubscriptionRegistry().list(),
+    quoteCounts: quoteSnap.counts,
+    subscribedQuoteSymbols: quoteSnap.subscribedSymbols,
     placesOrders: false,
     acceptsForExecution: false,
     mutatesBroker: false,
