@@ -58,6 +58,7 @@ export interface HfmClassificationResult {
   confidence: HfmClassificationConfidence;
   evidence: string[];
   classifiedAt: string;
+  classifierVersion?: string;
 }
 
 export interface HfmSessionDaySummary {
@@ -162,6 +163,7 @@ export interface HfmCatalogSnapshot {
   symbols: HfmCatalogInstrument[];
   source: "mql5_catalog";
   schemaVersion: 1;
+  classifierVersion?: string;
   mutatesBroker: false;
   placesOrders: false;
   acceptsForExecution: false;

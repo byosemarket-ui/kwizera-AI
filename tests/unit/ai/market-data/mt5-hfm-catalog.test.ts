@@ -95,6 +95,40 @@ describe("HFM MT5 catalog classification (synthetic fixtures)", () => {
     expect(hit.method).toBe("SYMBOL_PATH");
   });
 
+  it("disambiguates HFM Metals & Energies paths and maps crypto/etf/bond to OTHER", () => {
+    const gold = classifyHfmCatalogSymbol(
+      raw({ symbol: "XAUUSD", path: "Metals & Energies\\Spot\\Gold & Silver\\XAUUSD", tradeCalcMode: 2 }),
+    );
+    expect(gold.category).toBe("METALS");
+    expect(gold.method).toBe("SYMBOL_PATH");
+
+    const oil = classifyHfmCatalogSymbol(
+      raw({ symbol: "USOIL", path: "Metals & Energies\\Futures\\USOIL", tradeCalcMode: 2 }),
+    );
+    expect(oil.category).toBe("ENERGIES");
+    const oilSpot = classifyHfmCatalogSymbol(
+      raw({ symbol: "UKOIL.S", path: "Metals & Energies\\Spot\\UKOIL.S", tradeCalcMode: 2 }),
+    );
+    expect(oilSpot.category).toBe("ENERGIES");
+
+    const crypto = classifyHfmCatalogSymbol(raw({ symbol: "#BTCUSD", path: "#Crypto\\#BTCUSD" }));
+    expect(crypto.category).toBe("OTHER");
+
+    const etf = classifyHfmCatalogSymbol(raw({ symbol: "SPY.US", path: "ETFs\\SPY.US" }));
+    expect(etf.category).toBe("OTHER");
+
+    const bond = classifyHfmCatalogSymbol(raw({ symbol: "US10Y", path: "Bonds\\US10Y" }));
+    expect(bond.category).toBe("OTHER");
+  });
+
+  it("does not treat CFD calc mode 2 as INDICES", () => {
+    const cfd = classifyHfmCatalogSymbol(raw({ symbol: "SOMETHING", tradeCalcMode: 2 }));
+    expect(cfd.category).toBe("UNCLASSIFIED");
+    const idx = classifyHfmCatalogSymbol(raw({ symbol: "IDX", tradeCalcMode: 3 }));
+    expect(idx.category).toBe("INDICES");
+    expect(idx.method).toBe("TRADE_CALC_MODE");
+  });
+
   it("maps categories to market types", () => {
     expect(catalogCategoryToMarketType("FOREX")).toBe("FOREX");
     expect(catalogCategoryToMarketType("METALS")).toBe("COMMODITY");

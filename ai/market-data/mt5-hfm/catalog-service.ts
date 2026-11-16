@@ -4,7 +4,11 @@
  */
 import { createHash } from "node:crypto";
 import { callMt5HfmAgent } from "./agent-client.js";
-import { catalogCategoryToMarketType, classifyHfmCatalogSymbol } from "./catalog-classify.js";
+import {
+  catalogCategoryToMarketType,
+  classifyHfmCatalogSymbol,
+  HFM_CLASSIFIER_VERSION,
+} from "./catalog-classify.js";
 import { HfmCatalogStore, computeCatalogPayloadChecksum } from "./catalog-store.js";
 import type {
   HfmCatalogCategory,
@@ -447,12 +451,52 @@ export class HfmCatalogService {
       }
 
       if (previous && previous.catalogVersion === catalogVersion && previous.checksumSha256 === st.checksumSha256) {
-        previous.freshness = "COMPLETE";
-        this.memory = previous;
+        if (previous.classifierVersion === HFM_CLASSIFIER_VERSION) {
+          previous.freshness = "COMPLETE";
+          this.memory = previous;
+          return {
+            ok: true,
+            synced: false,
+            snapshot: previous,
+            status: await this.getStatus({ probeAgent: true }),
+            errorCode: null,
+            durationMs: Date.now() - started,
+          };
+        }
+        // Classifier rules changed — re-enrich from already-persisted instrument fields (no MT5 rescan).
+        const discoveredAt = nowIso();
+        let enriched = enrichCatalogSymbols(previous.symbols, {
+          brokerServer: previous.brokerServer,
+          catalogVersion,
+          previous: previous.symbols,
+          discoveredAt,
+        });
+        const changes = detectCatalogChanges(previous.symbols, enriched);
+        const categoryCounts = emptyCategoryCounts();
+        let completenessSum = 0;
+        for (const s of enriched) {
+          categoryCounts[s.classification.category] += 1;
+          completenessSum += s.metadataCompleteness;
+        }
+        const snapshot: HfmCatalogSnapshot = {
+          ...previous,
+          freshness: "COMPLETE",
+          discoveryStatus: "COMPLETE",
+          ingestedAt: discoveredAt,
+          classifierVersion: HFM_CLASSIFIER_VERSION,
+          metadataCompletenessAvg:
+            enriched.length > 0 ? Math.round((completenessSum / enriched.length) * 10) / 10 : 0,
+          fieldErrorSummary: summarizeFieldErrors(enriched),
+          categoryCounts,
+          changes,
+          symbols: enriched,
+        };
+        const sealed = await this.store.saveSuccessful(snapshot);
+        this.memory = sealed;
         return {
           ok: true,
-          synced: false,
-          snapshot: previous,
+          synced: true,
+          snapshot: sealed,
           status: await this.getStatus({ probeAgent: true }),
           errorCode: null,
           durationMs: Date.now() - started,
@@ -567,6 +611,7 @@ export class HfmCatalogService {
         symbols: enriched,
         source: "mql5_catalog",
         schemaVersion: 1,
+        classifierVersion: HFM_CLASSIFIER_VERSION,
         mutatesBroker: false,
         placesOrders: false,
         acceptsForExecution: false,

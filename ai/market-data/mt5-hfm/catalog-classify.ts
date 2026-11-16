@@ -10,6 +10,9 @@ import type {
   HfmRawCatalogSymbol,
 } from "./catalog-types.js";
 
+/** Bump when classification rules change so sync re-enriches without full rediscovery. */
+export const HFM_CLASSIFIER_VERSION = "1.1.0";
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -20,7 +23,14 @@ function result(
   confidence: HfmClassificationConfidence,
   evidence: string[],
 ): HfmClassificationResult {
-  return { category, method, confidence, evidence, classifiedAt: nowIso() };
+  return {
+    category,
+    method,
+    confidence,
+    evidence,
+    classifiedAt: nowIso(),
+    classifierVersion: HFM_CLASSIFIER_VERSION,
+  };
 }
 
 function pathTokens(path: string | null | undefined): string {
@@ -31,11 +41,24 @@ function matchPathCategory(path: string): HfmCatalogCategory | null {
   const p = pathTokens(path);
   if (!p) return null;
   if (/(^|\/)(forex|fx|currenc)/.test(p)) return "FOREX";
-  if (/(^|\/)(metal|xau|xag|gold|silver|platinum|palladium)/.test(p)) return "METALS";
+  // HFM nests metals and energies under one root — disambiguate before generic "metal".
+  if (/(ukoil|usoil|xtiusd|xbrusd|brent|wti|crude|ngas|natgas|natural\s*gas|(^|\/)oil\b)/.test(p)) {
+    return "ENERGIES";
+  }
+  if (/(xau|xag|xpt|xpd|gold|silver|platinum|palladium)/.test(p)) return "METALS";
+  // Combined HFM folder without precious-metal tokens → treat remaining as energies.
+  if (/metals\s*&\s*energies/.test(p) && !/(gold|silver|platinum|palladium|xau|xag|xpt|xpd)/.test(p)) {
+    return "ENERGIES";
+  }
+  if (/(^|\/)(metal)/.test(p)) return "METALS";
+  if (/(^|\/)(energ)/.test(p)) return "ENERGIES";
   if (/(^|\/)(indic|index|indices|cash\s*index)/.test(p)) return "INDICES";
-  if (/(^|\/)(energ|oil|brent|wti|gas|ngas|crude)/.test(p)) return "ENERGIES";
   if (/(^|\/)(share|stock|equity|equities|cfd.?share)/.test(p)) return "SHARES";
   if (/(^|\/)(commodit|soft|agricult|coffee|cocoa|sugar|wheat|corn)/.test(p)) return "COMMODITIES";
+  // Phase 1 primary categories do not include CRYPTO/ETF/BOND — map to OTHER with path evidence.
+  if (/(^|\/|#)(crypto|bitcoin|ethereum|btc|eth)/.test(p) || /#crypto/.test(p)) return "OTHER";
+  if (/(^|\/)(etf)/.test(p)) return "OTHER";
+  if (/(^|\/)(bond|bonds|treasury)/.test(p)) return "OTHER";
   return null;
 }
 
@@ -51,15 +74,14 @@ function matchTextCategory(text: string): HfmCatalogCategory | null {
   return null;
 }
 
-/** MT5 ENUM_SYMBOL_CALC_MODE commonly used values. */
+/** MT5 ENUM_SYMBOL_CALC_MODE — only map unambiguous modes (CFD≠index). */
 function matchCalcMode(mode: number | null | undefined): HfmCatalogCategory | null {
   if (mode == null || !Number.isFinite(mode)) return null;
   // SYMBOL_CALC_MODE_FOREX = 0, FOREX_NO_LEVERAGE = 5
   if (mode === 0 || mode === 5) return "FOREX";
-  // CFD / CFDIndex / CFDLeverage vary by build; treat index-ish separately when known.
-  // SYMBOL_CALC_MODE_CFDINDEX often 2 on many builds.
-  if (mode === 2) return "INDICES";
-  // SYMBOL_CALC_MODE_CFD = 1, EXCH_* leave as null (need path/sector).
+  // SYMBOL_CALC_MODE_CFDINDEX is commonly 3 (not 2). Mode 2 is CFD on many builds
+  // and applies to metals/energies/shares — never treat it as INDICES.
+  if (mode === 3) return "INDICES";
   return null;
 }
 
