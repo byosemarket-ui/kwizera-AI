@@ -2,8 +2,10 @@
  * HFM MT5 Demo MarketDataProvider — explicit provider identity.
  * Never falls back to ForexConnect or Binance for FX symbols.
  * Read-only. Trading always disabled.
+ * Instrument listing prefers the Phase 1 verified HFM catalog.
  */
 import { callMt5HfmAgent } from "./agent-client.js";
+import { getHfmCatalogService, instrumentToMarketType } from "./catalog-service.js";
 import type {
   MarketDataCapabilities,
   MarketDataProvider,
@@ -61,12 +63,10 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-function classifySymbol(sym: string): MarketInstrument["marketType"] {
+/** Quote-path fallback only — never used as catalog classification. */
+function classifyQuoteSymbolFallback(sym: string): MarketInstrument["marketType"] {
   const u = sym.toUpperCase();
-  if (u.includes("XAU") || u.includes("XAG") || u.includes("GOLD") || u.includes("SILVER")) {
-    return "COMMODITY";
-  }
-  if (/^[A-Z]{6}/.test(u.replace(/[^A-Z]/g, ""))) return "FOREX";
+  if (/^(XAU|XAG|XPT|XPD)/.test(u)) return "COMMODITY";
   return "OTHER";
 }
 
@@ -75,8 +75,8 @@ export class HfmMt5MarketDataProvider implements MarketDataProvider {
     return {
       provider: "HFM_MT5" as MarketProviderInfo["provider"],
       displayName: "HFM MetaTrader 5 (Demo)",
-      apiPath: "AF_UNIX mt5-hfm-agent → MT5 MCP",
-      marketTypes: ["FOREX", "CFD", "COMMODITY", "INDEX", "OTHER"],
+      apiPath: "AF_UNIX mt5-hfm-agent → MQL5 catalog + quotes",
+      marketTypes: ["FOREX", "CFD", "COMMODITY", "INDEX", "SHARE", "OTHER", "UNKNOWN"],
       environmentLabel: "HFM Demo (read-only)",
       capabilities: CAPS,
     };
@@ -145,37 +145,78 @@ export class HfmMt5MarketDataProvider implements MarketDataProvider {
     }
   }
 
-  async listInstruments(): Promise<MarketInstrument[]> {
-    const res = await callMt5HfmAgent("demo.symbols", {});
-    if (!res.ok) return [];
-    const result = (res.result ?? {}) as { symbols?: Array<Record<string, unknown>> };
-    const symbols = Array.isArray(result.symbols) ? result.symbols : [];
-    return symbols.map((s) => {
-      const broker = String(s.brokerSymbol ?? s.symbol ?? "");
-      return {
+  async listInstruments(options?: { refresh?: boolean }): Promise<MarketInstrument[]> {
+    const catalog = getHfmCatalogService();
+    if (options?.refresh) {
+      await catalog.syncFromAgent({ forceRefresh: false });
+    } else {
+      const loaded = await catalog.load();
+      if (!loaded) {
+        await catalog.syncFromAgent({ forceRefresh: false });
+      }
+    }
+    const snap = await catalog.load();
+    if (!snap || snap.provider !== "HFM_MT5") {
+      // Explicit empty — never fall back to FXCM / ForexConnect / Binance / MCP Market Watch.
+      return [];
+    }
+    return snap.symbols
+      .filter((s) => s.lifecycle !== "REMOVED_OR_UNAVAILABLE")
+      .map((s) => ({
         provider: "HFM_MT5" as MarketInstrument["provider"],
-        providerSymbol: broker,
-        canonicalSymbol: broker,
-        displaySymbol: String(s.displayName ?? broker),
-        marketType: classifySymbol(broker),
-        baseAsset: s.baseCurrency != null ? String(s.baseCurrency) : null,
-        quoteAsset: s.quoteCurrency != null ? String(s.quoteCurrency) : null,
-        status: "available" as const,
+        providerSymbol: s.symbol,
+        canonicalSymbol: s.symbol,
+        displaySymbol: s.description ?? s.symbol,
+        marketType: instrumentToMarketType(s),
+        baseAsset: s.currencyBase,
+        quoteAsset: s.currencyProfit,
+        status: s.lifecycle === "ACTIVE" || s.lifecycle === "METADATA_INCOMPLETE" ? ("available" as const) : ("hidden" as const),
         capabilities: CAPS,
         metadata: {
           source: "HFM_MT5",
           environment: "demo",
-          digits: typeof s.digits === "number" ? s.digits : null,
-          point: typeof s.point === "number" ? s.point : null,
+          catalogVersion: s.catalogVersion,
+          lifecycle: s.lifecycle,
+          category: s.classification.category,
+          classificationMethod: s.classification.method,
+          classificationConfidence: s.classification.confidence,
+          path: s.path,
+          digits: s.digits,
+          point: s.point,
+          selected: s.selected,
+          customSymbol: s.customSymbol,
+          metadataCompleteness: s.metadataCompleteness,
         },
-      };
-    });
+      }));
   }
 
   async getInstrument(symbol: string): Promise<MarketInstrument | null> {
-    const all = await this.listInstruments();
-    const u = symbol.toUpperCase();
-    return all.find((i) => i.providerSymbol.toUpperCase() === u || i.canonicalSymbol.toUpperCase() === u) ?? null;
+    const catalog = getHfmCatalogService();
+    await catalog.load();
+    const row = await catalog.getSymbol(symbol);
+    if (!row) return null;
+    return {
+      provider: "HFM_MT5" as MarketInstrument["provider"],
+      providerSymbol: row.symbol,
+      canonicalSymbol: row.symbol,
+      displaySymbol: row.description ?? row.symbol,
+      marketType: instrumentToMarketType(row),
+      baseAsset: row.currencyBase,
+      quoteAsset: row.currencyProfit,
+      status: row.lifecycle === "ACTIVE" || row.lifecycle === "METADATA_INCOMPLETE" ? "available" : "hidden",
+      capabilities: CAPS,
+      metadata: {
+        source: "HFM_MT5",
+        environment: "demo",
+        catalogVersion: row.catalogVersion,
+        lifecycle: row.lifecycle,
+        category: row.classification.category,
+        path: row.path,
+        digits: row.digits,
+        point: row.point,
+        metadataCompleteness: row.metadataCompleteness,
+      },
+    };
   }
 
   async getQuotes(symbols?: string[]): Promise<HfmMt5QuoteResult> {
@@ -192,7 +233,7 @@ export class HfmMt5MarketDataProvider implements MarketDataProvider {
       const fresh = row.fresh === true;
       return {
         provider: "HFM_MT5" as NormalizedMarketQuote["provider"],
-        marketType: classifySymbol(String(row.symbol ?? "")),
+        marketType: classifyQuoteSymbolFallback(String(row.symbol ?? "")),
         providerSymbol: String(row.symbol ?? ""),
         canonicalSymbol: String(row.symbol ?? ""),
         providerTimestamp: row.tickTime != null ? String(row.tickTime) : null,

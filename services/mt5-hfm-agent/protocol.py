@@ -26,6 +26,9 @@ ALLOWED_METHODS = frozenset(
         "demo.trade_history_snapshot",
         "demo.logout",
         "demo.connection_status",
+        "demo.catalog_status",
+        "demo.catalog_chunk",
+        "demo.catalog_refresh",
     }
 )
 

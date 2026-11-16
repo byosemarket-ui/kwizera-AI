@@ -11,6 +11,8 @@ No Live servers. No orders / EA trading.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import re
 import subprocess
@@ -147,6 +149,14 @@ SNAPSHOT_COMMON = (
     / "drive_c/users/mt5/AppData/Roaming/MetaQuotes/Terminal/Common/Files/kwizera_readonly_snapshot.json"
 )
 SNAPSHOT_LOCAL = TERM_ROOT / "MQL5/Files/kwizera_readonly_snapshot.json"
+CATALOG_COMMON_DIR = (
+    Path(WINEPREFIX) / "drive_c/users/mt5/AppData/Roaming/MetaQuotes/Terminal/Common/Files"
+)
+CATALOG_LOCAL_DIR = TERM_ROOT / "MQL5/Files"
+CATALOG_META_NAME = "kwizera_catalog_meta.json"
+CATALOG_NDJSON_NAME = "kwizera_catalog_symbols.ndjson"
+CATALOG_READY_NAME = "kwizera_catalog.ready"
+CATALOG_REFRESH_NAME = "kwizera_catalog_refresh.request"
 EXPERT_MQ5_NAME = "KwizeraReadonlySnapshot.mq5"
 EXPERT_EX5_NAME = "KwizeraReadonlySnapshot.ex5"
 
@@ -1278,3 +1288,243 @@ def demo_logout() -> dict[str, Any]:
     _stop_terminal()
     _last_demo_meta.clear()
     return {"loggedOut": True, "terminalRunning": terminal_running()}
+
+
+def _catalog_file(name: str) -> Path | None:
+    for base in (CATALOG_COMMON_DIR, CATALOG_LOCAL_DIR):
+        p = base / name
+        if p.is_file():
+            return p
+    return None
+
+
+def _read_catalog_meta() -> dict[str, Any] | None:
+    path = _catalog_file(CATALOG_META_NAME)
+    if path is None:
+        return None
+    try:
+        raw = path.read_text(encoding="utf-8", errors="replace").strip()
+        if not raw:
+            return None
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else None
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _ndjson_path() -> Path | None:
+    return _catalog_file(CATALOG_NDJSON_NAME)
+
+
+def _sha256_file(path: Path) -> str | None:
+    try:
+        h = hashlib.sha256()
+        with path.open("rb") as fh:
+            while True:
+                chunk = fh.read(65536)
+                if not chunk:
+                    break
+                h.update(chunk)
+        return h.hexdigest()
+    except OSError:
+        return None
+
+
+def catalog_status() -> dict[str, Any]:
+    """Read-only catalog discovery status from MQL artifact (not MCP)."""
+    meta = _read_catalog_meta()
+    ndjson = _ndjson_path()
+    ready = _catalog_file(CATALOG_READY_NAME) is not None
+    checksum = _sha256_file(ndjson) if ndjson is not None else None
+    line_count = None
+    if ndjson is not None:
+        try:
+            with ndjson.open("r", encoding="utf-8", errors="replace") as fh:
+                line_count = sum(1 for line in fh if line.strip())
+        except OSError:
+            line_count = None
+    if meta is None:
+        return {
+            "available": False,
+            "artifactReady": False,
+            "discoveryStatus": "UNAVAILABLE",
+            "unavailableReason": "CATALOG_ARTIFACT_MISSING",
+            "provider": "HFM_MT5",
+            "environment": "demo",
+            "source": "mql5_catalog",
+            "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "mutatesBroker": False,
+            "placesOrders": False,
+        }
+    status = str(meta.get("discoveryStatus") or "UNKNOWN")
+    artifact_ready = bool(meta.get("artifactReady")) and ready and ndjson is not None and status == "COMPLETE"
+    return {
+        "available": artifact_ready or status in ("IN_PROGRESS", "COMPLETE"),
+        "artifactReady": artifact_ready,
+        "discoveryStatus": status,
+        "provider": "HFM_MT5",
+        "environment": "demo",
+        "brokerServer": meta.get("brokerServer"),
+        "catalogVersion": meta.get("catalogVersion"),
+        "enumerationStartedAt": meta.get("enumerationStartedAt") or None,
+        "enumerationCompletedAt": meta.get("enumerationCompletedAt") or None,
+        "writtenAt": meta.get("writtenAt"),
+        "generalSymbolCount": meta.get("generalSymbolCount"),
+        "selectedSymbolCount": meta.get("selectedSymbolCount"),
+        "enumeratedCount": meta.get("enumeratedCount"),
+        "validCount": meta.get("validCount"),
+        "duplicateCount": meta.get("duplicateCount"),
+        "customCount": meta.get("customCount"),
+        "batchIndex": meta.get("batchIndex"),
+        "ndjsonLineCount": line_count,
+        "checksumSha256": checksum,
+        "source": "mql5_catalog",
+        "schemaVersion": meta.get("schemaVersion"),
+        "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "mutatesBroker": False,
+        "placesOrders": False,
+        "acceptsForExecution": False,
+    }
+
+
+def catalog_chunk(*, offset: int = 0, limit: int = 50) -> dict[str, Any]:
+    """Return a bounded slice of catalog NDJSON symbols (safe AF_UNIX payload)."""
+    if offset < 0:
+        raise ValueError("INVALID_OFFSET")
+    if limit < 1:
+        limit = 1
+    if limit > 80:
+        limit = 80
+    status = catalog_status()
+    if not status.get("artifactReady"):
+        return {
+            "available": False,
+            "artifactReady": False,
+            "discoveryStatus": status.get("discoveryStatus"),
+            "unavailableReason": status.get("unavailableReason") or "CATALOG_NOT_READY",
+            "symbols": [],
+            "offset": offset,
+            "limit": limit,
+            "returned": 0,
+            "total": status.get("ndjsonLineCount"),
+            "provider": "HFM_MT5",
+            "environment": "demo",
+            "catalogVersion": status.get("catalogVersion"),
+            "checksumSha256": status.get("checksumSha256"),
+            "source": "mql5_catalog",
+            "mutatesBroker": False,
+            "placesOrders": False,
+        }
+    ndjson = _ndjson_path()
+    if ndjson is None:
+        return {
+            "available": False,
+            "artifactReady": False,
+            "unavailableReason": "CATALOG_NDJSON_MISSING",
+            "symbols": [],
+            "offset": offset,
+            "limit": limit,
+            "returned": 0,
+            "provider": "HFM_MT5",
+            "environment": "demo",
+            "source": "mql5_catalog",
+            "mutatesBroker": False,
+            "placesOrders": False,
+        }
+    symbols: list[dict[str, Any]] = []
+    total = 0
+    try:
+        with ndjson.open("r", encoding="utf-8", errors="replace") as fh:
+            for i, line in enumerate(fh):
+                raw = line.strip()
+                if not raw:
+                    continue
+                if total >= offset and len(symbols) < limit:
+                    try:
+                        obj = json.loads(raw)
+                        if isinstance(obj, dict) and obj.get("symbol"):
+                            symbols.append(obj)
+                    except json.JSONDecodeError:
+                        symbols.append(
+                            {
+                                "symbol": f"__parse_error_{total}",
+                                "symbolExists": False,
+                                "fieldErrors": {"_line": "JSON_DECODE_ERROR"},
+                            }
+                        )
+                total += 1
+                if total > offset + limit and False:
+                    pass
+        # Recount total accurately
+        with ndjson.open("r", encoding="utf-8", errors="replace") as fh:
+            total = sum(1 for line in fh if line.strip())
+    except OSError as exc:
+        return {
+            "available": False,
+            "artifactReady": False,
+            "unavailableReason": f"CATALOG_READ_ERROR:{type(exc).__name__}",
+            "symbols": [],
+            "offset": offset,
+            "limit": limit,
+            "returned": 0,
+            "provider": "HFM_MT5",
+            "environment": "demo",
+            "source": "mql5_catalog",
+            "mutatesBroker": False,
+            "placesOrders": False,
+        }
+    return {
+        "available": True,
+        "artifactReady": True,
+        "discoveryStatus": status.get("discoveryStatus"),
+        "symbols": symbols,
+        "offset": offset,
+        "limit": limit,
+        "returned": len(symbols),
+        "total": total,
+        "hasMore": (offset + len(symbols)) < total,
+        "provider": "HFM_MT5",
+        "environment": "demo",
+        "brokerServer": status.get("brokerServer"),
+        "catalogVersion": status.get("catalogVersion"),
+        "checksumSha256": status.get("checksumSha256"),
+        "generalSymbolCount": status.get("generalSymbolCount"),
+        "selectedSymbolCount": status.get("selectedSymbolCount"),
+        "enumeratedCount": status.get("enumeratedCount"),
+        "validCount": status.get("validCount"),
+        "source": "mql5_catalog",
+        "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "mutatesBroker": False,
+        "placesOrders": False,
+        "acceptsForExecution": False,
+    }
+
+
+def catalog_refresh_request() -> dict[str, Any]:
+    """Ask the Expert to restart catalog discovery (does not mutate Market Watch)."""
+    for base in (CATALOG_COMMON_DIR, CATALOG_LOCAL_DIR):
+        try:
+            base.mkdir(parents=True, exist_ok=True)
+            path = base / CATALOG_REFRESH_NAME
+            path.write_text(
+                time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                encoding="utf-8",
+            )
+            return {
+                "requested": True,
+                "provider": "HFM_MT5",
+                "environment": "demo",
+                "note": "Refresh request written; Expert will restart batched discovery on next timer.",
+                "mutatesBroker": False,
+                "placesOrders": False,
+            }
+        except OSError:
+            continue
+    return {
+        "requested": False,
+        "unavailableReason": "CATALOG_REFRESH_WRITE_FAILED",
+        "provider": "HFM_MT5",
+        "environment": "demo",
+        "mutatesBroker": False,
+        "placesOrders": False,
+    }

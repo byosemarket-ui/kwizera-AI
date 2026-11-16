@@ -165,6 +165,14 @@ def handle_request(token: str, nonces: NonceCache, req: dict[str, Any]) -> dict[
             result = mt5_control.stream_snapshot(include_candles=include_candles)
         elif method == "demo.symbols":
             result = mt5_control.symbols_snapshot()
+        elif method == "demo.catalog_status":
+            result = mt5_control.catalog_status()
+        elif method == "demo.catalog_chunk":
+            offset = int(body.get("offset") or 0)
+            limit = int(body.get("limit") or 50)
+            result = mt5_control.catalog_chunk(offset=offset, limit=limit)
+        elif method == "demo.catalog_refresh":
+            result = mt5_control.catalog_refresh_request()
         elif method == "demo.open_positions_snapshot":
             result = mt5_control.open_positions_snapshot()
         elif method == "demo.pending_orders_snapshot":

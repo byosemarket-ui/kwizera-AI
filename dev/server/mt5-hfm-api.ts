@@ -13,6 +13,11 @@
  * GET  /api/forex/providers/mt5-hfm/account            (cached Demo snapshot only)
  * GET  /api/forex/providers/mt5-hfm/stream             (Demo SSE realtime feed)
  * GET  /api/forex/providers/mt5-hfm/realtime/status    (Hub freshness / subscribers)
+ * GET  /api/forex/providers/mt5-hfm/symbols            (HFM catalog query)
+ * GET  /api/forex/providers/mt5-hfm/symbols/status     (Catalog discovery status)
+ * GET  /api/forex/providers/mt5-hfm/symbols/categories (Category counts)
+ * GET  /api/forex/providers/mt5-hfm/symbols/:symbol    (Symbol detail)
+ * POST /api/forex/providers/mt5-hfm/symbols/sync       (Pull catalog from agent)
  *
  * Admin token required. Never returns stored passwords.
  * Live credential save/clear allowed. Live login / auth tests / trading locked.
@@ -55,6 +60,8 @@ import { callMt5HfmAgent } from "../../ai/market-data/mt5-hfm/agent-client.js";
 import { mt5HfmThreatModelSummary } from "../../ai/market-data/mt5-hfm/threat-model.js";
 import { redactAgentPayload } from "../../ai/market-data/mt5-hfm/agent-protocol.js";
 import { buildMt5HfmConnectionStates } from "../../ai/market-data/mt5-hfm/connection-states.js";
+import { getHfmCatalogService } from "../../ai/market-data/mt5-hfm/catalog-service.js";
+import { HFM_CATALOG_CATEGORIES } from "../../ai/market-data/mt5-hfm/catalog-types.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -839,6 +846,145 @@ export async function handleMt5HfmApi(
           error: { code: "AGENT_UNAVAILABLE", message: "MT5 agent socket unavailable." },
         });
       }
+      return true;
+    }
+
+    // --- Phase 1 HFM instrument catalog (admin-auth, HFM-only) ---
+    const catalog = getHfmCatalogService();
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/symbols/status" && (req.method === "GET" || req.method === "HEAD")) {
+      const probe = url.searchParams.get("probe") !== "0";
+      const status = await catalog.getStatus({ probeAgent: probe });
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        status,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, status.available || status.freshness === "IN_PROGRESS" ? 200 : 503, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/symbols/categories" && (req.method === "GET" || req.method === "HEAD")) {
+      await catalog.load();
+      const cats = await catalog.categories();
+      const payload = {
+        ok: cats.available,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        catalogVersion: cats.catalogVersion,
+        categories: HFM_CATALOG_CATEGORIES.map((name) => ({
+          category: name,
+          count: cats.counts[name] ?? 0,
+        })),
+        unavailableReason: cats.unavailableReason,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, cats.available ? 200 : 503, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/symbols/sync" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      const forceRefresh = body.forceRefresh === true || body.refresh === true;
+      const result = await catalog.syncFromAgent({ forceRefresh });
+      const payload = {
+        ok: result.ok,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        synced: result.synced,
+        durationMs: result.durationMs,
+        errorCode: result.errorCode,
+        status: result.status,
+        catalogVersion: result.snapshot?.catalogVersion ?? null,
+        enumeratedCount: result.snapshot?.enumeratedCount ?? null,
+        generalSymbolCount: result.snapshot?.generalSymbolCount ?? null,
+        selectedSymbolCount: result.snapshot?.selectedSymbolCount ?? null,
+        metadataCompletenessAvg: result.snapshot?.metadataCompletenessAvg ?? null,
+        categoryCounts: result.snapshot?.categoryCounts ?? null,
+        checksumSha256: result.snapshot?.checksumSha256 ?? null,
+        changes: result.snapshot?.changes ?? null,
+        mutatesBroker: false,
+        placesOrders: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, result.ok ? 200 : 503, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/symbols" && (req.method === "GET" || req.method === "HEAD")) {
+      await catalog.load();
+      if (url.searchParams.get("sync") === "1") {
+        await catalog.syncFromAgent({ forceRefresh: false });
+      }
+      const selectedParam = url.searchParams.get("selected");
+      const customParam = url.searchParams.get("custom");
+      const result = await catalog.query({
+        q: url.searchParams.get("q") ?? undefined,
+        category: url.searchParams.get("category") ?? undefined,
+        lifecycle: url.searchParams.get("lifecycle") ?? undefined,
+        selected: selectedParam == null ? undefined : selectedParam === "1" || selectedParam === "true",
+        custom: customParam == null ? undefined : customParam === "1" || customParam === "true",
+        offset: Number(url.searchParams.get("offset") ?? 0),
+        limit: Number(url.searchParams.get("limit") ?? 50),
+      });
+      const status = await catalog.getStatus({ probeAgent: false });
+      const payload = {
+        ok: result.available,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        freshness: result.freshness,
+        catalogVersion: result.catalogVersion,
+        brokerServer: status.brokerServer,
+        total: result.total,
+        offset: result.offset,
+        limit: result.limit,
+        returned: result.returned,
+        symbols: result.symbols,
+        completeness: {
+          metadataCompletenessAvg: status.metadataCompletenessAvg,
+          fieldErrorSummary: status.fieldErrorSummary,
+          generalSymbolCount: status.generalSymbolCount,
+          selectedSymbolCount: status.selectedSymbolCount,
+          enumeratedCount: status.enumeratedCount,
+        },
+        unavailableReason: result.unavailableReason,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, result.available ? 200 : 503, payload);
+      return true;
+    }
+
+    const symbolDetailMatch = url.pathname.match(/^\/api\/forex\/providers\/mt5-hfm\/symbols\/([^/]+)$/);
+    if (symbolDetailMatch && (req.method === "GET" || req.method === "HEAD")) {
+      const rawSym = decodeURIComponent(symbolDetailMatch[1] ?? "");
+      if (!rawSym || rawSym === "status" || rawSym === "categories" || rawSym === "sync") {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "NOT_FOUND", message: "Unknown MT5 HFM symbols route." },
+        });
+        return true;
+      }
+      await catalog.load();
+      const row = await catalog.getSymbol(rawSym);
+      if (!row) {
+        sendJson(res, 404, {
+          ok: false,
+          provider: "HFM_MT5",
+          environment: "demo",
+          error: { code: "SYMBOL_NOT_FOUND", message: `Symbol not in HFM catalog: ${rawSym}` },
+        });
+        return true;
+      }
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        symbol: row,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
       return true;
     }
 
