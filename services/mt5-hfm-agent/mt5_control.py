@@ -588,25 +588,34 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
             "HOME": "/home/mt5",
         }
     )
-    # Compile from a space-free Wine Z: path. MetaEditor silently fails on
-    # unquoted "Program Files" paths under Wine.
-    compile_dir = Path("/home/mt5/kwizera-mql-compile")
+    # Wine MetaEditor /compile fails when invoked with a "Program Files" path as a
+    # single argv. Compile from C:\users\mt5\kwizera-mql-compile via cmd.exe batch.
+    compile_dir = Path(WINEPREFIX) / "drive_c/users/mt5/kwizera-mql-compile"
     compile_dir.mkdir(parents=True, exist_ok=True)
     compile_mq5 = compile_dir / EXPERT_MQ5_NAME
     compile_ex5 = compile_dir / EXPERT_EX5_NAME
+    compile_log = compile_dir / (EXPERT_MQ5_NAME.replace(".mq5", ".log"))
     compile_mq5.write_bytes(src.read_bytes())
+    bat = compile_dir / "compile_kwizera.bat"
+    bat.write_text(
+        "@echo off\r\n"
+        "cd /d C:\\users\\mt5\\kwizera-mql-compile\r\n"
+        f"\"C:\\Program Files\\HFM Metatrader 5\\MetaEditor64.exe\" /compile:{EXPERT_MQ5_NAME} /log\r\n",
+        encoding="utf-8",
+    )
     try:
         if compile_ex5.is_file():
             compile_ex5.unlink()
     except OSError:
         pass
-    win_src = r"Z:\home\mt5\kwizera-mql-compile\\" + EXPERT_MQ5_NAME
-    compile_arg = f'/compile:"{win_src}"'
+    try:
+        if compile_log.is_file():
+            compile_log.unlink()
+    except OSError:
+        pass
     prev_mtime = ex5.stat().st_mtime if ex5.is_file() else 0.0
     prev_size = ex5.stat().st_size if ex5.is_file() else 0
-    # Keep a backup until the new EX5 lands. Wine MetaEditor often returns from
-    # `wine MetaEditor64.exe /compile:...` before the async compile finishes writing EX5;
-    # deleting first left the VPS with no Expert binary.
+    # Keep a backup until the new EX5 lands.
     bak = experts / (EXPERT_EX5_NAME + ".bak")
     try:
         if ex5.is_file():
@@ -619,9 +628,8 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
     except OSError:
         pass
     try:
-        # Launch compile; poll for EX5 (MetaEditor under Wine is async).
         proc = subprocess.Popen(
-            [WINE_BIN, str(metaeditor), compile_arg, "/log"],
+            [WINE_BIN, "cmd", "/c", r"C:\users\mt5\kwizera-mql-compile\compile_kwizera.bat"],
             env=env,
             cwd=str(TERM_ROOT),
             stdout=subprocess.PIPE,
@@ -631,23 +639,22 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
         deadline = time.time() + 180.0
         rebuilt = False
         while time.time() < deadline:
-            # Prefer compile-dir EX5 then copy into Experts.
-            produced = compile_ex5 if compile_ex5.is_file() else (ex5 if ex5.is_file() else None)
+            produced = compile_ex5 if compile_ex5.is_file() else None
             if produced is not None:
                 try:
                     st = produced.stat()
-                    if st.st_mtime > prev_mtime or st.st_size > 0:
+                    if st.st_size > 0:
                         size1 = st.st_size
-                        time.sleep(0.4)
+                        time.sleep(0.5)
                         size2 = produced.stat().st_size if produced.is_file() else 0
                         if size1 == size2 and size2 > 0:
-                            if produced != ex5:
-                                ex5.write_bytes(produced.read_bytes())
+                            ex5.write_bytes(produced.read_bytes())
                             rebuilt = True
                             break
                 except OSError:
                     pass
-            if proc.poll() is not None and time.time() > deadline - 60:
+            if proc.poll() is not None and time.time() > deadline - 30:
+                # Batch may exit before EX5 flush completes; keep polling briefly.
                 pass
             time.sleep(0.5)
         stdout = ""
