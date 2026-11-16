@@ -588,8 +588,19 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
             "HOME": "/home/mt5",
         }
     )
-    # Quote the Windows path — unquoted "Program Files" breaks MetaEditor /compile parsing.
-    win_src = r"C:\Program Files\HFM Metatrader 5\MQL5\Experts\\" + EXPERT_MQ5_NAME
+    # Compile from a space-free Wine Z: path. MetaEditor silently fails on
+    # unquoted "Program Files" paths under Wine.
+    compile_dir = Path("/home/mt5/kwizera-mql-compile")
+    compile_dir.mkdir(parents=True, exist_ok=True)
+    compile_mq5 = compile_dir / EXPERT_MQ5_NAME
+    compile_ex5 = compile_dir / EXPERT_EX5_NAME
+    compile_mq5.write_bytes(src.read_bytes())
+    try:
+        if compile_ex5.is_file():
+            compile_ex5.unlink()
+    except OSError:
+        pass
+    win_src = r"Z:\home\mt5\kwizera-mql-compile\\" + EXPERT_MQ5_NAME
     compile_arg = f'/compile:"{win_src}"'
     prev_mtime = ex5.stat().st_mtime if ex5.is_file() else 0.0
     prev_size = ex5.stat().st_size if ex5.is_file() else 0
@@ -617,25 +628,26 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
             stderr=subprocess.PIPE,
             text=True,
         )
-        deadline = time.time() + 120.0
+        deadline = time.time() + 180.0
         rebuilt = False
         while time.time() < deadline:
-            if ex5.is_file():
+            # Prefer compile-dir EX5 then copy into Experts.
+            produced = compile_ex5 if compile_ex5.is_file() else (ex5 if ex5.is_file() else None)
+            if produced is not None:
                 try:
-                    st = ex5.stat()
-                    # Accept a freshly written EX5 (mtime advanced or size changed vs pre-compile).
-                    if st.st_mtime > prev_mtime or (prev_mtime == 0.0 and st.st_size > 0):
-                        # Require file to stop growing for a short settle window.
+                    st = produced.stat()
+                    if st.st_mtime > prev_mtime or st.st_size > 0:
                         size1 = st.st_size
                         time.sleep(0.4)
-                        size2 = ex5.stat().st_size if ex5.is_file() else 0
+                        size2 = produced.stat().st_size if produced.is_file() else 0
                         if size1 == size2 and size2 > 0:
+                            if produced != ex5:
+                                ex5.write_bytes(produced.read_bytes())
                             rebuilt = True
                             break
                 except OSError:
                     pass
-            if proc.poll() is not None and time.time() > deadline - 90:
-                # Process exited early; keep polling a bit longer for delayed write.
+            if proc.poll() is not None and time.time() > deadline - 60:
                 pass
             time.sleep(0.5)
         stdout = ""
