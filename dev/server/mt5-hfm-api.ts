@@ -16,6 +16,12 @@
  * GET  /api/forex/providers/mt5-hfm/quotes             (Validated quote snapshot)
  * GET  /api/forex/providers/mt5-hfm/quotes/status      (Quote status counts)
  * GET  /api/forex/providers/mt5-hfm/quotes/:symbol     (Latest validated quote)
+ * GET/POST /api/forex/providers/mt5-hfm/subscriptions (STEP 2B subscription manager)
+ * GET/POST /api/forex/providers/mt5-hfm/subscriptions/:symbol
+ * POST /api/forex/providers/mt5-hfm/subscriptions/:symbol/pause|resume
+ * GET  /api/forex/providers/mt5-hfm/freshness[/ :symbol]
+ * GET  /api/forex/providers/mt5-hfm/recovery
+ * GET  /api/forex/providers/mt5-hfm/health
  * GET  /api/forex/providers/mt5-hfm/symbols            (HFM catalog query)
  * GET  /api/forex/providers/mt5-hfm/symbols/status     (Catalog discovery status)
  * GET  /api/forex/providers/mt5-hfm/symbols/categories (Category counts)
@@ -67,6 +73,12 @@ import { getHfmCatalogService } from "../../ai/market-data/mt5-hfm/catalog-servi
 import { HFM_CATALOG_CATEGORIES } from "../../ai/market-data/mt5-hfm/catalog-types.js";
 import { getHfmQuoteService } from "../../ai/market-data/mt5-hfm/quote-service.js";
 import { getHfmQuoteSubscriptionRegistry } from "../../ai/market-data/mt5-hfm/quote-subscriptions.js";
+import { getHfmSubscriptionManager } from "../../ai/market-data/mt5-hfm/subscription-manager.js";
+import { getHfmSymbolFreshnessEngine } from "../../ai/market-data/mt5-hfm/symbol-freshness.js";
+import { getHfmRecoveryEngine } from "../../ai/market-data/mt5-hfm/recovery-engine.js";
+import { getHfmSubscriptionScheduler } from "../../ai/market-data/mt5-hfm/subscription-scheduler.js";
+import { getHfmSnapshotTracker } from "../../ai/market-data/mt5-hfm/snapshot-tracker.js";
+import type { HfmSubscriptionPriority } from "../../ai/market-data/mt5-hfm/subscription-types.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -925,6 +937,288 @@ export async function handleMt5HfmApi(
       assertNoSecretsInMt5HfmPayload(payload);
       sendJson(res, 200, payload);
       return true;
+    }
+
+    // --- STEP 2B subscription / freshness / recovery (admin-auth, HFM-only) ---
+    if (url.pathname === "/api/forex/providers/mt5-hfm/health" && (req.method === "GET" || req.method === "HEAD")) {
+      ensureMt5HfmRealtimeHubStarted();
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        realtime: getMt5HfmRealtimeHubStatus(),
+        capacity: getHfmSubscriptionManager().capacity(),
+        freshnessCounts: getHfmSymbolFreshnessEngine().counts(),
+        recovery: getHfmRecoveryEngine().metrics(),
+        scheduler: getHfmSubscriptionScheduler().status(),
+        snapshot: getHfmSnapshotTracker().snapshot(),
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/recovery" && (req.method === "GET" || req.method === "HEAD")) {
+      ensureMt5HfmRealtimeHubStarted();
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        state: getHfmRecoveryEngine().getState(),
+        metrics: getHfmRecoveryEngine().metrics(),
+        history: getHfmRecoveryEngine().getHistory().slice(-40),
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/freshness" && (req.method === "GET" || req.method === "HEAD")) {
+      ensureMt5HfmRealtimeHubStarted();
+      const symbols = getHfmSubscriptionManager().listAcquisitionSymbols();
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        counts: getHfmSymbolFreshnessEngine().counts(),
+        symbols: getHfmSymbolFreshnessEngine().list(symbols),
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    const freshnessMatch = url.pathname.match(/^\/api\/forex\/providers\/mt5-hfm\/freshness\/([^/]+)$/);
+    if (freshnessMatch && (req.method === "GET" || req.method === "HEAD")) {
+      const sym = decodeURIComponent(freshnessMatch[1] ?? "");
+      const row = getHfmSymbolFreshnessEngine().get(sym) ?? getHfmSymbolFreshnessEngine().ensure(sym);
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        freshness: row,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/subscriptions" && req.method === "GET") {
+      ensureMt5HfmRealtimeHubStarted();
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        capacity: getHfmSubscriptionManager().capacity(),
+        subscriptions: getHfmSubscriptionManager().listAll(),
+        scheduler: getHfmSubscriptionScheduler().status(),
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/subscriptions" && req.method === "POST") {
+      if (!checkRateLimit(req)) {
+        sendJson(res, 429, { ok: false, error: { code: "RATE_LIMITED", message: "Too many subscription mutations." } });
+        return true;
+      }
+      const body = await readJsonBody(req);
+      const symbols = Array.isArray(body.symbols)
+        ? body.symbols.map(String)
+        : body.symbol
+          ? [String(body.symbol)]
+          : [];
+      if (symbols.length === 0) {
+        sendJson(res, 400, { ok: false, error: { code: "SYMBOL_REQUIRED", message: "symbol or symbols required." } });
+        return true;
+      }
+      const priority = body.priority as HfmSubscriptionPriority | number | undefined;
+      const result = await getHfmSubscriptionManager().subscribeMany(symbols, {
+        priority,
+        requestedBy: "api",
+      });
+      const payload = {
+        ok: result.ok,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        accepted: result.accepted,
+        rejected: result.rejected,
+        capacity: getHfmSubscriptionManager().capacity(),
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, result.ok ? 200 : 207, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/subscriptions" && req.method === "DELETE") {
+      if (!checkRateLimit(req)) {
+        sendJson(res, 429, { ok: false, error: { code: "RATE_LIMITED", message: "Too many subscription mutations." } });
+        return true;
+      }
+      const body = await readJsonBody(req);
+      const symbols = Array.isArray(body.symbols)
+        ? body.symbols.map(String)
+        : body.symbol
+          ? [String(body.symbol)]
+          : [];
+      const result = await getHfmSubscriptionManager().unsubscribeMany(symbols);
+      const payload = {
+        ok: result.ok,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        removed: result.removed,
+        rejected: result.rejected,
+        capacity: getHfmSubscriptionManager().capacity(),
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    const subPause = url.pathname.match(/^\/api\/forex\/providers\/mt5-hfm\/subscriptions\/([^/]+)\/pause$/);
+    if (subPause && req.method === "POST") {
+      if (!checkRateLimit(req)) {
+        sendJson(res, 429, { ok: false, error: { code: "RATE_LIMITED", message: "Too many subscription mutations." } });
+        return true;
+      }
+      const sym = decodeURIComponent(subPause[1] ?? "");
+      const r = getHfmSubscriptionManager().pause(sym);
+      sendJson(res, r.ok ? 200 : 400, {
+        ok: r.ok,
+        provider: "HFM_MT5",
+        environment: "demo",
+        reason: r.reason,
+        subscription: r.record,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    const subResume = url.pathname.match(/^\/api\/forex\/providers\/mt5-hfm\/subscriptions\/([^/]+)\/resume$/);
+    if (subResume && req.method === "POST") {
+      if (!checkRateLimit(req)) {
+        sendJson(res, 429, { ok: false, error: { code: "RATE_LIMITED", message: "Too many subscription mutations." } });
+        return true;
+      }
+      const sym = decodeURIComponent(subResume[1] ?? "");
+      const r = getHfmSubscriptionManager().resume(sym);
+      sendJson(res, r.ok ? 200 : 400, {
+        ok: r.ok,
+        provider: "HFM_MT5",
+        environment: "demo",
+        reason: r.reason,
+        subscription: r.record,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    const subOne = url.pathname.match(/^\/api\/forex\/providers\/mt5-hfm\/subscriptions\/([^/]+)$/);
+    if (subOne) {
+      const sym = decodeURIComponent(subOne[1] ?? "");
+      if (req.method === "GET" || req.method === "HEAD") {
+        const row = getHfmSubscriptionManager().get(sym);
+        if (!row) {
+          sendJson(res, 404, {
+            ok: false,
+            provider: "HFM_MT5",
+            environment: "demo",
+            error: { code: "NOT_FOUND", message: `No subscription for ${sym}` },
+          });
+          return true;
+        }
+        sendJson(res, 200, {
+          ok: true,
+          provider: "HFM_MT5",
+          environment: "demo",
+          subscription: row,
+          freshness: getHfmSymbolFreshnessEngine().get(sym),
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      if (req.method === "POST") {
+        if (!checkRateLimit(req)) {
+          sendJson(res, 429, { ok: false, error: { code: "RATE_LIMITED", message: "Too many subscription mutations." } });
+          return true;
+        }
+        const body = await readJsonBody(req);
+        if (body.priority != null) {
+          const pr = getHfmSubscriptionManager().setPriority(sym, body.priority as HfmSubscriptionPriority | number);
+          sendJson(res, pr.ok ? 200 : 400, {
+            ok: pr.ok,
+            provider: "HFM_MT5",
+            environment: "demo",
+            reason: pr.reason,
+            subscription: pr.record,
+            placesOrders: false,
+            mutatesBroker: false,
+            acceptsForExecution: false,
+          });
+          return true;
+        }
+        const r = await getHfmSubscriptionManager().subscribe(sym, {
+          priority: body.priority as HfmSubscriptionPriority | number | undefined,
+          requestedBy: "api",
+        });
+        sendJson(res, r.ok ? 200 : 400, {
+          ok: r.ok,
+          provider: "HFM_MT5",
+          environment: "demo",
+          reason: r.reason,
+          subscription: r.record,
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      if (req.method === "DELETE") {
+        if (!checkRateLimit(req)) {
+          sendJson(res, 429, { ok: false, error: { code: "RATE_LIMITED", message: "Too many subscription mutations." } });
+          return true;
+        }
+        const r = await getHfmSubscriptionManager().unsubscribe(sym);
+        sendJson(res, 200, {
+          ok: r.ok,
+          provider: "HFM_MT5",
+          environment: "demo",
+          reason: r.reason,
+          subscription: r.record,
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
     }
 
     // --- Phase 1 HFM instrument catalog (admin-auth, HFM-only) ---

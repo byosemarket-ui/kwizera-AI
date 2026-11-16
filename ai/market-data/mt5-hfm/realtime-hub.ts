@@ -21,6 +21,11 @@ import {
 } from "./freshness.js";
 import { getHfmQuoteService } from "./quote-service.js";
 import { getHfmQuoteSubscriptionRegistry } from "./quote-subscriptions.js";
+import { getHfmSubscriptionManager } from "./subscription-manager.js";
+import { getHfmSymbolFreshnessEngine } from "./symbol-freshness.js";
+import { getHfmRecoveryEngine } from "./recovery-engine.js";
+import { getHfmSnapshotTracker } from "./snapshot-tracker.js";
+import { getHfmSubscriptionScheduler } from "./subscription-scheduler.js";
 
 export interface Mt5HfmHubSubscriber {
   id: string;
@@ -160,6 +165,9 @@ function accountFingerprint(account: Record<string, unknown> | null | undefined)
 async function pollOnce(): Promise<void> {
   candlePollCounter += 1;
   const includeCandles = candlePollCounter % 10 === 1;
+  const scheduler = getHfmSubscriptionScheduler();
+  if (!scheduler.beginCycle()) return;
+  const cycleStarted = Date.now();
   try {
     const resp = await callMt5HfmAgent("demo.stream_snapshot", { includeCandles }, { timeoutMs: 12_000 });
     if (!resp.ok || !resp.result || typeof resp.result !== "object") {
@@ -168,6 +176,24 @@ async function pollOnce(): Promise<void> {
       const freshness: Mt5HfmFreshness =
         hubState.consecutiveFailures >= 3 ? "DISCONNECTED" : "WAITING_FOR_DATA";
       hubState.lastFreshness = freshness;
+      getHfmSymbolFreshnessEngine().setConnectivity({
+        terminalRunning: freshness !== "DISCONNECTED",
+        transportOk: false,
+        marketClosed: false,
+      });
+      const recovery = getHfmRecoveryEngine();
+      recovery.markDegraded(hubState.lastPollError);
+      const attempt = recovery.begin(hubState.lastPollError, "transport_check");
+      if (attempt.shouldAttempt) {
+        recovery.completeAttempt({
+          ok: false,
+          errorCode: hubState.lastPollError,
+          stage: "agent_poll",
+          validQuoteObserved: false,
+          transportOk: false,
+          terminalRunning: false,
+        });
+      }
       publish(
         "state",
         buildEnvelope(
@@ -263,7 +289,44 @@ async function pollOnce(): Promise<void> {
 
       const accountServer =
         account && typeof account.server === "string" ? String(account.server) : null;
-      const ingest = await getHfmQuoteService().ingestRawQuotes(rawQuotesForIngest(snap.quotes), {
+      const expectedSymbols = getHfmSubscriptionManager().listAcquisitionSymbols();
+      const rawForIngest = rawQuotesForIngest(snap.quotes);
+      const snapObs = getHfmSnapshotTracker().observe({
+        snapshotId: typeof snap.schemaVersion === "string" ? String(snap.schemaVersion) : `seq-${seq ?? "na"}`,
+        batchId: seq != null ? `batch-${seq}` : null,
+        sequence: seq,
+        expectedBatchCount: 1,
+        symbolsInBatch: rawForIngest.map((q) => String(q.symbol ?? "")).filter(Boolean),
+        expectedSymbols,
+        receivedAt: serverReceivedAt,
+      });
+      if (snapObs.eventWorthy && snapObs.incomplete) {
+        publish(
+          "state",
+          buildEnvelope(
+            "state",
+            {
+              subtype: "snapshot.incomplete",
+              reason: snapObs.reason,
+              missingSymbols: snapObs.tracker.missingSymbols,
+              sequence: seq,
+              duplicate: snapObs.duplicate,
+              outOfOrder: snapObs.outOfOrder,
+              provider: "HFM_MT5",
+              environment: "demo",
+            },
+            {
+              eventId: randomUUID(),
+              seq,
+              serverReceivedAt,
+              freshness,
+              provenance,
+              validation: "partial",
+            },
+          ),
+        );
+      }
+      const ingest = await getHfmQuoteService().ingestRawQuotes(rawForIngest, {
         server: accountServer,
         sequence: seq,
         receivedAt: serverReceivedAt,
@@ -273,6 +336,28 @@ async function pollOnce(): Promise<void> {
         feedFreshness: freshness,
         requireCatalogMatch: false,
       });
+      getHfmSymbolFreshnessEngine().setConnectivity({
+        terminalRunning,
+        transportOk: true,
+        marketClosed,
+      });
+      if (ingest.published.length > 0) {
+        getHfmRecoveryEngine().completeAttempt({
+          ok: true,
+          stage: "quotes_validated",
+          validQuoteObserved: true,
+          transportOk: true,
+          terminalRunning,
+        });
+      } else if (terminalRunning && freshness !== "DISCONNECTED") {
+        getHfmRecoveryEngine().completeAttempt({
+          ok: true,
+          stage: "connected",
+          validQuoteObserved: false,
+          transportOk: true,
+          terminalRunning,
+        });
+      }
       for (const q of ingest.published) {
         if (!getHfmQuoteSubscriptionRegistry().isSubscribed(q.symbol)) continue;
         if (q.bid == null || q.ask == null) continue;
@@ -412,6 +497,9 @@ async function pollOnce(): Promise<void> {
     hubState.consecutiveFailures += 1;
     hubState.lastPollError = err instanceof Error ? err.message : "POLL_ERROR";
     hubState.lastFreshness = hubState.consecutiveFailures >= 3 ? "DISCONNECTED" : "WAITING_FOR_DATA";
+    getHfmRecoveryEngine().begin(hubState.lastPollError, "poll_exception");
+  } finally {
+    scheduler.endCycle(Date.now() - cycleStarted);
   }
 }
 
@@ -436,9 +524,71 @@ function heartbeat(): void {
   publish("heartbeat", envelope);
 }
 
+let step2bWired = false;
+
+function wireStep2bEventBridges(): void {
+  if (step2bWired) return;
+  step2bWired = true;
+  getHfmSubscriptionManager().onEvent((ev) => {
+    publish(
+      "subscription",
+      buildEnvelope(
+        "subscription",
+        {
+          ...ev,
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        },
+        {
+          eventId: randomUUID(),
+          serverReceivedAt: ev.timestamp,
+          freshness: hubState.lastFreshness,
+          provenance: "hub",
+        },
+      ),
+      ev.symbol,
+    );
+  });
+  getHfmSymbolFreshnessEngine().onEvent((ev) => {
+    publish(
+      "freshness",
+      buildEnvelope(
+        "freshness",
+        ev,
+        {
+          eventId: randomUUID(),
+          serverReceivedAt: ev.timestamp,
+          freshness: hubState.lastFreshness,
+          provenance: "hub",
+        },
+      ),
+      ev.symbol,
+    );
+  });
+  getHfmRecoveryEngine().onEvent((ev) => {
+    publish(
+      "recovery",
+      buildEnvelope(
+        "recovery",
+        ev,
+        {
+          eventId: randomUUID(),
+          serverReceivedAt: ev.timestamp,
+          freshness: hubState.lastFreshness,
+          provenance: "hub",
+        },
+      ),
+    );
+  });
+  getHfmSymbolFreshnessEngine().startMonitor(() => getHfmSubscriptionManager().listAcquisitionSymbols());
+  void getHfmSubscriptionManager().restoreFromDisk();
+}
+
 export function ensureMt5HfmRealtimeHubStarted(): void {
   if (started) return;
   started = true;
+  wireStep2bEventBridges();
   void pollOnce();
   pollTimer = setInterval(() => {
     void pollOnce();
@@ -471,6 +621,11 @@ export function getMt5HfmRealtimeHubStatus(): Record<string, unknown> {
     quoteSubscriptions: getHfmQuoteSubscriptionRegistry().list(),
     quoteCounts: quoteSnap.counts,
     subscribedQuoteSymbols: quoteSnap.subscribedSymbols,
+    subscriptionCapacity: getHfmSubscriptionManager().capacity(),
+    symbolFreshnessCounts: getHfmSymbolFreshnessEngine().counts(),
+    recovery: getHfmRecoveryEngine().metrics(),
+    scheduler: getHfmSubscriptionScheduler().status(),
+    snapshotTracker: getHfmSnapshotTracker().snapshot(),
     placesOrders: false,
     acceptsForExecution: false,
     mutatesBroker: false,

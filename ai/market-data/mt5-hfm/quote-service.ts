@@ -9,6 +9,8 @@ import {
   type Mt5HfmFreshnessPolicy,
 } from "./freshness.js";
 import { getHfmQuoteSubscriptionRegistry } from "./quote-subscriptions.js";
+import { getHfmSubscriptionManager } from "./subscription-manager.js";
+import { getHfmSymbolFreshnessEngine } from "./symbol-freshness.js";
 import {
   HFM_QUOTE_ENVIRONMENT,
   HFM_QUOTE_PROVIDER,
@@ -127,7 +129,7 @@ export class HfmQuoteService {
     skippedUnsubscribed: number;
   }> {
     const catalog = await this.catalogMap();
-    const subs = getHfmQuoteSubscriptionRegistry();
+    const subMgr = getHfmSubscriptionManager();
     const requireCatalog = ctx.requireCatalogMatch ?? Boolean(catalog && catalog.size > 0);
     const published: HfmCanonicalQuote[] = [];
     const rejected: HfmCanonicalQuote[] = [];
@@ -140,12 +142,22 @@ export class HfmQuoteService {
     this.lastMarketClosed = ctx.marketClosed;
     this.lastTerminalRunning = ctx.terminalRunning;
 
+    const freshness = getHfmSymbolFreshnessEngine();
+    freshness.setConnectivity({
+      terminalRunning: ctx.terminalRunning,
+      transportOk: true,
+      marketClosed: ctx.marketClosed,
+    });
+
     for (const raw of rawQuotes) {
       const sym = typeof raw.symbol === "string" ? raw.symbol : "";
-      if (sym && !subs.isSubscribed(sym)) {
+      // Paused / unsubscribed symbols are not acquired (STEP 2B).
+      if (sym && !subMgr.isAcquisitionEligible(sym)) {
         skippedUnsubscribed += 1;
         continue;
       }
+
+      if (sym) freshness.noteAcquisitionAttempt(sym, ctx.receivedAt);
 
       const { quote, accepted } = validateHfmRawQuote(raw, {
         receivedAt: ctx.receivedAt,
@@ -189,6 +201,10 @@ export class HfmQuoteService {
         state.status = state.lastKnownGood ? state.lastKnownGood.status : nextStatus;
         state.updatedAt = ctx.receivedAt;
         this.bySymbol.set(stateKey, state);
+        if (sym) {
+          freshness.noteInvalidQuote(sym, ctx.receivedAt);
+          subMgr.markAcquired(sym, ctx.receivedAt, false);
+        }
         continue;
       }
 
@@ -200,6 +216,14 @@ export class HfmQuoteService {
       };
       this.bySymbol.set(stateKey, state);
       published.push(transitioned);
+      if (transitioned.symbol) {
+        freshness.noteValidQuote({
+          symbol: transitioned.symbol,
+          receivedAt: ctx.receivedAt,
+          tickTimestamp: transitioned.quoteTimestamp,
+        });
+        subMgr.markAcquired(transitioned.symbol, ctx.receivedAt, true);
+      }
     }
 
     return { published, rejected, skippedUnsubscribed };

@@ -1,9 +1,14 @@
 /**
- * STEP 2A subscription registry — interface for STEP 2B lifecycle.
- * Default preserves the existing nine-symbol quote universe.
- * Never auto-activates the full HFM catalog.
+ * STEP 2A/2B subscription registry adapter.
+ * Preserves the existing nine-symbol default universe and delegates to
+ * HfmSubscriptionManager (no competing subscription managers).
  */
 import { HFM_DEFAULT_QUOTE_SYMBOLS } from "./quote-types.js";
+import {
+  getHfmSubscriptionManager,
+  resetHfmSubscriptionManagerForTests,
+  HfmSubscriptionManager,
+} from "./subscription-manager.js";
 
 export interface HfmQuoteSubscription {
   symbol: string;
@@ -23,113 +28,78 @@ export interface HfmQuoteSubscriptionSnapshot {
 /** Hard cap — VPS / Market Watch / payload safety (not full catalog). */
 export const HFM_QUOTE_SUBSCRIPTION_MAX = 32;
 
+function sourceFromRequestedBy(requestedBy: string): HfmQuoteSubscription["source"] {
+  if (requestedBy === "default") return "default";
+  if (requestedBy === "step2b") return "step2b";
+  return "manual";
+}
+
+function toSnap(mgr: HfmSubscriptionManager): HfmQuoteSubscriptionSnapshot {
+  const cap = mgr.capacity();
+  const active = mgr
+    .listAll()
+    .filter((s) => s.status === "ACTIVE" || s.status === "RECOVERING" || s.status === "PAUSED")
+    .map((s) => ({
+      symbol: s.symbol,
+      priority: s.priorityWeight,
+      activatedAt: s.createdAt,
+      source: sourceFromRequestedBy(s.requestedBy),
+    }));
+  return {
+    provider: "HFM_MT5",
+    environment: "demo",
+    maxActive: cap.maxActive,
+    active,
+    symbols: mgr.listAcquisitionSymbols(),
+  };
+}
+
 export class HfmQuoteSubscriptionRegistry {
-  private readonly maxActive: number;
-  private readonly bySymbol = new Map<string, HfmQuoteSubscription>();
+  private readonly mgr: HfmSubscriptionManager;
+  private readonly isolated: boolean;
 
   constructor(opts?: { maxActive?: number; seedDefaults?: boolean }) {
-    this.maxActive = Math.min(
-      HFM_QUOTE_SUBSCRIPTION_MAX,
-      Math.max(1, opts?.maxActive ?? HFM_DEFAULT_QUOTE_SYMBOLS.length),
-    );
-    if (opts?.seedDefaults !== false) {
-      for (const [i, symbol] of HFM_DEFAULT_QUOTE_SYMBOLS.entries()) {
-        this.bySymbol.set(symbol, {
-          symbol,
-          priority: 1000 - i,
-          activatedAt: new Date().toISOString(),
-          source: "default",
-        });
-      }
+    if (opts) {
+      this.mgr = new HfmSubscriptionManager({
+        maxActive: opts.maxActive,
+        seedDefaults: opts.seedDefaults,
+      });
+      this.isolated = true;
+    } else {
+      this.mgr = getHfmSubscriptionManager();
+      this.isolated = false;
     }
   }
 
   list(): HfmQuoteSubscriptionSnapshot {
-    const active = [...this.bySymbol.values()].sort((a, b) => b.priority - a.priority);
-    return {
-      provider: "HFM_MT5",
-      environment: "demo",
-      maxActive: this.maxActive,
-      active,
-      symbols: active.map((s) => s.symbol),
-    };
+    return toSnap(this.mgr);
   }
 
   isSubscribed(symbol: string): boolean {
-    if (this.bySymbol.has(symbol)) return true;
-    const u = symbol.toUpperCase();
-    for (const key of this.bySymbol.keys()) {
-      if (key.toUpperCase() === u) return true;
-    }
-    return false;
+    const row = this.mgr.get(symbol);
+    if (!row) return false;
+    return row.status === "ACTIVE" || row.status === "RECOVERING" || row.status === "PAUSED";
   }
 
-  /**
-   * Activate a symbol. Rejects when over cap unless replacing an existing entry.
-   * Exact broker spelling preferred; does not rename.
-   */
   activate(
     symbol: string,
     opts?: { priority?: number; source?: HfmQuoteSubscription["source"] },
   ): { ok: boolean; reason: string | null; snapshot: HfmQuoteSubscriptionSnapshot } {
-    const sym = String(symbol ?? "").trim();
-    if (!sym) {
-      return { ok: false, reason: "SYMBOL_EMPTY", snapshot: this.list() };
-    }
-    if (this.bySymbol.has(sym) || this.isSubscribed(sym)) {
-      const existing =
-        this.bySymbol.get(sym) ??
-        [...this.bySymbol.values()].find((s) => s.symbol.toUpperCase() === sym.toUpperCase())!;
-      existing.priority = opts?.priority ?? existing.priority;
-      existing.source = opts?.source ?? existing.source;
-      this.bySymbol.set(existing.symbol, existing);
-      return { ok: true, reason: null, snapshot: this.list() };
-    }
-    if (this.bySymbol.size >= this.maxActive) {
-      return { ok: false, reason: "SUBSCRIPTION_LIMIT", snapshot: this.list() };
-    }
-    this.bySymbol.set(sym, {
-      symbol: sym,
-      priority: opts?.priority ?? 100,
-      activatedAt: new Date().toISOString(),
-      source: opts?.source ?? "manual",
+    const r = this.mgr.activateSync(symbol, {
+      priority: opts?.priority,
+      requestedBy: opts?.source ?? "manual",
     });
-    return { ok: true, reason: null, snapshot: this.list() };
+    return { ok: r.ok, reason: r.reason, snapshot: this.list() };
   }
 
   deactivate(symbol: string): HfmQuoteSubscriptionSnapshot {
-    const sym = String(symbol ?? "").trim();
-    if (this.bySymbol.delete(sym)) return this.list();
-    const u = sym.toUpperCase();
-    for (const key of [...this.bySymbol.keys()]) {
-      if (key.toUpperCase() === u) this.bySymbol.delete(key);
-    }
+    this.mgr.deactivateSync(symbol);
     return this.list();
   }
 
   /** Replace active set (bounded). Empty input restores defaults. */
   replaceAll(symbols: string[], source: HfmQuoteSubscription["source"] = "manual"): HfmQuoteSubscriptionSnapshot {
-    const unique: string[] = [];
-    const seen = new Set<string>();
-    for (const s of symbols) {
-      const sym = String(s ?? "").trim();
-      if (!sym) continue;
-      const key = sym.toUpperCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      unique.push(sym);
-      if (unique.length >= this.maxActive) break;
-    }
-    this.bySymbol.clear();
-    const seed = unique.length > 0 ? unique : [...HFM_DEFAULT_QUOTE_SYMBOLS];
-    for (const [i, symbol] of seed.entries()) {
-      this.bySymbol.set(symbol, {
-        symbol,
-        priority: 1000 - i,
-        activatedAt: new Date().toISOString(),
-        source: unique.length > 0 ? source : "default",
-      });
-    }
+    this.mgr.replaceActiveSet(symbols, source);
     return this.list();
   }
 }
@@ -143,4 +113,8 @@ export function getHfmQuoteSubscriptionRegistry(): HfmQuoteSubscriptionRegistry 
 
 export function resetHfmQuoteSubscriptionRegistryForTests(): void {
   singleton = null;
+  resetHfmSubscriptionManagerForTests();
 }
+
+// Re-export default symbols for callers that imported from this module historically.
+export { HFM_DEFAULT_QUOTE_SYMBOLS };

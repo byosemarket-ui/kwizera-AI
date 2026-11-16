@@ -16,6 +16,10 @@ export const MT5_HFM_SSE_EVENT_TYPES = [
   "state",
   "heartbeat",
   "error",
+  /** STEP 2B lifecycle / freshness / recovery (bounded; no flood). */
+  "subscription",
+  "freshness",
+  "recovery",
 ] as const;
 
 export type Mt5HfmSseEventType = (typeof MT5_HFM_SSE_EVENT_TYPES)[number];
