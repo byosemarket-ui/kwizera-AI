@@ -352,9 +352,13 @@ export async function handleMt5HfmApi(
         agentOk,
         terminalRunning,
         hfmTcpOk: status.demo.lastProbeAt
-          ? status.demo.lastProbeSummary?.toLowerCase().includes("fail")
+          ? status.demo.lastProbeSummary?.toLowerCase().includes("fail") ||
+              String(status.demo.connectionStatus ?? "").includes("unreachable") ||
+              String(status.demo.connectionStatus ?? "").includes("failed")
             ? false
-            : status.demo.connectionStatus === "ok" || status.demo.lastAuthStatus === "ok"
+            : status.demo.connectionStatus === "ok" ||
+                status.demo.connectionStatus === "demo_network_reachable" ||
+                status.demo.lastAuthStatus === "ok"
               ? true
               : null
           : null,

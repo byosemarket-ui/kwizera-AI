@@ -11,7 +11,8 @@ terminal on the Ubuntu VPS. Demo-only. No Live login. No trading activation.
 | Installed under `/etc/systemd/system` | **Xvfb + demo + watchdog + agent** (incident restore) |
 | Auto-start after boot | **Xvfb + demo + watchdog timer enabled**; agent remains disabled-on-boot unless already active |
 | Watchdog | `kwizera-mt5-hfm-watchdog.timer` re-logins Demo via vault if `terminal64` missing **or** MQL snapshot stale (>180s) |
-| Cutover | `bin/cutover-mt5-to-systemd.sh` — refuses unless `CONFIRM=YES-CUTOVER` (owner approval) |
+| Cutover | **EXECUTED** — systemd owns Xvfb + Demo; vault `/portable /config:` login |
+| X11 socket | `PrivateTmp=false` on Xvfb+Demo; host `/tmp/.X11-unix` + `/tmp` lock writable |
 | Login ini | `prepare-demo-login-ini.sh` → `write-demo-login-ini.mjs` (vault → `/run/kwizera/mt5-hfm/login-*.ini`, shredded ~25s after start) |
 
 ### Demo authentication (systemd)
@@ -24,7 +25,7 @@ terminal on the Ubuntu VPS. Demo-only. No Live login. No trading activation.
 4. Background shred of the ini after ~25s
 
 Password never appears in the unit file, journal-intended logs, or process argv.
-| VPS reboot test | **NOT VERIFIED** (do not reboot without separate approval) |
+| VPS reboot test | Owner-authorized; run only after watchdog/agent/Node recovery preflight |
 | Phase 3 agent unit | Installed; token provisioned; keep soft `Wants=` on demo |
 
 ## Units

@@ -70,13 +70,21 @@ if pgrep -u mt5 -f 'Xvfb :97' >/dev/null; then
 fi
 
 echo "=== PREPARE XAUTH + START SYSTEMD XVFB ==="
+# Non-root Xvfb cannot create /tmp/.X11-unix; shared socket path for Demo/Wine.
+mkdir -p /tmp/.X11-unix
+chmod 1777 /tmp/.X11-unix
 sudo -u mt5 env HOME=/home/mt5 XAUTHORITY=/home/mt5/.mt5-xauth/Xauthority \
   KWIZERA_MT5_XAUTH_DIR=/home/mt5/.mt5-xauth KWIZERA_MT5_DISPLAY_NUM=97 \
   "$LIFE/bin/prepare-xauth.sh"
 wc -c /home/mt5/.mt5-xauth/Xauthority
+# Ensure installed units match repo (PrivateTmp=false for X11 socket sharing).
+install -m 0644 "$LIFE/kwizera-mt5-xvfb.service" /etc/systemd/system/kwizera-mt5-xvfb.service
+install -m 0644 "$LIFE/kwizera-mt5-hfm-demo.service" /etc/systemd/system/kwizera-mt5-hfm-demo.service
+systemctl daemon-reload
 systemctl start kwizera-mt5-xvfb.service
 systemctl is-active kwizera-mt5-xvfb.service
-sudo -u mt5 "$LIFE/bin/wait-display.sh"
+sudo -u mt5 env DISPLAY=:97 XAUTHORITY=/home/mt5/.mt5-xauth/Xauthority \
+  KWIZERA_MT5_DISPLAY_TRIES=60 "$LIFE/bin/wait-display.sh"
 
 echo "=== START SYSTEMD DEMO (vault login.ini) ==="
 systemctl start kwizera-mt5-hfm-demo.service

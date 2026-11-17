@@ -24,7 +24,10 @@ Environment=KWIZERA_MT5_XAUTH_DIR=/home/mt5/.mt5-xauth
 Environment=KWIZERA_MT5_DISPLAY_NUM=97
 WorkingDirectory=/home/mt5
 
-# Cookie before Xvfb; Xvfb is the main process (never ExecStartPre foreground Xvfb).
+# Host /tmp/.X11-unix must exist (non-root Xvfb cannot create it). Shared with Demo/Wine.
+# PrivateTmp MUST stay false: Demo unit and wait-display need the same X11 unix socket.
+ExecStartPre=+/usr/bin/mkdir -p /tmp/.X11-unix
+ExecStartPre=+/usr/bin/chmod 1777 /tmp/.X11-unix
 ExecStartPre=/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/prepare-xauth.sh
 ExecStart=/usr/bin/Xvfb :97 -screen 0 1600x900x24 -nolisten tcp -auth /home/mt5/.mt5-xauth/Xauthority
 
@@ -40,10 +43,12 @@ CPUQuota=20%
 Nice=5
 LimitCORE=0
 NoNewPrivileges=true
-PrivateTmp=true
+# X11 AF_UNIX socket lives under host /tmp/.X11-unix — do not isolate tmp.
+PrivateTmp=false
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/home/mt5/.mt5-xauth
+# /tmp required for Xvfb lock (/tmp/.tX97-lock) + /tmp/.X11-unix/X97 socket.
+ReadWritePaths=/home/mt5/.mt5-xauth /tmp
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictSUIDSGID=true
 

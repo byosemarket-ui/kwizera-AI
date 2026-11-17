@@ -36,9 +36,11 @@ describe("HFM MT5 agent allowlist + connection states", () => {
     expect(active).toContain("CREDENTIALS_SAVED");
     expect(active).toContain("AGENT_CONNECTED");
     expect(active).toContain("MT5_TERMINAL_RUNNING");
+    expect(active).toContain("DEMO_NETWORK_REACHABLE");
     expect(active).toContain("DEMO_AUTHENTICATED");
     expect(active).toContain("ACCOUNT_SYNCHRONIZED");
     expect(active).toContain("MARKET_DATA_AVAILABLE");
+    expect(active).toContain("LIVE_LOGIN_LOCKED");
     expect(active).not.toContain("CREDENTIALS_NOT_CONFIGURED");
   });
 

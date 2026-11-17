@@ -476,13 +476,28 @@ export function ForexAdminMt5HfmPage() {
             </span>
           </li>
           <li>
-            Connection:{" "}
+            Network probe (not MT5 auth):{" "}
             <span className="fxa-badge" data-tone={connectionTone}>
               {envStatus?.connectionStatus ?? "unknown"}
             </span>
           </li>
           {tab === "demo" ? (
             <>
+              <li>
+                Demo authenticated:{" "}
+                <span
+                  className="fxa-badge"
+                  data-tone={
+                    status?.connectionStates?.some((s) => s.id === "DEMO_AUTHENTICATED" && s.active)
+                      ? "ok"
+                      : "warn"
+                  }
+                >
+                  {status?.connectionStates?.some((s) => s.id === "DEMO_AUTHENTICATED" && s.active)
+                    ? "yes"
+                    : "not verified"}
+                </span>
+              </li>
               <li>Last successful auth / probe: {envStatus?.lastAuthAt ?? "—"}</li>
               <li>Last connection error: {envStatus?.lastAuthError ?? "—"}</li>
               <li>Last sync: {envStatus?.lastSyncAt ?? "—"}</li>

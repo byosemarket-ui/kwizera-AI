@@ -11,12 +11,14 @@ export const MT5_HFM_CONNECTION_STATES = [
   "MT5_TERMINAL_STOPPED",
   "MT5_TERMINAL_RUNNING",
   "HFM_SERVER_DISCONNECTED",
+  "DEMO_NETWORK_REACHABLE",
   "DEMO_AUTH_FAILED",
   "DEMO_AUTHENTICATED",
   "ACCOUNT_SYNCHRONIZED",
   "MARKET_DATA_AVAILABLE",
   "MARKET_DATA_STALE",
   "SYNC_FAILED",
+  "LIVE_LOGIN_LOCKED",
 ] as const;
 
 export type Mt5HfmConnectionStateId = (typeof MT5_HFM_CONNECTION_STATES)[number];
@@ -49,12 +51,14 @@ const LABELS: Record<Mt5HfmConnectionStateId, { label: string; tone: Mt5HfmConne
   MT5_TERMINAL_STOPPED: { label: "MT5 terminal stopped", tone: "warn" },
   MT5_TERMINAL_RUNNING: { label: "MT5 terminal running", tone: "ok" },
   HFM_SERVER_DISCONNECTED: { label: "HFM server disconnected", tone: "danger" },
+  DEMO_NETWORK_REACHABLE: { label: "Demo network reachable (TCP)", tone: "ok" },
   DEMO_AUTH_FAILED: { label: "Demo authentication failed", tone: "danger" },
-  DEMO_AUTHENTICATED: { label: "Demo authenticated", tone: "ok" },
+  DEMO_AUTHENTICATED: { label: "Demo account authenticated", tone: "ok" },
   ACCOUNT_SYNCHRONIZED: { label: "Account synchronized", tone: "ok" },
-  MARKET_DATA_AVAILABLE: { label: "Market data available", tone: "ok" },
+  MARKET_DATA_AVAILABLE: { label: "Broker feed / market data available", tone: "ok" },
   MARKET_DATA_STALE: { label: "Market data stale", tone: "warn" },
   SYNC_FAILED: { label: "Synchronization failed", tone: "danger" },
+  LIVE_LOGIN_LOCKED: { label: "LIVE login & trading locked", tone: "danger" },
 };
 
 export function buildMt5HfmConnectionStates(
@@ -72,6 +76,7 @@ export function buildMt5HfmConnectionStates(
   if (input.terminalRunning === true) active.add("MT5_TERMINAL_RUNNING");
 
   if (input.hfmTcpOk === false) active.add("HFM_SERVER_DISCONNECTED");
+  if (input.hfmTcpOk === true) active.add("DEMO_NETWORK_REACHABLE");
 
   if (input.authFailed) active.add("DEMO_AUTH_FAILED");
   if (input.authenticated) active.add("DEMO_AUTHENTICATED");
@@ -81,6 +86,9 @@ export function buildMt5HfmConnectionStates(
 
   if (input.marketDataAvailable) active.add("MARKET_DATA_AVAILABLE");
   if (input.marketDataStale) active.add("MARKET_DATA_STALE");
+
+  // LIVE remains locked for this product surface — never imply Live is enabled.
+  active.add("LIVE_LOGIN_LOCKED");
 
   return MT5_HFM_CONNECTION_STATES.map((id) => ({
     id,

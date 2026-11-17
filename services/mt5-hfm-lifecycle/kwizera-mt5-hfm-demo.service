@@ -51,9 +51,10 @@ CPUQuota=70%
 Nice=5
 LimitCORE=0
 NoNewPrivileges=true
-PrivateTmp=true
+# Must share host /tmp/.X11-unix with kwizera-mt5-xvfb (Wine DISPLAY=:97).
+PrivateTmp=false
 ProtectSystem=full
-ReadWritePaths=/home/mt5/.wine-hfm /home/mt5/.mt5-xauth /run/kwizera /tmp
+ReadWritePaths=/home/mt5/.wine-hfm /home/mt5/.mt5-xauth /run/kwizera /tmp /tmp/.X11-unix
 # prepare-demo-login-ini.sh (+root) also uses /run/kwizera/mt5-hfm-stage.
 RestrictSUIDSGID=true
 
