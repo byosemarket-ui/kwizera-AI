@@ -10,7 +10,8 @@ terminal on the Ubuntu VPS. Demo-only. No Live login. No trading activation.
 | Unit files in repo | **IMPLEMENTED** (authored) |
 | Installed under `/etc/systemd/system` | **Xvfb + demo + watchdog + agent** (incident restore) |
 | Auto-start after boot | **Xvfb + demo + watchdog timer enabled**; agent remains disabled-on-boot unless already active |
-| Watchdog | `kwizera-mt5-hfm-watchdog.timer` re-logins Demo via vault if `terminal64` missing |
+| Watchdog | `kwizera-mt5-hfm-watchdog.timer` re-logins Demo via vault if `terminal64` missing **or** MQL snapshot stale (>180s) |
+| Cutover | `bin/cutover-mt5-to-systemd.sh` — refuses unless `CONFIRM=YES-CUTOVER` (owner approval) |
 | VPS reboot test | **NOT VERIFIED** (do not reboot without separate approval) |
 | Phase 3 agent unit | Installed; token provisioned; keep soft `Wants=` on demo |
 
