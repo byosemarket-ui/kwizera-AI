@@ -100,13 +100,23 @@ export function buildInstrumentRows(input: {
     input.favoriteSymbols instanceof Set
       ? input.favoriteSymbols
       : new Set(input.favoriteSymbols);
-  return input.instruments.map((instrument) => ({
-    symbol: instrument.symbol,
-    instrument,
-    quote: input.quotesBySymbol[instrument.symbol] ?? null,
-    subscription: input.subscriptionsBySymbol[instrument.symbol] ?? null,
-    favorite: fav.has(instrument.symbol),
-  }));
+  return input.instruments.map((instrument) => {
+    const sym = instrument.symbol;
+    const upper = sym.toUpperCase();
+    return {
+      symbol: sym,
+      instrument,
+      quote:
+        input.quotesBySymbol[sym] ??
+        input.quotesBySymbol[upper] ??
+        null,
+      subscription:
+        input.subscriptionsBySymbol[sym] ??
+        input.subscriptionsBySymbol[upper] ??
+        null,
+      favorite: fav.has(sym) || fav.has(upper),
+    };
+  });
 }
 
 export function filterInstrumentRows(

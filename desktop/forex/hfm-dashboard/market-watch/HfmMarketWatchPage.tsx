@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { HfmCatalogInstrument } from "../../../../ai/market-data/mt5-hfm/catalog-types";
 import type { HfmCanonicalQuote } from "../../../../ai/market-data/mt5-hfm/quote-types";
 import type { HfmSubscriptionRecord } from "../../../../ai/market-data/mt5-hfm/subscription-types";
-import { restartHfmRealtimeStore } from "../hfm-realtime-store";
+import { restartHfmRealtimeStore, useHfmRealtimeStore } from "../hfm-realtime-store";
 import {
   fetchHfmAllSymbols,
   fetchHfmMarketWatchCatalog,
@@ -24,6 +24,7 @@ import {
 } from "./components/HfmMarketWatchStates";
 import { HfmInstrumentsTable } from "./components/HfmInstrumentsTable";
 import { HfmMarketPagination, HfmMarketToolbar } from "./components/HfmMarketToolbar";
+import { HfmQuoteStatusStrip } from "./components/HfmQuoteStatusStrip";
 import { HfmSelectedInstrumentPanel } from "./components/HfmSelectedInstrumentPanel";
 import { HfmTradingSessionsPanel } from "./components/HfmTradingSessionsPanel";
 import { listHfmFavoriteSymbols, toggleHfmFavorite } from "./favorites-store";
@@ -41,6 +42,10 @@ import {
   resolveTradingSessionOverview,
   sessionsFromInstrumentMetadata,
 } from "./sessions";
+import {
+  countQuoteAndSubscriptionStatuses,
+  mergeSseQuotesIntoCanonicalMap,
+} from "./sse-quote-bridge";
 import type {
   HfmMwCatalogSummary,
   HfmMwCategoryFilter,
@@ -50,12 +55,16 @@ import type {
 import {
   addSymbolToHfmWatchlist,
   createHfmWatchlist,
+  deleteHfmWatchlist,
   listHfmWatchlists,
+  removeSymbolFromHfmWatchlist,
+  renameHfmWatchlist,
   type HfmMwWatchlist,
 } from "./watchlists-store";
 import "./hfm-market-watch.css";
 
 export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints }) {
+  const sseState = useHfmRealtimeStore();
   const [load, setLoad] = useState<HfmMwLoadState>({ catalog: "idle", catalogError: null });
   const [catalog, setCatalog] = useState<HfmMwCatalogSummary | null>(null);
   const [instruments, setInstruments] = useState<HfmCatalogInstrument[]>([]);
@@ -70,7 +79,7 @@ export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [quoteStatus, setQuoteStatus] = useState<HfmMwQuoteStatusFilter>("ALL");
-  const [subscriptionFilter, setSubscriptionFilter] = useState<HfmMwSubscriptionFilter>("ALL");
+  const [subscriptionFilter, setSubscriptionFilter] = useState<HfmMwSubscriptionFilter>("SUBSCRIBED");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sort, setSort] = useState<HfmMwSortId>("symbol_asc");
   const [page, setPage] = useState(1);
@@ -150,19 +159,35 @@ export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints 
     }
   }, []);
 
+  // Light REST overlay poll so Bid/Ask keep advancing even if SSE misses a tick.
+  useEffect(() => {
+    if (load.catalog !== "ready") return;
+    const id = setInterval(() => {
+      void refreshOverlays();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [load.catalog, refreshOverlays]);
+
   const movement = useMemo(() => unavailableMovementSummary(), []);
   const sessionOverview = useMemo(() => resolveTradingSessionOverview(null), []);
+
+  const mergedQuotes = useMemo(
+    () => mergeSseQuotesIntoCanonicalMap(quotesBySymbol, sseState.quotes),
+    [quotesBySymbol, sseState.quotes],
+  );
 
   const rows = useMemo(
     () =>
       buildInstrumentRows({
         instruments,
-        quotesBySymbol,
+        quotesBySymbol: mergedQuotes,
         subscriptionsBySymbol: subsBySymbol,
         favoriteSymbols,
       }),
-    [instruments, quotesBySymbol, subsBySymbol, favoriteSymbols],
+    [instruments, mergedQuotes, subsBySymbol, favoriteSymbols],
   );
+
+  const statusCounts = useMemo(() => countQuoteAndSubscriptionStatuses(rows), [rows]);
 
   const watchlistSymbolSet = useMemo(() => {
     if (!watchlistOnly || !activeWatchlistId) return null;
@@ -194,7 +219,9 @@ export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints 
     () => (selectedSymbol ? instruments.find((i) => i.symbol === selectedSymbol) ?? null : null),
     [instruments, selectedSymbol],
   );
-  const selectedQuote = selectedSymbol ? quotesBySymbol[selectedSymbol] ?? null : null;
+  const selectedQuote = selectedSymbol
+    ? mergedQuotes[selectedSymbol] ?? mergedQuotes[selectedSymbol.toUpperCase()] ?? null
+    : null;
   const selectedSub = selectedSymbol ? subsBySymbol[selectedSymbol] ?? null : null;
   const selectedSessions = useMemo(
     () => sessionsFromInstrumentMetadata(selectedInstrument?.sessions ?? null, { symbol: selectedSymbol }),
@@ -285,9 +312,15 @@ export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints 
             setSubscriptionFilter("ALL");
             setFavoritesOnly(false);
             setWatchlistOnly(false);
+            setActiveWatchlistId(null);
             setSort("symbol_asc");
             setPage(1);
           }}
+        />
+        <HfmQuoteStatusStrip
+          catalogTotal={catalog?.available ? catalog.totalInstruments : null}
+          counts={statusCounts}
+          ready={load.catalog === "ready"}
         />
         <div className="hfm-mw-watchlist-bar">
           <label className="hfm-mw-select">
@@ -305,11 +338,68 @@ export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints 
               <option value="">All instruments (no watchlist filter)</option>
               {watchlists.map((wl) => (
                 <option key={wl.id} value={wl.id}>
-                  Watchlist: {wl.name}
+                  Watchlist: {wl.name} ({wl.symbols.length})
                 </option>
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            className="hfm-mw-retry"
+            disabled={!activeWatchlistId}
+            onClick={() => {
+              if (!activeWatchlistId) return;
+              const current = watchlists.find((w) => w.id === activeWatchlistId);
+              const name =
+                typeof window !== "undefined"
+                  ? window.prompt("Rename HFM watchlist", current?.name ?? "")
+                  : null;
+              if (!name) return;
+              const r = renameHfmWatchlist(activeWatchlistId, name);
+              setWatchlists(listHfmWatchlists());
+              setActionMessage(r.ok ? `Renamed watchlist to ${r.list?.name}` : r.error);
+            }}
+          >
+            Rename list
+          </button>
+          <button
+            type="button"
+            className="hfm-mw-retry"
+            disabled={!activeWatchlistId}
+            onClick={() => {
+              if (!activeWatchlistId) return;
+              const current = watchlists.find((w) => w.id === activeWatchlistId);
+              const ok =
+                typeof window === "undefined" ||
+                window.confirm(`Delete watchlist “${current?.name ?? activeWatchlistId}”?`);
+              if (!ok) return;
+              const r = deleteHfmWatchlist(activeWatchlistId);
+              setWatchlists(listHfmWatchlists());
+              setActiveWatchlistId(null);
+              setWatchlistOnly(false);
+              setActionMessage(r.ok ? "Watchlist deleted" : r.error);
+            }}
+          >
+            Delete list
+          </button>
+          <button
+            type="button"
+            className="hfm-mw-retry"
+            disabled={!activeWatchlistId || !selectedSymbol}
+            onClick={() => {
+              if (!activeWatchlistId || !selectedSymbol) return;
+              const r = removeSymbolFromHfmWatchlist(activeWatchlistId, selectedSymbol);
+              setWatchlists(listHfmWatchlists());
+              setActionMessage(
+                r.ok ? `Removed ${selectedSymbol} from watchlist` : r.error,
+              );
+            }}
+          >
+            Remove selected
+          </button>
+          <p className="hfm-mw-watchlist-note">
+            Watchlists and favorites are local preferences — they do not subscribe broker quotes.
+          </p>
         </div>
       </div>
 

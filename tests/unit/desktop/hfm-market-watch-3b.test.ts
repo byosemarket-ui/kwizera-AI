@@ -318,6 +318,47 @@ describe("STEP 3B sessions and movement honesty", () => {
   });
 });
 
+describe("STEP 3B SSE quote bridge and status counts", () => {
+  it("merges SSE ticks without inventing bids and counts statuses distinctly", async () => {
+    const bridge = await import(
+      "../../../desktop/forex/hfm-dashboard/market-watch/sse-quote-bridge.ts"
+    );
+    const merged = bridge.mergeSseQuotesIntoCanonicalMap(
+      {
+        EURUSD: fakeQuote({ symbol: "EURUSD", bid: 1.1, ask: 1.2, status: "STALE" }),
+      },
+      {
+        EURUSD: {
+          symbol: "EURUSD",
+          bid: 1.101,
+          ask: 1.102,
+          last: null,
+          spread: 0.001,
+          digits: 5,
+          point: 0.00001,
+          tickTime: 1700000000,
+          tickVolume: 1,
+          freshness: "LIVE",
+          status: "LIVE",
+          prevMid: null,
+        },
+      },
+    );
+    expect(merged.EURUSD?.bid).toBe(1.101);
+    expect(merged.EURUSD?.status).toBe("LIVE");
+
+    const counts = bridge.countQuoteAndSubscriptionStatuses([
+      { quote: fakeQuote({ symbol: "EURUSD", status: "LIVE" }), subscription: { status: "ACTIVE" } },
+      { quote: fakeQuote({ symbol: "GBPUSD", status: "STALE" }), subscription: { status: "ACTIVE" } },
+      { quote: null, subscription: null },
+    ]);
+    expect(counts.live).toBe(1);
+    expect(counts.stale).toBe(1);
+    expect(counts.unquoted).toBe(1);
+    expect(counts.activeSubscriptions).toBe(2);
+  });
+});
+
 describe("STEP 3B source integrity and API wiring", () => {
   it("wires confirmed endpoints and does not hardcode designer sample facts", () => {
     const api = read("desktop/forex/hfm-dashboard/market-watch/api.ts");
@@ -338,6 +379,9 @@ describe("STEP 3B source integrity and API wiring", () => {
     expect(table).toContain("Unavailable");
     expect(page).toContain("selectedSymbol");
     expect(page).toContain("subscribeHfmSymbols");
+    expect(page).toContain("mergeSseQuotesIntoCanonicalMap");
+    expect(page).toContain("deleteHfmWatchlist");
+    expect(page).toContain("renameHfmWatchlist");
     expect(page).not.toMatch(/submitOrder|placeOrder/);
   });
 

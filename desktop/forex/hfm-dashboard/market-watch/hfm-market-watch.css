@@ -843,6 +843,40 @@
   margin-bottom: 10px;
 }
 
+[data-hfm-dashboard] .hfm-mw-status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--hfm-mw-border, #2a3140) 80%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--hfm-mw-panel, #12151c) 92%, transparent);
+  color: var(--hfm-mw-text-muted, #9aa3b2);
+  font-size: 12px;
+}
+
+[data-hfm-dashboard] .hfm-mw-status-strip strong {
+  color: var(--hfm-mw-text, #e8edf7);
+  font-weight: 600;
+}
+
+[data-hfm-dashboard] .hfm-mw-status-strip [data-tone="live"] strong {
+  color: #3dffa8;
+}
+
+[data-hfm-dashboard] .hfm-mw-status-strip [data-tone="stale"] strong {
+  color: #f0c14a;
+}
+
+[data-hfm-dashboard] .hfm-mw-watchlist-note {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--hfm-mw-text-muted, #9aa3b2);
+  font-size: 11px;
+}
+
 [data-hfm-dashboard] .hfm-mw-watchlist-box,
 [data-hfm-dashboard] .hfm-mw-watchlist-bar {
   display: flex;
