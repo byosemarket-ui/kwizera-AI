@@ -10,6 +10,7 @@ export type ForexRouteId =
   | "signals"
   | "automated-trading"
   | "hfm-mt5-dashboard"
+  | "hfm-mt5-market-watch"
   | "trade-monitor"
   | "strategies"
   | "trade-journal"
@@ -210,6 +211,19 @@ export const FOREX_NAV: ForexNavItem[] = [
     phaseNote: "Phase 2",
   },
   {
+    id: "hfm-mt5-market-watch",
+    label: "HFM Market Watch",
+    path: "/forex/automated-trading/hfm/market-watch",
+    implemented: true,
+    inSidebar: true,
+    group: "trading",
+    groupLabel: "Trading",
+    icon: "globe",
+    description:
+      "Read-only HFM MT5 Demo Market Watch foundation — catalog categories, overview, and provider status. No order execution.",
+    phaseNote: "STEP 3A",
+  },
+  {
     id: "trade-monitor",
     label: "Trade Monitor",
     path: "/forex/trade-monitor",
@@ -320,10 +334,14 @@ export const FOREX_PATH_ALIASES: Record<string, ForexRouteId> = {
   "/forex/risk": "risk-management",
   "/forex/hfm/dashboard": "hfm-mt5-dashboard",
   "/forex/automated-trading/hfm": "hfm-mt5-dashboard",
+  "/forex/hfm/market-watch": "hfm-mt5-market-watch",
 };
 
 /** Canonical Phase 2 HFM MT5 Dashboard route (URL-safe, no spaces). */
 export const HFM_MT5_DASHBOARD_PATH = "/forex/automated-trading/hfm/dashboard";
+
+/** STEP 3A HFM MT5 Market Watch route. */
+export const HFM_MT5_MARKET_WATCH_PATH = "/forex/automated-trading/hfm/market-watch";
 
 export const FOREX_GROUP_ORDER: ForexNavGroupId[] = [
   "overview",
@@ -408,6 +426,16 @@ export function resolveForexLocation(
       shouldCanonicalize: path !== HFM_MT5_DASHBOARD_PATH,
     };
   }
+  if (
+    path === HFM_MT5_MARKET_WATCH_PATH ||
+    path === `${HFM_MT5_MARKET_WATCH_PATH}/`
+  ) {
+    return {
+      view: "hfm-mt5-market-watch",
+      canonicalPath: HFM_MT5_MARKET_WATCH_PATH,
+      shouldCanonicalize: path !== HFM_MT5_MARKET_WATCH_PATH,
+    };
+  }
   const aliased = FOREX_PATH_ALIASES[path];
   if (aliased) {
     return { view: aliased, canonicalPath: forexPathFor(aliased), shouldCanonicalize: true };
@@ -455,6 +483,7 @@ export function getForexDocumentTitle(view: ForexViewId): string {
   const item = getForexNavItem(view);
   if (item.id === "dashboard") return "KWIZERA AI STUDIO — Forex Dashboard";
   if (item.id === "hfm-mt5-dashboard") return "KWIZERA AI STUDIO — HFM MT5 Dashboard";
+  if (item.id === "hfm-mt5-market-watch") return "KWIZERA AI STUDIO — HFM MT5 Market Watch";
   return `KWIZERA AI STUDIO — ${item.label}`;
 }
 

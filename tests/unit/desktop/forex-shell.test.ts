@@ -71,7 +71,9 @@ describe("Forex Phase 1 routing", () => {
     expect(FOREX_NAV.find((item) => item.id === "admin-access")?.implemented).toBe(true);
     expect(FOREX_NAV.find((item) => item.id === "admin-access")?.label).toBe("Admin Access");
     expect(FOREX_NAV.find((item) => item.id === "admin-access")?.group).toBe("security");
-    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "watchlist", "charts", "technical-analysis", "ai-analysis", "signals", "automated-trading", "trade-monitor", "admin-access"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "hfm-mt5-dashboard")?.implemented).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "hfm-mt5-market-watch")?.implemented).toBe(true);
+    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "watchlist", "charts", "technical-analysis", "ai-analysis", "signals", "automated-trading", "hfm-mt5-dashboard", "hfm-mt5-market-watch", "trade-monitor", "admin-access"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
     expect(FOREX_DASHBOARD_MODULES).toHaveLength(8);
   });
 });

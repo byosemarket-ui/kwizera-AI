@@ -254,11 +254,13 @@ export function ForexShell({
         onSelectMarket={selectMarket}
       />
     );
-  } else if (route === "hfm-mt5-dashboard") {
+  } else if (route === "hfm-mt5-dashboard" || route === "hfm-mt5-market-watch") {
     // Full-page HFM shell (isolated from Binance/FXCM chrome).
     return (
       <ForexPageBoundary route={route}>
-        <HfmDashboardPage />
+        <HfmDashboardPage
+          initialView={route === "hfm-mt5-market-watch" ? "market-watch" : "dashboard"}
+        />
       </ForexPageBoundary>
     );
   } else if (route === "trade-monitor") {

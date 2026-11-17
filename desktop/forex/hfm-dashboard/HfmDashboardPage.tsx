@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { HFM_MT5_MARKET_WATCH_PATH, pushForexUrl } from "../forex-routes";
 import {
   retainHfmRealtimeStore,
   restartHfmRealtimeStore,
@@ -21,7 +22,11 @@ import {
   HfmOrdersPositions,
   HfmSystemHealth,
 } from "./components/HfmPanels";
+import { HfmMarketWatchPage } from "./market-watch/HfmMarketWatchPage";
+import { HfmProviderStatus } from "./market-watch/components/HfmProviderStatus";
+import type { HfmMwRealtimeHints, HfmMarketWatchViewId } from "./market-watch/types";
 import "./hfm-dashboard.css";
+import "./market-watch/hfm-market-watch.css";
 
 type NavId =
   | "dashboard"
@@ -35,7 +40,7 @@ type NavId =
 
 const NAV: Array<{ id: NavId; label: string; locked: boolean }> = [
   { id: "dashboard", label: "Dashboard", locked: false },
-  { id: "market-watch", label: "Market Watch", locked: true },
+  { id: "market-watch", label: "Market Watch", locked: false },
   { id: "charts", label: "Charts & Analysis", locked: true },
   { id: "signals", label: "Signals & AI", locked: true },
   { id: "orders", label: "Orders & Positions", locked: true },
@@ -48,12 +53,27 @@ function isChartSymbol(s: string): s is HfmChartSymbol {
   return (HFM_CHART_SYMBOLS as readonly string[]).includes(s);
 }
 
-export function HfmDashboardPage() {
+function viewFromPath(pathname: string): HfmMarketWatchViewId {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  if (path === HFM_MT5_MARKET_WATCH_PATH || path.endsWith("/hfm/market-watch")) {
+    return "market-watch";
+  }
+  return "dashboard";
+}
+
+export function HfmDashboardPage({
+  initialView,
+}: {
+  initialView?: HfmMarketWatchViewId;
+} = {}) {
   const state = useHfmRealtimeStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [clock, setClock] = useState(() => formatUtcClock());
   const [symbol, setSymbol] = useState<HfmChartSymbol>("EURUSD");
   const [timeframe, setTimeframe] = useState<HfmCandleTf>("M15");
+  const [view, setView] = useState<HfmMarketWatchViewId>(
+    () => initialView ?? viewFromPath(typeof window !== "undefined" ? window.location.pathname : ""),
+  );
 
   useEffect(() => retainHfmRealtimeStore(), []);
 
@@ -70,6 +90,16 @@ export function HfmDashboardPage() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  useEffect(() => {
+    const sync = () => setView(viewFromPath(window.location.pathname));
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
+
+  useEffect(() => {
+    if (initialView) setView(initialView);
+  }, [initialView]);
+
   const bars = useMemo(() => {
     const tfs = state.candles[symbol];
     const list = tfs?.[timeframe];
@@ -77,6 +107,34 @@ export function HfmDashboardPage() {
   }, [state.candles, symbol, timeframe]);
 
   const quoteDigits = state.quotes[symbol]?.digits ?? null;
+
+  const realtimeHints: HfmMwRealtimeHints = useMemo(
+    () => ({
+      sseStatus: state.sseStatus,
+      connectionState: state.connectionState,
+      freshness: state.freshness,
+      terminalRunning: state.terminalRunning,
+      authenticated: state.authenticated,
+      lastEventAt: state.lastEventAt,
+      lastError: state.lastError,
+      accountLogin: state.account?.loginExact ?? state.account?.loginHint ?? null,
+      accountServer: state.account?.server ?? null,
+      accountCurrency: state.account?.currency ?? null,
+    }),
+    [
+      state.sseStatus,
+      state.connectionState,
+      state.freshness,
+      state.terminalRunning,
+      state.authenticated,
+      state.lastEventAt,
+      state.lastError,
+      state.account?.loginExact,
+      state.account?.loginHint,
+      state.account?.server,
+      state.account?.currency,
+    ],
+  );
 
   const sideTerm =
     state.terminalRunning === true ? (
@@ -97,6 +155,22 @@ export function HfmDashboardPage() {
       <span className="hfm-warn">{state.connectionState}</span>
     );
 
+  const activeNav: NavId = view === "market-watch" ? "market-watch" : "dashboard";
+
+  function navigateHfm(next: NavId) {
+    if (next === "dashboard") {
+      setView("dashboard");
+      pushForexUrl("hfm-mt5-dashboard");
+      setSidebarOpen(false);
+      return;
+    }
+    if (next === "market-watch") {
+      setView("market-watch");
+      pushForexUrl("hfm-mt5-market-watch");
+      setSidebarOpen(false);
+    }
+  }
+
   return (
     <div
       data-hfm-dashboard
@@ -104,6 +178,7 @@ export function HfmDashboardPage() {
       data-broker="HFM_MT5"
       data-environment="demo"
       data-readonly="true"
+      data-hfm-view={view}
     >
       <div className="hfm-shell">
         <aside className="hfm-sidebar" aria-label="HFM navigation">
@@ -111,19 +186,27 @@ export function HfmDashboardPage() {
             <div className="hfm-brand-name">KWIZERA AI STUDIO</div>
             <div className="hfm-brand-sub">Forex Automated Trading</div>
           </div>
+
+          <HfmProviderStatus realtime={realtimeHints} />
+
           <nav className="hfm-nav" aria-label="Modules">
             {NAV.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 className="hfm-nav-btn"
-                data-active={item.id === "dashboard"}
+                data-active={item.id === activeNav}
                 data-locked={item.locked}
                 aria-disabled={item.locked}
-                title={item.locked ? "Module locked — not connected in Phase 2" : "Dashboard"}
+                aria-current={item.id === activeNav ? "page" : undefined}
+                title={
+                  item.locked
+                    ? "Module locked — destination not connected yet"
+                    : item.label
+                }
                 onClick={() => {
                   if (item.locked) return;
-                  setSidebarOpen(false);
+                  navigateHfm(item.id);
                 }}
               >
                 <span>{item.label}</span>
@@ -131,6 +214,7 @@ export function HfmDashboardPage() {
               </button>
             ))}
           </nav>
+
           <div className="hfm-side-status">
             <h3>HFM MT5 Status</h3>
             <div className="hfm-side-row">
@@ -145,6 +229,7 @@ export function HfmDashboardPage() {
               <span>Connection</span>
               {sideConn}
             </div>
+            <HfmProviderStatus realtime={realtimeHints} compact />
           </div>
         </aside>
 
@@ -156,71 +241,112 @@ export function HfmDashboardPage() {
         />
 
         <div className="hfm-main">
-          <header className="hfm-topbar">
-            <div className="hfm-topbar-left">
-              <button
-                type="button"
-                className="hfm-menu-toggle"
-                aria-label="Open navigation"
-                onClick={() => setSidebarOpen(true)}
-              >
-                Menu
-              </button>
-              <div className="hfm-topbar-titles">
-                <h1 className="hfm-title">HFM MT5 Dashboard</h1>
-                <p className="hfm-subtitle">HFM MT5 (Demo) · Read-Only · No Trading</p>
+          {view === "market-watch" ? (
+            <>
+              <header className="hfm-topbar">
+                <div className="hfm-topbar-left">
+                  <button
+                    type="button"
+                    className="hfm-menu-toggle"
+                    aria-label="Open navigation"
+                    onClick={() => setSidebarOpen(true)}
+                  >
+                    Menu
+                  </button>
+                  <div className="hfm-topbar-titles">
+                    <h1 className="hfm-title">Market Watch — HFM MT5</h1>
+                    <p className="hfm-subtitle">HFM MT5 (Demo) · Read-Only · Catalog + provider status</p>
+                  </div>
+                </div>
+                <div className="hfm-topbar-right">
+                  <HfmFreshnessBadge freshness={state.freshness} />
+                  <span className="hfm-clock">{clock}</span>
+                </div>
+              </header>
+
+              {state.sseStatus === "auth_required" ? (
+                <div className="hfm-auth-banner" role="status">
+                  Admin API token required for HFM data. Configure it at{" "}
+                  <a href="/forex/admin-access">/forex/admin-access</a>.
+                  {state.lastError ? ` (${state.lastError})` : ""}
+                </div>
+              ) : null}
+
+              <div className="hfm-content">
+                <HfmAccountOverview account={state.account} freshness={state.freshness} />
+                <HfmMarketWatchPage realtime={realtimeHints} />
               </div>
-            </div>
-            <div className="hfm-topbar-right">
-              <HfmFreshnessBadge freshness={state.freshness} />
-              <span className="hfm-clock">{clock}</span>
-              {(state.sseStatus === "reconnecting" || state.sseStatus === "error") && (
-                <button type="button" className="hfm-menu-toggle" onClick={() => restartHfmRealtimeStore()}>
-                  Reconnect
-                </button>
-              )}
-            </div>
-          </header>
+              <HfmDataStatusBar state={state} />
+            </>
+          ) : (
+            <>
+              <header className="hfm-topbar">
+                <div className="hfm-topbar-left">
+                  <button
+                    type="button"
+                    className="hfm-menu-toggle"
+                    aria-label="Open navigation"
+                    onClick={() => setSidebarOpen(true)}
+                  >
+                    Menu
+                  </button>
+                  <div className="hfm-topbar-titles">
+                    <h1 className="hfm-title">HFM MT5 Dashboard</h1>
+                    <p className="hfm-subtitle">HFM MT5 (Demo) · Read-Only · No Trading</p>
+                  </div>
+                </div>
+                <div className="hfm-topbar-right">
+                  <HfmFreshnessBadge freshness={state.freshness} />
+                  <span className="hfm-clock">{clock}</span>
+                  {(state.sseStatus === "reconnecting" || state.sseStatus === "error") && (
+                    <button type="button" className="hfm-menu-toggle" onClick={() => restartHfmRealtimeStore()}>
+                      Reconnect
+                    </button>
+                  )}
+                </div>
+              </header>
 
-          {state.sseStatus === "auth_required" ? (
-            <div className="hfm-auth-banner" role="status">
-              Admin API token required for the HFM SSE feed. Configure it at{" "}
-              <a href="/forex/admin-access">/forex/admin-access</a>, then reopen this dashboard.
-              {state.lastError ? ` (${state.lastError})` : ""}
-            </div>
-          ) : null}
+              {state.sseStatus === "auth_required" ? (
+                <div className="hfm-auth-banner" role="status">
+                  Admin API token required for the HFM SSE feed. Configure it at{" "}
+                  <a href="/forex/admin-access">/forex/admin-access</a>, then reopen this dashboard.
+                  {state.lastError ? ` (${state.lastError})` : ""}
+                </div>
+              ) : null}
 
-          <div className="hfm-content">
-            <HfmAccountOverview account={state.account} freshness={state.freshness} />
+              <div className="hfm-content">
+                <HfmAccountOverview account={state.account} freshness={state.freshness} />
 
-            <div className="hfm-mid">
-              <HfmCandlestickChart
-                symbol={symbol}
-                timeframe={timeframe}
-                bars={bars}
-                freshness={state.freshness}
-                digits={quoteDigits}
-                onSymbolChange={setSymbol}
-                onTimeframeChange={setTimeframe}
-              />
-              <HfmMarketWatch
-                quotes={state.quotes}
-                activeSymbol={symbol}
-                onSelect={(s) => {
-                  if (isChartSymbol(s)) setSymbol(s);
-                }}
-              />
-            </div>
+                <div className="hfm-mid">
+                  <HfmCandlestickChart
+                    symbol={symbol}
+                    timeframe={timeframe}
+                    bars={bars}
+                    freshness={state.freshness}
+                    digits={quoteDigits}
+                    onSymbolChange={setSymbol}
+                    onTimeframeChange={setTimeframe}
+                  />
+                  <HfmMarketWatch
+                    quotes={state.quotes}
+                    activeSymbol={symbol}
+                    onSelect={(s) => {
+                      if (isChartSymbol(s)) setSymbol(s);
+                    }}
+                  />
+                </div>
 
-            <div className="hfm-bottom">
-              <HfmMarketIntelligence />
-              <HfmAiAnalysisPanel />
-              <HfmOrdersPositions account={state.account} />
-              <HfmSystemHealth state={state} />
-            </div>
-          </div>
+                <div className="hfm-bottom">
+                  <HfmMarketIntelligence />
+                  <HfmAiAnalysisPanel />
+                  <HfmOrdersPositions account={state.account} />
+                  <HfmSystemHealth state={state} />
+                </div>
+              </div>
 
-          <HfmDataStatusBar state={state} />
+              <HfmDataStatusBar state={state} />
+            </>
+          )}
         </div>
       </div>
     </div>
