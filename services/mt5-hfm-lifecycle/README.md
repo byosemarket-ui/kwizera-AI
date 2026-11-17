@@ -12,6 +12,18 @@ terminal on the Ubuntu VPS. Demo-only. No Live login. No trading activation.
 | Auto-start after boot | **Xvfb + demo + watchdog timer enabled**; agent remains disabled-on-boot unless already active |
 | Watchdog | `kwizera-mt5-hfm-watchdog.timer` re-logins Demo via vault if `terminal64` missing **or** MQL snapshot stale (>180s) |
 | Cutover | `bin/cutover-mt5-to-systemd.sh` — refuses unless `CONFIRM=YES-CUTOVER` (owner approval) |
+| Login ini | `prepare-demo-login-ini.sh` → `write-demo-login-ini.mjs` (vault → `/run/kwizera/mt5-hfm/login-*.ini`, shredded ~25s after start) |
+
+### Demo authentication (systemd)
+
+`start-mt5-demo.sh` no longer launches bare `/portable`. Startup order:
+
+1. `prepare-demo-login-ini.sh` (root `ExecStartPre=+`) unlocks vault as `kwizera`, writes `0600` ini + non-secret `startup.env`
+2. `wait-display.sh`
+3. `start-mt5-demo.sh` as `mt5` → `wine terminal64 /portable /config:Z:\run\kwizera\mt5-hfm\<ini>`
+4. Background shred of the ini after ~25s
+
+Password never appears in the unit file, journal-intended logs, or process argv.
 | VPS reboot test | **NOT VERIFIED** (do not reboot without separate approval) |
 | Phase 3 agent unit | Installed; token provisioned; keep soft `Wants=` on demo |
 
@@ -19,7 +31,7 @@ terminal on the Ubuntu VPS. Demo-only. No Live login. No trading activation.
 
 ```
 kwizera-mt5-xvfb.service       → Xvfb :97 + Xauthority cookie
-kwizera-mt5-hfm-demo.service   → Wine Staging terminal64 /portable (Requires Xvfb)
+kwizera-mt5-hfm-demo.service   → vault login.ini + Wine terminal64 /portable /config (Requires Xvfb)
 kwizera-mt5-hfm-agent.service  → AF_UNIX Demo agent (Requires Demo terminal)
 kwizera-mt5-hfm.target         → optional grouping (Wants xvfb + demo)
 ```

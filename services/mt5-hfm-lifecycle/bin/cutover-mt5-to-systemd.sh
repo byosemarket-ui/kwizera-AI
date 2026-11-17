@@ -1,29 +1,24 @@
 #!/usr/bin/env bash
 # OWNER APPROVAL REQUIRED.
-# Safe cutover of manual Xvfb + agent-started terminal → systemd ownership.
-# Refuses to run unless CONFIRM=YES-CUTOVER.
-# Demo-only. Does not place orders. Does not print secrets.
+# Cutover manual Xvfb + agent-started terminal → systemd Xvfb + vault-backed demo unit.
+# Refuses unless CONFIRM=YES-CUTOVER. Demo-only. Never prints secrets.
 set -euo pipefail
 
 if [[ "${CONFIRM:-}" != "YES-CUTOVER" ]]; then
   cat <<'EOF' >&2
 cutover_refused: set CONFIRM=YES-CUTOVER after owner approval.
 
-Prepared sequence (do not improvise):
-  1) Record API health (quotes LIVE, account snapshot)
-  2) systemctl stop kwizera-mt5-hfm-watchdog.timer  (pause during cutover)
-  3) stop-mt5-demo.sh (prefix-scoped wineserver -k)
-  4) SIGTERM manual Xvfb :97 only (no global pkill)
-  5) prepare-xauth.sh as mt5 (regenerate cookie while display down)
+Prepared sequence:
+  1) Record API health (9 LIVE quotes + account)
+  2) Pause watchdog timer
+  3) stop-mt5-demo.sh (prefix-scoped)
+  4) SIGTERM manual Xvfb :97 only
+  5) prepare-xauth.sh as mt5
   6) systemctl start kwizera-mt5-xvfb.service
-  7) wait-display.sh
-  8) POST /api/forex/providers/mt5-hfm/login  (vault Demo auth; starts terminal64)
-     NOTE: do NOT start kwizera-mt5-hfm-demo.service in the same window —
-     systemd ExecStart is /portable without login.ini and Restart=on-failure
-     races agent login. After auth is stable, optionally enable demo for boot
-     cold-start only; watchdog handles missing/stale terminal.
-  9) Verify snapshot age < 30s, 9 LIVE quotes, account fields
- 10) systemctl start kwizera-mt5-hfm-watchdog.timer
+  7) systemctl start kwizera-mt5-hfm-demo.service
+     (ExecStartPre writes vault login.ini; ExecStart wine /portable /config:…)
+  8) Wait for fresh MQL snapshot + 9 LIVE quotes
+  9) Resume watchdog timer
 
 EOF
   exit 2
@@ -54,8 +49,9 @@ PY
 echo "=== PAUSE WATCHDOG ==="
 systemctl stop kwizera-mt5-hfm-watchdog.timer
 
-echo "=== STOP TERMINAL (prefix-scoped) ==="
+echo "=== STOP TERMINAL ==="
 sudo -u mt5 env WINEPREFIX=/home/mt5/.wine-hfm "$LIFE/bin/stop-mt5-demo.sh" || true
+systemctl stop kwizera-mt5-hfm-demo.service 2>/dev/null || true
 sleep 2
 
 echo "=== STOP MANUAL XVFB ==="
@@ -73,47 +69,37 @@ if pgrep -u mt5 -f 'Xvfb :97' >/dev/null; then
   exit 3
 fi
 
-echo "=== PREPARE XAUTH ==="
+echo "=== PREPARE XAUTH + START SYSTEMD XVFB ==="
 sudo -u mt5 env HOME=/home/mt5 XAUTHORITY=/home/mt5/.mt5-xauth/Xauthority \
   KWIZERA_MT5_XAUTH_DIR=/home/mt5/.mt5-xauth KWIZERA_MT5_DISPLAY_NUM=97 \
   "$LIFE/bin/prepare-xauth.sh"
 wc -c /home/mt5/.mt5-xauth/Xauthority
-
-echo "=== START SYSTEMD XVFB ==="
 systemctl start kwizera-mt5-xvfb.service
 systemctl is-active kwizera-mt5-xvfb.service
 sudo -u mt5 "$LIFE/bin/wait-display.sh"
 
-echo "=== DEMO LOGIN (vault) — not systemd demo unit ==="
-# Ensure demo unit is not running during login.
-systemctl stop kwizera-mt5-hfm-demo.service 2>/dev/null || true
-code=$(curl -sS -o "$BAK/login.json" -w '%{http_code}' --max-time 240 "${HDR[@]}" \
-  -X POST "http://127.0.0.1:${PORT}/api/forex/providers/mt5-hfm/login" -d '{}')
-echo "login_http=$code"
-python3 - <<PY
-import json
-d=json.load(open("$BAK/login.json"))
-print("authenticatedLogin", d.get("authenticatedLogin"), "terminalConnected", d.get("terminalConnected"))
-PY
+echo "=== START SYSTEMD DEMO (vault login.ini) ==="
+systemctl start kwizera-mt5-hfm-demo.service
+systemctl is-active kwizera-mt5-hfm-demo.service
 
 echo "=== WAIT SNAPSHOT ==="
 python3 - <<'PY'
 import json, os, time
 p="/home/mt5/.wine-hfm/drive_c/users/mt5/AppData/Roaming/MetaQuotes/Terminal/Common/Files/kwizera_readonly_snapshot.json"
-deadline=time.time()+120
+deadline=time.time()+150
 while time.time()<deadline:
-  if os.path.isfile(p) and time.time()-os.path.getmtime(p) <= 15:
+  if os.path.isfile(p) and time.time()-os.path.getmtime(p) <= 20:
     d=json.loads(open(p,encoding="utf-8",errors="replace").read())
-    print("READY age", round(time.time()-os.path.getmtime(p),1), "seq", d.get("seq"), "login", (d.get("account") or {}).get("loginExact"))
+    print("READY age", round(time.time()-os.path.getmtime(p),1), "seq", d.get("seq"), "login", (d.get("account") or {}).get("loginExact"), "server", (d.get("account") or {}).get("server"))
     break
   time.sleep(3)
 else:
   raise SystemExit("snapshot_timeout")
 PY
 
-sleep 8
+sleep 10
 curl -sS "${HDR[@]}" "http://127.0.0.1:${PORT}/api/forex/providers/mt5-hfm/quotes" -o "$BAK/post-quotes.json"
-curl -sS "${HDR[@]}" -X POST "http://127.0.0.1:${PORT}/api/forex/providers/mt5-hfm/account/sync" -d '{}' -o "$BAK/post-acct-sync.json"
+curl -sS "${HDR[@]}" -X POST "http://127.0.0.1:${PORT}/api/forex/providers/mt5-hfm/account/sync" -d '{}' -o "$BAK/post-acct.json"
 python3 - <<PY
 import json
 from collections import Counter
@@ -125,8 +111,6 @@ PY
 
 echo "=== RESUME WATCHDOG ==="
 systemctl start kwizera-mt5-hfm-watchdog.timer
-
-echo "=== PROCESS CHECK ==="
 pgrep -a -u mt5 -f 'Xvfb :97|terminal64' || true
-systemctl is-active kwizera-mt5-xvfb.service
-echo "cutover_complete note=terminal_via_agent_login xvfb_via_systemd demo_unit_left_inactive_for_boot"
+systemctl is-active kwizera-mt5-xvfb.service kwizera-mt5-hfm-demo.service
+echo "cutover_complete"
