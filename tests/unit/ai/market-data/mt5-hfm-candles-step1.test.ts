@@ -61,4 +61,29 @@ describe("STEP 1 HFM candle readiness", () => {
     expect(chart).toContain('from "lightweight-charts"');
     expect(chart).toContain("CopyRates snapshot");
   });
+
+  it("maps canonical 15m to M15 and never uppercases to 15M for MQL lookup", () => {
+    const control = read("services/mt5-hfm-agent/mt5_control.py");
+    expect(control).toContain("map_timeframe(str(timeframe");
+    expect(control).toContain('Never use `.upper()` alone');
+  });
+
+  it("unified MarketDataService routes HFM_MT5 historically without FXCM fallthrough", () => {
+    const svc = read("ai/market-data/providers/market-data-service.ts");
+    expect(svc).toContain('providerId === "HFM_MT5"');
+    expect(svc).toContain("unifyHfmMt5Historical");
+    expect(svc).toContain("canonicalTimeframeToHfmMt5");
+    expect(svc).toContain("never fall through to FXCM");
+  });
+});
+
+describe("STEP 1 HFM canonical timeframe helper", () => {
+  it("maps unified timeframes to MT5 keys", async () => {
+    const { canonicalTimeframeToHfmMt5 } = await import(
+      "../../../../ai/market-data/providers/market-data-service"
+    );
+    expect(canonicalTimeframeToHfmMt5("15m")).toBe("M15");
+    expect(canonicalTimeframeToHfmMt5("1h")).toBe("H1");
+    expect(canonicalTimeframeToHfmMt5("1d")).toBe("D1");
+  });
 });

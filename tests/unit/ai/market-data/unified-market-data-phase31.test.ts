@@ -50,7 +50,12 @@ describe("Forex Phase 31 — Unified Market Data Layer", () => {
     expect(registry.getProvider("BINANCE")).toBeTruthy();
     expect(registry.getProvider("FXCM")).toBeTruthy();
     const snap = await registry.snapshot();
-    expect(snap.providers.map((p) => p.info.provider).sort()).toEqual(["BINANCE", "FOREXCONNECT", "FXCM"]);
+    expect(snap.providers.map((p) => p.info.provider).sort()).toEqual([
+      "BINANCE",
+      "FOREXCONNECT",
+      "FXCM",
+      "HFM_MT5",
+    ]);
   });
 
   it("5-9 market identity keeps provider + marketType + symbol", () => {
@@ -120,6 +125,13 @@ describe("Forex Phase 31 — Unified Market Data Layer", () => {
       return /FXCM|disabled|not configured|unavailable/i.test(message)
         || (err instanceof MarketDataRoutingError);
     });
+
+    // HFM live candles must not fall through to FXCM.
+    await expect(service.subscribeLiveCandles({
+      provider: "HFM_MT5",
+      symbol: "EURUSD",
+      timeframe: "15m",
+    })).rejects.toBeInstanceOf(MarketDataRoutingError);
   });
 
   it("17-21 instrument registry + cache isolation + collision", () => {
@@ -247,7 +259,8 @@ describe("Forex Phase 31 — Unified Market Data Layer", () => {
     expect(watchlistSrc).toContain("provider");
 
     const chartSrc = read("desktop/forex/chart/ForexChartWorkspace.tsx");
-    expect(chartSrc).toContain('provider: "FXCM"');
+    expect(chartSrc).toContain('? "FXCM" as const');
+    expect(chartSrc).toContain('provider: forexConnectSelected ? "FOREXCONNECT" : "FXCM"');
     expect(chartSrc).toContain("data-fx-provider");
 
     expect(resolveMarketProviderForSymbol("BTCUSDT")).toBe("BINANCE");

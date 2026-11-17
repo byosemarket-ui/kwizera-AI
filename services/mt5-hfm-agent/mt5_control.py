@@ -1304,10 +1304,9 @@ def candles(symbol: str, timeframe: str, limit: int = 100) -> dict[str, Any]:
         raise ValueError("INVALID_SYMBOL")
     if limit < 1 or limit > 300:
         raise ValueError("INVALID_LIMIT")
-    tf_key = timeframe.strip().upper()
-    # Validate timeframe early (native MT5 periods only — no silent synthetic derivation).
+    # Canonicalize first (`15m` → `M15`). Never use `.upper()` alone — that yields `15M`.
     try:
-        mt5_mcp.map_timeframe(tf_key)
+        tf_key = mt5_mcp.map_timeframe(str(timeframe or "").strip())
     except ValueError:
         raise ValueError("UNSUPPORTED_TIMEFRAME") from None
 
@@ -1339,7 +1338,7 @@ def candles(symbol: str, timeframe: str, limit: int = 100) -> dict[str, Any]:
         }
 
     # Last resort: MCP (usually unauthorized on this host — keep explicit).
-    mt5_tf = mt5_mcp.map_timeframe(tf_key)
+    mt5_tf = tf_key
     try:
         client = mt5_mcp.Mt5McpClient()
         raw = None

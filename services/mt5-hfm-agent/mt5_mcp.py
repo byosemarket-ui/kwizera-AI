@@ -560,7 +560,8 @@ _TF_MAP = {
 
 
 def map_timeframe(tf: str) -> str:
-    mapped = _TF_MAP.get(tf) or _TF_MAP.get(tf.upper())
+    raw = str(tf or "").strip()
+    mapped = _TF_MAP.get(raw) or _TF_MAP.get(raw.upper()) or _TF_MAP.get(raw.lower())
     if not mapped:
         raise ValueError("UNSUPPORTED_TIMEFRAME")
     return mapped

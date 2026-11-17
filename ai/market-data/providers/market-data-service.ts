@@ -51,6 +51,7 @@ import {
   type InstrumentReadinessSnapshot,
 } from "../instrument-readiness/index.js";
 import { resolveForexConnectLiveTimeframe } from "../forexconnect/timeframes.js";
+import type { HfmMt5CandleResult } from "../mt5-hfm/provider.js";
 
 export class MarketDataRoutingError extends Error {
   readonly code: string;
@@ -429,7 +430,9 @@ export class MarketDataService {
       ? this.registry.getFxcm().getConfig().environment
       : providerId === "FOREXCONNECT"
         ? this.registry.getForexConnect().getBridge().getConfig().environment
-        : "public";
+        : providerId === "HFM_MT5"
+          ? "demo"
+          : "public";
     const cacheKey = marketDataCacheKey({
       provider: providerId,
       marketType,
@@ -470,6 +473,23 @@ export class MarketDataService {
       const series = unifyForexConnectHistorical(result);
       this.historicalCache.set(cacheKey, { at: Date.now(), series });
       return series;
+    }
+
+    if (providerId === "HFM_MT5") {
+      // HFM-only path — never fall through to FXCM/Binance/ForexConnect.
+      const hfm = this.registry.getHfmMt5();
+      const mt5Tf = canonicalTimeframeToHfmMt5(timeframe);
+      const result = await hfm.getCandles(request.symbol, mt5Tf, request.limit ?? 100);
+      const series = unifyHfmMt5Historical(result, timeframe, marketType);
+      this.historicalCache.set(cacheKey, { at: Date.now(), series });
+      return series;
+    }
+
+    if (providerId !== "FXCM") {
+      throw new MarketDataRoutingError(
+        "CAPABILITY_UNSUPPORTED",
+        `Historical candles are not routed for provider ${providerId}.`,
+      );
     }
 
     // FXCM Socket REST only — never fall back to Binance or ForexConnect.
@@ -517,6 +537,20 @@ export class MarketDataService {
       // ensure() reuses active sessions without refCount leak from 1s HTTP polls.
       const live = await this.forexConnectLive.ensure(request.symbol, timeframe);
       return unifyForexConnectLiveSeries(live);
+    }
+
+    if (providerId === "HFM_MT5") {
+      throw new MarketDataRoutingError(
+        "CAPABILITY_UNSUPPORTED",
+        "HFM_MT5 liveCandles are not supported via MarketDataService; use HFM SSE quotes + closed CopyRates bars.",
+      );
+    }
+
+    if (providerId !== "FXCM") {
+      throw new MarketDataRoutingError(
+        "CAPABILITY_UNSUPPORTED",
+        `Live candles are not routed for provider ${providerId}.`,
+      );
     }
 
     const fxcm = this.registry.getFxcm();
@@ -603,6 +637,16 @@ export class MarketDataService {
         connectionState,
         receivedAt: new Date(quote.receivedAtMs).toISOString(),
       };
+    }
+    if (providerId === "HFM_MT5") {
+      // HFM quotes stay on the dedicated mt5-hfm SSE/REST path — never FXCM Offers.
+      return null;
+    }
+    if (providerId !== "FXCM") {
+      throw new MarketDataRoutingError(
+        "CAPABILITY_UNSUPPORTED",
+        `Current quote routing is not available for provider ${providerId}.`,
+      );
     }
     const quotes = this.registry.getFxcm().listQuotes();
     const compact = normalizeCanonicalSymbol(request.symbol);
@@ -1112,6 +1156,92 @@ function toUnifiedHealth(
       errorCode: health.errorCode,
       tradingEnabled: false,
     },
+  };
+}
+
+/** Unified canonical TF → HFM MQL CopyRates key (never invent unsupported periods). */
+export function canonicalTimeframeToHfmMt5(tf: CanonicalTimeframeId): string {
+  switch (tf) {
+    case "1m":
+      return "M1";
+    case "5m":
+      return "M5";
+    case "15m":
+      return "M15";
+    case "30m":
+      return "M30";
+    case "1h":
+      return "H1";
+    case "4h":
+      return "H4";
+    case "1d":
+      return "D1";
+    case "1w":
+      return "W1";
+    default:
+      return String(tf).toUpperCase();
+  }
+}
+
+function unifyHfmMt5Historical(
+  result: HfmMt5CandleResult,
+  timeframe: CanonicalTimeframeId,
+  marketType: MarketAssetType,
+): UnifiedCandleSeries {
+  const symbol = String(result.symbol || "").toUpperCase();
+  const identity = buildMarketIdentity({
+    provider: "HFM_MT5",
+    marketType,
+    providerSymbol: symbol,
+    canonicalSymbol: symbol,
+    displaySymbol: symbol,
+    environment: "demo",
+  });
+  const candles: UnifiedCandle[] = (result.candles ?? [])
+    .map((c) => {
+      const time = typeof c.time === "number" ? c.time : Number(c.time);
+      if (!Number.isFinite(time) || !Number.isFinite(c.open) || !Number.isFinite(c.high)
+        || !Number.isFinite(c.low) || !Number.isFinite(c.close)) {
+        return null;
+      }
+      return {
+        provider: "HFM_MT5" as const,
+        marketType,
+        providerSymbol: symbol,
+        canonicalSymbol: symbol,
+        displaySymbol: symbol,
+        timeframe,
+        time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        volume: c.tickVolume,
+        isClosed: true,
+        source: "HFM_MT5" as const,
+        sourceMode: "HISTORICAL" as const,
+        dataQuality: "VALID" as const,
+      };
+    })
+    .filter((c): c is UnifiedCandle => c != null);
+
+  return {
+    identity,
+    timeframe,
+    source: "HFM_MT5",
+    sourceMode: "HISTORICAL",
+    connectionState: result.available && candles.length ? "CONNECTED" : "NO_DATA",
+    dataQuality: result.available && candles.length ? "VALID" : "NO_DATA",
+    candles,
+    forming: null,
+    count: candles.length,
+    lastQuoteAt: null,
+    updatedAt: result.retrievedAt ?? new Date().toISOString(),
+    note: result.available
+      ? "HFM_MT5 CopyRates historical candles (Demo read-only)."
+      : (result.unavailableReason ?? "HFM_MT5 historical candles unavailable."),
+    errorCode: result.available ? null : "HFM_CANDLES_UNAVAILABLE",
+    errorMessage: result.available ? null : (result.unavailableReason ?? "unavailable"),
   };
 }
 
