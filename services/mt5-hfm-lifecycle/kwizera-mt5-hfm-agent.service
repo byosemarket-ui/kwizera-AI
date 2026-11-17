@@ -57,7 +57,8 @@ Nice=5
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=/home/mt5/.wine-hfm /home/mt5/.mt5-xauth /run/kwizera
+# "-" = ignore missing /run/kwizera at boot (tmpfs); prepare-agent-runtime creates it.
+ReadWritePaths=/home/mt5/.wine-hfm /home/mt5/.mt5-xauth -/run/kwizera
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictSUIDSGID=true
 

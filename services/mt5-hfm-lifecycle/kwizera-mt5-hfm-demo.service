@@ -32,6 +32,12 @@ Environment=KWIZERA_MT5_HFM_RUN_DIR=/run/kwizera/mt5-hfm
 Environment=KWIZERA_APP_ROOT=/opt/kwizera-ai
 Environment=KWIZERA_STORAGE_ROOT=/var/lib/kwizera-ai-studio
 
+# Ensure /run/kwizera exists before ProtectSystem mount namespacing (boot-safe).
+ExecStartPre=+/usr/bin/mkdir -p /run/kwizera/mt5-hfm /run/kwizera/mt5-hfm-stage
+ExecStartPre=+/usr/bin/chown mt5:kwizera /run/kwizera /run/kwizera/mt5-hfm
+ExecStartPre=+/usr/bin/chmod 0750 /run/kwizera /run/kwizera/mt5-hfm
+ExecStartPre=+/usr/bin/chown kwizera:kwizera /run/kwizera/mt5-hfm-stage
+ExecStartPre=+/usr/bin/chmod 0700 /run/kwizera/mt5-hfm-stage
 # + = root for vault→ini + chown; wait-display as mt5.
 ExecStartPre=+/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/prepare-demo-login-ini.sh
 ExecStartPre=/opt/kwizera-ai/services/mt5-hfm-lifecycle/bin/wait-display.sh
@@ -54,7 +60,8 @@ NoNewPrivileges=true
 # Must share host /tmp/.X11-unix with kwizera-mt5-xvfb (Wine DISPLAY=:97).
 PrivateTmp=false
 ProtectSystem=full
-ReadWritePaths=/home/mt5/.wine-hfm /home/mt5/.mt5-xauth /run/kwizera /tmp /tmp/.X11-unix
+# "-" = ignore missing path at boot; ExecStartPre/tmpfiles create /run/kwizera.
+ReadWritePaths=/home/mt5/.wine-hfm /home/mt5/.mt5-xauth -/run/kwizera /tmp /tmp/.X11-unix
 # prepare-demo-login-ini.sh (+root) also uses /run/kwizera/mt5-hfm-stage.
 RestrictSUIDSGID=true
 

@@ -25,9 +25,32 @@ if [[ -e "$SOCK" ]]; then
   rm -f "$SOCK"
 fi
 
-# Token must be provisioned out-of-band (vault → file). Never log contents.
+# /run is tmpfs — restore token from vault after reboot. Never log contents.
 if [[ ! -f "$TOKEN" ]]; then
-  echo "agent_token_missing path=$TOKEN (provision before enabling agent unit)" >&2
+  ROOT="${KWIZERA_APP_ROOT:-/opt/kwizera-ai}"
+  SYNC="$ROOT/services/mt5-hfm-lifecycle/bin/sync-agent-token-from-vault.mjs"
+  PROVISION="$ROOT/services/mt5-hfm-lifecycle/bin/provision-agent-token.sh"
+  if [[ -f "$SYNC" && -x "$PROVISION" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    [[ -f "$ROOT/.env" ]] && . "$ROOT/.env"
+    set +a
+    TMP_PATH="$(
+      sudo -u kwizera -H env \
+        KWIZERA_APP_ROOT="$ROOT" \
+        KWIZERA_STORAGE_ROOT="${KWIZERA_STORAGE_ROOT:-/var/lib/kwizera-ai-studio}" \
+        KWIZERA_SECRETS_PASSPHRASE="${KWIZERA_SECRETS_PASSPHRASE:-}" \
+        HOME=/home/kwizera \
+        PATH="/usr/bin:/bin" \
+        node "$SYNC"
+    )"
+    if [[ -n "$TMP_PATH" && -f "$TMP_PATH" ]]; then
+      "$PROVISION" "$TMP_PATH"
+    fi
+  fi
+fi
+if [[ ! -f "$TOKEN" ]]; then
+  echo "agent_token_missing path=$TOKEN (vault sync failed; provision before enabling agent unit)" >&2
   exit 1
 fi
 

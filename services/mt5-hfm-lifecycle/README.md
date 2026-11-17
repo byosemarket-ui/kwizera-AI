@@ -25,7 +25,8 @@ terminal on the Ubuntu VPS. Demo-only. No Live login. No trading activation.
 4. Background shred of the ini after ~25s
 
 Password never appears in the unit file, journal-intended logs, or process argv.
-| VPS reboot test | Owner-authorized; run only after watchdog/agent/Node recovery preflight |
+| VPS reboot test | **VERIFIED** — `/etc/tmpfiles.d/kwizera-mt5-hfm.conf` + vault agent-token restore on boot |
+| Boot failure mode fixed | `226/NAMESPACE` when `/run/kwizera` missing; agent token wiped with tmpfs |
 | Phase 3 agent unit | Installed; token provisioned; keep soft `Wants=` on demo |
 
 ## Units
