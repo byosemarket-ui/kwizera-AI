@@ -1,0 +1,15 @@
+# Poll every 2 minutes — recover HFM Demo terminal without busy looping.
+
+[Unit]
+Description=KWIZERA HFM MT5 Demo watchdog timer
+Documentation=file:///opt/kwizera-ai/services/mt5-hfm-lifecycle/README.md
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=30s
+Persistent=true
+Unit=kwizera-mt5-hfm-watchdog.service
+
+[Install]
+WantedBy=timers.target

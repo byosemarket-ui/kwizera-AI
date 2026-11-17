@@ -142,15 +142,27 @@ export function HfmDashboardPage({
     ) : (
       <span className="hfm-bad">Offline</span>
     );
+  // Agent auth ≠ SSE client socket. Keep them separate so a connected browser
+  // cannot paint the broker/agent as healthy while the terminal is down.
   const sideAgent =
-    state.sseStatus === "connected" || state.authenticated ? (
-      <span className="hfm-ok">Online</span>
+    state.authenticated === true ? (
+      <span className="hfm-ok">Authenticated</span>
+    ) : state.terminalRunning === true ? (
+      <span className="hfm-warn">Terminal up / auth unknown</span>
+    ) : (
+      <span className="hfm-bad">Unauthenticated</span>
+    );
+  const sideSse =
+    state.sseStatus === "connected" ? (
+      <span className="hfm-ok">Connected</span>
     ) : (
       <span className="hfm-warn">{state.sseStatus}</span>
     );
   const sideConn =
-    state.connectionState === "connected" ? (
+    state.terminalRunning === true && state.authenticated === true && state.connectionState === "connected" ? (
       <span className="hfm-ok">Connected</span>
+    ) : state.terminalRunning === false ? (
+      <span className="hfm-bad">Terminal offline</span>
     ) : (
       <span className="hfm-warn">{state.connectionState}</span>
     );
@@ -222,11 +234,15 @@ export function HfmDashboardPage({
               {sideTerm}
             </div>
             <div className="hfm-side-row">
-              <span>MT5 Agent / SSE</span>
+              <span>MT5 Agent auth</span>
               {sideAgent}
             </div>
             <div className="hfm-side-row">
-              <span>Connection</span>
+              <span>SSE client</span>
+              {sideSse}
+            </div>
+            <div className="hfm-side-row">
+              <span>Broker connection</span>
               {sideConn}
             </div>
             <HfmProviderStatus realtime={realtimeHints} compact />

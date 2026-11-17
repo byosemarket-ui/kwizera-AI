@@ -129,7 +129,7 @@ export async function requestMt5HfmDemoLoginBridge(): Promise<Mt5HfmLoginBridgeR
       };
     }
     const result = (response.result ?? {}) as Record<string, unknown>;
-    const account = asAccount(result.account, meta.server);
+    let account = asAccount(result.account, meta.server);
     const authenticated = Boolean(result.authenticated);
     await manager.recordProbeResult("demo", {
       status: authenticated ? "demo_login_authenticated" : "demo_login_unconfirmed",
@@ -138,6 +138,31 @@ export async function requestMt5HfmDemoLoginBridge(): Promise<Mt5HfmLoginBridgeR
         ? "Demo terminal login reported authenticated (journal inference)."
         : "Demo login attempted; authentication not confirmed from journal.",
     });
+    // Journal auth often lands before the MQL Expert writes balance/equity. Enrich
+    // from demo.account_snapshot without fabricating numbers.
+    if (authenticated && (account?.balance == null || account?.equity == null || account?.currency == null)) {
+      for (let i = 0; i < 10; i += 1) {
+        await new Promise((r) => setTimeout(r, 1500));
+        try {
+          const snapResp = await callMt5HfmAgent("demo.account_snapshot", {}, { timeoutMs: 20_000 });
+          if (!snapResp.ok || !snapResp.result || typeof snapResp.result !== "object") continue;
+          const snapAcct = asAccount(
+            (snapResp.result as Record<string, unknown>).account,
+            meta.server,
+          );
+          if (!snapAcct) continue;
+          account = {
+            ...(account ?? snapAcct),
+            ...snapAcct,
+            loginHint: snapAcct.loginHint ?? account?.loginHint ?? null,
+            server: snapAcct.server ?? account?.server ?? meta.server,
+          };
+          if (account.balance != null && account.equity != null && account.currency != null) break;
+        } catch {
+          // Keep journal identity; balance remains null until a later sync.
+        }
+      }
+    }
     if (account) {
       await manager.recordDemoAccountSnapshot({
         loginHint: account.loginHint,
@@ -153,6 +178,8 @@ export async function requestMt5HfmDemoLoginBridge(): Promise<Mt5HfmLoginBridgeR
         note: account.note,
       });
     }
+    const hasMqlMoney =
+      account != null && account.balance != null && account.equity != null && account.currency != null;
     return {
       ok: true,
       status: MT5_HFM_LOGIN_BRIDGE_STATUS,
@@ -163,7 +190,9 @@ export async function requestMt5HfmDemoLoginBridge(): Promise<Mt5HfmLoginBridgeR
       agent: safeAgent,
       security,
       note: authenticated
-        ? "Authenticated Demo login path invoked via local agent. Balance/equity may still be null without MT5 API enhancer."
+        ? hasMqlMoney
+          ? "Authenticated Demo login with MQL account snapshot (balance/equity present)."
+          : "Authenticated Demo login confirmed. Balance/equity still pending MQL snapshot — use account/sync."
         : "Agent login invoked; journal did not confirm authentication. Not a TCP-only success claim.",
     };
   } catch (error) {

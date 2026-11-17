@@ -41,6 +41,7 @@ import {
   freshnessFromQuoteStatus,
   resetHfmSseDistributionForTests,
 } from "./sse-distribution.js";
+import { getMt5HfmDemoProfileManager } from "./demo-profile.js";
 
 export interface Mt5HfmHubSubscriber {
   id: string;
@@ -223,6 +224,44 @@ function accountFingerprint(account: Record<string, unknown> | null | undefined)
   return JSON.stringify(slim);
 }
 
+/** Persist non-secret account fields for REST /account — never invent balances. */
+async function persistStreamAccount(account: Record<string, unknown> | null): Promise<void> {
+  if (!account) return;
+  const balance = typeof account.balance === "number" ? account.balance : null;
+  const equity = typeof account.equity === "number" ? account.equity : null;
+  // Skip identity-only frames that would only re-assert login without money fields;
+  // recordDemoAccountSnapshot already merges nulls, but avoid noisy disk writes.
+  if (balance == null && equity == null && account.currency == null) return;
+  try {
+    const manager = await getMt5HfmDemoProfileManager();
+    const loginExact = account.loginExact != null ? String(account.loginExact) : null;
+    const loginHint =
+      account.loginHint != null
+        ? String(account.loginHint)
+        : loginExact
+          ? `••••${loginExact.slice(-4)}`
+          : null;
+    await manager.recordDemoAccountSnapshot({
+      loginHint,
+      server: account.server != null ? String(account.server) : null,
+      currency: account.currency != null ? String(account.currency) : null,
+      balance,
+      equity,
+      freeMargin: typeof account.freeMargin === "number" ? account.freeMargin : null,
+      marginLevel: typeof account.marginLevel === "number" ? account.marginLevel : null,
+      leverage: account.leverage != null ? String(account.leverage) : null,
+      company: account.company != null ? String(account.company) : null,
+      syncedAt: new Date().toISOString(),
+      note:
+        account.note != null
+          ? String(account.note)
+          : "Account fields from HFM realtime stream (MQL snapshot).",
+    });
+  } catch {
+    // REST account persistence must not break the quote poll loop.
+  }
+}
+
 async function pollOnce(): Promise<void> {
   candlePollCounter += 1;
   const includeCandles = candlePollCounter % 10 === 1;
@@ -346,6 +385,7 @@ async function pollOnce(): Promise<void> {
             },
           ),
         );
+        void persistStreamAccount(account);
       }
 
       const accountServer =

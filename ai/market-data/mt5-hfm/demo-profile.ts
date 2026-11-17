@@ -465,20 +465,27 @@ export class Mt5HfmDemoProfileManager {
   async recordDemoAccountSnapshot(account: Mt5HfmAccountInfoPublic): Promise<void> {
     this.ensureInitialized();
     const file = this.meta("demo");
+    const prev = file.account;
+    // Journal/MCP login often returns identity without balance. Never wipe a prior
+    // MQL-backed balance/equity with nulls from a thinner auth-only snapshot.
+    const pickStr = (next: string | null | undefined, fallback: string | null | undefined) =>
+      next != null && String(next).trim() !== "" ? String(next) : (fallback ?? null);
+    const pickNum = (next: number | null | undefined, fallback: number | null | undefined) =>
+      typeof next === "number" && Number.isFinite(next) ? next : (fallback ?? null);
     file.account = {
-      loginHint: account.loginHint,
-      server: account.server,
-      currency: account.currency,
-      balance: account.balance,
-      equity: account.equity,
-      freeMargin: account.freeMargin,
-      marginLevel: account.marginLevel,
-      leverage: account.leverage,
-      company: account.company,
-      syncedAt: account.syncedAt,
-      note: account.note,
+      loginHint: pickStr(account.loginHint, prev?.loginHint),
+      server: pickStr(account.server, prev?.server),
+      currency: pickStr(account.currency, prev?.currency),
+      balance: pickNum(account.balance, prev?.balance),
+      equity: pickNum(account.equity, prev?.equity),
+      freeMargin: pickNum(account.freeMargin, prev?.freeMargin),
+      marginLevel: pickNum(account.marginLevel, prev?.marginLevel),
+      leverage: pickStr(account.leverage, prev?.leverage),
+      company: pickStr(account.company, prev?.company),
+      syncedAt: pickStr(account.syncedAt, prev?.syncedAt) ?? new Date().toISOString(),
+      note: pickStr(account.note, prev?.note),
     };
-    file.lastSyncAt = account.syncedAt ?? new Date().toISOString();
+    file.lastSyncAt = file.account.syncedAt ?? new Date().toISOString();
     await this.persistMeta("demo");
   }
 

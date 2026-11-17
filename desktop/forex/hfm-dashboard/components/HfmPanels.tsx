@@ -216,6 +216,7 @@ export function HfmSystemHealth({ state }: { state: HfmRealtimeState }) {
   const authOk = state.authenticated === true;
   const feedOk =
     state.freshness === "LIVE" || state.freshness === "MARKET_CLOSED" || state.freshness === "STALE";
+  const feedDisconnected = state.freshness === "DISCONNECTED" || state.freshness === "DATA_UNAVAILABLE";
   return (
     <section className="hfm-card" aria-label="System health">
       <h2>System Health</h2>
@@ -225,17 +226,19 @@ export function HfmSystemHealth({ state }: { state: HfmRealtimeState }) {
           <strong className={termOk ? "hfm-ok" : "hfm-bad"}>{termOk ? "Online" : "Offline"}</strong>
         </li>
         <li>
-          <span>MT5 Agent</span>
-          <strong className={authOk || termOk ? "hfm-ok" : "hfm-bad"}>
-            {authOk ? "Connected" : termOk ? "Running" : "Unknown"}
+          <span>Broker auth</span>
+          <strong className={authOk ? "hfm-ok" : "hfm-bad"}>
+            {authOk ? "Authenticated" : "Unauthenticated"}
           </strong>
         </li>
         <li>
           <span>HFM Data Feed</span>
-          <strong className={feedOk ? "hfm-ok" : "hfm-warn"}>{freshnessLabel(state.freshness)}</strong>
+          <strong className={feedOk ? "hfm-ok" : feedDisconnected ? "hfm-bad" : "hfm-warn"}>
+            {freshnessLabel(state.freshness)}
+          </strong>
         </li>
         <li>
-          <span>SSE Connection</span>
+          <span>SSE client</span>
           <strong className={sseOk ? "hfm-ok" : "hfm-warn"}>{state.sseStatus}</strong>
         </li>
         <li>

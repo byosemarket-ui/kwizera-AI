@@ -156,6 +156,46 @@ describe("MT5 HFM Demo + Live profile manager", () => {
     expect(raw).not.toMatch(/password/i);
   });
 
+  it("does not wipe MQL balance when a thinner journal snapshot is recorded", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "mt5-hfm-acct-merge-"));
+    roots.push(root);
+    process.env.KWIZERA_SECRETS_PASSPHRASE = "unit-test-passphrase-mt5-hfm";
+    const manager = createMt5HfmDemoProfileManager();
+    await manager.initialize(root);
+    await manager.recordDemoAccountSnapshot({
+      loginHint: "••••3799",
+      server: "HFMarketsGlobal-Demo",
+      currency: "USD",
+      balance: 100000,
+      equity: 100000,
+      freeMargin: 100000,
+      marginLevel: 0,
+      leverage: "2000",
+      company: "HF Markets (SV) Ltd.",
+      syncedAt: "2026-11-17T13:00:00Z",
+      note: "MQL snapshot",
+    });
+    await manager.recordDemoAccountSnapshot({
+      loginHint: "••••3799",
+      server: "HFMarketsGlobal-Demo",
+      currency: null,
+      balance: null,
+      equity: null,
+      freeMargin: null,
+      marginLevel: null,
+      leverage: null,
+      company: "HF Markets (SV) Ltd.",
+      syncedAt: "2026-11-17T13:01:00Z",
+      note: "Journal-verified Demo identity",
+    });
+    const acct = manager.publicStatus().demo.account;
+    expect(acct?.balance).toBe(100000);
+    expect(acct?.equity).toBe(100000);
+    expect(acct?.currency).toBe("USD");
+    expect(acct?.freeMargin).toBe(100000);
+    expect(acct?.syncedAt).toBe("2026-11-17T13:01:00Z");
+  });
+
   it("login bridge is Demo-only and fails closed without agent socket", async () => {
     const bridge = await requestMt5HfmDemoLoginBridge();
     expect(bridge.environment).toBe("demo");
