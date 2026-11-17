@@ -22,8 +22,7 @@ const storageRoot = process.env.KWIZERA_STORAGE_ROOT || "/var/lib/kwizera-ai-stu
 const runDir = process.env.KWIZERA_MT5_HFM_RUN_DIR || "/run/kwizera/mt5-hfm";
 // Write as the invoking user (kwizera) into a private staging dir; root helper moves into RUN_DIR.
 const stageDir =
-  process.env.KWIZERA_MT5_HFM_LOGIN_STAGE_DIR ||
-  join(process.env.HOME || "/tmp", ".kwizera-mt5-hfm-login-stage");
+  process.env.KWIZERA_MT5_HFM_LOGIN_STAGE_DIR || "/run/kwizera/mt5-hfm-stage";
 const winePrefix = process.env.WINEPREFIX || "/home/mt5/.wine-hfm";
 const termRoot = join(winePrefix, "drive_c/Program Files/HFM Metatrader 5");
 const expertEx5 = join(termRoot, "MQL5/Experts/KwizeraReadonlySnapshot.ex5");

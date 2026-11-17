@@ -54,6 +54,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ReadWritePaths=/home/mt5/.wine-hfm /home/mt5/.mt5-xauth /run/kwizera /tmp
+# prepare-demo-login-ini.sh (+root) also uses /run/kwizera/mt5-hfm-stage.
 RestrictSUIDSGID=true
 
 [Install]

@@ -7,14 +7,17 @@ ROOT="${KWIZERA_APP_ROOT:-/opt/kwizera-ai}"
 RUN_DIR="${KWIZERA_MT5_HFM_RUN_DIR:-/run/kwizera/mt5-hfm}"
 STORAGE="${KWIZERA_STORAGE_ROOT:-/var/lib/kwizera-ai-studio}"
 MODE="${1:-}" # optional: --validate
-STAGE_DIR="${KWIZERA_MT5_HFM_LOGIN_STAGE_DIR:-/home/kwizera/.kwizera-mt5-hfm-login-stage}"
+STAGE_DIR="${KWIZERA_MT5_HFM_LOGIN_STAGE_DIR:-/run/kwizera/mt5-hfm-stage}"
 
 umask 0077
-mkdir -p /run/kwizera "$RUN_DIR"
+mkdir -p /run/kwizera "$RUN_DIR" "$STAGE_DIR"
 chown mt5:kwizera /run/kwizera 2>/dev/null || true
 chmod 0750 /run/kwizera 2>/dev/null || true
 chown mt5:kwizera "$RUN_DIR" 2>/dev/null || true
 chmod 0750 "$RUN_DIR" 2>/dev/null || true
+# Staging is writable only by kwizera (vault writer); runtime ini dir is mt5-readable.
+chown kwizera:kwizera "$STAGE_DIR"
+chmod 0700 "$STAGE_DIR"
 
 set -a
 # shellcheck disable=SC1091
@@ -30,9 +33,6 @@ ARGS=()
 if [[ "$MODE" == "--validate" ]]; then
   ARGS+=(--validate)
 fi
-
-# Ensure staging dir exists and is private to kwizera.
-install -d -o kwizera -g kwizera -m 0700 "$STAGE_DIR"
 
 OUT="$(
   sudo -u kwizera -H env \
