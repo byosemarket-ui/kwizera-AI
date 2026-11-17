@@ -18,7 +18,10 @@ export type HfmSseEventType =
   | "candles"
   | "state"
   | "heartbeat"
-  | "error";
+  | "error"
+  | "subscription"
+  | "freshness"
+  | "recovery";
 
 export type HfmCandleTf = "M1" | "M5" | "M15" | "M30" | "H1" | "H4" | "D1";
 
@@ -28,12 +31,15 @@ export type HfmChartSymbol = (typeof HFM_CHART_SYMBOLS)[number];
 
 export interface HfmEventEnvelope<T = unknown> {
   v: 1;
+  schemaVersion?: string;
   broker: "HFM_MT5";
   environment: "demo";
   type: HfmSseEventType;
   eventId: string;
   seq: number | null;
+  correlationId?: string | null;
   brokerTimestamp: number | null;
+  occurredAt?: string;
   serverReceivedAt: string;
   publishedAt: string;
   freshness: HfmFreshness;
@@ -71,6 +77,8 @@ export interface HfmQuoteState {
   tickTime: number | null;
   tickVolume: number | null;
   freshness: HfmFreshness;
+  /** Canonical quote status from STEP 2A when present. */
+  status: string | null;
   /** Prior mid for UI direction only — never shown as broker 24h change. */
   prevMid: number | null;
 }

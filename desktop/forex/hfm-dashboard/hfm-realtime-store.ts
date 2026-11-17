@@ -24,6 +24,7 @@ let refCount = 0;
 let abort: AbortController | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempt = 0;
+let lastEventId: string | null = null;
 
 function emit(): void {
   for (const l of listeners) l();
@@ -57,7 +58,55 @@ function asAccount(raw: unknown): HfmAccountState | null {
   };
 }
 
+function mapQuoteFreshness(q: Record<string, unknown>, fallback: HfmFreshness): HfmFreshness {
+  const status = typeof q.status === "string" ? q.status : null;
+  const snap = typeof q.snapshotFreshness === "string" ? q.snapshotFreshness : null;
+  const fromSnap = snap as HfmFreshness | null;
+  if (fromSnap === "LIVE" || fromSnap === "STALE" || fromSnap === "MARKET_CLOSED" || fromSnap === "WAITING_FOR_DATA" || fromSnap === "DISCONNECTED" || fromSnap === "DATA_UNAVAILABLE") {
+    return fromSnap;
+  }
+  switch (status) {
+    case "LIVE":
+    case "INCOMPLETE":
+      return fallback === "MARKET_CLOSED" ? "MARKET_CLOSED" : "LIVE";
+    case "STALE":
+    case "DELAYED":
+      return "STALE";
+    case "MARKET_CLOSED":
+      return "MARKET_CLOSED";
+    case "NO_QUOTE":
+    case "WAITING_FOR_DATA":
+      return "WAITING_FOR_DATA";
+    case "INVALID":
+      return "DATA_UNAVAILABLE";
+    case "ERROR":
+      return "STALE";
+    default:
+      return fallback;
+  }
+}
+
 function applyQuote(q: Record<string, unknown>, freshness: HfmFreshness): void {
+  // Snapshot may include NO_QUOTE / INVALID rows — never invent prices as LIVE.
+  const status = typeof q.status === "string" ? q.status : null;
+  if (status === "NO_QUOTE" || status === "INVALID") {
+    const symbol = typeof q.symbol === "string" ? q.symbol.toUpperCase() : "";
+    if (!symbol) return;
+    const prev = state.quotes[symbol];
+    if (!prev) return; // Keep UI empty rather than showing fabricated zeros.
+    state = {
+      ...state,
+      quotes: {
+        ...state.quotes,
+        [symbol]: {
+          ...prev,
+          freshness: mapQuoteFreshness(q, freshness),
+          status,
+        },
+      },
+    };
+    return;
+  }
   if (!isValidQuoteTick(q)) return;
   const symbol = String(q.symbol).toUpperCase();
   const bid = Number(q.bid);
@@ -74,7 +123,8 @@ function applyQuote(q: Record<string, unknown>, freshness: HfmFreshness): void {
     point: typeof q.point === "number" ? q.point : null,
     tickTime: typeof q.tickTime === "number" ? q.tickTime : null,
     tickVolume: typeof q.tickVolume === "number" ? q.tickVolume : null,
-    freshness,
+    freshness: mapQuoteFreshness(q, freshness),
+    status,
     prevMid: prev ? (prev.bid + prev.ask) / 2 : null,
   };
   // Skip identical tick
@@ -220,6 +270,17 @@ function applyEnvelope(type: HfmSseEventType, envelope: HfmEventEnvelope): void 
     return;
   }
 
+  if (type === "subscription" || type === "freshness" || type === "recovery") {
+    // Lifecycle events update connection/freshness presentation without inventing quotes.
+    setState({
+      freshness,
+      connectionState,
+      lastEventAt: now,
+      lastSeq: typeof seq === "number" ? seq : state.lastSeq,
+    });
+    return;
+  }
+
   if (type === "state" || type === "error") {
     const d = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
     setState({
@@ -251,7 +312,9 @@ function scheduleReconnect(): void {
   clearReconnect();
   if (refCount <= 0) return;
   reconnectAttempt += 1;
-  const delay = Math.min(30_000, 1_000 * 2 ** Math.min(reconnectAttempt, 4));
+  const base = Math.min(30_000, 1_000 * 2 ** Math.min(reconnectAttempt, 4));
+  const jitter = Math.floor(base * 0.2 * Math.random());
+  const delay = base + jitter;
   setState({ sseStatus: "reconnecting" });
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
@@ -272,6 +335,7 @@ function startLoop(): void {
     {
       onEvent: (type, envelope) => {
         reconnectAttempt = 0;
+        if (typeof envelope.eventId === "string") lastEventId = envelope.eventId;
         applyEnvelope(type, envelope);
       },
       onStatus: (status, detail) => {
@@ -307,8 +371,14 @@ function startLoop(): void {
         }
       },
     },
-    { symbols: DEFAULT_SYMBOLS, includeCandles: true, signal: controller.signal },
-  ).then(() => {
+    {
+      symbols: DEFAULT_SYMBOLS,
+      includeCandles: true,
+      signal: controller.signal,
+      lastEventId,
+    },
+  ).then((id) => {
+    if (id) lastEventId = id;
     if (!controller.signal.aborted && refCount > 0) scheduleReconnect();
   });
 }
@@ -323,6 +393,7 @@ export function retainHfmRealtimeStore(): () => void {
       abort?.abort();
       abort = null;
       reconnectAttempt = 0;
+      lastEventId = null;
       state = emptyHfmRealtimeState();
       emit();
     }

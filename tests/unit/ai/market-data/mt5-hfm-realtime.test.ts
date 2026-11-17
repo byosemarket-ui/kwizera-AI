@@ -62,6 +62,7 @@ describe("HFM MT5 Phase 1 freshness + contract", () => {
     );
     expect(env.broker).toBe(MT5_HFM_BROKER_ID);
     expect(env.environment).toBe("demo");
+    expect(env.schemaVersion).toBe("hfm-sse-v2");
     expect(env.connectionState).toBe("connected");
     expect(env.validation).toBe("ok");
     expect(connectionStateFromFreshness("STALE")).toBe("degraded");

@@ -229,9 +229,13 @@ export async function handleMt5HfmApi(
       .slice(0, 32);
     const includeCandles = url.searchParams.get("candles") === "1" || url.searchParams.get("candles") === "true";
     ensureMt5HfmRealtimeHubStarted();
+    const lastEventId =
+      (typeof req.headers["last-event-id"] === "string" ? req.headers["last-event-id"] : null) ??
+      url.searchParams.get("lastEventId");
     const sub = subscribeMt5HfmSse(res, {
       symbols: symbols.length ? symbols : undefined,
       includeCandles,
+      lastEventId,
     });
     if (!sub.ok) {
       sendJson(res, 429, {

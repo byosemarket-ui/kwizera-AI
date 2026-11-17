@@ -331,5 +331,7 @@ describe("HFM STEP 2B SSE contract extension", () => {
     expect(MT5_HFM_SSE_EVENT_TYPES).toContain("subscription");
     expect(MT5_HFM_SSE_EVENT_TYPES).toContain("freshness");
     expect(MT5_HFM_SSE_EVENT_TYPES).toContain("recovery");
+    expect(MT5_HFM_SSE_EVENT_TYPES).toContain("quote");
+    expect(MT5_HFM_SSE_EVENT_TYPES).toContain("snapshot");
   });
 });

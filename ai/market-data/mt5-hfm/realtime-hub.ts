@@ -7,6 +7,7 @@ import type { ServerResponse } from "node:http";
 import { callMt5HfmAgent } from "./agent-client.js";
 import {
   buildEnvelope,
+  MT5_HFM_SSE_SCHEMA_VERSION,
   type Mt5HfmEventEnvelope,
   type Mt5HfmSseEventType,
 } from "./event-contract.js";
@@ -15,7 +16,6 @@ import {
   freshnessFromAgeSec,
   inferMarketClosed,
   isValidOhlcCandle,
-  isValidQuoteTick,
   type Mt5HfmFreshness,
   type Mt5HfmFreshnessPolicy,
 } from "./freshness.js";
@@ -26,6 +26,21 @@ import { getHfmSymbolFreshnessEngine } from "./symbol-freshness.js";
 import { getHfmRecoveryEngine } from "./recovery-engine.js";
 import { getHfmSnapshotTracker } from "./snapshot-tracker.js";
 import { getHfmSubscriptionScheduler } from "./subscription-scheduler.js";
+import {
+  buildHfmConnectionSnapshot,
+  getHfmSseDistributionMetrics,
+  quotePayloadForSse,
+  recordHfmSseCoalesced,
+  recordHfmSseDropped,
+  recordHfmSsePublished,
+  recordHfmSseRejected,
+  recordQuotePublishLatency,
+  resolveHfmSseReplay,
+  shouldDistributeQuoteEvent,
+  HFM_SSE_MAX_EVENT_BYTES,
+  freshnessFromQuoteStatus,
+  resetHfmSseDistributionForTests,
+} from "./sse-distribution.js";
 
 export interface Mt5HfmHubSubscriber {
   id: string;
@@ -33,6 +48,10 @@ export interface Mt5HfmHubSubscriber {
   symbols: Set<string> | null; // null = all
   includeCandles: boolean;
   lastEventAt: number;
+  /** Latest pending quote envelope per symbol (coalesce under backpressure). */
+  pendingQuotes: Map<string, Mt5HfmEventEnvelope>;
+  coalescedCount: number;
+  droppedCount: number;
 }
 
 interface QuoteFingerprint {
@@ -84,7 +103,13 @@ function nowIso(): string {
 function writeSse(res: ServerResponse, event: string, payload: unknown, id?: string): boolean {
   try {
     if (res.writableEnded || res.destroyed) return false;
+    // Soft backpressure: if Node write buffer is huge, signal caller to coalesce.
+    const buffered = typeof (res as { writableLength?: number }).writableLength === "number"
+      ? (res as { writableLength: number }).writableLength
+      : 0;
+    if (buffered > 256_000) return false;
     const body = typeof payload === "string" ? payload : JSON.stringify(payload);
+    if (Buffer.byteLength(body) > HFM_SSE_MAX_EVENT_BYTES) return false;
     let chunk = "";
     if (id) chunk += `id: ${id}\n`;
     chunk += `event: ${event}\n`;
@@ -99,14 +124,62 @@ function writeSse(res: ServerResponse, event: string, payload: unknown, id?: str
   }
 }
 
+function flushPendingQuotes(sub: Mt5HfmHubSubscriber): void {
+  if (sub.pendingQuotes.size === 0) return;
+  for (const [sym, envelope] of sub.pendingQuotes) {
+    const ok = writeSse(sub.res, envelope.type, envelope, envelope.eventId);
+    if (!ok) {
+      sub.droppedCount += 1;
+      recordHfmSseDropped();
+      continue;
+    }
+    sub.lastEventAt = Date.now();
+    void sym;
+  }
+  sub.pendingQuotes.clear();
+}
+
 function publish(type: Mt5HfmSseEventType, envelope: Mt5HfmEventEnvelope, filterSymbol?: string): void {
+  const json = JSON.stringify(envelope);
+  const bytes = Buffer.byteLength(json);
+  if (bytes > HFM_SSE_MAX_EVENT_BYTES) {
+    recordHfmSseRejected();
+    return;
+  }
+  recordHfmSsePublished(envelope, bytes);
+
   for (const [id, sub] of subscribers) {
     if (filterSymbol && sub.symbols && !sub.symbols.has(filterSymbol.toUpperCase())) {
       continue;
     }
     if (type === "candles" && !sub.includeCandles) continue;
+
+    // Quote coalescing under backpressure — keep newest accepted state per symbol.
+    if (type === "quote" && filterSymbol) {
+      const buffered = typeof (sub.res as { writableLength?: number }).writableLength === "number"
+        ? (sub.res as { writableLength: number }).writableLength
+        : 0;
+      if (buffered > 64_000 || sub.pendingQuotes.size > 0) {
+        if (sub.pendingQuotes.has(filterSymbol)) {
+          sub.coalescedCount += 1;
+          recordHfmSseCoalesced();
+        }
+        sub.pendingQuotes.set(filterSymbol, envelope);
+        flushPendingQuotes(sub);
+        continue;
+      }
+    }
+
     const ok = writeSse(sub.res, type, envelope, envelope.eventId);
     if (!ok) {
+      if (type === "quote" && filterSymbol) {
+        if (sub.pendingQuotes.has(filterSymbol)) {
+          sub.coalescedCount += 1;
+          recordHfmSseCoalesced();
+        }
+        sub.pendingQuotes.set(filterSymbol, envelope);
+        continue;
+      }
       subscribers.delete(id);
       try {
         sub.res.end();
@@ -116,20 +189,8 @@ function publish(type: Mt5HfmSseEventType, envelope: Mt5HfmEventEnvelope, filter
       continue;
     }
     sub.lastEventAt = Date.now();
+    if (type !== "quote") flushPendingQuotes(sub);
   }
-}
-
-function normalizeQuotes(raw: unknown): Array<Record<string, unknown>> {
-  if (!Array.isArray(raw)) return [];
-  const out: Array<Record<string, unknown>> = [];
-  for (const item of raw) {
-    if (!item || typeof item !== "object") continue;
-    const q = item as Record<string, unknown>;
-    // Keep lightweight filter for reconnect snapshot; full validation is in quote-service.
-    if (!isValidQuoteTick(q)) continue;
-    out.push(q);
-  }
-  return out;
 }
 
 function rawQuotesForIngest(raw: unknown): Array<Record<string, unknown>> {
@@ -361,6 +422,13 @@ async function pollOnce(): Promise<void> {
       for (const q of ingest.published) {
         if (!getHfmQuoteSubscriptionRegistry().isSubscribed(q.symbol)) continue;
         if (q.bid == null || q.ask == null) continue;
+        const payload = quotePayloadForSse(q);
+        payload.subtype = "quote.updated";
+        const gate = shouldDistributeQuoteEvent(payload);
+        if (!gate.ok) {
+          recordHfmSseRejected();
+          continue;
+        }
         const symbolKey = q.symbol.toUpperCase();
         const tickTime = q.quoteTimestamp;
         const prev = hubState.lastQuotes.get(symbolKey);
@@ -378,60 +446,26 @@ async function pollOnce(): Promise<void> {
           tickTime,
           status: q.status,
         });
-        const quoteFreshness: Mt5HfmFreshness =
-          q.status === "MARKET_CLOSED"
-            ? "MARKET_CLOSED"
-            : q.status === "STALE" || q.status === "DELAYED"
-              ? "STALE"
-              : q.status === "LIVE" || q.status === "INCOMPLETE"
-                ? freshness === "MARKET_CLOSED"
-                  ? "MARKET_CLOSED"
-                  : "LIVE"
-                : freshness;
+        const quoteFreshness = freshnessFromQuoteStatus(q.status, freshness);
+        recordQuotePublishLatency(q.receivedAt);
         publish(
           "quote",
-          buildEnvelope(
-            "quote",
-            {
-              symbol: q.symbol,
-              bid: q.bid,
-              ask: q.ask,
-              last: q.last,
-              spread: q.spread,
-              spreadPoints: q.spreadPoints,
-              brokerSpreadPoints: q.brokerSpreadPoints,
-              digits: q.digits,
-              point: q.point,
-              tickSize: q.tickSize,
-              tickTime,
-              tickTimeMs: q.quoteTimestampMs,
-              tickVolume: q.tickVolume,
-              realVolume: q.realVolume,
-              status: q.status,
-              validation: q.validation,
-              provider: "HFM_MT5",
-              environment: "demo",
-              server: q.server,
-              receivedAt: q.receivedAt,
-              sequence: q.sequence,
-              placesOrders: false,
-              mutatesBroker: false,
-            },
-            {
-              eventId: randomUUID(),
-              seq,
-              brokerTimestamp: tickTime ?? brokerTime,
-              serverReceivedAt,
-              freshness: quoteFreshness,
-              provenance,
-              validation:
-                q.validation.verdict === "ok"
-                  ? "ok"
-                  : q.validation.verdict === "partial" || q.validation.verdict === "warning"
-                    ? "partial"
-                    : "rejected",
-            },
-          ),
+          buildEnvelope("quote", payload, {
+            eventId: randomUUID(),
+            seq,
+            correlationId: typeof seq === "number" ? `seq-${seq}` : null,
+            brokerTimestamp: tickTime ?? brokerTime,
+            occurredAt: q.receivedAt,
+            serverReceivedAt,
+            freshness: quoteFreshness,
+            provenance,
+            validation:
+              q.validation.verdict === "ok"
+                ? "ok"
+                : q.validation.verdict === "partial" || q.validation.verdict === "warning"
+                  ? "partial"
+                  : "rejected",
+          }),
           symbolKey,
         );
       }
@@ -536,12 +570,14 @@ function wireStep2bEventBridges(): void {
         "subscription",
         {
           ...ev,
+          subtype: ev.type,
           placesOrders: false,
           mutatesBroker: false,
           acceptsForExecution: false,
         },
         {
           eventId: randomUUID(),
+          occurredAt: ev.timestamp,
           serverReceivedAt: ev.timestamp,
           freshness: hubState.lastFreshness,
           provenance: "hub",
@@ -555,9 +591,10 @@ function wireStep2bEventBridges(): void {
       "freshness",
       buildEnvelope(
         "freshness",
-        ev,
+        { ...ev, subtype: "freshness.changed" },
         {
           eventId: randomUUID(),
+          occurredAt: ev.timestamp,
           serverReceivedAt: ev.timestamp,
           freshness: hubState.lastFreshness,
           provenance: "hub",
@@ -571,9 +608,10 @@ function wireStep2bEventBridges(): void {
       "recovery",
       buildEnvelope(
         "recovery",
-        ev,
+        { ...ev, subtype: ev.type },
         {
           eventId: randomUUID(),
+          occurredAt: ev.timestamp,
           serverReceivedAt: ev.timestamp,
           freshness: hubState.lastFreshness,
           provenance: "hub",
@@ -605,9 +643,15 @@ export function ensureMt5HfmRealtimeHubStarted(): void {
 
 export function getMt5HfmRealtimeHubStatus(): Record<string, unknown> {
   const quoteSnap = getHfmQuoteService().snapshot();
+  const dist = getHfmSseDistributionMetrics();
+  const avgLatency =
+    dist.quoteToPublishLatencyMsCount > 0
+      ? Math.round(dist.quoteToPublishLatencyMsSum / dist.quoteToPublishLatencyMsCount)
+      : null;
   return {
     broker: "HFM_MT5",
     environment: "demo",
+    schemaVersion: MT5_HFM_SSE_SCHEMA_VERSION,
     started,
     subscribers: subscribers.size,
     maxSubscribers: MAX_SUBSCRIBERS,
@@ -626,15 +670,52 @@ export function getMt5HfmRealtimeHubStatus(): Record<string, unknown> {
     recovery: getHfmRecoveryEngine().metrics(),
     scheduler: getHfmSubscriptionScheduler().status(),
     snapshotTracker: getHfmSnapshotTracker().snapshot(),
+    distribution: {
+      ...dist,
+      avgQuoteToPublishLatencyMs: avgLatency,
+      clientCoalesce: [...subscribers.values()].reduce((n, s) => n + s.coalescedCount, 0),
+      clientDropped: [...subscribers.values()].reduce((n, s) => n + s.droppedCount, 0),
+    },
     placesOrders: false,
     acceptsForExecution: false,
     mutatesBroker: false,
   };
 }
 
+function sendValidatedConnectionSnapshot(res: ServerResponse): void {
+  const snap = hubState.lastSnapshot;
+  const ageSec = snap && typeof snap.ageSec === "number" ? snap.ageSec : null;
+  const feed =
+    snap && typeof snap.freshness === "string"
+      ? (snap.freshness as Mt5HfmFreshness)
+      : hubState.lastFreshness;
+  const built = buildHfmConnectionSnapshot({
+    feedFreshness: feed,
+    terminalRunning: snap && typeof snap.terminalRunning === "boolean" ? snap.terminalRunning : null,
+    terminalConnected:
+      snap && typeof snap.terminalConnected === "boolean" ? snap.terminalConnected : null,
+    authenticated: snap && typeof snap.authenticated === "boolean" ? snap.authenticated : null,
+    ageSec,
+    seq: hubState.lastSeq,
+    server:
+      snap &&
+      snap.account &&
+      typeof snap.account === "object" &&
+      typeof (snap.account as { server?: unknown }).server === "string"
+        ? String((snap.account as { server: string }).server)
+        : null,
+    account:
+      snap && snap.account && typeof snap.account === "object"
+        ? (snap.account as Record<string, unknown>)
+        : null,
+  });
+  writeSse(res, "snapshot", built.envelope, built.envelope.eventId);
+  recordHfmSsePublished(built.envelope, built.byteLength);
+}
+
 export function subscribeMt5HfmSse(
   res: ServerResponse,
-  opts?: { symbols?: string[]; includeCandles?: boolean },
+  opts?: { symbols?: string[]; includeCandles?: boolean; lastEventId?: string | null },
 ): { ok: true; subscriberId: string } | { ok: false; code: string; message: string } {
   ensureMt5HfmRealtimeHubStarted();
   if (subscribers.size >= MAX_SUBSCRIBERS) {
@@ -664,6 +745,9 @@ export function subscribeMt5HfmSse(
     symbols,
     includeCandles: Boolean(opts?.includeCandles),
     lastEventAt: Date.now(),
+    pendingQuotes: new Map(),
+    coalescedCount: 0,
+    droppedCount: 0,
   };
   subscribers.set(id, sub);
 
@@ -673,9 +757,13 @@ export function subscribeMt5HfmSse(
       subscriberId: id,
       broker: "HFM_MT5",
       environment: "demo",
+      schemaVersion: MT5_HFM_SSE_SCHEMA_VERSION,
       maxSubscribers: MAX_SUBSCRIBERS,
       policy,
-      note: "HFM MT5 Demo read-only stream. Reconnect on drop.",
+      note: "HFM MT5 Demo read-only stream. Reconnect on drop. Use Last-Event-ID when retained.",
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
     },
     {
       eventId: randomUUID(),
@@ -685,38 +773,21 @@ export function subscribeMt5HfmSse(
     },
   );
   writeSse(res, "hello", hello, hello.eventId);
+  recordHfmSsePublished(hello, Buffer.byteLength(JSON.stringify(hello)));
 
-  // Initial authoritative snapshot if available.
-  if (hubState.lastSnapshot) {
-    const snap = hubState.lastSnapshot;
-    const ageSec = typeof snap.ageSec === "number" ? snap.ageSec : null;
-    const freshness =
-      typeof snap.freshness === "string"
-        ? (snap.freshness as Mt5HfmFreshness)
-        : freshnessFromAgeSec(ageSec, policy);
-    const envelope = buildEnvelope(
-      "snapshot",
-      {
-        account: snap.account ?? null,
-        quotes: normalizeQuotes(snap.quotes),
-        freshness,
-        ageSec,
-        seq: snap.seq ?? null,
-        terminalRunning: snap.terminalRunning ?? null,
-        authenticated: snap.authenticated ?? null,
-      },
-      {
-        eventId: randomUUID(),
-        seq: typeof snap.seq === "number" ? snap.seq : null,
-        brokerTimestamp: typeof snap.brokerTime === "number" ? snap.brokerTime : null,
-        serverReceivedAt:
-          typeof snap.serverReceivedAt === "string" ? snap.serverReceivedAt : nowIso(),
-        freshness,
-        provenance:
-          snap.source === "mql5_readonly_snapshot" ? "mql5_readonly_snapshot" : "agent",
-      },
-    );
-    writeSse(res, "snapshot", envelope, envelope.eventId);
+  // Last-Event-ID: replay retained events when possible; otherwise validated snapshot.
+  const replay = resolveHfmSseReplay(opts?.lastEventId);
+  if (replay.mode === "replay" && replay.envelopes.length > 0) {
+    for (const env of replay.envelopes) {
+      if (symbols && env.type === "quote") {
+        const sym = (env.data as { symbol?: string } | null)?.symbol;
+        if (sym && !symbols.has(String(sym).toUpperCase())) continue;
+      }
+      if (env.type === "candles" && !sub.includeCandles) continue;
+      writeSse(res, env.type, env, env.eventId);
+    }
+  } else {
+    sendValidatedConnectionSnapshot(res);
   }
 
   const onClose = () => {
@@ -725,10 +796,7 @@ export function subscribeMt5HfmSse(
   res.on("close", onClose);
   res.on("error", onClose);
 
-  // Soft backpressure hint — drop subscriber if far behind (idle write failures handled in publish).
-  if (subscribers.size > MAX_WRITE_QUEUE_HINT) {
-    /* cap already enforced */
-  }
+  void MAX_WRITE_QUEUE_HINT;
 
   return { ok: true, subscriberId: id };
 }
@@ -756,4 +824,5 @@ export function stopMt5HfmRealtimeHubForTests(): void {
   hubState.lastPollOkAt = null;
   hubState.lastPollError = null;
   hubState.consecutiveFailures = 0;
+  resetHfmSseDistributionForTests();
 }

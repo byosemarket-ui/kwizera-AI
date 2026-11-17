@@ -35,11 +35,17 @@ function parseSseChunk(
 
 export async function connectHfmMt5Sse(
   handlers: HfmSseHandlers,
-  opts: { symbols?: string[]; includeCandles?: boolean; signal: AbortSignal },
-): Promise<void> {
+  opts: {
+    symbols?: string[];
+    includeCandles?: boolean;
+    signal: AbortSignal;
+    /** Last SSE event id for bounded replay (header; never put admin token in URL). */
+    lastEventId?: string | null;
+  },
+): Promise<string | null> {
   if (!getForexAdminToken()) {
     handlers.onStatus("auth_required", "Admin API token required. Configure it under Forex Admin Access.");
-    return;
+    return null;
   }
 
   const params = new URLSearchParams();
@@ -50,29 +56,31 @@ export async function connectHfmMt5Sse(
   handlers.onStatus("connecting");
   const headers = buildForexAdminHeaders(STREAM_PATH);
   headers.Accept = "text/event-stream";
+  if (opts.lastEventId) headers["Last-Event-ID"] = opts.lastEventId;
 
   let res: Response;
   try {
     res = await fetch(path, { method: "GET", headers, signal: opts.signal, cache: "no-store" });
   } catch (err) {
-    if (opts.signal.aborted) return;
+    if (opts.signal.aborted) return opts.lastEventId ?? null;
     handlers.onStatus("error", err instanceof Error ? err.message : "SSE fetch failed");
-    return;
+    return opts.lastEventId ?? null;
   }
 
   if (res.status === 401 || res.status === 403) {
     handlers.onStatus("auth_required", "Admin token rejected for HFM stream.");
-    return;
+    return null;
   }
   if (!res.ok || !res.body) {
     handlers.onStatus("error", `SSE HTTP ${res.status}`);
-    return;
+    return opts.lastEventId ?? null;
   }
 
   handlers.onStatus("connected");
   const reader = res.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer = "";
+  let lastId = opts.lastEventId ?? null;
 
   try {
     while (!opts.signal.aborted) {
@@ -85,7 +93,11 @@ export async function connectHfmMt5Sse(
         try {
           const envelope = JSON.parse(ev.data) as HfmEventEnvelope;
           if (!envelope || typeof envelope !== "object") continue;
+          if (envelope.broker && envelope.broker !== "HFM_MT5") continue;
+          if (envelope.environment && envelope.environment !== "demo") continue;
           const type = (ev.event || envelope.type) as HfmSseEventType;
+          if (ev.id) lastId = ev.id;
+          else if (typeof envelope.eventId === "string") lastId = envelope.eventId;
           handlers.onEvent(type, envelope);
         } catch {
           /* skip malformed */
@@ -93,12 +105,13 @@ export async function connectHfmMt5Sse(
       }
     }
   } catch (err) {
-    if (opts.signal.aborted) return;
+    if (opts.signal.aborted) return lastId;
     handlers.onStatus("error", err instanceof Error ? err.message : "SSE read failed");
-    return;
+    return lastId;
   }
 
   if (!opts.signal.aborted) {
     handlers.onStatus("reconnecting", "Stream ended");
   }
+  return lastId;
 }
