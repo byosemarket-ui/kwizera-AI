@@ -149,6 +149,14 @@ SNAPSHOT_COMMON = (
     / "drive_c/users/mt5/AppData/Roaming/MetaQuotes/Terminal/Common/Files/kwizera_readonly_snapshot.json"
 )
 SNAPSHOT_LOCAL = TERM_ROOT / "MQL5/Files/kwizera_readonly_snapshot.json"
+# Durable CopyRates dump (Expert writes periodically; survives quote-only snapshots).
+CANDLES_COMMON = (
+    Path(WINEPREFIX)
+    / "drive_c/users/mt5/AppData/Roaming/MetaQuotes/Terminal/Common/Files/kwizera_readonly_candles.json"
+)
+CANDLES_LOCAL = TERM_ROOT / "MQL5/Files/kwizera_readonly_candles.json"
+# Agent-side cache so demo.candles works between Expert candle cycles.
+CANDLES_CACHE = RUN_DIR / "candles-cache.json"
 CATALOG_COMMON_DIR = (
     Path(WINEPREFIX) / "drive_c/users/mt5/AppData/Roaming/MetaQuotes/Terminal/Common/Files"
 )
@@ -525,6 +533,8 @@ def stream_snapshot(include_candles: bool = False) -> dict[str, Any]:
     candles_out: dict[str, Any] = {}
     if include_candles and isinstance(mql.get("candles"), dict):
         candles_out = mql["candles"]
+        if candles_out:
+            _persist_candle_cache(candles_out, seq=mql.get("seq"), source="mql5_readonly_snapshot")
     return {
         "broker": "HFM_MT5",
         "environment": "demo",
@@ -1182,38 +1192,154 @@ def _normalize_mql_candle_bars(raw_bars: list[Any], limit: int) -> list[dict[str
     return cleaned
 
 
+def _candle_map_from_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {}
+    candles = payload.get("candles")
+    return candles if isinstance(candles, dict) else {}
+
+
+def _read_json_file(path: Path, *, max_age_sec: float | None = None) -> dict[str, Any] | None:
+    try:
+        if not path.is_file():
+            return None
+        age = time.time() - path.stat().st_mtime
+        if max_age_sec is not None and age > max_age_sec:
+            return {"error": "CANDLES_STALE", "ageSec": age, "path": str(path)}
+        raw = path.read_bytes()
+        if len(raw) > 1_500_000:
+            return {"error": "CANDLES_TOO_LARGE", "ageSec": age, "path": str(path)}
+        data = json.loads(raw.decode("utf-8"))
+        if not isinstance(data, dict):
+            return {"error": "CANDLES_BAD_JSON", "path": str(path)}
+        data = dict(data)
+        data.setdefault("ageSec", age)
+        data.setdefault("path", str(path))
+        return data
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+
+
+def _persist_candle_cache(candles_by_symbol: dict[str, Any], *, seq: Any = None, source: str = "mql5_readonly_snapshot") -> None:
+    if not isinstance(candles_by_symbol, dict) or not candles_by_symbol:
+        return
+    try:
+        RUN_DIR.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "source": source,
+            "provider": "HFM_MT5",
+            "environment": "demo",
+            "seq": seq,
+            "cachedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "candles": candles_by_symbol,
+        }
+        tmp = CANDLES_CACHE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+        tmp.replace(CANDLES_CACHE)
+    except OSError:
+        return
+
+
+def _load_candle_sources(*, wait_for_cycle_sec: float = 0.0) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return (candles_by_symbol, meta) from snapshot / dedicated file / cache.
+
+    Expert only embeds CopyRates every N quote snapshots. Between cycles the quote
+    snapshot has candles={} — STEP 1 repairs this by retaining the last dump.
+    """
+    deadline = time.time() + max(0.0, wait_for_cycle_sec)
+    meta: dict[str, Any] = {"source": None, "ageSec": None}
+    while True:
+        mql = _read_mql_snapshot(max_age_sec=600.0)
+        if mql and not mql.get("error"):
+            by_symbol = _candle_map_from_payload(mql)
+            if by_symbol:
+                _persist_candle_cache(by_symbol, seq=mql.get("seq"), source="mql5_readonly_snapshot")
+                meta = {
+                    "source": "mql5_readonly_snapshot",
+                    "ageSec": mql.get("ageSec"),
+                    "seq": mql.get("seq"),
+                    "path": mql.get("path"),
+                }
+                return by_symbol, meta
+
+        for path in (CANDLES_COMMON, CANDLES_LOCAL):
+            dumped = _read_json_file(path, max_age_sec=600.0)
+            if dumped and not dumped.get("error"):
+                by_symbol = _candle_map_from_payload(dumped)
+                if by_symbol:
+                    _persist_candle_cache(
+                        by_symbol,
+                        seq=dumped.get("seq"),
+                        source="mql5_readonly_candles",
+                    )
+                    meta = {
+                        "source": "mql5_readonly_candles",
+                        "ageSec": dumped.get("ageSec"),
+                        "seq": dumped.get("seq"),
+                        "path": dumped.get("path"),
+                    }
+                    return by_symbol, meta
+
+        cached = _read_json_file(CANDLES_CACHE, max_age_sec=900.0)
+        if cached and not cached.get("error"):
+            by_symbol = _candle_map_from_payload(cached)
+            if by_symbol:
+                meta = {
+                    "source": "agent_candles_cache",
+                    "ageSec": cached.get("ageSec"),
+                    "seq": cached.get("seq"),
+                    "path": cached.get("path"),
+                    "cachedAt": cached.get("cachedAt"),
+                }
+                return by_symbol, meta
+
+        if time.time() >= deadline:
+            break
+        time.sleep(2.0)
+    return {}, meta
+
+
 def candles(symbol: str, timeframe: str, limit: int = 100) -> dict[str, Any]:
     if not re.fullmatch(r"[A-Za-z0-9._-]{2,32}", symbol):
         raise ValueError("INVALID_SYMBOL")
     if limit < 1 or limit > 300:
         raise ValueError("INVALID_LIMIT")
     tf_key = timeframe.strip().upper()
-    # Prefer periodic MQL CopyRates dump (MCP is typically 401 under Wine).
-    mql = _read_mql_snapshot(max_age_sec=600.0)
-    if mql and not mql.get("error"):
-        by_symbol = mql.get("candles") if isinstance(mql.get("candles"), dict) else {}
-        sym_map = by_symbol.get(symbol.upper()) if isinstance(by_symbol, dict) else None
-        if isinstance(sym_map, dict) and isinstance(sym_map.get(tf_key), list):
-            cleaned = _normalize_mql_candle_bars(sym_map[tf_key], limit)
-            age = mql.get("ageSec")
-            return {
-                "symbol": symbol.upper(),
-                "timeframe": tf_key,
-                "candles": cleaned,
-                "count": len(cleaned),
-                "available": bool(cleaned),
-                "source": "mql5_readonly_snapshot",
-                "provider": "HFM_MT5",
-                "environment": "demo",
-                "ageSec": age,
-                "freshness": _freshness_from_age(float(age) if isinstance(age, (int, float)) else None),
-                "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                "note": None
-                if cleaned
-                else "MQL snapshot present but requested symbol/timeframe candles empty (wait for candle cycle).",
-            }
+    # Validate timeframe early (native MT5 periods only — no silent synthetic derivation).
+    try:
+        mt5_mcp.map_timeframe(tf_key)
+    except ValueError:
+        raise ValueError("UNSUPPORTED_TIMEFRAME") from None
 
-    mt5_tf = mt5_mcp.map_timeframe(timeframe)
+    # Prefer MQL CopyRates dump. Wait briefly for the Expert candle cycle when needed
+    # because MCP history tools are typically unauthorized under Wine on this VPS.
+    by_symbol, meta = _load_candle_sources(wait_for_cycle_sec=42.0)
+    sym_map = by_symbol.get(symbol.upper()) if isinstance(by_symbol, dict) else None
+    if isinstance(sym_map, dict) and isinstance(sym_map.get(tf_key), list):
+        cleaned = _normalize_mql_candle_bars(sym_map[tf_key], limit)
+        age = meta.get("ageSec")
+        return {
+            "symbol": symbol.upper(),
+            "timeframe": tf_key,
+            "candles": cleaned,
+            "count": len(cleaned),
+            "available": bool(cleaned),
+            "source": meta.get("source") or "mql5_readonly_snapshot",
+            "provider": "HFM_MT5",
+            "environment": "demo",
+            "ageSec": age,
+            "freshness": _freshness_from_age(float(age) if isinstance(age, (int, float)) else None),
+            "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "note": None
+            if cleaned
+            else "MQL candle dump present but requested symbol/timeframe bars empty.",
+            "placesOrders": False,
+            "mutatesBroker": False,
+            "acceptsForExecution": False,
+        }
+
+    # Last resort: MCP (usually unauthorized on this host — keep explicit).
+    mt5_tf = mt5_mcp.map_timeframe(tf_key)
     try:
         client = mt5_mcp.Mt5McpClient()
         raw = None
@@ -1239,15 +1365,21 @@ def candles(symbol: str, timeframe: str, limit: int = 100) -> dict[str, Any]:
                 last_err = str(exc)
         if raw is None:
             return {
-                "symbol": symbol,
-                "timeframe": timeframe,
+                "symbol": symbol.upper(),
+                "timeframe": tf_key,
                 "candles": [],
+                "count": 0,
                 "available": False,
                 "source": "mt5_mcp",
+                "provider": "HFM_MT5",
+                "environment": "demo",
                 "unavailableReason": last_err or "MCP_CANDLES_FAILED",
-                "note": "MCP unavailable; wait for next MQL candle dump cycle after Expert re-attach.",
+                "note": "No MQL CopyRates dump yet for this symbol/timeframe; MCP history unauthorized/unavailable.",
+                "placesOrders": False,
+                "mutatesBroker": False,
+                "acceptsForExecution": False,
             }
-        result = mt5_mcp.normalize_candles(raw, symbol=symbol, timeframe=timeframe)
+        result = mt5_mcp.normalize_candles(raw, symbol=symbol, timeframe=tf_key)
         cleaned = []
         for c in result["candles"][-limit:]:
             o, h, l, cl = c["open"], c["high"], c["low"], c["close"]
@@ -1262,15 +1394,24 @@ def candles(symbol: str, timeframe: str, limit: int = 100) -> dict[str, Any]:
         result["provider"] = "HFM_MT5"
         result["environment"] = "demo"
         result["retrievedAt"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        result["placesOrders"] = False
+        result["mutatesBroker"] = False
+        result["acceptsForExecution"] = False
         return result
     except ValueError as exc:
         return {
-            "symbol": symbol,
-            "timeframe": timeframe,
+            "symbol": symbol.upper(),
+            "timeframe": tf_key,
             "candles": [],
+            "count": 0,
             "available": False,
             "source": "mt5_mcp",
+            "provider": "HFM_MT5",
+            "environment": "demo",
             "unavailableReason": str(exc),
+            "placesOrders": False,
+            "mutatesBroker": False,
+            "acceptsForExecution": False,
         }
 
 

@@ -23,7 +23,8 @@ describe("mt5-hfm-lifecycle Phase 4 units", () => {
     expect(xvfb).toContain("User=mt5");
     expect(xvfb).toContain("ExecStart=/usr/bin/Xvfb :97");
     expect(xvfb).not.toMatch(/ExecStartPre=.*Xvfb/);
-    expect(xvfb).not.toContain("pkill");
+    // Comments may mention pkill; assert no Exec* action uses it.
+    expect(xvfb).not.toMatch(/^[^#\n]*\bpkill\b/m);
 
     expect(demo).toContain("Requires=kwizera-mt5-xvfb.service");
     expect(demo).toContain("User=mt5");
@@ -31,11 +32,12 @@ describe("mt5-hfm-lifecycle Phase 4 units", () => {
     expect(demo).toContain("MemoryMax=1G");
     expect(demo).not.toContain("kwizera-ai.service");
     expect(demo).not.toContain("kwizera-forexconnect.service");
-    expect(demo).not.toContain("pkill");
+    expect(demo).not.toMatch(/^[^#\n]*\bpkill\b/m);
 
-    expect(agent).toContain("Requires=kwizera-mt5-hfm-demo.service");
+    // Soft dependency by design so a manual terminal session can keep the agent up.
+    expect(agent).toContain("Wants=kwizera-mt5-hfm-demo.service");
     expect(agent).toContain("KWIZERA_MT5_HFM_AGENT_TOKEN_FILE=");
-    expect(agent).not.toMatch(/Environment=.*TOKEN=[^F]/
+    expect(agent).not.toMatch(/Environment=.*HFM_AGENT_TOKEN=/);
     expect(agent).not.toContain("kwizera-ai.service");
   });
 

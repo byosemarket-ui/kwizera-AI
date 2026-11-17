@@ -852,19 +852,44 @@ export async function handleMt5HfmApi(
         return true;
       }
       try {
+        const limitRaw = body.limit ?? body.count ?? 100;
         const agentRes = await callMt5HfmAgent("demo.candles", {
           symbol: String(body.symbol ?? ""),
           timeframe: String(body.timeframe ?? ""),
-          limit: Number(body.limit ?? 100),
+          limit: Number(limitRaw),
         });
+        const result = (agentRes.result ?? null) as Record<string, unknown> | null;
+        const available = Boolean(result && result.available === true);
+        const bars = Array.isArray(result?.candles) ? result!.candles : [];
         const payload = {
-          ok: agentRes.ok,
+          ok: Boolean(agentRes.ok && available),
+          provider: "HFM_MT5" as const,
           environment: "demo" as const,
-          candles: agentRes.result ?? null,
-          note: "Candles require agent + future MT5 API enhancer; empty/unavailable is explicit.",
+          symbol: typeof result?.symbol === "string" ? result.symbol : String(body.symbol ?? ""),
+          timeframe: typeof result?.timeframe === "string" ? result.timeframe : String(body.timeframe ?? ""),
+          available,
+          count: typeof result?.count === "number" ? result.count : bars.length,
+          source: result?.source ?? null,
+          ageSec: result?.ageSec ?? null,
+          freshness: result?.freshness ?? null,
+          candles: result,
+          bars,
+          note: available
+            ? "HFM MT5 CopyRates via MQL readonly snapshot/cache."
+            : "Historical candles unavailable — empty/unavailable is explicit (no synthetic bars).",
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
         };
         assertNoSecretsInMt5HfmPayload(payload);
-        sendJson(res, agentRes.ok ? 200 : (agentRes.code === "UNSUPPORTED_TIMEFRAME" || agentRes.code === "INVALID_SYMBOL" ? 400 : 503), payload);
+        const status = !agentRes.ok
+          ? agentRes.code === "UNSUPPORTED_TIMEFRAME" || agentRes.code === "INVALID_SYMBOL"
+            ? 400
+            : 503
+          : available
+            ? 200
+            : 503;
+        sendJson(res, status, payload);
       } catch {
         sendJson(res, 503, {
           ok: false,

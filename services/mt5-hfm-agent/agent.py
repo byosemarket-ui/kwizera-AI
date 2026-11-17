@@ -155,10 +155,11 @@ def handle_request(token: str, nonces: NonceCache, req: dict[str, Any]) -> dict[
             symbols = body.get("symbols") if isinstance(body.get("symbols"), list) else []
             result = mt5_control.quotes_snapshot([str(s) for s in symbols])
         elif method == "demo.candles":
+            limit_raw = body.get("limit", body.get("count", 100))
             result = mt5_control.candles(
                 str(body.get("symbol") or ""),
                 str(body.get("timeframe") or ""),
-                int(body.get("limit") or 100),
+                int(limit_raw or 100),
             )
         elif method == "demo.stream_snapshot":
             include_candles = bool(body.get("includeCandles"))

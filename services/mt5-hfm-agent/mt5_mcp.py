@@ -518,31 +518,44 @@ def normalize_candles(raw: Any, symbol: str, timeframe: str) -> dict[str, Any]:
     }
 
 
+# Native MT5 periods only. Unsupported aliases must fail explicitly (no silent synthesis).
 _TF_MAP = {
     "1m": "M1",
     "M1": "M1",
+    "2m": "M2",
+    "M2": "M2",
     "3m": "M3",
     "M3": "M3",
     "5m": "M5",
     "M5": "M5",
+    "10m": "M10",
+    "M10": "M10",
     "15m": "M15",
     "M15": "M15",
+    "20m": "M20",
+    "M20": "M20",
     "30m": "M30",
     "M30": "M30",
     "1h": "H1",
     "H1": "H1",
     "2h": "H2",
     "H2": "H2",
+    "3h": "H3",
+    "H3": "H3",
     "4h": "H4",
     "H4": "H4",
     "6h": "H6",
     "H6": "H6",
+    "8h": "H8",
+    "H8": "H8",
     "12h": "H12",
     "H12": "H12",
     "1d": "D1",
     "D1": "D1",
     "1w": "W1",
     "W1": "W1",
+    "1M": "MN1",
+    "MN1": "MN1",
 }
 
 

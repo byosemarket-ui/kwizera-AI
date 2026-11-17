@@ -5,14 +5,14 @@
 //| Catalog discovery does NOT mass-SymbolSelect the universe.       |
 //+------------------------------------------------------------------+
 #property copyright "KWIZERA AI STUDIO"
-#property version   "1.30"
+#property version   "1.31"
 #property description "Periodic read-only snapshot + batched catalog. No trading."
 
 #include <Trade/AccountInfo.mqh>
 
 input int SnapshotIntervalSec = 3;     // Quote/account timer (seconds)
-input int CandleBars = 48;             // Bars per timeframe (bounded for VPS)
-input int CandleEveryN = 10;           // Write candles every N snapshots
+input int CandleBars = 64;             // Bars per timeframe (bounded for VPS)
+input int CandleEveryN = 5;            // Write candles every N snapshots (+ durable file)
 input int CatalogBatchSize = 20;       // Symbols per timer tick (catalog)
 input int CatalogRefreshSec = 21600;   // Full rediscovery interval (6h)
 
@@ -625,28 +625,52 @@ void WriteSnapshot()
    json += "\"candlesIncluded\":" + (includeCandles ? "true" : "false") + ",";
    if(includeCandles)
      {
-      json += "\"candles\":{";
-      json += "\"EURUSD\":{";
-      bool firstTf = true;
-      AppendCandles(json, "EURUSD", PERIOD_M1, "M1", firstTf);
-      AppendCandles(json, "EURUSD", PERIOD_M5, "M5", firstTf);
-      AppendCandles(json, "EURUSD", PERIOD_M15, "M15", firstTf);
-      AppendCandles(json, "EURUSD", PERIOD_M30, "M30", firstTf);
-      AppendCandles(json, "EURUSD", PERIOD_H1, "H1", firstTf);
-      AppendCandles(json, "EURUSD", PERIOD_H4, "H4", firstTf);
-      AppendCandles(json, "EURUSD", PERIOD_D1, "D1", firstTf);
-      json += "},";
-      json += "\"XAUUSD\":{";
-      firstTf = true;
-      AppendCandles(json, "XAUUSD", PERIOD_M1, "M1", firstTf);
-      AppendCandles(json, "XAUUSD", PERIOD_M5, "M5", firstTf);
-      AppendCandles(json, "XAUUSD", PERIOD_M15, "M15", firstTf);
-      AppendCandles(json, "XAUUSD", PERIOD_M30, "M30", firstTf);
-      AppendCandles(json, "XAUUSD", PERIOD_H1, "H1", firstTf);
-      AppendCandles(json, "XAUUSD", PERIOD_H4, "H4", firstTf);
-      AppendCandles(json, "XAUUSD", PERIOD_D1, "D1", firstTf);
-      json += "}";
-      json += "},";
+      // Quote-universe symbols only (not full catalog). Keep CopyRates bounded.
+      string candleSymbols[] = {"EURUSD","GBPUSD","USDJPY","USDCHF","USDCAD","AUDUSD","NZDUSD","XAUUSD","XAGUSD"};
+      string candlesObj = "{";
+      bool firstSym = true;
+      for(int si=0; si<ArraySize(candleSymbols); si++)
+        {
+         string csym = candleSymbols[si];
+         string tfJson = "";
+         bool firstTf = true;
+         AppendCandles(tfJson, csym, PERIOD_M1, "M1", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_M5, "M5", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_M15, "M15", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_M30, "M30", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_H1, "H1", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_H4, "H4", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_D1, "D1", firstTf);
+         if(StringLen(tfJson) <= 0)
+            continue;
+         if(!firstSym)
+            candlesObj += ",";
+         firstSym = false;
+         candlesObj += "\"" + csym + "\":{" + tfJson + "}";
+        }
+      candlesObj += "}";
+      json += "\"candles\":" + candlesObj + ",";
+
+      // Durable candle artifact so agent can serve history between quote-only snapshots.
+      string candleDoc = "{";
+      candleDoc += "\"source\":\"mql5_readonly_candles\",";
+      candleDoc += "\"provider\":\"HFM_MT5\",";
+      candleDoc += "\"environment\":\"demo\",";
+      candleDoc += "\"schemaVersion\":1,";
+      candleDoc += "\"seq\":" + IntegerToString((long)g_seq) + ",";
+      candleDoc += "\"brokerTime\":" + IntegerToString((long)TimeCurrent()) + ",";
+      candleDoc += "\"gmtTime\":" + IntegerToString((long)TimeGMT()) + ",";
+      candleDoc += "\"retrievedAt\":\"" + TimeToString(TimeGMT(), TIME_DATE|TIME_SECONDS) + "Z\",";
+      candleDoc += "\"candles\":" + candlesObj;
+      candleDoc += "}";
+      int hc = FileOpen("kwizera_readonly_candles.json", FILE_WRITE|FILE_TXT|FILE_ANSI|FILE_COMMON);
+      if(hc == INVALID_HANDLE)
+         hc = FileOpen("kwizera_readonly_candles.json", FILE_WRITE|FILE_TXT|FILE_ANSI);
+      if(hc != INVALID_HANDLE)
+        {
+         FileWriteString(hc, candleDoc);
+         FileClose(hc);
+        }
      }
    else
      {
