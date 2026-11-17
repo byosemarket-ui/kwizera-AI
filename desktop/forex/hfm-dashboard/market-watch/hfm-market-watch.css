@@ -680,6 +680,187 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* —— STEP 3B table / toolbar —— */
+[data-hfm-dashboard] .hfm-mw-tools-3b {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-hfm-dashboard] .hfm-mw-select select,
+[data-hfm-dashboard] .hfm-mw-watchlist-box select {
+  min-height: 34px;
+  border-radius: var(--hfm-mw-radius-sm);
+  border: 1px solid var(--hfm-mw-border);
+  background: var(--hfm-mw-elevated);
+  color: var(--hfm-mw-text);
+  font: inherit;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+[data-hfm-dashboard] .hfm-mw-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--hfm-mw-text-secondary);
+  font-size: 12px;
+}
+
+[data-hfm-dashboard] .hfm-mw-clear-search {
+  border: 0;
+  background: transparent;
+  color: var(--hfm-mw-text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+[data-hfm-dashboard] .hfm-mw-table-scroll {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+[data-hfm-dashboard] .hfm-mw-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--hfm-mw-table);
+  font-variant-numeric: tabular-nums;
+  min-width: 980px;
+}
+
+[data-hfm-dashboard] .hfm-mw-table th {
+  text-align: left;
+  color: var(--hfm-mw-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--hfm-mw-border);
+  position: sticky;
+  top: 0;
+  background: var(--hfm-mw-card);
+  z-index: 1;
+}
+
+[data-hfm-dashboard] .hfm-mw-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  vertical-align: middle;
+}
+
+[data-hfm-dashboard] .hfm-mw-table tbody tr {
+  cursor: pointer;
+}
+
+[data-hfm-dashboard] .hfm-mw-table tbody tr:hover td {
+  background: rgba(139, 92, 246, 0.08);
+}
+
+[data-hfm-dashboard] .hfm-mw-table tbody tr[data-active="true"] td {
+  background: rgba(139, 92, 246, 0.14);
+}
+
+[data-hfm-dashboard] .hfm-mw-table tbody tr:focus-visible {
+  outline: none;
+  box-shadow: inset var(--hfm-mw-focus);
+}
+
+[data-hfm-dashboard] .hfm-mw-sym {
+  font-weight: 700;
+  color: var(--hfm-mw-text);
+}
+
+[data-hfm-dashboard] .hfm-mw-desc {
+  color: var(--hfm-mw-text-secondary);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-hfm-dashboard] .hfm-mw-num {
+  font-family: var(--hfm-mw-numeric);
+}
+
+[data-hfm-dashboard] .hfm-mw-na {
+  color: var(--hfm-mw-text-muted);
+  font-family: var(--hfm-font);
+  font-size: 11px;
+}
+
+[data-hfm-dashboard] .hfm-mw-fav-btn {
+  border: 0;
+  background: transparent;
+  color: var(--hfm-mw-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+}
+
+[data-hfm-dashboard] .hfm-mw-fav-btn[data-on="true"] {
+  color: var(--hfm-mw-warn);
+}
+
+[data-hfm-dashboard] .hfm-mw-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--hfm-mw-text-muted);
+  font-size: 12px;
+}
+
+[data-hfm-dashboard] .hfm-mw-pager-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-hfm-dashboard] .hfm-mw-pager-btns button {
+  min-width: 30px;
+  min-height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--hfm-mw-border);
+  background: var(--hfm-mw-elevated);
+  color: var(--hfm-mw-text);
+  cursor: pointer;
+}
+
+[data-hfm-dashboard] .hfm-mw-pager-btns button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+[data-hfm-dashboard] .hfm-mw-selected-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+[data-hfm-dashboard] .hfm-mw-watchlist-box,
+[data-hfm-dashboard] .hfm-mw-watchlist-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 10px;
+}
+
+[data-hfm-dashboard] .hfm-mw-watchlist-box label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 160px;
+  color: var(--hfm-mw-text-muted);
+  font-size: 11px;
+}
+
 /* —— Responsive —— */
 @media (max-width: 1199px) {
   [data-hfm-dashboard] {

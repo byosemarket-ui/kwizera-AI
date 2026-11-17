@@ -201,9 +201,10 @@ describe("STEP 3A source integrity — no screenshot sample facts", () => {
 
   it("does not select XAUUSD by default or fabricate session hub rows", () => {
     const page = read("desktop/forex/hfm-dashboard/market-watch/HfmMarketWatchPage.tsx");
-    expect(page).toMatch(/useState<HfmMwSelectedInstrument \| null>\(null\)/);
-    expect(page).toMatch(/resolveTradingSessionRows\(null\)/);
+    expect(page).toMatch(/useState<string \| null>\(null\)/);
     expect(page).toMatch(/unavailableMovementSummary\(\)/);
+    expect(page).toMatch(/resolveTradingSessionOverview\(null\)/);
+    expect(page).not.toMatch(/setSelectedSymbol\(\"XAUUSD\"\)/);
 
     const sessions = read(
       "desktop/forex/hfm-dashboard/market-watch/components/HfmTradingSessionsPanel.tsx",
@@ -271,7 +272,7 @@ describe("STEP 3A design system and component foundation", () => {
       "desktop/forex/hfm-dashboard/market-watch/components/HfmSelectedInstrumentPanel.tsx",
     );
     expect(selected).toContain("No instrument selected");
-    expect(selected).toContain("STEP 3B");
+    expect(selected).toContain("No instrument selected");
 
     const sessions = read(
       "desktop/forex/hfm-dashboard/market-watch/components/HfmTradingSessionsPanel.tsx",

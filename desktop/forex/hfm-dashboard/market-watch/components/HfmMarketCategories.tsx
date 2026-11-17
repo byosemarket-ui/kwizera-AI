@@ -18,7 +18,6 @@ export function HfmMarketCategories({
   catalog: HfmMwCatalogSummary | null;
   active: HfmMwCategoryFilter;
   onSelect: (next: HfmMwCategoryFilter) => void;
-  /** When true, hide zero-count categories (All always shown). */
   hideEmpty?: boolean;
 }) {
   const total =
@@ -42,43 +41,26 @@ export function HfmMarketCategories({
   }
 
   return (
-    <div className="hfm-mw-toolbar-block">
-      <div className="hfm-mw-categories" role="tablist" aria-label="Instrument categories">
-        {pills.map((pill) => (
-          <button
-            key={pill.id}
-            type="button"
-            role="tab"
-            className="hfm-mw-cat-btn"
-            data-active={active === pill.id}
-            aria-selected={active === pill.id}
-            disabled={load.catalog === "loading"}
-            onClick={() => onSelect(pill.id)}
-          >
-            <span>{pill.label}</span>
-            {pill.count != null ? (
-              <span className="hfm-mw-cat-count">({pill.count.toLocaleString("en-US")})</span>
-            ) : load.catalog === "loading" ? (
-              <span className="hfm-mw-cat-count">…</span>
-            ) : null}
-          </button>
-        ))}
-      </div>
-      <div className="hfm-mw-tools">
-        <label className="hfm-mw-search">
-          <span aria-hidden="true">⌕</span>
-          <input
-            type="search"
-            disabled
-            placeholder="Search symbol (STEP 3B)…"
-            aria-label="Search symbol — full search arrives in STEP 3B"
-          />
-        </label>
-        <p className="hfm-mw-tool-note">
-          Category filter is live from HFM classification. Full search, sort, and pagination ship in
-          STEP 3B.
-        </p>
-      </div>
+    <div className="hfm-mw-categories" role="tablist" aria-label="Instrument categories">
+      {pills.map((pill) => (
+        <button
+          key={pill.id}
+          type="button"
+          role="tab"
+          className="hfm-mw-cat-btn"
+          data-active={active === pill.id}
+          aria-selected={active === pill.id}
+          disabled={load.catalog === "loading"}
+          onClick={() => onSelect(pill.id)}
+        >
+          <span>{pill.label}</span>
+          {pill.count != null ? (
+            <span className="hfm-mw-cat-count">({pill.count.toLocaleString("en-US")})</span>
+          ) : load.catalog === "loading" ? (
+            <span className="hfm-mw-cat-count">…</span>
+          ) : null}
+        </button>
+      ))}
     </div>
   );
 }
