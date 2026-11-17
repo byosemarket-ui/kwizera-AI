@@ -29,6 +29,14 @@ export KWIZERA_MT5_HFM_RUN_DIR="$RUN_DIR"
 export KWIZERA_MT5_HFM_LOGIN_STAGE_DIR="$STAGE_DIR"
 export WINEPREFIX="${WINEPREFIX:-/home/mt5/.wine-hfm}"
 
+# kwizera cannot always stat files under /home/mt5; root checks Expert presence.
+EXPERT_EX5="${WINEPREFIX}/drive_c/Program Files/HFM Metatrader 5/MQL5/Experts/KwizeraReadonlySnapshot.ex5"
+FORCE_EXPERT=0
+if [[ -f "$EXPERT_EX5" ]]; then
+  FORCE_EXPERT=1
+fi
+export KWIZERA_MT5_HFM_FORCE_EXPERT="$FORCE_EXPERT"
+
 ARGS=()
 if [[ "$MODE" == "--validate" ]]; then
   ARGS+=(--validate)
@@ -40,6 +48,7 @@ OUT="$(
     KWIZERA_STORAGE_ROOT="$KWIZERA_STORAGE_ROOT" \
     KWIZERA_MT5_HFM_RUN_DIR="$RUN_DIR" \
     KWIZERA_MT5_HFM_LOGIN_STAGE_DIR="$STAGE_DIR" \
+    KWIZERA_MT5_HFM_FORCE_EXPERT="$FORCE_EXPERT" \
     WINEPREFIX="$WINEPREFIX" \
     HOME=/home/kwizera \
     PATH="/usr/bin:/bin" \

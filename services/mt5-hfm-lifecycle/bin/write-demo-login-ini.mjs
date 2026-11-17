@@ -105,7 +105,9 @@ if (!server || /live/i.test(server)) {
   process.exit(6);
 }
 
-const expertOk = existsSync(expertEx5);
+// Root helper may set FORCE_EXPERT=1 when the ex5 exists but is unreadable by kwizera.
+const expertOk =
+  process.env.KWIZERA_MT5_HFM_FORCE_EXPERT === "1" || existsSync(expertEx5);
 let startup = "";
 if (expertOk) {
   startup =
