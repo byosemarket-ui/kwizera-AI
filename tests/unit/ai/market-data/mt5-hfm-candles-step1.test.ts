@@ -35,7 +35,7 @@ describe("STEP 1 HFM candle readiness", () => {
   it("market/candles API accepts count alias and refuses synthetic success", () => {
     const api = read("dev/server/mt5-hfm-api.ts");
     expect(api).toContain("body.limit ?? body.count");
-    expect(api).toContain("available === true");
+    expect(api).toContain("fetchHfmHistoricalCandles");
     expect(api).toContain("no synthetic bars");
     expect(api).toContain('provider: "HFM_MT5"');
   });

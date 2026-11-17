@@ -42,6 +42,7 @@ import {
   resetHfmSseDistributionForTests,
 } from "./sse-distribution.js";
 import { getMt5HfmDemoProfileManager } from "./demo-profile.js";
+import { getHfmLiveCandleEngine } from "./live-candle-engine.js";
 
 export interface Mt5HfmHubSubscriber {
   id: string;
@@ -508,6 +509,44 @@ async function pollOnce(): Promise<void> {
           }),
           symbolKey,
         );
+
+        // STEP 2: incremental forming candles from validated bid (CopyRates price basis).
+        // Default M1 only in hub to bound SSE volume; Charts may poll other TFs via API.
+        if (typeof tickTime === "number" && tickTime > 0) {
+          const candleEvents = getHfmLiveCandleEngine().applyTick(
+            {
+              symbol: symbolKey,
+              bid: q.bid,
+              ask: q.ask,
+              last: null,
+              timeSec: tickTime,
+              timeMsc: typeof q.quoteTimestampMs === "number" ? q.quoteTimestampMs : null,
+              receiveMs: Date.parse(q.receivedAt) || Date.now(),
+              volume: null,
+              flags: null,
+              acquisition: "SymbolInfoTick",
+            },
+            "M1",
+          );
+          for (const ev of candleEvents.slice(-2)) {
+            const evType = ev.type === "candle_finalized" ? "candle_finalized" : "candle_update";
+            publish(
+              evType,
+              buildEnvelope(evType, ev, {
+                eventId: randomUUID(),
+                seq,
+                correlationId: typeof seq === "number" ? `seq-${seq}` : null,
+                brokerTimestamp: tickTime,
+                occurredAt: q.receivedAt,
+                serverReceivedAt,
+                freshness: quoteFreshness,
+                provenance: "hub",
+                validation: "ok",
+              }),
+              symbolKey,
+            );
+          }
+        }
       }
 
       if (includeCandles && snap.candles && typeof snap.candles === "object") {

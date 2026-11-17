@@ -156,11 +156,27 @@ def handle_request(token: str, nonces: NonceCache, req: dict[str, Any]) -> dict[
             result = mt5_control.quotes_snapshot([str(s) for s in symbols])
         elif method == "demo.candles":
             limit_raw = body.get("limit", body.get("count", 100))
+            start_pos = int(body.get("startPos") or body.get("start_pos") or 0)
+            force = bool(body.get("forceOndemand") or body.get("refresh") or start_pos > 0)
             result = mt5_control.candles(
                 str(body.get("symbol") or ""),
                 str(body.get("timeframe") or ""),
                 int(limit_raw or 100),
+                start_pos=start_pos,
+                force_ondemand=force,
             )
+        elif method == "demo.ticks":
+            result = mt5_control.ticks(
+                str(body.get("symbol") or ""),
+                limit=int(body.get("limit") or body.get("count") or 100),
+                from_ms=int(body.get("fromMs") or body.get("from_ms") or 0),
+                to_ms=int(body.get("toMs") or body.get("to_ms") or 0),
+            )
+        elif method == "demo.chart_tick":
+            result = mt5_control.chart_tick()
+        elif method == "demo.quote_watch":
+            symbols = body.get("symbols") if isinstance(body.get("symbols"), list) else []
+            result = mt5_control.quote_watch([str(s) for s in symbols])
         elif method == "demo.stream_snapshot":
             include_candles = bool(body.get("includeCandles"))
             result = mt5_control.stream_snapshot(include_candles=include_candles)

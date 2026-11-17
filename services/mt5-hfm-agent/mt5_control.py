@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -165,8 +166,19 @@ CATALOG_META_NAME = "kwizera_catalog_meta.json"
 CATALOG_NDJSON_NAME = "kwizera_catalog_symbols.ndjson"
 CATALOG_READY_NAME = "kwizera_catalog.ready"
 CATALOG_REFRESH_NAME = "kwizera_catalog_refresh.request"
+HISTORY_REQUEST_NAME = "kwizera_history.request"
+HISTORY_RESPONSE_NAME = "kwizera_history.response.json"
+TICKS_REQUEST_NAME = "kwizera_ticks.request"
+TICKS_RESPONSE_NAME = "kwizera_ticks.response.json"
+QUOTE_WATCH_REQUEST_NAME = "kwizera_quote_watch.request"
+CHART_TICK_NAME = "kwizera_chart_tick.json"
+# Bounded per-key history cache (provider/symbol/tf) under RUN_DIR.
+HISTORY_CACHE_DIR = RUN_DIR / "history-cache"
+HISTORY_CACHE_MAX_KEYS = 48
+HISTORY_CACHE_MAX_BARS = 500
 EXPERT_MQ5_NAME = "KwizeraReadonlySnapshot.mq5"
 EXPERT_EX5_NAME = "KwizeraReadonlySnapshot.ex5"
+EXPERT_SOURCE_VERSION = "1.40"
 
 
 def _write_login_ini(login: str, server: str, password: str, *, start_snapshot_expert: bool = True) -> Path:
@@ -1299,119 +1311,443 @@ def _load_candle_sources(*, wait_for_cycle_sec: float = 0.0) -> tuple[dict[str, 
     return {}, meta
 
 
-def candles(symbol: str, timeframe: str, limit: int = 100) -> dict[str, Any]:
+def _common_file_dirs() -> list[Path]:
+    return [CATALOG_COMMON_DIR, CATALOG_LOCAL_DIR]
+
+
+def _write_request_file(name: str, body: str) -> Path | None:
+    for base in _common_file_dirs():
+        try:
+            base.mkdir(parents=True, exist_ok=True)
+            path = base / name
+            path.write_text(body, encoding="utf-8")
+            return path
+        except OSError:
+            continue
+    return None
+
+
+def _read_response_file(name: str, *, max_age_sec: float = 30.0) -> dict[str, Any] | None:
+    for base in _common_file_dirs():
+        path = base / name
+        data = _read_json_file(path, max_age_sec=max_age_sec)
+        if data and not data.get("error"):
+            return data
+    return None
+
+
+def _history_cache_key(symbol: str, timeframe: str) -> str:
+    return f"{symbol.upper()}__{timeframe.upper()}"
+
+
+def _persist_history_bars(symbol: str, timeframe: str, bars: list[dict[str, Any]]) -> None:
+    if not bars:
+        return
+    try:
+        HISTORY_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        key = _history_cache_key(symbol, timeframe)
+        path = HISTORY_CACHE_DIR / f"{key}.json"
+        existing: list[dict[str, Any]] = []
+        if path.is_file():
+            try:
+                prev = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(prev, dict) and isinstance(prev.get("candles"), list):
+                    existing = [b for b in prev["candles"] if isinstance(b, dict)]
+            except (OSError, json.JSONDecodeError):
+                existing = []
+        by_time: dict[int, dict[str, Any]] = {}
+        for b in existing + bars:
+            t = b.get("time")
+            if not isinstance(t, (int, float)) or not math.isfinite(float(t)):
+                continue
+            ti = int(t)
+            by_time[ti] = b
+        merged = [by_time[k] for k in sorted(by_time.keys())]
+        if len(merged) > HISTORY_CACHE_MAX_BARS:
+            merged = merged[-HISTORY_CACHE_MAX_BARS:]
+        payload = {
+            "provider": "HFM_MT5",
+            "environment": "demo",
+            "symbol": symbol.upper(),
+            "timeframe": timeframe,
+            "cachedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "candles": merged,
+            "count": len(merged),
+        }
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+        tmp.replace(path)
+        # Bound key count.
+        keys = sorted(HISTORY_CACHE_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        for stale in keys[HISTORY_CACHE_MAX_KEYS:]:
+            try:
+                stale.unlink()
+            except OSError:
+                pass
+    except OSError:
+        return
+
+
+def _load_history_cache(symbol: str, timeframe: str, limit: int) -> dict[str, Any] | None:
+    path = HISTORY_CACHE_DIR / f"{_history_cache_key(symbol, timeframe)}.json"
+    data = _read_json_file(path, max_age_sec=3600.0)
+    if not data or data.get("error"):
+        return None
+    bars = data.get("candles") if isinstance(data.get("candles"), list) else []
+    cleaned = _normalize_mql_candle_bars(bars, limit)
+    if not cleaned:
+        return None
+    age = data.get("ageSec")
+    return {
+        "symbol": symbol.upper(),
+        "timeframe": timeframe,
+        "candles": cleaned,
+        "count": len(cleaned),
+        "available": True,
+        "source": "agent_history_cache",
+        "provider": "HFM_MT5",
+        "environment": "demo",
+        "ageSec": age,
+        "freshness": _freshness_from_age(float(age) if isinstance(age, (int, float)) else None),
+        "hasMore": len(bars) > len(cleaned),
+        "requestedCount": limit,
+        "oldestTimestamp": cleaned[0].get("time") if cleaned else None,
+        "newestTimestamp": cleaned[-1].get("time") if cleaned else None,
+        "completeness": "cached",
+        "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "placesOrders": False,
+        "mutatesBroker": False,
+        "acceptsForExecution": False,
+    }
+
+
+def _ondemand_copyrates(
+    symbol: str,
+    timeframe: str,
+    limit: int,
+    *,
+    start_pos: int = 0,
+    request_id: str | None = None,
+    wait_sec: float = 18.0,
+) -> dict[str, Any]:
+    """Ask Expert v1.40+ to CopyRates for any valid catalog symbol (bounded)."""
+    rid = request_id or f"hist-{int(time.time() * 1000)}-{os.getpid()}"
+    line = f"{rid}|{symbol.upper()}|{timeframe}|{int(limit)}|{int(max(0, start_pos))}\n"
+    # Clear stale response so we do not pick up a previous request.
+    for base in _common_file_dirs():
+        try:
+            resp = base / HISTORY_RESPONSE_NAME
+            if resp.is_file():
+                resp.unlink()
+        except OSError:
+            pass
+    if _write_request_file(HISTORY_REQUEST_NAME, line) is None:
+        return {
+            "symbol": symbol.upper(),
+            "timeframe": timeframe,
+            "candles": [],
+            "count": 0,
+            "available": False,
+            "source": "mql5_ondemand_copyrates",
+            "provider": "HFM_MT5",
+            "environment": "demo",
+            "unavailableReason": "HISTORY_REQUEST_WRITE_FAILED",
+            "requestedCount": limit,
+            "hasMore": False,
+            "placesOrders": False,
+            "mutatesBroker": False,
+            "acceptsForExecution": False,
+        }
+    deadline = time.time() + max(2.0, wait_sec)
+    while time.time() < deadline:
+        data = _read_response_file(HISTORY_RESPONSE_NAME, max_age_sec=60.0)
+        if data and str(data.get("requestId") or "") == rid:
+            bars = data.get("candles") if isinstance(data.get("candles"), list) else []
+            cleaned = _normalize_mql_candle_bars(bars, limit)
+            if cleaned:
+                _persist_history_bars(symbol, timeframe, cleaned)
+            err = data.get("error")
+            available = bool(data.get("available")) and bool(cleaned)
+            return {
+                "symbol": symbol.upper(),
+                "timeframe": timeframe,
+                "candles": cleaned,
+                "count": len(cleaned),
+                "available": available,
+                "source": "mql5_ondemand_copyrates",
+                "provider": "HFM_MT5",
+                "environment": "demo",
+                "expertVersion": data.get("expertVersion"),
+                "requestId": rid,
+                "requestedCount": limit,
+                "startPos": start_pos,
+                "hasMore": bool(data.get("hasMore")),
+                "oldestTimestamp": cleaned[0].get("time") if cleaned else None,
+                "newestTimestamp": cleaned[-1].get("time") if cleaned else None,
+                "completeness": "broker" if available else "unavailable",
+                "unavailableReason": None if available else (err or "COPYRATES_EMPTY"),
+                "ageSec": 0,
+                "freshness": "LIVE" if available else "DATA_UNAVAILABLE",
+                "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "placesOrders": False,
+                "mutatesBroker": False,
+                "acceptsForExecution": False,
+            }
+        time.sleep(0.5)
+    return {
+        "symbol": symbol.upper(),
+        "timeframe": timeframe,
+        "candles": [],
+        "count": 0,
+        "available": False,
+        "source": "mql5_ondemand_copyrates",
+        "provider": "HFM_MT5",
+        "environment": "demo",
+        "unavailableReason": "HISTORY_REQUEST_TIMEOUT",
+        "requestId": rid,
+        "requestedCount": limit,
+        "hasMore": False,
+        "note": "Expert did not answer history request in time (binary may predate v1.40).",
+        "placesOrders": False,
+        "mutatesBroker": False,
+        "acceptsForExecution": False,
+    }
+
+
+def ticks(
+    symbol: str,
+    *,
+    limit: int = 100,
+    from_ms: int = 0,
+    to_ms: int = 0,
+    wait_sec: float = 18.0,
+) -> dict[str, Any]:
+    if not re.fullmatch(r"[A-Za-z0-9._-]{2,32}", symbol):
+        raise ValueError("INVALID_SYMBOL")
+    if limit < 1 or limit > 500:
+        raise ValueError("INVALID_LIMIT")
+    rid = f"ticks-{int(time.time() * 1000)}-{os.getpid()}"
+    line = f"{rid}|{symbol.upper()}|{int(limit)}|{int(from_ms)}|{int(to_ms)}\n"
+    for base in _common_file_dirs():
+        try:
+            resp = base / TICKS_RESPONSE_NAME
+            if resp.is_file():
+                resp.unlink()
+        except OSError:
+            pass
+    if _write_request_file(TICKS_REQUEST_NAME, line) is None:
+        return {
+            "symbol": symbol.upper(),
+            "ticks": [],
+            "count": 0,
+            "available": False,
+            "source": "mql5_ondemand_copyticks",
+            "provider": "HFM_MT5",
+            "environment": "demo",
+            "unavailableReason": "TICKS_REQUEST_WRITE_FAILED",
+            "placesOrders": False,
+            "mutatesBroker": False,
+            "acceptsForExecution": False,
+        }
+    deadline = time.time() + max(2.0, wait_sec)
+    while time.time() < deadline:
+        data = _read_response_file(TICKS_RESPONSE_NAME, max_age_sec=60.0)
+        if data and str(data.get("requestId") or "") == rid:
+            raw_ticks = data.get("ticks") if isinstance(data.get("ticks"), list) else []
+            cleaned: list[dict[str, Any]] = []
+            last_key: tuple[Any, ...] | None = None
+            for t in raw_ticks:
+                if not isinstance(t, dict):
+                    continue
+                bid, ask = t.get("bid"), t.get("ask")
+                if not isinstance(bid, (int, float)) or not isinstance(ask, (int, float)):
+                    continue
+                if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0 or ask <= 0 or ask < bid:
+                    continue
+                key = (t.get("timeMsc") or t.get("time"), bid, ask)
+                if key == last_key:
+                    continue
+                last_key = key
+                cleaned.append(
+                    {
+                        "provider": "HFM_MT5",
+                        "symbol": symbol.upper(),
+                        "bid": float(bid),
+                        "ask": float(ask),
+                        "last": t.get("last") if isinstance(t.get("last"), (int, float)) else None,
+                        "volume": t.get("volume") if isinstance(t.get("volume"), (int, float)) else None,
+                        "volumeReal": t.get("volumeReal") if isinstance(t.get("volumeReal"), (int, float)) else None,
+                        "flags": t.get("flags"),
+                        "time": t.get("time"),
+                        "timeMsc": t.get("timeMsc"),
+                        "acquisition": "CopyTicks",
+                    }
+                )
+            available = bool(data.get("available")) and bool(cleaned)
+            return {
+                "symbol": symbol.upper(),
+                "ticks": cleaned,
+                "count": len(cleaned),
+                "available": available,
+                "source": "mql5_ondemand_copyticks",
+                "provider": "HFM_MT5",
+                "environment": "demo",
+                "expertVersion": data.get("expertVersion"),
+                "requestId": rid,
+                "requestedCount": limit,
+                "unavailableReason": None if available else (data.get("error") or "COPYTICKS_EMPTY"),
+                "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "placesOrders": False,
+                "mutatesBroker": False,
+                "acceptsForExecution": False,
+            }
+        time.sleep(0.5)
+    return {
+        "symbol": symbol.upper(),
+        "ticks": [],
+        "count": 0,
+        "available": False,
+        "source": "mql5_ondemand_copyticks",
+        "provider": "HFM_MT5",
+        "environment": "demo",
+        "unavailableReason": "TICKS_REQUEST_TIMEOUT",
+        "requestId": rid,
+        "placesOrders": False,
+        "mutatesBroker": False,
+        "acceptsForExecution": False,
+    }
+
+
+def quote_watch(symbols: list[str]) -> dict[str, Any]:
+    """Bounded extra SymbolSelect list for chart context (max 8)."""
+    cleaned: list[str] = []
+    for s in symbols:
+        sym = str(s or "").strip().upper()
+        if re.fullmatch(r"[A-Za-z0-9._-]{2,32}", sym) and sym not in cleaned:
+            cleaned.append(sym)
+        if len(cleaned) >= 8:
+            break
+    body = "\n".join(cleaned) + ("\n" if cleaned else "")
+    written = _write_request_file(QUOTE_WATCH_REQUEST_NAME, body)
+    return {
+        "requested": written is not None,
+        "symbols": cleaned,
+        "provider": "HFM_MT5",
+        "environment": "demo",
+        "note": "Expert will SymbolSelect only these extras on next timer (not full catalog).",
+        "placesOrders": False,
+        "mutatesBroker": False,
+        "acceptsForExecution": False,
+    }
+
+
+def chart_tick() -> dict[str, Any]:
+    """Latest OnTick chart-symbol tick written by Expert (may be empty)."""
+    for base in _common_file_dirs():
+        data = _read_json_file(base / CHART_TICK_NAME, max_age_sec=30.0)
+        if data and not data.get("error"):
+            data["available"] = True
+            data.setdefault("provider", "HFM_MT5")
+            data.setdefault("environment", "demo")
+            data["placesOrders"] = False
+            data["mutatesBroker"] = False
+            data["acceptsForExecution"] = False
+            return data
+    return {
+        "available": False,
+        "provider": "HFM_MT5",
+        "environment": "demo",
+        "unavailableReason": "CHART_TICK_UNAVAILABLE",
+        "placesOrders": False,
+        "mutatesBroker": False,
+        "acceptsForExecution": False,
+    }
+
+
+def candles(
+    symbol: str,
+    timeframe: str,
+    limit: int = 100,
+    *,
+    start_pos: int = 0,
+    force_ondemand: bool = False,
+) -> dict[str, Any]:
     if not re.fullmatch(r"[A-Za-z0-9._-]{2,32}", symbol):
         raise ValueError("INVALID_SYMBOL")
     if limit < 1 or limit > 300:
         raise ValueError("INVALID_LIMIT")
+    if start_pos < 0 or start_pos > 50000:
+        raise ValueError("INVALID_START_POS")
     # Canonicalize first (`15m` → `M15`). Never use `.upper()` alone — that yields `15M`.
     try:
         tf_key = mt5_mcp.map_timeframe(str(timeframe or "").strip())
     except ValueError:
         raise ValueError("UNSUPPORTED_TIMEFRAME") from None
 
-    # Prefer MQL CopyRates dump. Wait briefly for the Expert candle cycle when needed
-    # because MCP history tools are typically unauthorized under Wine on this VPS.
-    by_symbol, meta = _load_candle_sources(wait_for_cycle_sec=42.0)
-    sym_map = by_symbol.get(symbol.upper()) if isinstance(by_symbol, dict) else None
+    sym_u = symbol.upper()
+
+    # Pagination / forced refresh always uses on-demand CopyRates (catalog-capable).
+    if force_ondemand or start_pos > 0:
+        return _ondemand_copyrates(sym_u, tf_key, limit, start_pos=start_pos)
+
+    # Prefer periodic MQL dump for the core 9-symbol universe.
+    by_symbol, meta = _load_candle_sources(wait_for_cycle_sec=8.0)
+    sym_map = by_symbol.get(sym_u) if isinstance(by_symbol, dict) else None
     if isinstance(sym_map, dict) and isinstance(sym_map.get(tf_key), list):
         cleaned = _normalize_mql_candle_bars(sym_map[tf_key], limit)
-        age = meta.get("ageSec")
-        return {
-            "symbol": symbol.upper(),
-            "timeframe": tf_key,
-            "candles": cleaned,
-            "count": len(cleaned),
-            "available": bool(cleaned),
-            "source": meta.get("source") or "mql5_readonly_snapshot",
-            "provider": "HFM_MT5",
-            "environment": "demo",
-            "ageSec": age,
-            "freshness": _freshness_from_age(float(age) if isinstance(age, (int, float)) else None),
-            "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "note": None
-            if cleaned
-            else "MQL candle dump present but requested symbol/timeframe bars empty.",
-            "placesOrders": False,
-            "mutatesBroker": False,
-            "acceptsForExecution": False,
-        }
-
-    # Last resort: MCP (usually unauthorized on this host — keep explicit).
-    mt5_tf = tf_key
-    try:
-        client = mt5_mcp.Mt5McpClient()
-        raw = None
-        last_err = None
-        for args in (
-            {"symbol": symbol, "period": mt5_tf, "count": limit},
-            {"symbol": symbol, "timeframe": mt5_tf, "count": limit},
-            {"symbol": symbol, "period": mt5_tf, "bars": limit},
-        ):
-            try:
-                raw = client.call_tool("get_chart_history", args)
-                break
-            except ValueError as exc:
-                last_err = str(exc)
-                continue
-        if raw is None:
-            try:
-                raw = client.call_tool(
-                    "marketdata_symbol_history",
-                    {"symbol": symbol, "period": mt5_tf, "count": limit},
-                )
-            except ValueError as exc:
-                last_err = str(exc)
-        if raw is None:
+        if cleaned:
+            age = meta.get("ageSec")
+            _persist_history_bars(sym_u, tf_key, cleaned)
             return {
-                "symbol": symbol.upper(),
+                "symbol": sym_u,
                 "timeframe": tf_key,
-                "candles": [],
-                "count": 0,
-                "available": False,
-                "source": "mt5_mcp",
+                "candles": cleaned,
+                "count": len(cleaned),
+                "available": True,
+                "source": meta.get("source") or "mql5_readonly_snapshot",
                 "provider": "HFM_MT5",
                 "environment": "demo",
-                "unavailableReason": last_err or "MCP_CANDLES_FAILED",
-                "note": "No MQL CopyRates dump yet for this symbol/timeframe; MCP history unauthorized/unavailable.",
+                "ageSec": age,
+                "freshness": _freshness_from_age(float(age) if isinstance(age, (int, float)) else None),
+                "requestedCount": limit,
+                "hasMore": len(sym_map[tf_key]) >= limit,
+                "oldestTimestamp": cleaned[0].get("time"),
+                "newestTimestamp": cleaned[-1].get("time"),
+                "completeness": "broker_dump",
+                "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "placesOrders": False,
                 "mutatesBroker": False,
                 "acceptsForExecution": False,
             }
-        result = mt5_mcp.normalize_candles(raw, symbol=symbol, timeframe=tf_key)
-        cleaned = []
-        for c in result["candles"][-limit:]:
-            o, h, l, cl = c["open"], c["high"], c["low"], c["close"]
-            if None in (o, h, l, cl):
-                continue
-            if h < max(o, cl) or l > min(o, cl) or h < l:
-                continue
-            cleaned.append(c)
-        result["candles"] = cleaned
-        result["count"] = len(cleaned)
-        result["available"] = bool(cleaned)
-        result["provider"] = "HFM_MT5"
-        result["environment"] = "demo"
-        result["retrievedAt"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        result["placesOrders"] = False
-        result["mutatesBroker"] = False
-        result["acceptsForExecution"] = False
-        return result
-    except ValueError as exc:
-        return {
-            "symbol": symbol.upper(),
-            "timeframe": tf_key,
-            "candles": [],
-            "count": 0,
-            "available": False,
-            "source": "mt5_mcp",
-            "provider": "HFM_MT5",
-            "environment": "demo",
-            "unavailableReason": str(exc),
-            "placesOrders": False,
-            "mutatesBroker": False,
-            "acceptsForExecution": False,
-        }
+
+    # On-demand CopyRates for any catalog symbol (Expert v1.40+).
+    ondemand = _ondemand_copyrates(sym_u, tf_key, limit, start_pos=0)
+    if ondemand.get("available"):
+        return ondemand
+
+    cached = _load_history_cache(sym_u, tf_key, limit)
+    if cached:
+        cached["note"] = "Serving bounded history cache after on-demand miss/timeout."
+        return cached
+
+    # Explicit failure — never fabricate; MCP is not a dependency.
+    return {
+        "symbol": sym_u,
+        "timeframe": tf_key,
+        "candles": [],
+        "count": 0,
+        "available": False,
+        "source": ondemand.get("source") or "mql5_ondemand_copyrates",
+        "provider": "HFM_MT5",
+        "environment": "demo",
+        "unavailableReason": ondemand.get("unavailableReason") or "NO_HISTORY",
+        "requestedCount": limit,
+        "hasMore": False,
+        "note": "HFM history unavailable for this symbol/timeframe (no synthetic bars).",
+        "placesOrders": False,
+        "mutatesBroker": False,
+        "acceptsForExecution": False,
+    }
 
 
 def open_positions_snapshot() -> dict[str, Any]:

@@ -5,8 +5,8 @@
 //| Catalog discovery does NOT mass-SymbolSelect the universe.       |
 //+------------------------------------------------------------------+
 #property copyright "KWIZERA AI STUDIO"
-#property version   "1.31"
-#property description "Periodic read-only snapshot + batched catalog. No trading."
+#property version   "1.40"
+#property description "Read-only snapshot + on-demand CopyRates/CopyTicks. No trading."
 
 #include <Trade/AccountInfo.mqh>
 
@@ -15,8 +15,13 @@ input int CandleBars = 64;             // Bars per timeframe (bounded for VPS)
 input int CandleEveryN = 5;            // Write candles every N snapshots (+ durable file)
 input int CatalogBatchSize = 20;       // Symbols per timer tick (catalog)
 input int CatalogRefreshSec = 21600;   // Full rediscovery interval (6h)
+input int MaxOnDemandBars = 300;       // Hard cap for history request CopyRates
+input int MaxOnDemandTicks = 500;      // Hard cap for CopyTicksRange
+input int MaxExtraQuoteSymbols = 8;    // Bounded extra SymbolSelect for charts
 
 ulong g_seq = 0;
+string g_extraQuotes[];                // STEP 2: bounded chart-context symbols
+ulong  g_lastChartTickMsc = 0;
 
 // Catalog discovery state (separate from quote snapshot).
 bool   g_catalogRunning = false;
@@ -67,6 +72,330 @@ bool CatalogRefreshRequested()
    FileDelete("kwizera_catalog_refresh.request", FILE_COMMON);
    FileDelete("kwizera_catalog_refresh.request");
    return true;
+  }
+
+string ReadTextFile(const string name)
+  {
+   int h = FileOpen(name, FILE_READ|FILE_TXT|FILE_ANSI|FILE_COMMON);
+   if(h == INVALID_HANDLE)
+      h = FileOpen(name, FILE_READ|FILE_TXT|FILE_ANSI);
+   if(h == INVALID_HANDLE)
+      return "";
+   string out = "";
+   while(!FileIsEnding(h))
+     {
+      string line = FileReadString(h);
+      if(StringLen(out) > 0)
+         out += "\n";
+      out += line;
+      if(StringLen(out) > 4096)
+         break;
+     }
+   FileClose(h);
+   return out;
+  }
+
+bool WriteTextFile(const string name, const string body)
+  {
+   int h = FileOpen(name, FILE_WRITE|FILE_TXT|FILE_ANSI|FILE_COMMON);
+   if(h == INVALID_HANDLE)
+      h = FileOpen(name, FILE_WRITE|FILE_TXT|FILE_ANSI);
+   if(h == INVALID_HANDLE)
+      return false;
+   FileWriteString(h, body);
+   FileClose(h);
+   return true;
+  }
+
+void DeleteRequest(const string name)
+  {
+   FileDelete(name, FILE_COMMON);
+   FileDelete(name);
+  }
+
+ENUM_TIMEFRAMES ParseTimeframe(const string tf)
+  {
+   if(tf == "M1" || tf == "1m") return PERIOD_M1;
+   if(tf == "M2" || tf == "2m") return PERIOD_M2;
+   if(tf == "M3" || tf == "3m") return PERIOD_M3;
+   if(tf == "M5" || tf == "5m") return PERIOD_M5;
+   if(tf == "M10" || tf == "10m") return PERIOD_M10;
+   if(tf == "M15" || tf == "15m") return PERIOD_M15;
+   if(tf == "M20" || tf == "20m") return PERIOD_M20;
+   if(tf == "M30" || tf == "30m") return PERIOD_M30;
+   if(tf == "H1" || tf == "1h") return PERIOD_H1;
+   if(tf == "H2" || tf == "2h") return PERIOD_H2;
+   if(tf == "H3" || tf == "3h") return PERIOD_H3;
+   if(tf == "H4" || tf == "4h") return PERIOD_H4;
+   if(tf == "H6" || tf == "6h") return PERIOD_H6;
+   if(tf == "H8" || tf == "8h") return PERIOD_H8;
+   if(tf == "H12" || tf == "12h") return PERIOD_H12;
+   if(tf == "D1" || tf == "1d") return PERIOD_D1;
+   if(tf == "W1" || tf == "1w") return PERIOD_W1;
+   if(tf == "MN1" || tf == "1M") return PERIOD_MN1;
+   return PERIOD_CURRENT;
+  }
+
+string FieldAt(const string line, const int idx)
+  {
+   string parts[];
+   int n = StringSplit(line, '|', parts);
+   if(idx < 0 || idx >= n)
+      return "";
+   return parts[idx];
+  }
+
+void ProcessQuoteWatchRequest()
+  {
+   // Format: one symbol per line, max MaxExtraQuoteSymbols. Clears watch when empty file body.
+   string raw = ReadTextFile("kwizera_quote_watch.request");
+   if(StringLen(raw) <= 0)
+      return;
+   DeleteRequest("kwizera_quote_watch.request");
+   string lines[];
+   int n = StringSplit(raw, '\n', lines);
+   ArrayResize(g_extraQuotes, 0);
+   int kept = 0;
+   for(int i = 0; i < n && kept < MaxExtraQuoteSymbols; i++)
+     {
+      string sym = lines[i];
+      StringTrimLeft(sym);
+      StringTrimRight(sym);
+      StringReplace(sym, "\r", "");
+      if(StringLen(sym) < 2 || StringLen(sym) > 32)
+         continue;
+      if(!SymbolSelect(sym, true))
+         continue;
+      ArrayResize(g_extraQuotes, kept + 1);
+      g_extraQuotes[kept] = sym;
+      kept++;
+     }
+   WriteTextFile(
+      "kwizera_quote_watch.status.json",
+      "{\"provider\":\"HFM_MT5\",\"environment\":\"demo\",\"count\":" + IntegerToString(kept)
+      + ",\"writtenAt\":\"" + GmtIsoNow() + "\",\"ordersEnabled\":false}"
+   );
+  }
+
+void ProcessHistoryRequest()
+  {
+   // Line: requestId|symbol|timeframe|count|startPos
+   // startPos = bar index from present (0 = latest). Expert never executes trades.
+   string raw = ReadTextFile("kwizera_history.request");
+   if(StringLen(raw) <= 0)
+      return;
+   DeleteRequest("kwizera_history.request");
+   string line = raw;
+   int nl = StringFind(line, "\n");
+   if(nl >= 0)
+      line = StringSubstr(line, 0, nl);
+   StringReplace(line, "\r", "");
+
+   string requestId = FieldAt(line, 0);
+   string symbol = FieldAt(line, 1);
+   string tfName = FieldAt(line, 2);
+   int count = (int)StringToInteger(FieldAt(line, 3));
+   int startPos = (int)StringToInteger(FieldAt(line, 4));
+   if(StringLen(requestId) < 1)
+      requestId = "unknown";
+   if(count < 1) count = 1;
+   if(count > MaxOnDemandBars) count = MaxOnDemandBars;
+   if(startPos < 0) startPos = 0;
+   if(startPos > 50000) startPos = 50000;
+
+   ENUM_TIMEFRAMES tf = ParseTimeframe(tfName);
+   string err = "";
+   int copied = 0;
+   string barsJson = "[";
+   bool available = false;
+
+   if(tf == PERIOD_CURRENT)
+      err = "UNSUPPORTED_TIMEFRAME";
+   else if(StringLen(symbol) < 2 || StringLen(symbol) > 32)
+      err = "INVALID_SYMBOL";
+   else if(!SymbolSelect(symbol, true))
+      err = "SYMBOL_SELECT_FAILED";
+   else
+     {
+      MqlRates rates[];
+      ArraySetAsSeries(rates, true);
+      copied = CopyRates(symbol, tf, startPos, count, rates);
+      if(copied <= 0)
+         err = "COPYRATES_EMPTY";
+      else
+        {
+         available = true;
+         bool firstBar = true;
+         for(int i = copied - 1; i >= 0; i--)
+           {
+            if(!firstBar)
+               barsJson += ",";
+            firstBar = false;
+            barsJson += "{";
+            barsJson += "\"time\":" + IntegerToString((long)rates[i].time) + ",";
+            barsJson += "\"open\":" + NumOrNull(rates[i].open) + ",";
+            barsJson += "\"high\":" + NumOrNull(rates[i].high) + ",";
+            barsJson += "\"low\":" + NumOrNull(rates[i].low) + ",";
+            barsJson += "\"close\":" + NumOrNull(rates[i].close) + ",";
+            barsJson += "\"tickVolume\":" + IntegerToString((long)rates[i].tick_volume) + ",";
+            barsJson += "\"realVolume\":" + IntegerToString((long)rates[i].real_volume) + ",";
+            barsJson += "\"spread\":" + IntegerToString((long)rates[i].spread);
+            barsJson += "}";
+           }
+        }
+     }
+   barsJson += "]";
+
+   bool hasMore = available && (copied >= count);
+   string json = "{";
+   json += "\"source\":\"mql5_ondemand_copyrates\",";
+   json += "\"provider\":\"HFM_MT5\",";
+   json += "\"environment\":\"demo\",";
+   json += "\"schemaVersion\":1,";
+   json += "\"expertVersion\":\"1.40\",";
+   json += "\"requestId\":\"" + JsonEscape(requestId) + "\",";
+   json += "\"symbol\":\"" + JsonEscape(symbol) + "\",";
+   json += "\"timeframe\":\"" + JsonEscape(tfName) + "\",";
+   json += "\"requestedCount\":" + IntegerToString(count) + ",";
+   json += "\"startPos\":" + IntegerToString(startPos) + ",";
+   json += "\"count\":" + IntegerToString(copied > 0 ? copied : 0) + ",";
+   json += "\"available\":" + (available ? "true" : "false") + ",";
+   json += "\"hasMore\":" + (hasMore ? "true" : "false") + ",";
+   json += "\"error\":" + (StringLen(err) > 0 ? ("\"" + JsonEscape(err) + "\"") : "null") + ",";
+   json += "\"brokerTime\":" + IntegerToString((long)TimeCurrent()) + ",";
+   json += "\"gmtTime\":" + IntegerToString((long)TimeGMT()) + ",";
+   json += "\"retrievedAt\":\"" + GmtIsoNow() + "\",";
+   json += "\"candles\":" + barsJson + ",";
+   json += "\"placesOrders\":false,\"mutatesBroker\":false,\"acceptsForExecution\":false";
+   json += "}";
+   WriteTextFile("kwizera_history.response.json", json);
+  }
+
+void ProcessTicksRequest()
+  {
+   // Line: requestId|symbol|count|fromMs|toMs
+   // fromMs/toMs = 0 means "latest count ticks via CopyTicks"
+   string raw = ReadTextFile("kwizera_ticks.request");
+   if(StringLen(raw) <= 0)
+      return;
+   DeleteRequest("kwizera_ticks.request");
+   string line = raw;
+   int nl = StringFind(line, "\n");
+   if(nl >= 0)
+      line = StringSubstr(line, 0, nl);
+   StringReplace(line, "\r", "");
+
+   string requestId = FieldAt(line, 0);
+   string symbol = FieldAt(line, 1);
+   int count = (int)StringToInteger(FieldAt(line, 2));
+   long fromMs = StringToInteger(FieldAt(line, 3));
+   long toMs = StringToInteger(FieldAt(line, 4));
+   if(StringLen(requestId) < 1)
+      requestId = "unknown";
+   if(count < 1) count = 1;
+   if(count > MaxOnDemandTicks) count = MaxOnDemandTicks;
+
+   string err = "";
+   int copied = 0;
+   string ticksJson = "[";
+   bool available = false;
+
+   if(StringLen(symbol) < 2 || StringLen(symbol) > 32)
+      err = "INVALID_SYMBOL";
+   else if(!SymbolSelect(symbol, true))
+      err = "SYMBOL_SELECT_FAILED";
+   else
+     {
+      MqlTick ticks[];
+      ArraySetAsSeries(ticks, true);
+      if(fromMs > 0 && toMs > fromMs)
+         copied = CopyTicksRange(symbol, ticks, COPY_TICKS_ALL, fromMs, toMs);
+      else
+         copied = CopyTicks(symbol, ticks, COPY_TICKS_ALL, 0, count);
+      if(copied <= 0)
+         err = "COPYTICKS_EMPTY";
+      else
+        {
+         available = true;
+         if(copied > count)
+            copied = count;
+         bool first = true;
+         for(int i = copied - 1; i >= 0; i--)
+           {
+            if(!first)
+               ticksJson += ",";
+            first = false;
+            ticksJson += "{";
+            ticksJson += "\"time\":" + IntegerToString((long)ticks[i].time) + ",";
+            ticksJson += "\"timeMsc\":" + IntegerToString((long)ticks[i].time_msc) + ",";
+            ticksJson += "\"bid\":" + NumOrNull(ticks[i].bid) + ",";
+            ticksJson += "\"ask\":" + NumOrNull(ticks[i].ask) + ",";
+            ticksJson += "\"last\":" + NumOrNull(ticks[i].last) + ",";
+            ticksJson += "\"volume\":" + IntegerToString((long)ticks[i].volume) + ",";
+            ticksJson += "\"volumeReal\":" + NumOrNull(ticks[i].volume_real) + ",";
+            ticksJson += "\"flags\":" + IntegerToString((long)ticks[i].flags);
+            ticksJson += "}";
+           }
+        }
+     }
+   ticksJson += "]";
+
+   string json = "{";
+   json += "\"source\":\"mql5_ondemand_copyticks\",";
+   json += "\"provider\":\"HFM_MT5\",";
+   json += "\"environment\":\"demo\",";
+   json += "\"schemaVersion\":1,";
+   json += "\"expertVersion\":\"1.40\",";
+   json += "\"requestId\":\"" + JsonEscape(requestId) + "\",";
+   json += "\"symbol\":\"" + JsonEscape(symbol) + "\",";
+   json += "\"requestedCount\":" + IntegerToString(count) + ",";
+   json += "\"count\":" + IntegerToString(copied > 0 ? copied : 0) + ",";
+   json += "\"available\":" + (available ? "true" : "false") + ",";
+   json += "\"error\":" + (StringLen(err) > 0 ? ("\"" + JsonEscape(err) + "\"") : "null") + ",";
+   json += "\"acquisition\":\"CopyTicks\",";
+   json += "\"brokerTime\":" + IntegerToString((long)TimeCurrent()) + ",";
+   json += "\"gmtTime\":" + IntegerToString((long)TimeGMT()) + ",";
+   json += "\"retrievedAt\":\"" + GmtIsoNow() + "\",";
+   json += "\"ticks\":" + ticksJson + ",";
+   json += "\"placesOrders\":false,\"mutatesBroker\":false,\"acceptsForExecution\":false";
+   json += "}";
+   WriteTextFile("kwizera_ticks.response.json", json);
+  }
+
+void WriteChartTick()
+  {
+   // Lightweight OnTick path for the chart symbol the Expert is attached to.
+   string symbol = _Symbol;
+   MqlTick tick;
+   if(!SymbolInfoTick(symbol, tick))
+      return;
+   if((ulong)tick.time_msc != 0 && (ulong)tick.time_msc == g_lastChartTickMsc)
+      return;
+   g_lastChartTickMsc = (ulong)tick.time_msc;
+   string json = "{";
+   json += "\"source\":\"mql5_ontick\",";
+   json += "\"provider\":\"HFM_MT5\",";
+   json += "\"environment\":\"demo\",";
+   json += "\"symbol\":\"" + JsonEscape(symbol) + "\",";
+   json += "\"bid\":" + ((tick.bid > 0) ? NumOrNull(tick.bid) : "null") + ",";
+   json += "\"ask\":" + ((tick.ask > 0) ? NumOrNull(tick.ask) : "null") + ",";
+   json += "\"last\":" + NumOrNull(tick.last) + ",";
+   json += "\"time\":" + IntegerToString((long)tick.time) + ",";
+   json += "\"timeMsc\":" + IntegerToString((long)tick.time_msc) + ",";
+   json += "\"volume\":" + IntegerToString((long)tick.volume) + ",";
+   json += "\"flags\":" + IntegerToString((long)tick.flags) + ",";
+   json += "\"acquisitionMethod\":\"OnTick\",";
+   json += "\"writtenAt\":\"" + GmtIsoNow() + "\",";
+   json += "\"placesOrders\":false";
+   json += "}";
+   WriteTextFile("kwizera_chart_tick.json", json);
+  }
+
+void ProcessAcquisitionRequests()
+  {
+   ProcessQuoteWatchRequest();
+   ProcessHistoryRequest();
+   ProcessTicksRequest();
   }
 
 void WriteCatalogMeta(const string status)
@@ -611,13 +940,29 @@ void WriteSnapshot()
    json += "\"pendingOrdersCount\":" + IntegerToString(pending);
    json += "},";
 
-   // Existing quote engine universe (NOT the catalog). Kept intact for Phase 1.
+   // Core quote universe + bounded STEP 2 chart-context extras (never full catalog).
    json += "\"quotes\":[";
    bool firstQ = true;
    string candidates[] = {"EURUSD","GBPUSD","USDJPY","USDCHF","USDCAD","AUDUSD","NZDUSD","XAUUSD","XAGUSD"};
    for(int i=0;i<ArraySize(candidates);i++)
       AppendQuote(json, candidates[i], firstQ);
+   for(int ei=0; ei<ArraySize(g_extraQuotes); ei++)
+     {
+      string esym = g_extraQuotes[ei];
+      bool already = false;
+      for(int ci=0; ci<ArraySize(candidates); ci++)
+        {
+         if(candidates[ci] == esym)
+           {
+            already = true;
+            break;
+           }
+        }
+      if(!already)
+         AppendQuote(json, esym, firstQ);
+     }
    json += "],";
+   json += "\"expertVersion\":\"1.40\",";
 
    int everyN = CandleEveryN;
    if(everyN < 1) everyN = 1;
@@ -705,7 +1050,7 @@ int OnInit()
    WriteSnapshot();
    // Kick catalog after first quote snapshot so login/account path stays responsive.
    ProcessCatalogBatch();
-   Print("KwizeraReadonlySnapshot: timer=", sec, "s login=", AccountInfoInteger(ACCOUNT_LOGIN),
+   Print("KwizeraReadonlySnapshot: v1.40 timer=", sec, "s login=", AccountInfoInteger(ACCOUNT_LOGIN),
          " catalogBatch=", CatalogBatchSize);
    return(INIT_SUCCEEDED);
   }
@@ -717,6 +1062,8 @@ void OnDeinit(const int reason)
 
 void OnTimer()
   {
+   // On-demand history/ticks before snapshot so agent waiters see responses quickly.
+   ProcessAcquisitionRequests();
    // Quotes/account first — catalog batches must not starve the existing engine.
    WriteSnapshot();
    ProcessCatalogBatch();
@@ -724,5 +1071,6 @@ void OnTimer()
 
 void OnTick()
   {
-   // Timer-driven acquisition preferred for 1-vCPU VPS (avoids per-tick JSON rebuild).
+   // Chart-symbol event tick (lightweight). Multi-symbol still uses timer SymbolInfoTick.
+   WriteChartTick();
   }

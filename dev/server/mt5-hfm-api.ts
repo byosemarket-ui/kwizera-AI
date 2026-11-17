@@ -9,7 +9,11 @@
  * POST /api/forex/providers/mt5-hfm/login              (Demo authenticated login via agent)
  * POST /api/forex/providers/mt5-hfm/account/sync       (Demo account snapshot via agent)
  * POST /api/forex/providers/mt5-hfm/market/quotes      (Demo quotes via agent)
- * POST /api/forex/providers/mt5-hfm/market/candles     (Demo candles via agent)
+ * POST /api/forex/providers/mt5-hfm/market/candles     (Demo historical candles)
+ * POST /api/forex/providers/mt5-hfm/market/ticks       (Demo CopyTicks recovery)
+ * GET  /api/forex/providers/mt5-hfm/market/chart-tick  (OnTick chart symbol)
+ * POST /api/forex/providers/mt5-hfm/market/quote-watch (Bounded extra quote SymbolSelect)
+ * GET  /api/forex/providers/mt5-hfm/market/live-candle (Forming OHLC for symbol/tf)
  * GET  /api/forex/providers/mt5-hfm/account            (cached Demo snapshot only)
  * GET  /api/forex/providers/mt5-hfm/stream             (Demo SSE realtime feed)
  * GET  /api/forex/providers/mt5-hfm/realtime/status    (Hub freshness / subscribers)
@@ -79,6 +83,10 @@ import { getHfmRecoveryEngine } from "../../ai/market-data/mt5-hfm/recovery-engi
 import { getHfmSubscriptionScheduler } from "../../ai/market-data/mt5-hfm/subscription-scheduler.js";
 import { getHfmSnapshotTracker } from "../../ai/market-data/mt5-hfm/snapshot-tracker.js";
 import type { HfmSubscriptionPriority } from "../../ai/market-data/mt5-hfm/subscription-types.js";
+import { fetchHfmHistoricalCandles } from "../../ai/market-data/mt5-hfm/historical-engine.js";
+import { fetchHfmTicks, fetchHfmChartTick, setHfmQuoteWatch } from "../../ai/market-data/mt5-hfm/tick-engine.js";
+import { getHfmLiveCandleEngine } from "../../ai/market-data/mt5-hfm/live-candle-engine.js";
+import { buildHfmChartsAnalysisSnapshot } from "../../ai/market-data/mt5-hfm/charts-analysis-contract.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -852,44 +860,208 @@ export async function handleMt5HfmApi(
         return true;
       }
       try {
-        const limitRaw = body.limit ?? body.count ?? 100;
-        const agentRes = await callMt5HfmAgent("demo.candles", {
+        const hist = await fetchHfmHistoricalCandles({
           symbol: String(body.symbol ?? ""),
           timeframe: String(body.timeframe ?? ""),
-          limit: Number(limitRaw),
+          limit: Number(body.limit ?? body.count ?? 100),
+          startPos: Number(body.startPos ?? body.start_pos ?? 0),
+          refresh: Boolean(body.refresh || body.forceOndemand),
         });
-        const result = (agentRes.result ?? null) as Record<string, unknown> | null;
-        const available = Boolean(result && result.available === true);
-        const bars = Array.isArray(result?.candles) ? result!.candles : [];
+        const forming = getHfmLiveCandleEngine().getForming(hist.symbol, hist.timeframe);
+        if (forming) getHfmLiveCandleEngine().reconcileWithHistory(hist.symbol, hist.timeframe, hist.bars);
         const payload = {
-          ok: Boolean(agentRes.ok && available),
+          ok: hist.available,
           provider: "HFM_MT5" as const,
           environment: "demo" as const,
-          symbol: typeof result?.symbol === "string" ? result.symbol : String(body.symbol ?? ""),
-          timeframe: typeof result?.timeframe === "string" ? result.timeframe : String(body.timeframe ?? ""),
-          available,
-          count: typeof result?.count === "number" ? result.count : bars.length,
-          source: result?.source ?? null,
-          ageSec: result?.ageSec ?? null,
-          freshness: result?.freshness ?? null,
-          candles: result,
-          bars,
-          note: available
-            ? "HFM MT5 CopyRates via MQL readonly snapshot/cache."
+          symbol: hist.symbol,
+          timeframe: hist.timeframe,
+          available: hist.available,
+          count: hist.count,
+          requestedCount: hist.requestedCount,
+          hasMore: hist.hasMore,
+          source: hist.source,
+          freshness: hist.freshness,
+          oldestTimestamp: hist.oldestTimestamp,
+          newestTimestamp: hist.newestTimestamp,
+          completeness: hist.completeness,
+          errors: hist.errors,
+          bars: hist.bars,
+          candles: {
+            symbol: hist.symbol,
+            timeframe: hist.timeframe,
+            candles: hist.bars,
+            count: hist.count,
+            available: hist.available,
+            source: hist.source,
+            provider: "HFM_MT5",
+            environment: "demo",
+          },
+          currentCandle: forming,
+          note: hist.available
+            ? "HFM MT5 CopyRates (dump and/or on-demand). No synthetic bars."
             : "Historical candles unavailable — empty/unavailable is explicit (no synthetic bars).",
           placesOrders: false,
           mutatesBroker: false,
           acceptsForExecution: false,
         };
         assertNoSecretsInMt5HfmPayload(payload);
-        const status = !agentRes.ok
-          ? agentRes.code === "UNSUPPORTED_TIMEFRAME" || agentRes.code === "INVALID_SYMBOL"
-            ? 400
-            : 503
-          : available
-            ? 200
-            : 503;
-        sendJson(res, status, payload);
+        const badReq = hist.errors.some((e) =>
+          e === "UNSUPPORTED_TIMEFRAME" || e === "INVALID_SYMBOL" || e === "INVALID_START_POS",
+        );
+        sendJson(res, hist.available ? 200 : badReq ? 400 : 503, payload);
+      } catch {
+        sendJson(res, 503, {
+          ok: false,
+          error: { code: "AGENT_UNAVAILABLE", message: "MT5 agent socket unavailable." },
+        });
+      }
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/market/ticks" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      if (String(body.environment ?? "demo").toLowerCase() === "live") {
+        sendLiveLocked(res, sendJson, "market data");
+        return true;
+      }
+      try {
+        const ticks = await fetchHfmTicks({
+          symbol: String(body.symbol ?? ""),
+          limit: Number(body.limit ?? body.count ?? 100),
+          fromMs: Number(body.fromMs ?? 0),
+          toMs: Number(body.toMs ?? 0),
+        });
+        const engine = getHfmLiveCandleEngine();
+        const timeframe = String(body.timeframe ?? "M1");
+        const updates = [];
+        for (const t of ticks.ticks) {
+          updates.push(...engine.applyTick(t, timeframe));
+        }
+        const payload = {
+          ok: ticks.available,
+          ...ticks,
+          candleEvents: updates.slice(-20),
+          note: ticks.available
+            ? "HFM CopyTicks recovery (deduplicated)."
+            : "Tick recovery unavailable — Expert v1.40+ required; no synthetic ticks.",
+        };
+        assertNoSecretsInMt5HfmPayload(payload);
+        sendJson(res, ticks.available ? 200 : 503, payload);
+      } catch {
+        sendJson(res, 503, {
+          ok: false,
+          error: { code: "AGENT_UNAVAILABLE", message: "MT5 agent socket unavailable." },
+        });
+      }
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/market/chart-tick" && (req.method === "GET" || req.method === "HEAD")) {
+      try {
+        const tick = await fetchHfmChartTick();
+        assertNoSecretsInMt5HfmPayload(tick);
+        sendJson(res, tick.available ? 200 : 503, { ok: tick.available, ...tick });
+      } catch {
+        sendJson(res, 503, {
+          ok: false,
+          error: { code: "AGENT_UNAVAILABLE", message: "MT5 agent socket unavailable." },
+        });
+      }
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/market/quote-watch" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      const symbols = Array.isArray(body.symbols) ? body.symbols.map(String) : [];
+      try {
+        const watch = await setHfmQuoteWatch(symbols);
+        const payload = {
+          ok: watch.requested,
+          provider: "HFM_MT5" as const,
+          environment: "demo" as const,
+          ...watch,
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        };
+        assertNoSecretsInMt5HfmPayload(payload);
+        sendJson(res, watch.requested ? 200 : 503, payload);
+      } catch {
+        sendJson(res, 503, {
+          ok: false,
+          error: { code: "AGENT_UNAVAILABLE", message: "MT5 agent socket unavailable." },
+        });
+      }
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/market/live-candle" && (req.method === "GET" || req.method === "HEAD")) {
+      const symbol = String(url.searchParams.get("symbol") || "").toUpperCase();
+      const timeframe = String(url.searchParams.get("timeframe") || "M1");
+      const forming = symbol ? getHfmLiveCandleEngine().getForming(symbol, timeframe) : null;
+      const payload = {
+        ok: Boolean(forming),
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        symbol,
+        timeframe,
+        available: Boolean(forming),
+        currentCandle: forming,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, forming ? 200 : 404, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/market/analysis-snapshot" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      try {
+        const hist = await fetchHfmHistoricalCandles({
+          symbol: String(body.symbol ?? ""),
+          timeframe: String(body.timeframe ?? ""),
+          limit: Number(body.limit ?? 100),
+        });
+        const forming = getHfmLiveCandleEngine().getForming(hist.symbol, hist.timeframe);
+        const quote = getHfmQuoteService().getQuote(hist.symbol);
+        const snap = buildHfmChartsAnalysisSnapshot({
+          symbol: hist.symbol,
+          timeframe: hist.timeframe,
+          historicalCandles: hist.bars,
+          currentCandle: forming
+            ? {
+                time: forming.time,
+                open: forming.open,
+                high: forming.high,
+                low: forming.low,
+                close: forming.close,
+                tickVolume: forming.tickVolume,
+                realVolume: null,
+                spread: null,
+                closed: false,
+                provenance: "live_aggregate",
+              }
+            : null,
+          bid: quote?.bid ?? null,
+          ask: quote?.ask ?? null,
+          latestTick: quote && quote.bid != null && quote.ask != null
+            ? {
+                bid: quote.bid,
+                ask: quote.ask,
+                last: null,
+                brokerTimestamp: quote.quoteTimestamp ?? null,
+                receiveTimestamp: quote.receivedAt ?? null,
+                acquisition: "SymbolInfoTick",
+              }
+            : null,
+          freshness: hist.available ? ((hist.freshness as "LIVE" | "STALE" | null) ?? "LIVE") : "NO_HISTORY",
+          validationStatus: hist.available ? "ok" : "unavailable",
+          sourceProvenance: hist.source ?? "HFM_MT5",
+        });
+        assertNoSecretsInMt5HfmPayload(snap);
+        sendJson(res, hist.available ? 200 : 503, { ok: hist.available, snapshot: snap });
       } catch {
         sendJson(res, 503, {
           ok: false,
