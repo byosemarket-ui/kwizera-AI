@@ -113,6 +113,27 @@ function applyQuote(q: Record<string, unknown>, freshness: HfmFreshness): void {
   const ask = Number(q.ask);
   const mid = (bid + ask) / 2;
   const prev = state.quotes[symbol];
+  const tickTime = typeof q.tickTime === "number" ? q.tickTime : null;
+  const sequence =
+    typeof q.sequence === "number" && Number.isFinite(q.sequence) ? q.sequence : null;
+  // Reject older ticks so replay / out-of-order SSE cannot overwrite newer prices.
+  if (prev) {
+    if (
+      sequence != null &&
+      prev.sequence != null &&
+      sequence < prev.sequence
+    ) {
+      return;
+    }
+    if (
+      tickTime != null &&
+      prev.tickTime != null &&
+      tickTime < prev.tickTime &&
+      (sequence == null || prev.sequence == null)
+    ) {
+      return;
+    }
+  }
   const next: HfmQuoteState = {
     symbol,
     bid,
@@ -121,8 +142,10 @@ function applyQuote(q: Record<string, unknown>, freshness: HfmFreshness): void {
     spread: typeof q.spread === "number" ? q.spread : ask - bid,
     digits: typeof q.digits === "number" ? q.digits : null,
     point: typeof q.point === "number" ? q.point : null,
-    tickTime: typeof q.tickTime === "number" ? q.tickTime : null,
+    tickTime,
     tickVolume: typeof q.tickVolume === "number" ? q.tickVolume : null,
+    sequence: sequence ?? prev?.sequence ?? null,
+    receivedAtMs: Date.now(),
     freshness: mapQuoteFreshness(q, freshness),
     status,
     prevMid: prev ? (prev.bid + prev.ask) / 2 : null,
@@ -132,7 +155,8 @@ function applyQuote(q: Record<string, unknown>, freshness: HfmFreshness): void {
     prev &&
     prev.bid === next.bid &&
     prev.ask === next.ask &&
-    prev.tickTime === next.tickTime
+    prev.tickTime === next.tickTime &&
+    prev.status === next.status
   ) {
     return;
   }

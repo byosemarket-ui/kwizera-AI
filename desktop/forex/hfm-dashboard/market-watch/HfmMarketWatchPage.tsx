@@ -89,7 +89,13 @@ export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints 
   const [busySymbol, setBusySymbol] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [overlayError, setOverlayError] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overlayAbortRef = useRef<AbortController | null>(null);
+  const overlayGenRef = useRef(0);
+  const overlayInFlightRef = useRef(false);
+  const selectedSymbolRef = useRef<string | null>(null);
+  selectedSymbolRef.current = selectedSymbol;
 
   const loadAll = useCallback(async (signal: AbortSignal) => {
     setLoad({ catalog: "loading", catalogError: null });
@@ -146,26 +152,51 @@ export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints 
     };
   }, [searchInput]);
 
-  const refreshOverlays = useCallback(async () => {
+  const refreshOverlays = useCallback(async (opts?: { force?: boolean }) => {
+    if (overlayInFlightRef.current && !opts?.force) return;
+    overlayAbortRef.current?.abort();
+    const ac = new AbortController();
+    overlayAbortRef.current = ac;
+    const gen = ++overlayGenRef.current;
+    overlayInFlightRef.current = true;
     try {
       const [quotes, subs] = await Promise.all([
-        fetchHfmQuotesSnapshot(),
-        fetchHfmSubscriptions(),
+        fetchHfmQuotesSnapshot(ac.signal),
+        fetchHfmSubscriptions(ac.signal),
       ]);
+      if (ac.signal.aborted || gen !== overlayGenRef.current) return;
       setQuotesBySymbol(quotes.quotesBySymbol);
       setSubsBySymbol(subs.bySymbol);
-    } catch {
-      // Keep last-known overlays; table status remains from prior snapshot.
+      setOverlayError(null);
+    } catch (err) {
+      if (ac.signal.aborted || gen !== overlayGenRef.current) return;
+      if (err instanceof HfmMwApiError && (err.code === "AUTH_REQUIRED" || err.code === "AUTH_REJECTED")) {
+        setOverlayError("Authentication expired — refresh Admin API access to continue quote overlays.");
+        setLoad((prev) =>
+          prev.catalog === "auth_required"
+            ? prev
+            : { catalog: "auth_required", catalogError: err.message },
+        );
+        return;
+      }
+      // Keep last-known overlays; SSE merge still advances when live ticks arrive.
+      setOverlayError(err instanceof Error ? err.message : "Quote overlay refresh failed");
+    } finally {
+      if (gen === overlayGenRef.current) overlayInFlightRef.current = false;
     }
   }, []);
 
   // Light REST overlay poll so Bid/Ask keep advancing even if SSE misses a tick.
   useEffect(() => {
     if (load.catalog !== "ready") return;
+    void refreshOverlays({ force: true });
     const id = setInterval(() => {
       void refreshOverlays();
     }, 5000);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      overlayAbortRef.current?.abort();
+    };
   }, [load.catalog, refreshOverlays]);
 
   const movement = useMemo(() => unavailableMovementSummary(), []);
@@ -215,14 +246,25 @@ export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints 
     if (page !== paged.page) setPage(paged.page);
   }, [page, paged.page]);
 
+  const selectInstrument = useCallback((symbol: string) => {
+    // Exact HFM symbol identity — clear previous selection immediately so delayed
+    // overlays cannot paint another instrument's prices into the side panel.
+    setSelectedSymbol(symbol);
+    setActionMessage(null);
+  }, []);
+
   const selectedInstrument = useMemo(
     () => (selectedSymbol ? instruments.find((i) => i.symbol === selectedSymbol) ?? null : null),
     [instruments, selectedSymbol],
   );
-  const selectedQuote = selectedSymbol
-    ? mergedQuotes[selectedSymbol] ?? mergedQuotes[selectedSymbol.toUpperCase()] ?? null
-    : null;
-  const selectedSub = selectedSymbol ? subsBySymbol[selectedSymbol] ?? null : null;
+  const selectedQuote = useMemo(() => {
+    if (!selectedSymbol) return null;
+    return mergedQuotes[selectedSymbol] ?? mergedQuotes[selectedSymbol.toUpperCase()] ?? null;
+  }, [mergedQuotes, selectedSymbol]);
+  const selectedSub = useMemo(() => {
+    if (!selectedSymbol) return null;
+    return subsBySymbol[selectedSymbol] ?? subsBySymbol[selectedSymbol.toUpperCase()] ?? null;
+  }, [subsBySymbol, selectedSymbol]);
   const selectedSessions = useMemo(
     () => sessionsFromInstrumentMetadata(selectedInstrument?.sessions ?? null, { symbol: selectedSymbol }),
     [selectedInstrument, selectedSymbol],
@@ -238,17 +280,25 @@ export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints 
     setActionMessage(null);
     try {
       const result = await op();
-      await refreshOverlays();
+      if (selectedSymbolRef.current !== symbol) {
+        // Selection changed while the request was in flight — still refresh overlays,
+        // but do not attach success copy to the newly selected instrument.
+        await refreshOverlays({ force: true });
+        return;
+      }
+      await refreshOverlays({ force: true });
+      if (selectedSymbolRef.current !== symbol) return;
       setActionMessage(result.ok ? `Updated subscription for ${symbol}` : result.reason ?? `Failed for ${symbol}`);
     } catch (err) {
+      if (selectedSymbolRef.current !== symbol) return;
       setActionMessage(err instanceof Error ? err.message : "Subscription operation failed");
     } finally {
-      setBusySymbol(null);
+      setBusySymbol((cur) => (cur === symbol ? null : cur));
     }
   }
 
   return (
-    <div className="hfm-mw-page" data-hfm-market-watch="true" data-hfm-step="3b">
+    <div className="hfm-mw-page" data-hfm-market-watch="true" data-hfm-step="3c">
       <HfmMarketWatchHeader
         realtime={realtime}
         refreshEnabled={refreshEnabled}
@@ -434,11 +484,16 @@ export function HfmMarketWatchPage({ realtime }: { realtime: HfmMwRealtimeHints 
               />
             ) : (
               <>
+                {overlayError ? (
+                  <p className="hfm-mw-overlay-error" role="status">
+                    Quote overlay: {overlayError}
+                  </p>
+                ) : null}
                 <HfmInstrumentsTable
                   rows={paged.slice}
                   selectedSymbol={selectedSymbol}
                   busySymbol={busySymbol}
-                  onSelect={setSelectedSymbol}
+                  onSelect={selectInstrument}
                   onToggleFavorite={(sym) => {
                     const r = toggleHfmFavorite(sym);
                     setFavoriteSymbols(r.symbols);

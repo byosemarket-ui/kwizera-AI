@@ -76,6 +76,10 @@ export interface HfmQuoteState {
   point: number | null;
   tickTime: number | null;
   tickVolume: number | null;
+  /** Broker/hub sequence when present — used to reject older ticks. */
+  sequence: number | null;
+  /** Client receive time (ms) for REST/SSE reconciliation. */
+  receivedAtMs: number | null;
   freshness: HfmFreshness;
   /** Canonical quote status from STEP 2A when present. */
   status: string | null;

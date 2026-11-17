@@ -16,7 +16,10 @@ export function HfmQuoteStatusStrip({
         Catalog <strong>{catalogTotal != null ? catalogTotal.toLocaleString("en-US") : "—"}</strong>
       </span>
       <span>
-        Subscribed <strong>{counts.activeSubscriptions}</strong>
+        Active subs <strong>{counts.activeSubscriptions}</strong>
+      </span>
+      <span>
+        Failed subs <strong>{counts.failedSubscriptions}</strong>
       </span>
       <span data-tone="live">
         LIVE <strong>{counts.live}</strong>

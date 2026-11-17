@@ -389,6 +389,7 @@ describe("STEP 3B source integrity and API wiring", () => {
     const page = read("desktop/forex/hfm-dashboard/market-watch/HfmMarketWatchPage.tsx");
     expect(page).toContain("unavailableMovementSummary()");
     expect(page).toContain("resolveTradingSessionOverview(null)");
-    expect(page).toContain('data-hfm-step="3b"');
+    // STEP 3C supersedes the step marker while preserving 3B behavior.
+    expect(page).toMatch(/data-hfm-step="3[bc]"/);
   });
 });

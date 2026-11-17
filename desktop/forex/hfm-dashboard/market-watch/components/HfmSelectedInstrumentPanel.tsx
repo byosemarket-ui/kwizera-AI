@@ -255,7 +255,7 @@ export function HfmSelectedInstrumentPanel({
         type="button"
         className="hfm-mw-cta"
         disabled
-        title="Chart handoff remains informational in STEP 3B"
+        title="Chart handoff remains informational — read-only Market Watch"
       >
         Open Chart
       </button>
