@@ -20,6 +20,10 @@ import { pathToFileURL } from "node:url";
 const root = process.env.KWIZERA_APP_ROOT || "/opt/kwizera-ai";
 const storageRoot = process.env.KWIZERA_STORAGE_ROOT || "/var/lib/kwizera-ai-studio";
 const runDir = process.env.KWIZERA_MT5_HFM_RUN_DIR || "/run/kwizera/mt5-hfm";
+// Write as the invoking user (kwizera) into a private staging dir; root helper moves into RUN_DIR.
+const stageDir =
+  process.env.KWIZERA_MT5_HFM_LOGIN_STAGE_DIR ||
+  join(process.env.HOME || "/tmp", ".kwizera-mt5-hfm-login-stage");
 const winePrefix = process.env.WINEPREFIX || "/home/mt5/.wine-hfm";
 const termRoot = join(winePrefix, "drive_c/Program Files/HFM Metatrader 5");
 const expertEx5 = join(termRoot, "MQL5/Experts/KwizeraReadonlySnapshot.ex5");
@@ -112,9 +116,10 @@ if (expertOk) {
     "Period=H1\n";
 }
 
-mkdirSync(runDir, { recursive: true, mode: 0o750 });
+mkdirSync(stageDir, { recursive: true, mode: 0o700 });
+chmodSync(stageDir, 0o700);
 const basename = `login-${process.pid}-${Math.floor(Date.now() / 1000)}.ini`;
-const iniPath = join(runDir, basename);
+const iniPath = join(stageDir, basename);
 const content =
   "[Common]\n" +
   `Login=${login}\n` +
@@ -133,23 +138,25 @@ try {
 }
 chmodSync(iniPath, 0o600);
 
-const envPath = join(runDir, "startup.env");
+const metaPath = join(stageDir, "startup.env");
 writeFileSync(
-  envPath,
-  `INI_BASENAME=${basename}\nLOGIN_HINT=${maskLogin(login)}\nSERVER=${server}\nEXPERT=${expertOk ? "1" : "0"}\n`,
-  { encoding: "utf8", mode: 0o640 },
+  metaPath,
+  `INI_BASENAME=${basename}\nLOGIN_HINT=${maskLogin(login)}\nSERVER=${server}\nEXPERT=${expertOk ? "1" : "0"}\nSTAGE_DIR=${stageDir}\n`,
+  { encoding: "utf8", mode: 0o600 },
 );
-chmodSync(envPath, 0o640);
+chmodSync(metaPath, 0o600);
 
 console.log(`INI_BASENAME=${basename}`);
 console.log(`LOGIN_HINT=${maskLogin(login)}`);
 console.log(`SERVER=${server}`);
 console.log(`EXPERT=${expertOk ? "1" : "0"}`);
+console.log(`STAGE_DIR=${stageDir}`);
 console.log(`VALIDATE=${validateOnly ? "1" : "0"}`);
+// Hint for the root helper (never a secret).
+console.log(`RUN_DIR=${runDir}`);
 
 if (validateOnly) {
   shred(iniPath);
-  // Keep startup.env metadata for evidence (no password).
   console.log("validate_ok ini_shredded=1");
   process.exit(0);
 }
