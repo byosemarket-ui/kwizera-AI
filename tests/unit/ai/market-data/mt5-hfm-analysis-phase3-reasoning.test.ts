@@ -196,7 +196,7 @@ describe("HFM Analysis Phase 3 — response validation", () => {
     expect(v.ok).toBe(false);
   });
 
-  it("rejects NO_TRADE with direction BUY", () => {
+  it("coerces NO_TRADE tradePlan direction BUY to NONE", () => {
     const expected = {
       symbol: "XAUUSD",
       contextId: "ctx",
@@ -207,7 +207,40 @@ describe("HFM Analysis Phase 3 — response validation", () => {
     const raw = buildMockValidReasoningPayload({ ...expected, action: "NO_TRADE" });
     (raw.tradePlan as { direction: string }).direction = "BUY";
     const v = validateHfmReasoningModelResponse({ raw, expected });
-    expect(v.ok).toBe(false);
+    expect(v.ok).toBe(true);
+    if (v.ok) expect(v.result.tradePlan.direction).toBe("NONE");
+  });
+
+  it("coerces lowercase gpt-6-luna enum fields into schema", () => {
+    const expected = {
+      symbol: "XAUUSD",
+      contextId: "ctx",
+      snapshotId: "ctx",
+      snapshotHash: "hash",
+      model: "gpt-6-luna",
+    };
+    const raw = buildMockValidReasoningPayload({ ...expected, action: "WAITING_FOR_CONFIRMATION" });
+    (raw.decision as { action: string; confidenceLabel: string; confidence: unknown }).action = "waiting_for_confirmation";
+    (raw.decision as { confidenceLabel: string }).confidenceLabel = "moderate";
+    (raw.decision as { confidence: unknown }).confidence = "55";
+    (raw.marketOverview as Record<string, string>).marketCondition = "ranging";
+    (raw.marketOverview as Record<string, string>).overallBias = "mixed";
+    (raw.marketOverview as Record<string, string>).timeframeAlignment = "partially aligned";
+    (raw.riskAssessment as { riskLevel: string }).riskLevel = "high";
+    (raw.scenarios as { bullish: { status: string } }).bullish.status = "possible";
+    const v = validateHfmReasoningModelResponse({ raw, expected });
+    expect(v.ok).toBe(true);
+    if (v.ok) {
+      expect(v.result.decision.action).toBe("WAITING_FOR_CONFIRMATION");
+      expect(v.result.decision.confidence).toBe(55);
+      expect(v.result.decision.confidenceLabel).toBe("MODERATE");
+      expect(v.result.marketOverview.marketCondition).toBe("RANGING");
+      expect(v.result.marketOverview.overallBias).toBe("MIXED");
+      expect(v.result.marketOverview.timeframeAlignment).toBe("PARTIALLY_ALIGNED");
+      expect(v.result.riskAssessment.riskLevel).toBe("HIGH");
+      expect(v.result.scenarios.bullish.status).toBe("POSSIBLE");
+      expect(v.result.tradePlan.direction).toBe("NONE");
+    }
   });
 });
 

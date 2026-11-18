@@ -294,19 +294,35 @@ export async function runHfmAiReasoning(input: {
         });
       }
       if (!validated.ok) {
-        const decisionDiag = (() => {
+        const fieldDiag = (() => {
           const src = repair.ok && repair.data ? repair.data : chat.data;
-          if (!src || typeof src !== "object") return "decision=missing";
-          const dec = (src as Record<string, unknown>).decision;
-          if (!dec || typeof dec !== "object") return `decisionType=${typeof dec}`;
-          const o = dec as Record<string, unknown>;
-          return `decisionKeys=${Object.keys(o).join(",")} action=${String(o.action)} confidenceType=${typeof o.confidence} label=${String(o.confidenceLabel)}`;
+          if (!src || typeof src !== "object") return "payload=missing";
+          const root = src as Record<string, unknown>;
+          const dec = root.decision;
+          const mo = root.marketOverview;
+          const tp = root.tradePlan;
+          const parts: string[] = [];
+          if (!dec || typeof dec !== "object") parts.push(`decisionType=${typeof dec}`);
+          else {
+            const o = dec as Record<string, unknown>;
+            parts.push(`decisionKeys=${Object.keys(o).join(",")} action=${String(o.action)} confidenceType=${typeof o.confidence} label=${String(o.confidenceLabel)}`);
+          }
+          if (!mo || typeof mo !== "object") parts.push(`marketOverviewType=${typeof mo}`);
+          else {
+            const o = mo as Record<string, unknown>;
+            parts.push(`mo=${String(o.marketCondition)}/${String(o.overallBias)}/${String(o.timeframeAlignment)}`);
+          }
+          if (tp && typeof tp === "object") {
+            const o = tp as Record<string, unknown>;
+            parts.push(`tpDir=${String(o.direction)} setup=${String(o.setupStatus)}`);
+          }
+          return parts.join("; ");
         })();
         record = {
           ...record,
           status: "FAILED",
           errorCode: validated.code as HfmReasoningErrorCode,
-          errorMessage: `${validated.error} (topKeys=${keys}; ${decisionDiag})`.slice(0, 500),
+          errorMessage: `${validated.error} (topKeys=${keys}; ${fieldDiag})`.slice(0, 500),
           usage: {
             promptTokens: numOrNull(usageObj?.prompt_tokens),
             completionTokens: numOrNull(usageObj?.completion_tokens),

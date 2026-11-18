@@ -33,7 +33,41 @@ function asStringArray(v: unknown): string[] | null {
 function asNullableNumber(v: unknown): number | null | undefined {
   if (v === null) return null;
   if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim() !== "") {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
   return undefined;
+}
+
+/** Normalize model enum strings: trim, upper-case, spaces → underscores; MEDIUM → MODERATE. */
+function enumToken(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim().toUpperCase().replace(/[\s-]+/g, "_");
+  if (!t) return null;
+  if (t === "MEDIUM") return "MODERATE";
+  if (t === "PARTIAL" || t === "PARTIALLY" || t === "PARTIAL_ALIGNMENT") return "PARTIALLY_ALIGNED";
+  if (t === "WAIT" || t === "WAITING") return "WAITING_FOR_CONFIRMATION";
+  if (t === "NO" || t === "NONE_TRADE" || t === "NOTRADE") return "NO_TRADE";
+  return t;
+}
+
+function coerceStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) {
+    return v.map((x) => (x == null ? "" : String(x))).filter((s) => s.length > 0);
+  }
+  if (typeof v === "string" && v.trim()) return [v.trim()];
+  return [];
+}
+
+function coerceNullableNumberField(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim() !== "") {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
 }
 
 const ACTIONS = new Set(["BUY", "SELL", "NO_TRADE", "WAITING_FOR_CONFIRMATION"]);
@@ -129,7 +163,8 @@ export function normalizeHfmReasoningRawPayload(
   }
   if (isObj(cur.decision)) {
     const d = { ...cur.decision };
-    if (typeof d.action === "string") d.action = d.action.trim().toUpperCase().replace(/\s+/g, "_");
+    const act = enumToken(d.action);
+    if (act) d.action = act;
     if (typeof d.confidence === "string" && d.confidence.trim() !== "") {
       const n = Number(d.confidence);
       if (Number.isFinite(n)) d.confidence = n;
@@ -137,15 +172,155 @@ export function normalizeHfmReasoningRawPayload(
     if (typeof d.confidence === "number" && Number.isFinite(d.confidence)) {
       d.confidence = Math.max(0, Math.min(100, d.confidence));
     }
-    if (typeof d.confidenceLabel === "string") {
-      const lab = d.confidenceLabel.trim().toUpperCase();
-      d.confidenceLabel = lab === "MEDIUM" ? "MODERATE" : lab;
+    const lab = enumToken(d.confidenceLabel);
+    if (lab && CONF_LABELS.has(lab)) {
+      d.confidenceLabel = lab;
     } else if (typeof d.confidence === "number") {
       d.confidenceLabel = d.confidence >= 70 ? "HIGH" : d.confidence >= 40 ? "MODERATE" : "LOW";
     }
     if (d.summary != null && typeof d.summary !== "string") d.summary = String(d.summary);
     if (!d.summary) d.summary = "No summary provided.";
     cur = { ...cur, decision: d };
+  }
+
+  if (isObj(cur.marketOverview)) {
+    const m = { ...cur.marketOverview };
+    const mc = enumToken(m.marketCondition);
+    const ob = enumToken(m.overallBias);
+    const ta = enumToken(m.timeframeAlignment);
+    if (mc) m.marketCondition = mc;
+    if (ob) m.overallBias = ob;
+    if (ta) m.timeframeAlignment = ta;
+    if (m.higherTimeframeBias != null && typeof m.higherTimeframeBias !== "string") {
+      m.higherTimeframeBias = String(m.higherTimeframeBias);
+    }
+    if (!m.higherTimeframeBias) m.higherTimeframeBias = String(m.overallBias ?? "NEUTRAL");
+    if (!m.marketCondition) m.marketCondition = "UNCLEAR";
+    if (!m.overallBias) m.overallBias = "NEUTRAL";
+    if (!m.timeframeAlignment) m.timeframeAlignment = "UNCLEAR";
+    cur = { ...cur, marketOverview: m };
+  }
+
+  if (isObj(cur.timeframeAnalysis)) {
+    const tfa: Record<string, unknown> = { ...cur.timeframeAnalysis };
+    for (const tf of HFM_REASONING_REQUIRED_TFS) {
+      const block = tfa[tf];
+      if (!isObj(block)) {
+        tfa[tf] = {
+          bias: "NEUTRAL",
+          structure: "unavailable",
+          observations: [],
+          supportingEvidence: [],
+          risks: ["Timeframe block missing from model response."],
+        };
+        continue;
+      }
+      const b = { ...block };
+      const bias = enumToken(b.bias);
+      if (bias) b.bias = bias;
+      else if (!b.bias) b.bias = "NEUTRAL";
+      if (b.structure != null && typeof b.structure !== "string") b.structure = String(b.structure);
+      if (!b.structure) b.structure = "unspecified";
+      b.observations = coerceStringArray(b.observations);
+      b.supportingEvidence = coerceStringArray(b.supportingEvidence);
+      b.risks = coerceStringArray(b.risks);
+      tfa[tf] = b;
+    }
+    cur = { ...cur, timeframeAnalysis: tfa };
+  }
+
+  if (isObj(cur.scenarios)) {
+    const sc: Record<string, unknown> = { ...cur.scenarios };
+    for (const name of ["bullish", "bearish"] as const) {
+      const block = sc[name];
+      if (!isObj(block)) {
+        sc[name] = {
+          status: "NOT_SUPPORTED",
+          conditions: [],
+          confirmation: [],
+          invalidation: [],
+        };
+        continue;
+      }
+      const b = { ...block };
+      const st = enumToken(b.status);
+      if (st && SCENARIO.has(st)) b.status = st;
+      else if (!st || !SCENARIO.has(String(b.status))) b.status = "NOT_SUPPORTED";
+      b.conditions = coerceStringArray(b.conditions);
+      b.confirmation = coerceStringArray(b.confirmation);
+      b.invalidation = coerceStringArray(b.invalidation);
+      sc[name] = b;
+    }
+    cur = { ...cur, scenarios: sc };
+  }
+
+  if (isObj(cur.tradePlan)) {
+    const tp = { ...cur.tradePlan };
+    const dir = enumToken(tp.direction);
+    if (dir === "BUY" || dir === "SELL" || dir === "NONE") tp.direction = dir;
+    else if (!tp.direction) tp.direction = "NONE";
+    let setup = enumToken(tp.setupStatus);
+    if (setup === "WAITING_FOR_CONFIRMATION") setup = "WAITING";
+    if (setup && SETUP.has(setup)) tp.setupStatus = setup;
+    else if (!tp.setupStatus) tp.setupStatus = "NOT_APPLICABLE";
+    if (!isObj(tp.entryZone)) tp.entryZone = { low: null, high: null };
+    else {
+      tp.entryZone = {
+        low: coerceNullableNumberField((tp.entryZone as Record<string, unknown>).low),
+        high: coerceNullableNumberField((tp.entryZone as Record<string, unknown>).high),
+      };
+    }
+    tp.stopLoss = coerceNullableNumberField(tp.stopLoss);
+    tp.invalidationPrice = coerceNullableNumberField(tp.invalidationPrice);
+    tp.riskRewardEstimate = coerceNullableNumberField(tp.riskRewardEstimate);
+    if (Array.isArray(tp.takeProfitTargets)) {
+      tp.takeProfitTargets = tp.takeProfitTargets
+        .map((x) => coerceNullableNumberField(x))
+        .filter((x): x is number => x != null);
+    } else {
+      tp.takeProfitTargets = [];
+    }
+    if (tp.explanation != null && typeof tp.explanation !== "string") tp.explanation = String(tp.explanation);
+    if (!tp.explanation) tp.explanation = "No trade-plan explanation provided.";
+    // Align direction with non-trade decisions when model left BUY/SELL by mistake.
+    if (isObj(cur.decision)) {
+      const act = String((cur.decision as Record<string, unknown>).action ?? "");
+      if (act === "NO_TRADE" || act === "WAITING_FOR_CONFIRMATION") {
+        tp.direction = "NONE";
+        if (!SETUP.has(String(tp.setupStatus))) tp.setupStatus = act === "WAITING_FOR_CONFIRMATION" ? "WAITING" : "NOT_APPLICABLE";
+      }
+    }
+    cur = { ...cur, tradePlan: tp };
+  }
+
+  if (isObj(cur.evidence)) {
+    const ev = { ...cur.evidence };
+    ev.observedFacts = coerceStringArray(ev.observedFacts);
+    ev.interpretations = coerceStringArray(ev.interpretations);
+    ev.uncertainties = coerceStringArray(ev.uncertainties);
+    ev.missingData = coerceStringArray(ev.missingData);
+    ev.dataQualityWarnings = coerceStringArray(ev.dataQualityWarnings);
+    cur = { ...cur, evidence: ev };
+  }
+
+  if (isObj(cur.riskAssessment)) {
+    const ra = { ...cur.riskAssessment };
+    const rl = enumToken(ra.riskLevel);
+    if (rl && RISK.has(rl)) ra.riskLevel = rl;
+    else if (!ra.riskLevel) ra.riskLevel = "MODERATE";
+    ra.reasons = coerceStringArray(ra.reasons);
+    ra.reasonsToAvoidTrade = coerceStringArray(ra.reasonsToAvoidTrade);
+    cur = { ...cur, riskAssessment: ra };
+  }
+
+  if (isObj(cur.nextConfirmation)) {
+    const nc = { ...cur.nextConfirmation };
+    if (typeof nc.required !== "boolean") {
+      nc.required = Boolean(nc.required) || String(nc.required).toLowerCase() === "true";
+    }
+    nc.conditions = coerceStringArray(nc.conditions);
+    nc.timeframesToWatch = coerceStringArray(nc.timeframesToWatch);
+    cur = { ...cur, nextConfirmation: nc };
   }
 
   if (expected) {
