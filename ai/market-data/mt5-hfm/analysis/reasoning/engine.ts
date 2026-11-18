@@ -4,7 +4,10 @@
 import { randomUUID } from "node:crypto";
 import { getOpenAiInferenceGate } from "../../../../forex-ai/snapshot-openai/concurrency.js";
 import { getForexOpenAiConfigStore } from "../../../../forex-ai/snapshot-openai/config-store.js";
-import { openAiChatMultimodalJson } from "../../../../forex-ai/snapshot-openai/openai-client.js";
+import {
+  openAiChatJson,
+  openAiChatMultimodalJson,
+} from "../../../../forex-ai/snapshot-openai/openai-client.js";
 import { isOpenAiVisionEligibleModel } from "../../../../forex-ai/multi-image-openai/vision-policy.js";
 import {
   HFM_REASONING_OPENAI_TIMEOUT_MS,
@@ -240,71 +243,74 @@ export async function runHfmAiReasoning(input: {
     setActiveReasoningRecord(record);
 
     const usageObj = (chat.data.usage as Record<string, unknown> | undefined) ?? undefined;
-    const validated = validateHfmReasoningModelResponse({
+    const expectedIds = {
+      symbol: evidence.symbol,
+      contextId: evidence.contextId,
+      snapshotId: evidence.snapshotId,
+      snapshotHash: evidence.snapshotHash,
+      model,
+    };
+    let validated = validateHfmReasoningModelResponse({
       raw: chat.data,
-      expected: {
-        symbol: evidence.symbol,
-        contextId: evidence.contextId,
-        snapshotId: evidence.snapshotId,
-        snapshotHash: evidence.snapshotHash,
-        model,
-      },
+      expected: expectedIds,
     });
-
-    // parseChatCompletionPayload returns parsed JSON in data — but openAiChatMultimodalJson
-    // may nest content. Prefer chat.data if it already looks like our schema; else rawText.
-    let payload: unknown = chat.data;
+    if (!validated.ok && typeof chat.rawText === "string") {
+      validated = validateHfmReasoningModelResponse({
+        raw: chat.rawText,
+        expected: expectedIds,
+      });
+    }
     if (!validated.ok) {
-      // Some clients put the analysis object at top-level after parse; if schemaVersion missing,
-      // try nested parsed content patterns.
-      const alt = typeof chat.rawText === "string" ? safeJson(chat.rawText) : null;
-      if (alt) {
-        const retry = validateHfmReasoningModelResponse({
-          raw: alt,
-          expected: {
-            symbol: evidence.symbol,
-            contextId: evidence.contextId,
-            snapshotId: evidence.snapshotId,
-            snapshotHash: evidence.snapshotHash,
-            model,
-          },
+      const keys = chat.data && typeof chat.data === "object"
+        ? Object.keys(chat.data as object).slice(0, 20).join(",")
+        : "none";
+      // One bounded text-only repair attempt (no images) to reformat into schema.
+      const repair = await gateExclusive.runExclusive(`${evidence.snapshotId}:repair`, async () =>
+        openAiChatJson({
+          apiKey,
+          model,
+          system: buildHfmReasoningSystemPrompt(),
+          user: [
+            "Your previous JSON did not match the required schema.",
+            `Validation error: ${validated.error}`,
+            `Observed top-level keys: ${keys}`,
+            "Return ONLY a corrected JSON object with the required top-level keys, including decision{action,confidence,confidenceLabel,summary}.",
+            "Reuse the same market conclusions; do not invent new OHLC.",
+            `contextId=${evidence.contextId}`,
+            `snapshotId=${evidence.snapshotId}`,
+            `snapshotHash=${evidence.snapshotHash}`,
+            `symbol=${evidence.symbol}`,
+            `provider=HFM_MT5`,
+            "Previous JSON (truncated):",
+            JSON.stringify(chat.data).slice(0, 6000),
+          ].join("\n"),
+          timeoutMs: HFM_REASONING_OPENAI_TIMEOUT_MS,
+        }),
+      );
+      if (repair.ok && repair.data) {
+        validated = validateHfmReasoningModelResponse({
+          raw: repair.data,
+          expected: expectedIds,
         });
-        if (retry.ok) {
-          record = {
-            ...record,
-            status: "COMPLETED",
-            result: retry.result,
-            errorCode: null,
-            errorMessage: null,
-            usage: {
-              promptTokens: numOrNull(usageObj?.prompt_tokens),
-              completionTokens: numOrNull(usageObj?.completion_tokens),
-              totalTokens: numOrNull(usageObj?.total_tokens),
-              latencyMs: chat.latencyMs,
-            },
-            completedAt: new Date().toISOString(),
-          };
-          setActiveReasoningRecord(record);
-          await storage.save(record);
-          return record;
-        }
       }
-      record = {
-        ...record,
-        status: "FAILED",
-        errorCode: validated.code as HfmReasoningErrorCode,
-        errorMessage: validated.error,
-        usage: {
-          promptTokens: numOrNull(usageObj?.prompt_tokens),
-          completionTokens: numOrNull(usageObj?.completion_tokens),
-          totalTokens: numOrNull(usageObj?.total_tokens),
-          latencyMs: chat.latencyMs,
-        },
-        completedAt: new Date().toISOString(),
-      };
-      setActiveReasoningRecord(record);
-      await storage.save(record);
-      return record;
+      if (!validated.ok) {
+        record = {
+          ...record,
+          status: "FAILED",
+          errorCode: validated.code as HfmReasoningErrorCode,
+          errorMessage: `${validated.error} (topKeys=${keys})`,
+          usage: {
+            promptTokens: numOrNull(usageObj?.prompt_tokens),
+            completionTokens: numOrNull(usageObj?.completion_tokens),
+            totalTokens: numOrNull(usageObj?.total_tokens),
+            latencyMs: (chat.latencyMs ?? 0) + (repair.latencyMs ?? 0),
+          },
+          completedAt: new Date().toISOString(),
+        };
+        setActiveReasoningRecord(record);
+        await storage.save(record);
+        return record;
+      }
     }
 
     // Force trusted identity fields (never trust model alone).

@@ -82,6 +82,73 @@ function parseScenario(raw: unknown, name: string): { ok: true; value: HfmReason
   };
 }
 
+/** Unwrap common model wrappers / markdown fences before schema validation. */
+export function normalizeHfmReasoningRawPayload(
+  raw: unknown,
+  expected?: {
+    symbol: string;
+    contextId: string;
+    snapshotId: string;
+    snapshotHash: string;
+    model: string;
+  },
+): unknown {
+  let cur: unknown = raw;
+  if (typeof cur === "string") {
+    let text = cur.trim();
+    if (text.startsWith("```")) {
+      text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    }
+    try {
+      cur = JSON.parse(text) as unknown;
+    } catch {
+      return raw;
+    }
+  }
+  if (!isObj(cur)) return cur;
+  for (const key of ["result", "analysis", "data", "output", "payload"]) {
+    const nested = cur[key];
+    if (isObj(nested) && (isObj(nested.decision) || typeof nested.schemaVersion === "string")) {
+      cur = nested;
+      break;
+    }
+  }
+  if (!isObj(cur)) return cur;
+
+  // Coerce flattened decision fields into decision object.
+  if (!isObj(cur.decision) && typeof cur.action === "string") {
+    cur = {
+      ...cur,
+      decision: {
+        action: cur.action,
+        confidence: cur.confidence ?? cur.confidenceScore ?? 0,
+        confidenceLabel: cur.confidenceLabel ?? "LOW",
+        summary: cur.summary ?? cur.explanation ?? "",
+      },
+    };
+  }
+
+  if (expected) {
+    cur = {
+      ...cur,
+      schemaVersion: cur.schemaVersion ?? HFM_REASONING_SCHEMA_VERSION,
+      analysisStatus: "COMPLETED",
+      provider: "HFM_MT5",
+      symbol: expected.symbol,
+      contextId: expected.contextId,
+      snapshotId: expected.snapshotId,
+      snapshotHash: expected.snapshotHash,
+      promptVersion: HFM_REASONING_PROMPT_VERSION,
+      model: typeof cur.model === "string" ? cur.model : expected.model,
+      disclaimer: HFM_REASONING_DISCLAIMER,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+  }
+  return cur;
+}
+
 export function validateHfmReasoningModelResponse(input: {
   raw: unknown;
   expected: {
@@ -92,7 +159,7 @@ export function validateHfmReasoningModelResponse(input: {
     model: string;
   };
 }): { ok: true; result: HfmReasoningValidatedResult } | { ok: false; code: string; error: string } {
-  const raw = input.raw;
+  const raw = normalizeHfmReasoningRawPayload(input.raw, input.expected);
   if (!isObj(raw)) {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "Response is not an object" };
   }

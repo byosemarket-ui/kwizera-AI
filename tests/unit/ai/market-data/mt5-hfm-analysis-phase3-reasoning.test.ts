@@ -167,7 +167,7 @@ describe("HFM Analysis Phase 3 — response validation", () => {
     expect(v.ok).toBe(true);
   });
 
-  it("rejects symbol mismatch", () => {
+  it("forces trusted symbol identity over model-supplied symbol", () => {
     const expected = {
       symbol: "XAUUSD",
       contextId: "ctx",
@@ -178,7 +178,8 @@ describe("HFM Analysis Phase 3 — response validation", () => {
     const raw = buildMockValidReasoningPayload(expected);
     raw.symbol = "EURUSD";
     const v = validateHfmReasoningModelResponse({ raw, expected });
-    expect(v.ok).toBe(false);
+    expect(v.ok).toBe(true);
+    if (v.ok) expect(v.result.symbol).toBe("XAUUSD");
   });
 
   it("rejects BUY with stop above entry", () => {
