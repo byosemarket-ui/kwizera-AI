@@ -49,7 +49,8 @@ describe("STEP 3 HFM Charts workspace", () => {
     const ws = read("desktop/forex/hfm-dashboard/charts/HfmChartsWorkspace.tsx");
     expect(ws).toContain('data-provider="HFM_MT5"');
     expect(ws).toContain('data-hfm-analysis-boundary="true"');
-    expect(ws).toContain("not implemented in STEP 3");
+    expect(ws).toContain('data-analysis-implemented="false"');
+    expect(ws).toContain('data-phase2-context="true"');
     expect(ws).toMatch(/No BUY\/SELL signals/i);
     expect(ws).not.toMatch(/take.?profit|stop.?loss|OrderSend/i);
   });

@@ -19,6 +19,7 @@ import {
   saveHfmChartPreferences,
   saveHfmChartTemplate,
   setDefaultHfmChartTemplate,
+  prepareHfmAnalysisContextRequest,
 } from "./api";
 import {
   HFM_CHART_TIMEFRAMES,
@@ -78,6 +79,9 @@ export function HfmChartsWorkspace() {
   const [addKind, setAddKind] = useState<HfmIndicatorKind>("sma");
   const [showGrid, setShowGrid] = useState(true);
   const [crosshair, setCrosshair] = useState<HfmCrosshairInfo | null>(null);
+  const [phase2Busy, setPhase2Busy] = useState(false);
+  const [phase2Status, setPhase2Status] = useState<string>("Idle — Phase 2 context prep available");
+  const [phase2Detail, setPhase2Detail] = useState<string>("");
   const [templates, setTemplates] = useState<HfmChartTemplate[]>([]);
   const [defaultTemplateId, setDefaultTemplateId] = useState<string | null>(null);
   const [persistNote, setPersistNote] = useState<string | null>(null);
@@ -762,17 +766,54 @@ export function HfmChartsWorkspace() {
         className="hfm-charts-analysis-boundary"
         data-hfm-analysis-boundary="true"
         data-analysis-implemented="false"
+        data-phase2-context="true"
         aria-label="AI Analysis reserved section"
       >
         <header>
           <h2>AI Analysis</h2>
-          <span className="hfm-charts-pill" data-tone="muted">Reserved — not implemented in STEP 3</span>
+          <span className="hfm-charts-pill" data-tone="muted">Phase 2 context — no OpenAI reasoning yet</span>
         </header>
         <p>
-          Charts expose a structured HFM market context for a future Analysis module
-          ({analysisBoundary.historicalCandles.length} candles · {analysisBoundary.timeframe} · provider {analysisBoundary.provider}).
-          No BUY/SELL signals, confidence scores, entries, or broker mutations are generated here.
+          Charts remain the source of selected symbol/timeframe. Phase 2 prepares HFM multi-TF
+          (H1/M30/M15/M5) validated context and backend chart images for {symbol}.
+          No BUY/SELL signals or broker mutations.
         </p>
+        <div className="hfm-charts-phase2-row" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            disabled={phase2Busy}
+            data-phase2-prepare="true"
+            onClick={async () => {
+              setPhase2Busy(true);
+              setPhase2Status("Preparing HFM multi-TF context…");
+              setPhase2Detail("");
+              try {
+                const body = await prepareHfmAnalysisContextRequest({
+                  symbol,
+                  chartTimeframe: timeframe,
+                });
+                const state = String(body.state ?? "");
+                const quality = (body.snapshot as { dataQuality?: { status?: string } } | null)?.dataQuality?.status;
+                const images = body.chartImages && typeof body.chartImages === "object"
+                  ? Object.keys(body.chartImages as object).join(",")
+                  : "";
+                setPhase2Status(`${state}${quality ? ` · quality ${quality}` : ""}`);
+                setPhase2Detail(
+                  `snapshot=${String((body.snapshot as { snapshotId?: string } | null)?.snapshotId ?? "—")} · images=${images || "none"} · placesOrders=false`,
+                );
+              } catch (err) {
+                setPhase2Status("FAILED");
+                setPhase2Detail(err instanceof Error ? err.message : String(err));
+              } finally {
+                setPhase2Busy(false);
+              }
+            }}
+          >
+            {phase2Busy ? "Preparing…" : "Prepare HFM Analysis Context"}
+          </button>
+          <span className="hfm-charts-muted" data-phase2-status="true">{phase2Status}</span>
+        </div>
+        {phase2Detail ? <p className="hfm-charts-muted" data-phase2-detail="true">{phase2Detail}</p> : null}
         <pre className="hfm-charts-contract-preview" hidden>
           {JSON.stringify({
             provider: analysisBoundary.provider,
