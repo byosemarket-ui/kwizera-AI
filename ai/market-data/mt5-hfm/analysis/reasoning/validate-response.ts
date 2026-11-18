@@ -185,11 +185,13 @@ export function normalizeHfmReasoningRawPayload(
     const act = enumToken(d.action);
     if (act) d.action = act;
     if (typeof d.confidence === "string" && d.confidence.trim() !== "") {
-      const n = Number(d.confidence);
+      const n = Number(d.confidence.replace(/%/g, "").trim());
       if (Number.isFinite(n)) d.confidence = n;
     }
     if (typeof d.confidence === "number" && Number.isFinite(d.confidence)) {
-      d.confidence = Math.max(0, Math.min(100, d.confidence));
+      // gpt-6-luna sometimes returns 0–1 fractions; schema expects 0–100.
+      if (d.confidence > 0 && d.confidence <= 1) d.confidence = d.confidence * 100;
+      d.confidence = Math.round(Math.max(0, Math.min(100, d.confidence)));
     }
     const lab = enumToken(d.confidenceLabel);
     if (lab && CONF_LABELS.has(lab)) {

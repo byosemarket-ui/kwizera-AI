@@ -255,7 +255,7 @@ describe("HFM Analysis Phase 3 — response validation", () => {
     const raw = buildMockValidReasoningPayload({ ...expected, action: "WAITING_FOR_CONFIRMATION" });
     (raw.decision as { action: string; confidenceLabel: string; confidence: unknown }).action = "waiting_for_confirmation";
     (raw.decision as { confidenceLabel: string }).confidenceLabel = "moderate";
-    (raw.decision as { confidence: unknown }).confidence = "55";
+    (raw.decision as { confidence: unknown }).confidence = "0.55";
     (raw.marketOverview as Record<string, string>).marketCondition = "ranging";
     (raw.marketOverview as Record<string, string>).overallBias = "mixed";
     (raw.marketOverview as Record<string, string>).timeframeAlignment = "partially aligned";
@@ -265,7 +265,7 @@ describe("HFM Analysis Phase 3 — response validation", () => {
     expect(v.ok).toBe(true);
     if (v.ok) {
       expect(v.result.decision.action).toBe("WAITING_FOR_CONFIRMATION");
-      expect(v.result.decision.confidence).toBe(55);
+      expect(v.result.decision.confidence).toBe(55); // 0.55 fraction → 55
       expect(v.result.decision.confidenceLabel).toBe("MODERATE");
       expect(v.result.marketOverview.marketCondition).toBe("RANGING");
       expect(v.result.marketOverview.overallBias).toBe("MIXED");
