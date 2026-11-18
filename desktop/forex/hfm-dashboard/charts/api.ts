@@ -377,6 +377,7 @@ export async function setDefaultHfmChartTemplate(
 
 const ANALYSIS_CONTEXT = "/api/forex/providers/mt5-hfm/analysis/context";
 const ANALYSIS_STATUS = "/api/forex/providers/mt5-hfm/analysis/status";
+const ANALYSIS_REASON = "/api/forex/providers/mt5-hfm/analysis/reason";
 
 /** Phase 2 — prepare multi-TF context + backend chart images (no OpenAI reasoning). */
 export async function prepareHfmAnalysisContextRequest(input: {
@@ -401,6 +402,22 @@ export async function fetchHfmAnalysisPrepStatus(
 ): Promise<Record<string, unknown>> {
   const { body } = await requestJson<Record<string, unknown>>(ANALYSIS_STATUS, { signal });
   return body;
+}
+
+/** Phase 3 — manual AI reasoning against an immutable Phase 2 context. */
+export async function runHfmAiReasoningRequest(input: {
+  contextId: string;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(ANALYSIS_REASON, {
+    method: "POST",
+    signal: input.signal,
+    body: {
+      contextId: input.contextId,
+      provider: "HFM_MT5",
+    },
+  });
+  return { httpStatus: status, ...body };
 }
 
 export { TICKS };

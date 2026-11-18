@@ -15,3 +15,4 @@ export * from "./image-identity.js";
 export * from "./storage.js";
 export * from "./retention.js";
 export * from "./orchestrator.js";
+export * as hfmReasoning from "./reasoning/index.js";

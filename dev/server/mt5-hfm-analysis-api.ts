@@ -21,6 +21,12 @@ import {
   HFM_ANALYSIS_PROVIDER,
 } from "../../ai/market-data/mt5-hfm/analysis/index.js";
 import {
+  getHfmReasoningStatus,
+  getHfmReasoningStorage,
+  runHfmAiReasoning,
+} from "../../ai/market-data/mt5-hfm/analysis/reasoning/index.js";
+import { isOpenAiVisionEligibleModel } from "../../ai/forex-ai/multi-image-openai/vision-policy.js";
+import {
   getForexOpenAiConfigStore,
   isOpenAiChatEligibleModel,
 } from "../../ai/forex-ai/snapshot-openai/index.js";
@@ -216,6 +222,27 @@ export async function handleMt5HfmAnalysisApi(
     return true;
   }
 
+  const contextReasoningMatch = url.pathname.match(
+    /^\/api\/forex\/providers\/mt5-hfm\/analysis\/context\/([^/]+)\/reasoning$/,
+  );
+  if (contextReasoningMatch && req.method === "GET") {
+    const contextId = decodeURIComponent(contextReasoningMatch[1] ?? "");
+    const list = await getHfmReasoningStorage().list({ contextId, limit: 1 });
+    const latest = list[0] ?? null;
+    const payload = {
+      ok: true,
+      provider: HFM_ANALYSIS_PROVIDER,
+      contextId,
+      analysis: latest,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
   const contextMatch = url.pathname.match(
     /^\/api\/forex\/providers\/mt5-hfm\/analysis\/context\/([^/]+)$/,
   );
@@ -301,6 +328,7 @@ export async function handleMt5HfmAnalysisApi(
       model: status.model,
       modelEligible: status.modelEligible,
       chatCompletionsCompatible: isOpenAiChatEligibleModel(status.model),
+      visionEligible: isOpenAiVisionEligibleModel(status.model),
       configured: status.configured,
       vaultUnlocked: status.vaultUnlocked,
       verificationDisplay: status.verificationDisplay,
@@ -313,6 +341,159 @@ export async function handleMt5HfmAnalysisApi(
         imageInputExpectedForLaterPhases: true,
         concurrencyNote: "Existing OPENAI_AI_MAX_CONCURRENT=1 applies to later phases",
       },
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  // --- Phase 3 reasoning ---
+  if (url.pathname === "/api/forex/providers/mt5-hfm/analysis/reason" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const contextId = String(body.contextId ?? body.snapshotId ?? "").trim();
+      if (!contextId) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "CONTEXT_REQUIRED", message: "contextId is required" },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      if (body.provider != null && String(body.provider) !== HFM_ANALYSIS_PROVIDER) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "PROVIDER_LOCKED", message: "Only HFM_MT5 is permitted." },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      const record = await runHfmAiReasoning({ contextId });
+      const payload = {
+        ok: record.status === "COMPLETED",
+        provider: HFM_ANALYSIS_PROVIDER,
+        analysis: record,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      const http =
+        record.status === "COMPLETED" ? 200
+          : record.status === "REJECTED" ? 422
+            : 502;
+      sendJson(res, http, payload);
+    } catch (err) {
+      sendJson(res, 500, {
+        ok: false,
+        error: {
+          code: "REASONING_FAILED",
+          message: err instanceof Error ? err.message.slice(0, 300) : String(err),
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+    }
+    return true;
+  }
+
+  if (url.pathname === "/api/forex/providers/mt5-hfm/analysis/reason/history" && req.method === "GET") {
+    const symbol = url.searchParams.get("symbol")?.trim() || undefined;
+    const limit = Number(url.searchParams.get("limit") ?? 20);
+    const offset = Number(url.searchParams.get("offset") ?? 0);
+    const items = await getHfmReasoningStorage().list({ symbol, limit, offset });
+    const payload = {
+      ok: true,
+      provider: HFM_ANALYSIS_PROVIDER,
+      items,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === "/api/forex/providers/mt5-hfm/analysis/reason/status" && req.method === "GET") {
+    const status = getHfmReasoningStatus();
+    const payload = {
+      ok: true,
+      provider: HFM_ANALYSIS_PROVIDER,
+      ...status,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const reasonStatusMatch = url.pathname.match(
+    /^\/api\/forex\/providers\/mt5-hfm\/analysis\/reason\/([^/]+)\/status$/,
+  );
+  if (reasonStatusMatch && req.method === "GET") {
+    const analysisId = decodeURIComponent(reasonStatusMatch[1] ?? "");
+    const active = getHfmReasoningStatus().active;
+    const stored = await getHfmReasoningStorage().load(analysisId);
+    const analysis = stored ?? (active?.analysisId === analysisId ? active : null);
+    if (!analysis) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "NOT_FOUND", message: "Analysis not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      provider: HFM_ANALYSIS_PROVIDER,
+      analysisId: analysis.analysisId,
+      status: analysis.status,
+      symbol: analysis.symbol,
+      contextId: analysis.contextId,
+      errorCode: analysis.errorCode,
+      errorMessage: analysis.errorMessage,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const reasonMatch = url.pathname.match(
+    /^\/api\/forex\/providers\/mt5-hfm\/analysis\/reason\/([^/]+)$/,
+  );
+  if (reasonMatch && req.method === "GET") {
+    const analysisId = decodeURIComponent(reasonMatch[1] ?? "");
+    const stored = await getHfmReasoningStorage().load(analysisId);
+    if (!stored) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "NOT_FOUND", message: "Analysis not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      provider: HFM_ANALYSIS_PROVIDER,
+      analysis: stored,
       placesOrders: false,
       mutatesBroker: false,
       acceptsForExecution: false,
