@@ -6,7 +6,7 @@
 import type { HfmCatalogCategory } from "../../../../ai/market-data/mt5-hfm/catalog-types";
 import type { HfmConnectionState, HfmFreshness, HfmSseStatus } from "../types";
 
-export type HfmMarketWatchViewId = "dashboard" | "market-watch";
+export type HfmMarketWatchViewId = "dashboard" | "market-watch" | "charts";
 
 export type HfmMwProviderUiStatus =
   | "CONNECTED"

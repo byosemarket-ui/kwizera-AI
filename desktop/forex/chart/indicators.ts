@@ -156,3 +156,101 @@ export function calculateATR(
   }
   return out;
 }
+
+/** Stochastic %K / %D (SMA of %K). */
+export function calculateStochastic(
+  candles: Array<{ time: number; high: number; low: number; close: number }>,
+  kPeriod = 14,
+  dPeriod = 3,
+): { k: LinePoint[]; d: LinePoint[] } {
+  if (kPeriod < 1 || candles.length < kPeriod) return { k: [], d: [] };
+  const k: LinePoint[] = [];
+  for (let i = kPeriod - 1; i < candles.length; i += 1) {
+    let highest = -Infinity;
+    let lowest = Infinity;
+    for (let j = i - kPeriod + 1; j <= i; j += 1) {
+      highest = Math.max(highest, candles[j]!.high);
+      lowest = Math.min(lowest, candles[j]!.low);
+    }
+    const range = highest - lowest;
+    const value = range === 0 ? 50 : ((candles[i]!.close - lowest) / range) * 100;
+    const next = point(candles[i]!.time, value);
+    if (next) k.push(next);
+  }
+  const d = calculateSMA(k.map((p) => ({ time: p.time, close: p.value })), dPeriod);
+  return { k, d };
+}
+
+/** Commodity Channel Index. */
+export function calculateCCI(
+  candles: Array<{ time: number; high: number; low: number; close: number }>,
+  period = 20,
+): LinePoint[] {
+  if (period < 1 || candles.length < period) return [];
+  const tp = candles.map((c) => (c.high + c.low + c.close) / 3);
+  const out: LinePoint[] = [];
+  for (let i = period - 1; i < candles.length; i += 1) {
+    let sum = 0;
+    for (let j = i - period + 1; j <= i; j += 1) sum += tp[j]!;
+    const sma = sum / period;
+    let mad = 0;
+    for (let j = i - period + 1; j <= i; j += 1) mad += Math.abs(tp[j]! - sma);
+    mad /= period;
+    const value = mad === 0 ? 0 : (tp[i]! - sma) / (0.015 * mad);
+    const next = point(candles[i]!.time, value);
+    if (next) out.push(next);
+  }
+  return out;
+}
+
+/** Wilder ADX (+DI / -DI / ADX). */
+export function calculateADX(
+  candles: Array<{ time: number; high: number; low: number; close: number }>,
+  period = 14,
+): { adx: LinePoint[]; plusDi: LinePoint[]; minusDi: LinePoint[] } {
+  if (period < 1 || candles.length <= period + 1) return { adx: [], plusDi: [], minusDi: [] };
+  const plusDm: number[] = [0];
+  const minusDm: number[] = [0];
+  const tr: number[] = [candles[0]!.high - candles[0]!.low];
+  for (let i = 1; i < candles.length; i += 1) {
+    const up = candles[i]!.high - candles[i - 1]!.high;
+    const down = candles[i - 1]!.low - candles[i]!.low;
+    plusDm.push(up > down && up > 0 ? up : 0);
+    minusDm.push(down > up && down > 0 ? down : 0);
+    const prevClose = candles[i - 1]!.close;
+    tr.push(Math.max(
+      candles[i]!.high - candles[i]!.low,
+      Math.abs(candles[i]!.high - prevClose),
+      Math.abs(candles[i]!.low - prevClose),
+    ));
+  }
+  let atr = 0;
+  let smoothPlus = 0;
+  let smoothMinus = 0;
+  for (let i = 1; i <= period; i += 1) {
+    atr += tr[i]!;
+    smoothPlus += plusDm[i]!;
+    smoothMinus += minusDm[i]!;
+  }
+  const dx: LinePoint[] = [];
+  const plusDi: LinePoint[] = [];
+  const minusDi: LinePoint[] = [];
+  const pushDi = (time: number) => {
+    const pDi = atr === 0 ? 0 : (100 * smoothPlus) / atr;
+    const mDi = atr === 0 ? 0 : (100 * smoothMinus) / atr;
+    const sum = pDi + mDi;
+    const dxVal = sum === 0 ? 0 : (100 * Math.abs(pDi - mDi)) / sum;
+    plusDi.push({ time, value: pDi });
+    minusDi.push({ time, value: mDi });
+    dx.push({ time, value: dxVal });
+  };
+  pushDi(candles[period]!.time);
+  for (let i = period + 1; i < candles.length; i += 1) {
+    atr = atr - atr / period + tr[i]!;
+    smoothPlus = smoothPlus - smoothPlus / period + plusDm[i]!;
+    smoothMinus = smoothMinus - smoothMinus / period + minusDm[i]!;
+    pushDi(candles[i]!.time);
+  }
+  const adx = calculateEMA(dx.map((p) => ({ time: p.time, close: p.value })), period);
+  return { adx, plusDi, minusDi };
+}

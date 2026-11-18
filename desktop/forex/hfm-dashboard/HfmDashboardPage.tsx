@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { HFM_MT5_MARKET_WATCH_PATH, pushForexUrl } from "../forex-routes";
+import { HFM_MT5_CHARTS_PATH, HFM_MT5_MARKET_WATCH_PATH, pushForexUrl } from "../forex-routes";
+import { HfmChartsWorkspace } from "./charts/HfmChartsWorkspace";
+import "./charts/hfm-charts.css";
 import {
   retainHfmRealtimeStore,
   restartHfmRealtimeStore,
@@ -41,7 +43,7 @@ type NavId =
 const NAV: Array<{ id: NavId; label: string; locked: boolean }> = [
   { id: "dashboard", label: "Dashboard", locked: false },
   { id: "market-watch", label: "Market Watch", locked: false },
-  { id: "charts", label: "Charts & Analysis", locked: true },
+  { id: "charts", label: "Charts & Analysis", locked: false },
   { id: "signals", label: "Signals & AI", locked: true },
   { id: "orders", label: "Orders & Positions", locked: true },
   { id: "risk", label: "Risk Management", locked: true },
@@ -57,6 +59,9 @@ function viewFromPath(pathname: string): HfmMarketWatchViewId {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === HFM_MT5_MARKET_WATCH_PATH || path.endsWith("/hfm/market-watch")) {
     return "market-watch";
+  }
+  if (path === HFM_MT5_CHARTS_PATH || path.endsWith("/hfm/charts")) {
+    return "charts";
   }
   return "dashboard";
 }
@@ -167,7 +172,8 @@ export function HfmDashboardPage({
       <span className="hfm-warn">{state.connectionState}</span>
     );
 
-  const activeNav: NavId = view === "market-watch" ? "market-watch" : "dashboard";
+  const activeNav: NavId =
+    view === "market-watch" ? "market-watch" : view === "charts" ? "charts" : "dashboard";
 
   function navigateHfm(next: NavId) {
     if (next === "dashboard") {
@@ -179,6 +185,12 @@ export function HfmDashboardPage({
     if (next === "market-watch") {
       setView("market-watch");
       pushForexUrl("hfm-mt5-market-watch");
+      setSidebarOpen(false);
+      return;
+    }
+    if (next === "charts") {
+      setView("charts");
+      pushForexUrl("hfm-mt5-charts");
       setSidebarOpen(false);
     }
   }
@@ -257,7 +269,9 @@ export function HfmDashboardPage({
         />
 
         <div className="hfm-main">
-          {view === "market-watch" ? (
+          {view === "charts" ? (
+            <HfmChartsWorkspace />
+          ) : view === "market-watch" ? (
             <>
               <header className="hfm-topbar">
                 <div className="hfm-topbar-left">
