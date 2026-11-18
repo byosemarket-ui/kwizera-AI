@@ -36,6 +36,45 @@ export const MIF_QI_COVERAGE_BELOW_REQUIREMENT = "COVERAGE_BELOW_REQUIREMENT" as
 export const MIF_QI_COVERAGE_MET = "COVERAGE_MET" as const;
 export const MIF_QI_COVERAGE_OBSERVED_RANGE_ONLY = "COVERAGE_OBSERVED_RANGE_ONLY" as const;
 
+/** Step 2 — quote codes */
+export const MIF_QI_MISSING_BID = "MISSING_BID" as const;
+export const MIF_QI_MISSING_ASK = "MISSING_ASK" as const;
+export const MIF_QI_INVALID_BID = "INVALID_BID" as const;
+export const MIF_QI_INVALID_ASK = "INVALID_ASK" as const;
+export const MIF_QI_CROSSED_QUOTE = "CROSSED_QUOTE" as const;
+export const MIF_QI_INVALID_SPREAD = "INVALID_SPREAD" as const;
+export const MIF_QI_QUOTE_TIME_UNAVAILABLE = "QUOTE_TIME_UNAVAILABLE" as const;
+export const MIF_QI_QUOTE_MISSING = "QUOTE_MISSING" as const;
+export const MIF_QI_QUOTE_FRESH = "QUOTE_FRESH" as const;
+export const MIF_QI_QUOTE_DELAYED = "QUOTE_DELAYED" as const;
+export const MIF_QI_QUOTE_STALE = "QUOTE_STALE" as const;
+export const MIF_QI_QUOTE_FRESHNESS_UNKNOWN = "QUOTE_FRESHNESS_UNKNOWN" as const;
+export const MIF_QI_CLOCK_DOMAINS_INCOMPARABLE = "CLOCK_DOMAINS_INCOMPARABLE" as const;
+
+/** Step 2 — instrument / precision codes */
+export const MIF_QI_MISSING_DIGITS = "MISSING_DIGITS" as const;
+export const MIF_QI_MISSING_POINT = "MISSING_POINT" as const;
+export const MIF_QI_MISSING_TICK_SIZE = "MISSING_TICK_SIZE" as const;
+export const MIF_QI_INVALID_METADATA = "INVALID_METADATA" as const;
+export const MIF_QI_METADATA_INCOMPLETE = "METADATA_INCOMPLETE" as const;
+export const MIF_QI_CATALOG_PROVENANCE_UNKNOWN = "CATALOG_PROVENANCE_UNKNOWN" as const;
+export const MIF_QI_PRICE_DIGITS_MISMATCH = "PRICE_DIGITS_MISMATCH" as const;
+export const MIF_QI_PRICE_TICK_MISMATCH = "PRICE_TICK_MISMATCH" as const;
+export const MIF_QI_PRICE_PRECISION_UNAVAILABLE = "PRICE_PRECISION_UNAVAILABLE" as const;
+export const MIF_QI_PRICE_INVALID = "PRICE_INVALID" as const;
+
+/** Step 2 — multi-timeframe codes */
+export const MIF_QI_REQUIRED_TIMEFRAME_MISSING = "REQUIRED_TIMEFRAME_MISSING" as const;
+export const MIF_QI_OPTIONAL_TIMEFRAME_MISSING = "OPTIONAL_TIMEFRAME_MISSING" as const;
+export const MIF_QI_TIMEFRAME_EMPTY = "TIMEFRAME_EMPTY" as const;
+export const MIF_QI_TIMEFRAME_UNSUPPORTED = "TIMEFRAME_UNSUPPORTED" as const;
+export const MIF_QI_MTF_SKEW_MEASURED = "MTF_SKEW_MEASURED" as const;
+export const MIF_QI_MTF_SKEW_EXCEEDED = "MTF_SKEW_EXCEEDED" as const;
+export const MIF_QI_MTF_SKEW_THRESHOLD_UNSET = "MTF_SKEW_THRESHOLD_UNSET" as const;
+export const MIF_QI_MTF_ALIGNMENT_UNKNOWN = "MTF_ALIGNMENT_UNKNOWN" as const;
+export const MIF_QI_CANDLE_STATE_POLICY_VIOLATION = "CANDLE_STATE_POLICY_VIOLATION" as const;
+export const MIF_QI_NO_CANDLE_STATE_POLICY = "NO_CANDLE_STATE_POLICY" as const;
+
 export type MifQualityFindingCode =
   | typeof MIF_QI_INVALID_OHLC
   | typeof MIF_QI_INVALID_TIMESTAMP
@@ -63,7 +102,40 @@ export type MifQualityFindingCode =
   | typeof MIF_QI_EMPTY_SERIES
   | typeof MIF_QI_COVERAGE_BELOW_REQUIREMENT
   | typeof MIF_QI_COVERAGE_MET
-  | typeof MIF_QI_COVERAGE_OBSERVED_RANGE_ONLY;
+  | typeof MIF_QI_COVERAGE_OBSERVED_RANGE_ONLY
+  | typeof MIF_QI_MISSING_BID
+  | typeof MIF_QI_MISSING_ASK
+  | typeof MIF_QI_INVALID_BID
+  | typeof MIF_QI_INVALID_ASK
+  | typeof MIF_QI_CROSSED_QUOTE
+  | typeof MIF_QI_INVALID_SPREAD
+  | typeof MIF_QI_QUOTE_TIME_UNAVAILABLE
+  | typeof MIF_QI_QUOTE_MISSING
+  | typeof MIF_QI_QUOTE_FRESH
+  | typeof MIF_QI_QUOTE_DELAYED
+  | typeof MIF_QI_QUOTE_STALE
+  | typeof MIF_QI_QUOTE_FRESHNESS_UNKNOWN
+  | typeof MIF_QI_CLOCK_DOMAINS_INCOMPARABLE
+  | typeof MIF_QI_MISSING_DIGITS
+  | typeof MIF_QI_MISSING_POINT
+  | typeof MIF_QI_MISSING_TICK_SIZE
+  | typeof MIF_QI_INVALID_METADATA
+  | typeof MIF_QI_METADATA_INCOMPLETE
+  | typeof MIF_QI_CATALOG_PROVENANCE_UNKNOWN
+  | typeof MIF_QI_PRICE_DIGITS_MISMATCH
+  | typeof MIF_QI_PRICE_TICK_MISMATCH
+  | typeof MIF_QI_PRICE_PRECISION_UNAVAILABLE
+  | typeof MIF_QI_PRICE_INVALID
+  | typeof MIF_QI_REQUIRED_TIMEFRAME_MISSING
+  | typeof MIF_QI_OPTIONAL_TIMEFRAME_MISSING
+  | typeof MIF_QI_TIMEFRAME_EMPTY
+  | typeof MIF_QI_TIMEFRAME_UNSUPPORTED
+  | typeof MIF_QI_MTF_SKEW_MEASURED
+  | typeof MIF_QI_MTF_SKEW_EXCEEDED
+  | typeof MIF_QI_MTF_SKEW_THRESHOLD_UNSET
+  | typeof MIF_QI_MTF_ALIGNMENT_UNKNOWN
+  | typeof MIF_QI_CANDLE_STATE_POLICY_VIOLATION
+  | typeof MIF_QI_NO_CANDLE_STATE_POLICY;
 
 /** Severity class for status derivation (not Phase 2 severity). */
 export type MifQualityFindingSeverity = "blocking" | "degraded" | "warning" | "info";
