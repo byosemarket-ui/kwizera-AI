@@ -1,7 +1,8 @@
 /**
  * Market Intelligence Foundation (MIF) public exports.
  * Phase 5B.1 — canonical types + three-dialect adapters.
- * Phase 5B.2 Step 1 — data integrity / gap / coverage quality (additive).
+ * Phase 5B.2 — data integrity / quote / instrument / MTF / unified quality (additive).
+ * Phase 5C Step 1A — analytical foundation + Fibonacci (additive, read-only).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";
@@ -12,3 +13,4 @@ export * from "./adapters/historical-adapter.js";
 export * from "./adapters/live-forming-adapter.js";
 export * from "./adapters/unified-hfm-adapter.js";
 export * from "./quality/index.js";
+export * from "./analysis/index.js";
