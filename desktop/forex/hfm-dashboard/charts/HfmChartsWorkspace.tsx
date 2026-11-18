@@ -19,8 +19,6 @@ import {
   saveHfmChartPreferences,
   saveHfmChartTemplate,
   setDefaultHfmChartTemplate,
-  prepareHfmAnalysisContextRequest,
-  runHfmAiReasoningRequest,
 } from "./api";
 import {
   HFM_CHART_TIMEFRAMES,
@@ -34,6 +32,8 @@ import {
   type HfmIndicatorKind,
 } from "./types";
 import { buildHfmChartsAnalysisSnapshot } from "../../../../ai/market-data/mt5-hfm/charts-analysis-contract";
+import { HfmAnalysisPanel } from "./HfmAnalysisPanel";
+import "./hfm-analysis-panel.css";
 
 const DRAW_TOOLS: Array<{ id: HfmDrawingToolId; label: string }> = [
   { id: "cursor", label: "Cursor" },
@@ -80,17 +80,6 @@ export function HfmChartsWorkspace() {
   const [addKind, setAddKind] = useState<HfmIndicatorKind>("sma");
   const [showGrid, setShowGrid] = useState(true);
   const [crosshair, setCrosshair] = useState<HfmCrosshairInfo | null>(null);
-  const [phase2Busy, setPhase2Busy] = useState(false);
-  const [phase2Status, setPhase2Status] = useState<string>("Idle — Phase 2 context prep available");
-  const [phase2Detail, setPhase2Detail] = useState<string>("");
-  const [preparedContextId, setPreparedContextId] = useState<string | null>(null);
-  const [preparedContextSymbol, setPreparedContextSymbol] = useState<string | null>(null);
-  const [preparedQuality, setPreparedQuality] = useState<string | null>(null);
-  const [preparedImageTfs, setPreparedImageTfs] = useState<string>("");
-  const [phase3Busy, setPhase3Busy] = useState(false);
-  const [phase3Status, setPhase3Status] = useState<string>("AI Analysis not started");
-  const [phase3Summary, setPhase3Summary] = useState<string>("");
-  const [phase3Result, setPhase3Result] = useState<Record<string, unknown> | null>(null);
   const [templates, setTemplates] = useState<HfmChartTemplate[]>([]);
   const [defaultTemplateId, setDefaultTemplateId] = useState<string | null>(null);
   const [persistNote, setPersistNote] = useState<string | null>(null);
@@ -771,184 +760,17 @@ export function HfmChartsWorkspace() {
         </aside>
       </div>
 
-      <section
-        className="hfm-charts-analysis-boundary"
-        data-hfm-analysis-boundary="true"
-        data-analysis-implemented="false"
-        data-phase2-context="true"
-        data-phase3-reasoning="true"
-        aria-label="AI Analysis reserved section"
-      >
-        <header>
-          <h2>AI Analysis</h2>
-          <span className="hfm-charts-pill" data-tone="muted">HFM MT5 · Manual reasoning</span>
-        </header>
-        <p data-analysis-safety="true">
-          AI ANALYSIS ONLY — NO BROKER ORDERS ARE PLACED. No BUY/SELL signals authorize execution
-          (placesOrders=false). Chart symbol now: {symbol}.
-        </p>
-        <div className="hfm-charts-phase2-row" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            disabled={phase2Busy || phase3Busy}
-            data-phase2-prepare="true"
-            onClick={async () => {
-              setPhase2Busy(true);
-              setPhase2Status("Preparing HFM multi-TF context…");
-              setPhase2Detail("");
-              setPhase3Result(null);
-              setPhase3Summary("");
-              setPhase3Status("AI Analysis not started");
-              try {
-                const body = await prepareHfmAnalysisContextRequest({
-                  symbol,
-                  chartTimeframe: timeframe,
-                });
-                const state = String(body.state ?? "");
-                const snap = body.snapshot as {
-                  snapshotId?: string;
-                  symbol?: string;
-                  dataQuality?: { status?: string };
-                  synchronization?: { status?: string };
-                } | null;
-                const quality = snap?.dataQuality?.status ?? null;
-                const images = body.chartImages && typeof body.chartImages === "object"
-                  ? Object.keys(body.chartImages as object).join(",")
-                  : "";
-                const ctxId = snap?.snapshotId ?? null;
-                setPreparedContextId(ctxId);
-                setPreparedContextSymbol(snap?.symbol ?? symbol);
-                setPreparedQuality(quality);
-                setPreparedImageTfs(images);
-                setPhase2Status(`${state}${quality ? ` · quality ${quality}` : ""}`);
-                setPhase2Detail(
-                  `context=${ctxId ?? "—"} · sync=${snap?.synchronization?.status ?? "—"} · images=${images || "none"}`,
-                );
-              } catch (err) {
-                setPreparedContextId(null);
-                setPhase2Status("FAILED");
-                setPhase2Detail(err instanceof Error ? err.message : String(err));
-              } finally {
-                setPhase2Busy(false);
-              }
-            }}
-          >
-            {phase2Busy ? "Preparing…" : "Prepare HFM Analysis Context"}
-          </button>
-          <button
-            type="button"
-            disabled={phase3Busy || phase2Busy || !preparedContextId || preparedQuality !== "VALID"}
-            data-phase3-reason="true"
-            onClick={async () => {
-              if (!preparedContextId) return;
-              setPhase3Busy(true);
-              setPhase3Status("Running AI analysis…");
-              setPhase3Summary("");
-              setPhase3Result(null);
-              try {
-                const body = await runHfmAiReasoningRequest({ contextId: preparedContextId });
-                const analysis = (body.analysis as Record<string, unknown> | undefined) ?? null;
-                const status = String(analysis?.status ?? body.state ?? "UNKNOWN");
-                setPhase3Status(status);
-                setPhase3Result(analysis);
-                const result = analysis?.result as {
-                  decision?: { action?: string; confidence?: number; summary?: string };
-                  model?: string;
-                } | null;
-                setPhase3Summary(
-                  [
-                    `symbol=${String(analysis?.symbol ?? preparedContextSymbol ?? "")}`,
-                    `action=${result?.decision?.action ?? "—"}`,
-                    `confidence=${result?.decision?.confidence ?? "—"}`,
-                    `model=${result?.model ?? analysis?.model ?? "—"}`,
-                    `analysisId=${String(analysis?.analysisId ?? "—")}`,
-                    result?.decision?.summary ?? String(analysis?.errorMessage ?? ""),
-                  ].filter(Boolean).join(" · "),
-                );
-              } catch (err) {
-                setPhase3Status("FAILED");
-                setPhase3Summary(err instanceof Error ? err.message : String(err));
-              } finally {
-                setPhase3Busy(false);
-              }
-            }}
-          >
-            {phase3Busy ? "Analyzing…" : "Run AI Analysis"}
-          </button>
-          <span className="hfm-charts-muted" data-phase2-status="true">{phase2Status}</span>
-        </div>
-        {phase2Detail ? <p className="hfm-charts-muted" data-phase2-detail="true">{phase2Detail}</p> : null}
-        <p className="hfm-charts-muted" data-phase3-status="true">
-          Reasoning: {phase3Status}
-          {preparedContextSymbol && preparedContextSymbol !== symbol
-            ? ` · result bound to ${preparedContextSymbol} (chart now ${symbol})`
-            : ""}
-        </p>
-        {phase3Summary ? <p data-phase3-summary="true">{phase3Summary}</p> : null}
-        {phase3Result?.result ? (
-          <div data-phase3-result="true" style={{ marginTop: 8, fontSize: 13, lineHeight: 1.45 }}>
-            <div>Images: {preparedImageTfs || "—"} · TFs H1/M30/M15/M5</div>
-            <div>
-              Decision: {String((phase3Result.result as { decision?: { action?: string } }).decision?.action ?? "—")}
-              {" · "}
-              Confidence is model-reported analytical confidence (not profit probability).
-            </div>
-            {(() => {
-              const r = phase3Result.result as {
-                analysisStatus?: string;
-                completeness?: { status?: string; missingSections?: string[]; notes?: string[] };
-                marketOverview?: { sectionStatus?: string };
-                riskAssessment?: { sectionStatus?: string; riskLevel?: string };
-                timeframeAnalysis?: Record<string, { sectionStatus?: string }>;
-                pricePrecision?: { verified?: boolean; reason?: string | null };
-              };
-              const missing = r.completeness?.missingSections ?? [];
-              const tfStatuses = ["H1", "M30", "M15", "M5"].map((tf) => {
-                const st = r.timeframeAnalysis?.[tf]?.sectionStatus;
-                return `${tf}:${st === "NOT_PROVIDED" ? "Not provided by AI" : st === "PROVIDED" ? "provided" : "—"}`;
-              });
-              return (
-                <div data-phase3-completeness="true" style={{ marginTop: 6 }}>
-                  <div>
-                    Completeness: {r.completeness?.status ?? "—"}
-                    {r.analysisStatus === "COMPLETED_WITH_GAPS" ? " · AI analysis incomplete" : ""}
-                  </div>
-                  <div>Timeframes: {tfStatuses.join(" · ")}</div>
-                  <div>
-                    Market overview: {r.marketOverview?.sectionStatus === "NOT_PROVIDED"
-                      ? "Not provided by AI"
-                      : r.marketOverview?.sectionStatus === "PROVIDED"
-                        ? "provided"
-                        : "—"}
-                    {" · "}
-                    Risk: {r.riskAssessment?.sectionStatus === "NOT_PROVIDED"
-                      ? "Not provided by AI"
-                      : (r.riskAssessment?.riskLevel ?? "—")}
-                  </div>
-                  {missing.length ? (
-                    <div data-phase3-missing="true">Missing evidence: {missing.join(", ")}</div>
-                  ) : null}
-                  {r.pricePrecision?.verified === false && r.pricePrecision.reason ? (
-                    <div>Price precision: {r.pricePrecision.reason}</div>
-                  ) : null}
-                </div>
-              );
-            })()}
-          </div>
-        ) : null}
-        <pre className="hfm-charts-contract-preview" hidden>
-          {JSON.stringify({
-            provider: analysisBoundary.provider,
-            symbol: analysisBoundary.symbol,
-            timeframe: analysisBoundary.timeframe,
-            candleCount: analysisBoundary.historicalCandles.length,
-            freshness: analysisBoundary.freshness,
-            placesOrders: analysisBoundary.placesOrders,
-            preparedContextId,
-            phase3Status,
-          })}
-        </pre>
-      </section>
+      <HfmAnalysisPanel symbol={symbol} timeframe={timeframe} />
+      <pre className="hfm-charts-contract-preview" hidden>
+        {JSON.stringify({
+          provider: analysisBoundary.provider,
+          symbol: analysisBoundary.symbol,
+          timeframe: analysisBoundary.timeframe,
+          candleCount: analysisBoundary.historicalCandles.length,
+          freshness: analysisBoundary.freshness,
+          placesOrders: analysisBoundary.placesOrders,
+        })}
+      </pre>
     </div>
   );
 }

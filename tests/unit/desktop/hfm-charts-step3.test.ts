@@ -48,11 +48,14 @@ describe("STEP 3 HFM Charts workspace", () => {
     expect(dash).toContain("HfmChartsWorkspace");
     const ws = read("desktop/forex/hfm-dashboard/charts/HfmChartsWorkspace.tsx");
     expect(ws).toContain('data-provider="HFM_MT5"');
-    expect(ws).toContain('data-hfm-analysis-boundary="true"');
-    expect(ws).toContain('data-analysis-implemented="false"');
-    expect(ws).toContain('data-phase2-context="true"');
-    expect(ws).toMatch(/No BUY\/SELL signals/i);
-    expect(ws).not.toMatch(/take.?profit|stop.?loss|OrderSend/i);
+    expect(ws).toContain("HfmAnalysisPanel");
+    expect(ws).not.toMatch(/OrderSend/i);
+    const panel = read("desktop/forex/hfm-dashboard/charts/HfmAnalysisPanel.tsx");
+    expect(panel).toContain('data-hfm-analysis-boundary="true"');
+    expect(panel).toContain('data-analysis-implemented="true"');
+    expect(panel).toContain('data-phase2-context="true"');
+    expect(panel).toMatch(/No BUY\/SELL signals/i);
+    expect(panel).not.toMatch(/OrderSend|Execute Trade|Auto Trade/i);
   });
 
   it("uses STEP 2 HFM candle APIs and quote-watch only", () => {

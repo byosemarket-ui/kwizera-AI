@@ -530,16 +530,16 @@ describe("Phase 3.1 — context gate basics", () => {
 
 describe("HFM Analysis Phase 3 — safety markers", () => {
   it("workspace exposes analysis-only safety copy and completeness UI", async () => {
-    const ws = await fs.readFile(
-      path.join(process.cwd(), "desktop/forex/hfm-dashboard/charts/HfmChartsWorkspace.tsx"),
+    const panel = await fs.readFile(
+      path.join(process.cwd(), "desktop/forex/hfm-dashboard/charts/HfmAnalysisPanel.tsx"),
       "utf8",
     );
-    expect(ws).toContain("AI ANALYSIS ONLY — NO BROKER ORDERS ARE PLACED");
-    expect(ws).toContain("data-phase3-reason");
-    expect(ws).toContain("placesOrders=false");
-    expect(ws).toContain("Not provided by AI");
-    expect(ws).toContain("data-phase3-completeness");
-    expect(ws).not.toMatch(/Place Order|Execute Trade|Auto Trade/i);
+    expect(panel).toContain("AI ANALYSIS ONLY — NO BROKER ORDERS ARE PLACED");
+    expect(panel).toContain("data-phase3-reason");
+    expect(panel).toContain("placesOrders=false");
+    expect(panel).toContain("Not provided by AI");
+    expect(panel).toContain("data-phase3-completeness");
+    expect(panel).not.toMatch(/Place Order|Execute Trade|Auto Trade/i);
   });
 
   it("api routes exist for reason endpoints", async () => {

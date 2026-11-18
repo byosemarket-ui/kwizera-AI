@@ -21,9 +21,14 @@ import {
   HFM_ANALYSIS_PROVIDER,
 } from "../../ai/market-data/mt5-hfm/analysis/index.js";
 import {
+  disableHfmAutoAnalysis,
+  enableHfmAutoAnalysis,
+  executeAnalysisPipeline,
+  getHfmAutoAnalysisStatus,
   getHfmReasoningStatus,
   getHfmReasoningStorage,
   runHfmAiReasoning,
+  setHfmAutoAnalysisSymbol,
 } from "../../ai/market-data/mt5-hfm/analysis/reasoning/index.js";
 import { isOpenAiVisionEligibleModel } from "../../ai/forex-ai/multi-image-openai/vision-policy.js";
 import {
@@ -347,6 +352,184 @@ export async function handleMt5HfmAnalysisApi(
     };
     assertNoSecretsInMt5HfmPayload(payload);
     sendJson(res, 200, payload);
+    return true;
+  }
+
+  // --- Phase 4 Auto Analysis scheduler ---
+  if (url.pathname === "/api/forex/providers/mt5-hfm/analysis/auto-analysis" && req.method === "GET") {
+    const scheduler = await getHfmAutoAnalysisStatus();
+    const reasoning = getHfmReasoningStatus();
+    const payload = {
+      ok: true,
+      provider: HFM_ANALYSIS_PROVIDER,
+      scheduler,
+      activeAnalysis: reasoning.active,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === "/api/forex/providers/mt5-hfm/analysis/auto-analysis/enable" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const symbol = String(body.symbol ?? "").trim().toUpperCase();
+      if (!symbol) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "SYMBOL_REQUIRED", message: "symbol is required" },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      const { state, firstRun } = await enableHfmAutoAnalysis({
+        symbol,
+        chartTimeframe: String(body.chartTimeframe ?? body.timeframe ?? "H4"),
+      });
+      const payload = {
+        ok: true,
+        provider: HFM_ANALYSIS_PROVIDER,
+        scheduler: state,
+        firstRun,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, firstRun.alreadyRunning ? 409 : firstRun.ok ? 200 : 422, payload);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "AUTO_ANALYSIS_ENABLE_FAILED",
+          message: err instanceof Error ? err.message.slice(0, 300) : String(err),
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+    }
+    return true;
+  }
+
+  if (url.pathname === "/api/forex/providers/mt5-hfm/analysis/auto-analysis/disable" && req.method === "POST") {
+    const scheduler = await disableHfmAutoAnalysis();
+    const payload = {
+      ok: true,
+      provider: HFM_ANALYSIS_PROVIDER,
+      scheduler,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === "/api/forex/providers/mt5-hfm/analysis/auto-analysis/symbol" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const symbol = String(body.symbol ?? "").trim().toUpperCase();
+      if (!symbol) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "SYMBOL_REQUIRED", message: "symbol is required" },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      const scheduler = await setHfmAutoAnalysisSymbol({
+        symbol,
+        chartTimeframe: body.chartTimeframe != null || body.timeframe != null
+          ? String(body.chartTimeframe ?? body.timeframe)
+          : undefined,
+      });
+      const payload = {
+        ok: true,
+        provider: HFM_ANALYSIS_PROVIDER,
+        scheduler,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "SYMBOL_UPDATE_FAILED",
+          message: err instanceof Error ? err.message.slice(0, 300) : String(err),
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+    }
+    return true;
+  }
+
+  if (url.pathname === "/api/forex/providers/mt5-hfm/analysis/analyze-now" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const symbol = String(body.symbol ?? "").trim().toUpperCase();
+      if (!symbol) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "SYMBOL_REQUIRED", message: "symbol is required" },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      if (body.provider != null && String(body.provider) !== HFM_ANALYSIS_PROVIDER) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "PROVIDER_LOCKED", message: "Only HFM_MT5 is permitted." },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      noteSelectedChartSymbol(symbol);
+      const result = await executeAnalysisPipeline({
+        symbol,
+        chartTimeframe: String(body.chartTimeframe ?? body.timeframe ?? "H4"),
+        trigger: "manual",
+      });
+      const payload = {
+        ok: result.ok,
+        provider: HFM_ANALYSIS_PROVIDER,
+        ...result,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      const http = result.alreadyRunning ? 409 : result.ok ? 200 : result.blocked ? 422 : 502;
+      sendJson(res, http, payload);
+    } catch (err) {
+      sendJson(res, 500, {
+        ok: false,
+        error: {
+          code: "ANALYZE_NOW_FAILED",
+          message: err instanceof Error ? err.message.slice(0, 300) : String(err),
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+    }
     return true;
   }
 

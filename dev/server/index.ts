@@ -6202,6 +6202,19 @@ async function main(): Promise<void> {
       void bootAutomatedTrading().catch((err) => {
         console.error("[KWIZERA] Automated Trading boot error:", err instanceof Error ? err.message : err);
       });
+      void import("../../ai/market-data/mt5-hfm/analysis/reasoning/scheduler.js")
+        .then(({ bootstrapHfmAutoAnalysisScheduler }) => bootstrapHfmAutoAnalysisScheduler())
+        .then((state) => {
+          console.log(
+            `[KWIZERA] HFM Auto Analysis scheduler boot: enabled=${state.enabled} status=${state.status} symbol=${state.selectedSymbol}`,
+          );
+        })
+        .catch((err) => {
+          console.error(
+            "[KWIZERA] HFM Auto Analysis scheduler boot error:",
+            err instanceof Error ? err.message : err,
+          );
+        });
     })();
   }, bootDelayMs);
 

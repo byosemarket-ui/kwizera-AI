@@ -378,6 +378,8 @@ export async function setDefaultHfmChartTemplate(
 const ANALYSIS_CONTEXT = "/api/forex/providers/mt5-hfm/analysis/context";
 const ANALYSIS_STATUS = "/api/forex/providers/mt5-hfm/analysis/status";
 const ANALYSIS_REASON = "/api/forex/providers/mt5-hfm/analysis/reason";
+const ANALYSIS_ANALYZE_NOW = "/api/forex/providers/mt5-hfm/analysis/analyze-now";
+const ANALYSIS_AUTO = "/api/forex/providers/mt5-hfm/analysis/auto-analysis";
 
 /** Phase 2 — prepare multi-TF context + backend chart images (no OpenAI reasoning). */
 export async function prepareHfmAnalysisContextRequest(input: {
@@ -415,6 +417,74 @@ export async function runHfmAiReasoningRequest(input: {
     body: {
       contextId: input.contextId,
       provider: "HFM_MT5",
+    },
+  });
+  return { httpStatus: status, ...body };
+}
+
+/** Phase 4 — one-shot Analyze Now (prepare + reason; does not enable Auto Analysis). */
+export async function analyzeHfmNowRequest(input: {
+  symbol: string;
+  chartTimeframe: string;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(ANALYSIS_ANALYZE_NOW, {
+    method: "POST",
+    signal: input.signal,
+    body: {
+      symbol: input.symbol,
+      chartTimeframe: input.chartTimeframe,
+      provider: "HFM_MT5",
+    },
+  });
+  return { httpStatus: status, ...body };
+}
+
+export async function fetchHfmAutoAnalysisStatus(
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const { body } = await requestJson<Record<string, unknown>>(ANALYSIS_AUTO, { signal });
+  return body;
+}
+
+export async function enableHfmAutoAnalysisRequest(input: {
+  symbol: string;
+  chartTimeframe: string;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(`${ANALYSIS_AUTO}/enable`, {
+    method: "POST",
+    signal: input.signal,
+    body: {
+      symbol: input.symbol,
+      chartTimeframe: input.chartTimeframe,
+    },
+  });
+  return { httpStatus: status, ...body };
+}
+
+export async function disableHfmAutoAnalysisRequest(
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(`${ANALYSIS_AUTO}/disable`, {
+    method: "POST",
+    signal,
+    body: {},
+  });
+  return { httpStatus: status, ...body };
+}
+
+export async function updateHfmAutoAnalysisSymbolRequest(input: {
+  symbol: string;
+  chartTimeframe?: string;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(`${ANALYSIS_AUTO}/symbol`, {
+    method: "POST",
+    signal: input.signal,
+    body: {
+      symbol: input.symbol,
+      chartTimeframe: input.chartTimeframe,
     },
   });
   return { httpStatus: status, ...body };
