@@ -1,8 +1,10 @@
 /**
- * Phase 3 — HFM MT5 AI Reasoning exports.
+ * Phase 3 / 3.1 — HFM MT5 AI Reasoning exports.
  */
 export * from "./constants.js";
 export * from "./types.js";
+export * from "./confidence.js";
+export * from "./price-precision.js";
 export * from "./prompts.js";
 export * from "./evidence.js";
 export * from "./validate-response.js";

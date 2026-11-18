@@ -1,10 +1,11 @@
 /**
- * Phase 3 — HFM AI Reasoning types (no execution authority).
+ * Phase 3 / 3.1 — HFM AI Reasoning types (no execution authority).
  */
 import type {
   HFM_REASONING_PROMPT_VERSION,
   HFM_REASONING_SCHEMA_VERSION,
 } from "./constants.js";
+import type { HfmReasoningPricePrecisionResult } from "./price-precision.js";
 
 export type HfmReasoningJobStatus =
   | "QUEUED"
@@ -25,23 +26,28 @@ export type HfmReasoningDecisionAction =
 
 export type HfmReasoningConfidenceLabel = "LOW" | "MODERATE" | "HIGH";
 
+export type HfmSectionProvision = "PROVIDED" | "NOT_PROVIDED";
+
 export type HfmReasoningMarketCondition =
   | "TRENDING"
   | "RANGING"
   | "VOLATILE"
-  | "UNCLEAR";
+  | "UNCLEAR"
+  | "NOT_PROVIDED";
 
 export type HfmReasoningBias =
   | "BULLISH"
   | "BEARISH"
   | "NEUTRAL"
-  | "MIXED";
+  | "MIXED"
+  | "NOT_PROVIDED";
 
 export type HfmReasoningAlignment =
   | "ALIGNED"
   | "PARTIALLY_ALIGNED"
   | "CONFLICTING"
-  | "UNCLEAR";
+  | "UNCLEAR"
+  | "NOT_PROVIDED";
 
 export type HfmScenarioStatus =
   | "ACTIVE"
@@ -57,9 +63,15 @@ export type HfmSetupStatus =
 
 export type HfmTradeDirection = "BUY" | "SELL" | "NONE";
 
-export type HfmRiskLevel = "LOW" | "MODERATE" | "HIGH" | "UNACCEPTABLE";
+export type HfmRiskLevel =
+  | "LOW"
+  | "MODERATE"
+  | "HIGH"
+  | "UNACCEPTABLE"
+  | "NOT_PROVIDED";
 
 export interface HfmReasoningTfBlock {
+  sectionStatus: HfmSectionProvision;
   bias: HfmReasoningBias | string;
   structure: string;
   observations: string[];
@@ -85,9 +97,15 @@ export interface HfmReasoningTradePlan {
   explanation: string;
 }
 
+export interface HfmReasoningCompleteness {
+  status: "COMPLETE" | "INCOMPLETE";
+  missingSections: string[];
+  notes: string[];
+}
+
 export interface HfmReasoningValidatedResult {
   schemaVersion: typeof HFM_REASONING_SCHEMA_VERSION | string;
-  analysisStatus: "COMPLETED";
+  analysisStatus: "COMPLETED" | "COMPLETED_WITH_GAPS";
   provider: "HFM_MT5";
   symbol: string;
   contextId: string;
@@ -102,6 +120,7 @@ export interface HfmReasoningValidatedResult {
     summary: string;
   };
   marketOverview: {
+    sectionStatus: HfmSectionProvision;
     marketCondition: HfmReasoningMarketCondition;
     overallBias: HfmReasoningBias;
     higherTimeframeBias: string;
@@ -126,6 +145,7 @@ export interface HfmReasoningValidatedResult {
     dataQualityWarnings: string[];
   };
   riskAssessment: {
+    sectionStatus: HfmSectionProvision;
     riskLevel: HfmRiskLevel;
     reasons: string[];
     reasonsToAvoidTrade: string[];
@@ -135,6 +155,8 @@ export interface HfmReasoningValidatedResult {
     conditions: string[];
     timeframesToWatch: string[];
   };
+  completeness: HfmReasoningCompleteness;
+  pricePrecision: HfmReasoningPricePrecisionResult;
   disclaimer: string;
   placesOrders: false;
   mutatesBroker: false;
@@ -203,4 +225,7 @@ export type HfmReasoningErrorCode =
   | "REASONING_JOB_ALREADY_RUNNING"
   | "REASONING_STORAGE_FAILED"
   | "CONTEXT_TOO_OLD"
-  | "AI_NOT_APPROVED";
+  | "AI_NOT_APPROVED"
+  | "INVALID_CONFIDENCE"
+  | "INVALID_PRICE_PRECISION"
+  | "INSTRUMENT_METADATA_UNAVAILABLE";

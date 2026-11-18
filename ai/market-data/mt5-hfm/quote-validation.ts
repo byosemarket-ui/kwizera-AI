@@ -70,13 +70,15 @@ export function calculateSpreadPoints(
   return spread / point;
 }
 
-function precisionOk(price: number, digits: number | null): boolean {
+/** Exported for Phase 3.1 trade-plan price precision checks (same rules as quote validation). */
+export function precisionOk(price: number, digits: number | null): boolean {
   if (digits == null || !Number.isInteger(digits) || digits < 0 || digits > 12) return true;
   const scaled = price * 10 ** digits;
   return Math.abs(scaled - Math.round(scaled)) < 1e-6;
 }
 
-function tickAligned(price: number, tickSize: number | null): boolean {
+/** Exported for Phase 3.1 trade-plan tick alignment checks. */
+export function tickAligned(price: number, tickSize: number | null): boolean {
   if (tickSize == null || !(tickSize > 0)) return true;
   const n = price / tickSize;
   return Math.abs(n - Math.round(n)) < 1e-6;

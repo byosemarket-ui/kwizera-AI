@@ -1,15 +1,24 @@
 /**
- * Strict validation of HFM AI reasoning model output.
+ * Phase 3.1 — strict validation of HFM AI reasoning model output.
+ * Missing sections are marked NOT_PROVIDED (never synthetic NEUTRAL/MODERATE conclusions).
  */
+import { normalizeHfmReasoningConfidence } from "./confidence.js";
 import {
   HFM_REASONING_DISCLAIMER,
+  HFM_REASONING_NOT_PROVIDED,
   HFM_REASONING_PROMPT_VERSION,
   HFM_REASONING_REQUIRED_TFS,
   HFM_REASONING_SCHEMA_VERSION,
 } from "./constants.js";
+import {
+  buildUnavailablePricePrecision,
+  validateTradePlanPricesAgainstInstrument,
+  type HfmReasoningInstrumentMeta,
+} from "./price-precision.js";
 import type {
   HfmReasoningDecisionAction,
   HfmReasoningValidatedResult,
+  HfmSectionProvision,
 } from "./types.js";
 
 function isObj(v: unknown): v is Record<string, unknown> {
@@ -18,10 +27,6 @@ function isObj(v: unknown): v is Record<string, unknown> {
 
 function asString(v: unknown): string | null {
   return typeof v === "string" ? v : null;
-}
-
-function asNumber(v: unknown): number | null {
-  return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
 function asStringArray(v: unknown): string[] | null {
@@ -40,7 +45,6 @@ function asNullableNumber(v: unknown): number | null | undefined {
   return undefined;
 }
 
-/** Normalize model enum strings: trim, upper-case, spaces → underscores; MEDIUM → MODERATE. */
 function enumToken(v: unknown): string | null {
   if (typeof v !== "string") return null;
   const t = v.trim().toUpperCase().replace(/[\s-]+/g, "_");
@@ -72,37 +76,85 @@ function coerceNullableNumberField(v: unknown): number | null {
 
 const ACTIONS = new Set(["BUY", "SELL", "NO_TRADE", "WAITING_FOR_CONFIRMATION"]);
 const CONF_LABELS = new Set(["LOW", "MODERATE", "HIGH"]);
-const CONDITIONS = new Set(["TRENDING", "RANGING", "VOLATILE", "UNCLEAR"]);
-const BIASES = new Set(["BULLISH", "BEARISH", "NEUTRAL", "MIXED"]);
-const ALIGN = new Set(["ALIGNED", "PARTIALLY_ALIGNED", "CONFLICTING", "UNCLEAR"]);
+const CONDITIONS = new Set(["TRENDING", "RANGING", "VOLATILE", "UNCLEAR", HFM_REASONING_NOT_PROVIDED]);
+const BIASES = new Set(["BULLISH", "BEARISH", "NEUTRAL", "MIXED", HFM_REASONING_NOT_PROVIDED]);
+const ALIGN = new Set(["ALIGNED", "PARTIALLY_ALIGNED", "CONFLICTING", "UNCLEAR", HFM_REASONING_NOT_PROVIDED]);
 const SCENARIO = new Set(["ACTIVE", "POSSIBLE", "INVALIDATED", "NOT_SUPPORTED"]);
 const SETUP = new Set(["READY", "WAITING", "INVALIDATED", "NOT_APPLICABLE"]);
 const DIR = new Set(["BUY", "SELL", "NONE"]);
-const RISK = new Set(["LOW", "MODERATE", "HIGH", "UNACCEPTABLE"]);
+const RISK = new Set(["LOW", "MODERATE", "HIGH", "UNACCEPTABLE", HFM_REASONING_NOT_PROVIDED]);
 
-function parseTfBlock(raw: unknown, tf: string): { ok: true; value: HfmReasoningValidatedResult["timeframeAnalysis"]["H1"] } | { ok: false; error: string } {
+function notProvidedTfBlock(): HfmReasoningValidatedResult["timeframeAnalysis"]["H1"] {
+  return {
+    sectionStatus: "NOT_PROVIDED",
+    bias: HFM_REASONING_NOT_PROVIDED,
+    structure: "Not provided by AI.",
+    observations: [],
+    supportingEvidence: [],
+    risks: ["Not provided by AI."],
+  };
+}
+
+function defaultScenario(): HfmReasoningValidatedResult["scenarios"]["bullish"] {
+  return {
+    status: "NOT_SUPPORTED",
+    conditions: [],
+    confirmation: [],
+    invalidation: [],
+  };
+}
+
+function maybeParseSection(v: unknown): unknown {
+  if (typeof v !== "string") return v;
+  const t = v.trim();
+  if (!t.startsWith("{") && !t.startsWith("[")) return v;
+  try {
+    return JSON.parse(t) as unknown;
+  } catch {
+    return v;
+  }
+}
+
+function parseTfBlock(
+  raw: unknown,
+  tf: string,
+  provision: HfmSectionProvision,
+): { ok: true; value: HfmReasoningValidatedResult["timeframeAnalysis"]["H1"] } | { ok: false; error: string } {
+  if (provision === "NOT_PROVIDED") {
+    return { ok: true, value: notProvidedTfBlock() };
+  }
   if (!isObj(raw)) return { ok: false, error: `timeframeAnalysis.${tf} missing` };
-  const observations = asStringArray(raw.observations);
-  const supportingEvidence = asStringArray(raw.supportingEvidence);
-  const risks = asStringArray(raw.risks);
+  const observations = asStringArray(raw.observations) ?? coerceStringArray(raw.observations);
+  const supportingEvidence = asStringArray(raw.supportingEvidence) ?? coerceStringArray(raw.supportingEvidence);
+  const risks = asStringArray(raw.risks) ?? coerceStringArray(raw.risks);
   const bias = asString(raw.bias);
   const structure = asString(raw.structure);
-  if (!bias || !structure || !observations || !supportingEvidence || !risks) {
+  if (!bias || !structure) {
     return { ok: false, error: `timeframeAnalysis.${tf} incomplete` };
   }
   return {
     ok: true,
-    value: { bias, structure, observations, supportingEvidence, risks },
+    value: {
+      sectionStatus: "PROVIDED",
+      bias,
+      structure,
+      observations,
+      supportingEvidence,
+      risks,
+    },
   };
 }
 
-function parseScenario(raw: unknown, name: string): { ok: true; value: HfmReasoningValidatedResult["scenarios"]["bullish"] } | { ok: false; error: string } {
+function parseScenario(
+  raw: unknown,
+  name: string,
+): { ok: true; value: HfmReasoningValidatedResult["scenarios"]["bullish"] } | { ok: false; error: string } {
   if (!isObj(raw)) return { ok: false, error: `scenarios.${name} missing` };
   const status = asString(raw.status);
-  const conditions = asStringArray(raw.conditions);
-  const confirmation = asStringArray(raw.confirmation);
-  const invalidation = asStringArray(raw.invalidation);
-  if (!status || !SCENARIO.has(status) || !conditions || !confirmation || !invalidation) {
+  const conditions = asStringArray(raw.conditions) ?? coerceStringArray(raw.conditions);
+  const confirmation = asStringArray(raw.confirmation) ?? coerceStringArray(raw.confirmation);
+  const invalidation = asStringArray(raw.invalidation) ?? coerceStringArray(raw.invalidation);
+  if (!status || !SCENARIO.has(status)) {
     return { ok: false, error: `scenarios.${name} invalid` };
   }
   return {
@@ -116,7 +168,15 @@ function parseScenario(raw: unknown, name: string): { ok: true; value: HfmReason
   };
 }
 
-/** Unwrap common model wrappers / markdown fences before schema validation. */
+export interface HfmNormalizeMeta {
+  marketOverviewProvided: boolean;
+  timeframeProvided: Record<string, boolean>;
+  riskProvided: boolean;
+  scenariosProvided: boolean;
+  confidenceRaw: unknown;
+}
+
+/** Unwrap wrappers / fences; coerce enums; mark missing sections without inventing analysis. */
 export function normalizeHfmReasoningRawPayload(
   raw: unknown,
   expected?: {
@@ -126,7 +186,15 @@ export function normalizeHfmReasoningRawPayload(
     snapshotHash: string;
     model: string;
   },
-): unknown {
+): { payload: unknown; meta: HfmNormalizeMeta } {
+  const meta: HfmNormalizeMeta = {
+    marketOverviewProvided: false,
+    timeframeProvided: { H1: false, M30: false, M15: false, M5: false },
+    riskProvided: false,
+    scenariosProvided: false,
+    confidenceRaw: undefined,
+  };
+
   let cur: unknown = raw;
   if (typeof cur === "string") {
     let text = cur.trim();
@@ -136,10 +204,10 @@ export function normalizeHfmReasoningRawPayload(
     try {
       cur = JSON.parse(text) as unknown;
     } catch {
-      return raw;
+      return { payload: raw, meta };
     }
   }
-  if (!isObj(cur)) return cur;
+  if (!isObj(cur)) return { payload: cur, meta };
   for (const key of ["result", "analysis", "data", "output", "payload"]) {
     const nested = cur[key];
     if (isObj(nested) && (isObj(nested.decision) || typeof nested.schemaVersion === "string")) {
@@ -147,65 +215,44 @@ export function normalizeHfmReasoningRawPayload(
       break;
     }
   }
-  if (!isObj(cur)) return cur;
+  if (!isObj(cur)) return { payload: cur, meta };
 
-  /** Parse a section that may be a JSON string; leave other types unchanged. */
-  const maybeParseSection = (v: unknown): unknown => {
-    if (typeof v !== "string") return v;
-    const t = v.trim();
-    if (!t.startsWith("{") && !t.startsWith("[")) return v;
-    try {
-      return JSON.parse(t) as unknown;
-    } catch {
-      return v;
-    }
-  };
-
-  const defaultScenario = (): Record<string, unknown> => ({
-    status: "NOT_SUPPORTED",
-    conditions: [],
-    confirmation: [],
-    invalidation: [],
-  });
-
-  // Coerce flattened decision fields into decision object.
   if (!isObj(cur.decision) && typeof cur.action === "string") {
     cur = {
       ...cur,
       decision: {
         action: cur.action,
-        confidence: cur.confidence ?? cur.confidenceScore ?? 0,
-        confidenceLabel: cur.confidenceLabel ?? "LOW",
+        confidence: cur.confidence ?? cur.confidenceScore,
+        confidenceLabel: cur.confidenceLabel,
         summary: cur.summary ?? cur.explanation ?? "",
       },
     };
   }
   if (isObj(cur.decision)) {
     const d = { ...cur.decision };
+    meta.confidenceRaw = d.confidence;
     const act = enumToken(d.action);
     if (act) d.action = act;
-    if (typeof d.confidence === "string" && d.confidence.trim() !== "") {
-      const n = Number(d.confidence.replace(/%/g, "").trim());
-      if (Number.isFinite(n)) d.confidence = n;
-    }
-    if (typeof d.confidence === "number" && Number.isFinite(d.confidence)) {
-      // gpt-6-luna sometimes returns 0–1 fractions; schema expects 0–100.
-      if (d.confidence > 0 && d.confidence <= 1) d.confidence = d.confidence * 100;
-      d.confidence = Math.round(Math.max(0, Math.min(100, d.confidence)));
-    }
+    const conf = normalizeHfmReasoningConfidence(d.confidence);
+    if (conf.ok) d.confidence = conf.confidence;
+    // leave invalid confidence for validator to reject (no clamp)
     const lab = enumToken(d.confidenceLabel);
-    if (lab && CONF_LABELS.has(lab)) {
-      d.confidenceLabel = lab;
-    } else if (typeof d.confidence === "number") {
-      d.confidenceLabel = d.confidence >= 70 ? "HIGH" : d.confidence >= 40 ? "MODERATE" : "LOW";
+    if (lab && CONF_LABELS.has(lab)) d.confidenceLabel = lab;
+    else if (conf.ok) {
+      d.confidenceLabel = conf.confidence >= 70 ? "HIGH" : conf.confidence >= 40 ? "MODERATE" : "LOW";
     }
     if (d.summary != null && typeof d.summary !== "string") d.summary = String(d.summary);
     if (!d.summary) d.summary = "No summary provided.";
     cur = { ...cur, decision: d };
   }
 
-  // marketOverview — accept alternate key names and synthesize when missing/non-object.
+  // marketOverview — do not invent UNCLEAR/NEUTRAL as model conclusions
   {
+    const hadObject = isObj(maybeParseSection(cur.marketOverview))
+      || cur.marketCondition != null
+      || cur.condition != null
+      || cur.overallBias != null
+      || cur.bias != null;
     let moRaw = maybeParseSection(cur.marketOverview);
     if (!isObj(moRaw)) {
       moRaw = {
@@ -227,57 +274,89 @@ export function normalizeHfmReasoningRawPayload(
     const mc = enumToken(m.marketCondition);
     const ob = enumToken(m.overallBias);
     const ta = enumToken(m.timeframeAlignment);
-    if (mc && CONDITIONS.has(mc)) m.marketCondition = mc;
-    else m.marketCondition = "UNCLEAR";
-    if (ob && BIASES.has(ob)) m.overallBias = ob;
-    else m.overallBias = "NEUTRAL";
-    if (ta && ALIGN.has(ta)) m.timeframeAlignment = ta;
-    else m.timeframeAlignment = "UNCLEAR";
-    if (m.higherTimeframeBias != null && typeof m.higherTimeframeBias !== "string") {
-      m.higherTimeframeBias = String(m.higherTimeframeBias);
+    const anyProvided = Boolean(
+      (mc && CONDITIONS.has(mc) && mc !== HFM_REASONING_NOT_PROVIDED)
+      || (ob && BIASES.has(ob) && ob !== HFM_REASONING_NOT_PROVIDED)
+      || (ta && ALIGN.has(ta) && ta !== HFM_REASONING_NOT_PROVIDED)
+      || (typeof m.higherTimeframeBias === "string" && m.higherTimeframeBias.trim()),
+    );
+    meta.marketOverviewProvided = hadObject && anyProvided;
+    if (!meta.marketOverviewProvided) {
+      m.sectionStatus = "NOT_PROVIDED";
+      m.marketCondition = HFM_REASONING_NOT_PROVIDED;
+      m.overallBias = HFM_REASONING_NOT_PROVIDED;
+      m.higherTimeframeBias = "Not provided by AI.";
+      m.timeframeAlignment = HFM_REASONING_NOT_PROVIDED;
+    } else {
+      m.sectionStatus = "PROVIDED";
+      m.marketCondition = mc && CONDITIONS.has(mc) ? mc : HFM_REASONING_NOT_PROVIDED;
+      m.overallBias = ob && BIASES.has(ob) ? ob : HFM_REASONING_NOT_PROVIDED;
+      m.timeframeAlignment = ta && ALIGN.has(ta) ? ta : HFM_REASONING_NOT_PROVIDED;
+      if (m.higherTimeframeBias != null && typeof m.higherTimeframeBias !== "string") {
+        m.higherTimeframeBias = String(m.higherTimeframeBias);
+      }
+      if (!m.higherTimeframeBias) m.higherTimeframeBias = "Not provided by AI.";
+      if (
+        m.marketCondition === HFM_REASONING_NOT_PROVIDED
+        && m.overallBias === HFM_REASONING_NOT_PROVIDED
+        && m.timeframeAlignment === HFM_REASONING_NOT_PROVIDED
+      ) {
+        meta.marketOverviewProvided = false;
+        m.sectionStatus = "NOT_PROVIDED";
+      }
     }
-    if (!m.higherTimeframeBias) m.higherTimeframeBias = String(m.overallBias ?? "NEUTRAL");
     cur = { ...cur, marketOverview: m };
   }
 
-  // timeframeAnalysis
+  // timeframeAnalysis — missing TF → NOT_PROVIDED (not synthetic NEUTRAL)
   {
     let tfaRaw = maybeParseSection(cur.timeframeAnalysis);
     if (!isObj(tfaRaw)) tfaRaw = {};
     const tfa: Record<string, unknown> = { ...(tfaRaw as Record<string, unknown>) };
     for (const tf of HFM_REASONING_REQUIRED_TFS) {
-      let block = maybeParseSection(tfa[tf] ?? tfa[tf.toLowerCase()] ?? tfa[tf.toUpperCase()]);
+      const block = maybeParseSection(tfa[tf] ?? tfa[tf.toLowerCase()] ?? tfa[tf.toUpperCase()]);
       if (!isObj(block)) {
-        tfa[tf] = {
-          bias: "NEUTRAL",
-          structure: "unavailable",
-          observations: [],
-          supportingEvidence: [],
-          risks: ["Timeframe block missing from model response."],
-        };
+        meta.timeframeProvided[tf] = false;
+        tfa[tf] = notProvidedTfBlock();
         continue;
       }
       const b = { ...block };
       const bias = enumToken(b.bias);
       if (bias) b.bias = bias;
-      else if (!b.bias) b.bias = "NEUTRAL";
       if (b.structure != null && typeof b.structure !== "string") b.structure = String(b.structure);
-      if (!b.structure) b.structure = "unspecified";
       b.observations = coerceStringArray(b.observations);
       b.supportingEvidence = coerceStringArray(b.supportingEvidence ?? b.evidence);
       b.risks = coerceStringArray(b.risks);
+      const hasContent = Boolean(
+        (typeof b.bias === "string" && b.bias && b.bias !== HFM_REASONING_NOT_PROVIDED)
+        || (typeof b.structure === "string" && b.structure.trim() && b.structure !== "Not provided by AI.")
+        || b.observations.length
+        || b.supportingEvidence.length,
+      );
+      if (!hasContent) {
+        meta.timeframeProvided[tf] = false;
+        tfa[tf] = notProvidedTfBlock();
+        continue;
+      }
+      if (!b.bias) b.bias = HFM_REASONING_NOT_PROVIDED;
+      if (!b.structure) b.structure = "unspecified";
+      b.sectionStatus = "PROVIDED";
+      meta.timeframeProvided[tf] = true;
       tfa[tf] = b;
     }
     cur = { ...cur, timeframeAnalysis: tfa };
   }
 
-  // scenarios — object, array, or alternate top-level bullish/bearish keys
+  // scenarios — missing → NOT_SUPPORTED (explicit unsupported, not an active thesis)
   {
     let scRaw = maybeParseSection(cur.scenarios);
     let sc: Record<string, unknown> = {};
+    let hadScenarios = false;
     if (isObj(scRaw)) {
       sc = { ...scRaw };
+      hadScenarios = true;
     } else if (Array.isArray(scRaw)) {
+      hadScenarios = scRaw.length > 0;
       for (const item of scRaw) {
         if (!isObj(item)) continue;
         const name = String(item.name ?? item.side ?? item.type ?? item.scenario ?? "")
@@ -308,6 +387,7 @@ export function normalizeHfmReasoningRawPayload(
       b.invalidation = coerceStringArray(b.invalidation ?? b.invalidations);
       sc[name] = b;
     }
+    meta.scenariosProvided = hadScenarios || isObj(cur.bullish) || isObj(cur.bearish);
     cur = { ...cur, scenarios: { bullish: sc.bullish, bearish: sc.bearish } };
   }
 
@@ -366,9 +446,7 @@ export function normalizeHfmReasoningRawPayload(
       const act = String((cur.decision as Record<string, unknown>).action ?? "");
       if (act === "NO_TRADE" || act === "WAITING_FOR_CONFIRMATION") {
         tp.direction = "NONE";
-        if (!SETUP.has(String(tp.setupStatus)) || act === "WAITING_FOR_CONFIRMATION") {
-          tp.setupStatus = act === "WAITING_FOR_CONFIRMATION" ? "WAITING" : "NOT_APPLICABLE";
-        }
+        tp.setupStatus = act === "WAITING_FOR_CONFIRMATION" ? "WAITING" : "NOT_APPLICABLE";
       }
     }
     cur = { ...cur, tradePlan: tp };
@@ -387,17 +465,26 @@ export function normalizeHfmReasoningRawPayload(
     cur = { ...cur, evidence: ev };
   }
 
-  // riskAssessment
+  // riskAssessment — do not invent MODERATE
   {
+    const hadRisk = isObj(maybeParseSection(cur.riskAssessment ?? cur.risk));
     let raRaw = maybeParseSection(cur.riskAssessment ?? cur.risk);
     if (!isObj(raRaw)) raRaw = {};
     const ra: Record<string, unknown> = { ...(raRaw as Record<string, unknown>) };
     if (ra.riskLevel == null) ra.riskLevel = ra.level ?? ra.risk;
     const rl = enumToken(ra.riskLevel);
-    if (rl && RISK.has(rl)) ra.riskLevel = rl;
-    else ra.riskLevel = "MODERATE";
     ra.reasons = coerceStringArray(ra.reasons);
     ra.reasonsToAvoidTrade = coerceStringArray(ra.reasonsToAvoidTrade ?? ra.avoid ?? ra.reasonsToAvoid);
+    if (rl && RISK.has(rl) && rl !== HFM_REASONING_NOT_PROVIDED) {
+      meta.riskProvided = hadRisk || true;
+      ra.sectionStatus = "PROVIDED";
+      ra.riskLevel = rl;
+    } else {
+      meta.riskProvided = false;
+      ra.sectionStatus = "NOT_PROVIDED";
+      ra.riskLevel = HFM_REASONING_NOT_PROVIDED;
+      if (!ra.reasons.length) ra.reasons = ["Not provided by AI."];
+    }
     cur = { ...cur, riskAssessment: ra };
   }
 
@@ -420,7 +507,7 @@ export function normalizeHfmReasoningRawPayload(
   if (expected) {
     cur = {
       ...cur,
-      schemaVersion: cur.schemaVersion ?? HFM_REASONING_SCHEMA_VERSION,
+      schemaVersion: HFM_REASONING_SCHEMA_VERSION,
       analysisStatus: "COMPLETED",
       provider: "HFM_MT5",
       symbol: expected.symbol,
@@ -435,7 +522,7 @@ export function normalizeHfmReasoningRawPayload(
       acceptsForExecution: false,
     };
   }
-  return cur;
+  return { payload: cur, meta };
 }
 
 export function validateHfmReasoningModelResponse(input: {
@@ -447,8 +534,10 @@ export function validateHfmReasoningModelResponse(input: {
     snapshotHash: string;
     model: string;
   };
+  instrument?: HfmReasoningInstrumentMeta | null;
 }): { ok: true; result: HfmReasoningValidatedResult } | { ok: false; code: string; error: string } {
-  const raw = normalizeHfmReasoningRawPayload(input.raw, input.expected);
+  const { payload, meta } = normalizeHfmReasoningRawPayload(input.raw, input.expected);
+  const raw = payload;
   if (!isObj(raw)) {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "Response is not an object" };
   }
@@ -486,17 +575,21 @@ export function validateHfmReasoningModelResponse(input: {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "decision missing" };
   }
   const action = asString(raw.decision.action);
-  const confidence = asNumber(raw.decision.confidence);
+  const confNorm = normalizeHfmReasoningConfidence(raw.decision.confidence);
+  if (!confNorm.ok) {
+    return { ok: false, code: "INVALID_CONFIDENCE", error: confNorm.error };
+  }
+  const confidence = confNorm.confidence;
   const confidenceLabel = asString(raw.decision.confidenceLabel);
   const summary = asString(raw.decision.summary);
-  if (!action || !ACTIONS.has(action) || confidence == null || confidence < 0 || confidence > 100
-    || !confidenceLabel || !CONF_LABELS.has(confidenceLabel) || !summary) {
+  if (!action || !ACTIONS.has(action) || !confidenceLabel || !CONF_LABELS.has(confidenceLabel) || !summary) {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "decision fields invalid" };
   }
 
   if (!isObj(raw.marketOverview)) {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "marketOverview missing" };
   }
+  const moStatus = (asString(raw.marketOverview.sectionStatus) === "PROVIDED" ? "PROVIDED" : "NOT_PROVIDED") as HfmSectionProvision;
   const marketCondition = asString(raw.marketOverview.marketCondition);
   const overallBias = asString(raw.marketOverview.overallBias);
   const higherTimeframeBias = asString(raw.marketOverview.higherTimeframeBias);
@@ -511,7 +604,8 @@ export function validateHfmReasoningModelResponse(input: {
   }
   const tfBlocks: Record<string, HfmReasoningValidatedResult["timeframeAnalysis"]["H1"]> = {};
   for (const tf of HFM_REASONING_REQUIRED_TFS) {
-    const parsed = parseTfBlock(raw.timeframeAnalysis[tf], tf);
+    const provision: HfmSectionProvision = meta.timeframeProvided[tf] ? "PROVIDED" : "NOT_PROVIDED";
+    const parsed = parseTfBlock(raw.timeframeAnalysis[tf], tf, provision);
     if (!parsed.ok) return { ok: false, code: "INVALID_MODEL_RESPONSE", error: parsed.error };
     tfBlocks[tf] = parsed.value;
   }
@@ -557,7 +651,34 @@ export function validateHfmReasoningModelResponse(input: {
   const takeProfitTargets = tpsRaw as number[];
 
   const decisionAction = action as HfmReasoningDecisionAction;
+  const missingSections: string[] = [];
+  const completenessNotes: string[] = [];
+  for (const tf of HFM_REASONING_REQUIRED_TFS) {
+    if (!meta.timeframeProvided[tf]) {
+      missingSections.push(`timeframeAnalysis.${tf}`);
+      completenessNotes.push(`${tf} analysis not provided by AI`);
+    }
+  }
+  if (!meta.marketOverviewProvided || moStatus === "NOT_PROVIDED") {
+    missingSections.push("marketOverview");
+    completenessNotes.push("Market overview not provided by AI");
+  }
+  if (!meta.riskProvided) {
+    missingSections.push("riskAssessment");
+    completenessNotes.push("Risk assessment not provided by AI");
+  }
+
+  let pricePrecision = buildUnavailablePricePrecision("pending");
+
+  // BUY/SELL require all four TF analyses + market overview (fail closed on gaps)
   if (decisionAction === "BUY" || decisionAction === "SELL") {
+    if (missingSections.some((s) => s.startsWith("timeframeAnalysis.") || s === "marketOverview")) {
+      return {
+        ok: false,
+        code: "INVALID_MODEL_RESPONSE",
+        error: "BUY/SELL rejected: required multi-timeframe or market overview analysis not provided",
+      };
+    }
     if (direction !== decisionAction) {
       return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "direction must match BUY/SELL decision" };
     }
@@ -578,31 +699,66 @@ export function validateHfmReasoningModelResponse(input: {
         return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "SELL takeProfit must be below entry" };
       }
     }
+
+    const priceCheck = validateTradePlanPricesAgainstInstrument({
+      symbol: input.expected.symbol,
+      instrument: input.instrument ?? null,
+      prices: [
+        { label: "entryLow", value: entryLow, required: true },
+        { label: "entryHigh", value: entryHigh, required: true },
+        { label: "stopLoss", value: stopLoss, required: true },
+        ...takeProfitTargets.map((v, i) => ({ label: `takeProfit[${i}]`, value: v, required: true })),
+        { label: "invalidationPrice", value: invalidationPrice, required: false },
+      ],
+    });
+    if (!priceCheck.ok) {
+      return {
+        ok: false,
+        code: priceCheck.precision.source === "UNAVAILABLE"
+          ? "INSTRUMENT_METADATA_UNAVAILABLE"
+          : "INVALID_PRICE_PRECISION",
+        error: priceCheck.error,
+      };
+    }
+    pricePrecision = priceCheck.precision;
   } else {
     if (direction !== "NONE") {
       return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "NO_TRADE/WAITING direction must be NONE" };
     }
+    pricePrecision = input.instrument
+      ? {
+          verified: false,
+          digits: input.instrument.digits,
+          tickSize: input.instrument.tickSize,
+          point: input.instrument.point,
+          source: "HFM_CATALOG" as const,
+          reason: "Not applicable for non-trade decision",
+        }
+      : buildUnavailablePricePrecision("Not applicable for non-trade decision");
   }
 
   if (!isObj(raw.evidence)) {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "evidence missing" };
   }
-  const observedFacts = asStringArray(raw.evidence.observedFacts);
-  const interpretations = asStringArray(raw.evidence.interpretations);
-  const uncertainties = asStringArray(raw.evidence.uncertainties);
-  const missingData = asStringArray(raw.evidence.missingData);
-  const dataQualityWarnings = asStringArray(raw.evidence.dataQualityWarnings);
-  if (!observedFacts || !interpretations || !uncertainties || !missingData || !dataQualityWarnings) {
-    return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "evidence arrays invalid" };
+  const observedFacts = asStringArray(raw.evidence.observedFacts) ?? coerceStringArray(raw.evidence.observedFacts);
+  const interpretations = asStringArray(raw.evidence.interpretations) ?? coerceStringArray(raw.evidence.interpretations);
+  const uncertainties = asStringArray(raw.evidence.uncertainties) ?? coerceStringArray(raw.evidence.uncertainties);
+  let missingData = asStringArray(raw.evidence.missingData) ?? coerceStringArray(raw.evidence.missingData);
+  const dataQualityWarnings = asStringArray(raw.evidence.dataQualityWarnings)
+    ?? coerceStringArray(raw.evidence.dataQualityWarnings);
+  for (const note of completenessNotes) {
+    if (!missingData.includes(note)) missingData = [...missingData, note];
   }
 
   if (!isObj(raw.riskAssessment)) {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "riskAssessment missing" };
   }
+  const riskSection = (asString(raw.riskAssessment.sectionStatus) === "PROVIDED" ? "PROVIDED" : "NOT_PROVIDED") as HfmSectionProvision;
   const riskLevel = asString(raw.riskAssessment.riskLevel);
-  const reasons = asStringArray(raw.riskAssessment.reasons);
-  const reasonsToAvoidTrade = asStringArray(raw.riskAssessment.reasonsToAvoidTrade);
-  if (!riskLevel || !RISK.has(riskLevel) || !reasons || !reasonsToAvoidTrade) {
+  const reasons = asStringArray(raw.riskAssessment.reasons) ?? coerceStringArray(raw.riskAssessment.reasons);
+  const reasonsToAvoidTrade = asStringArray(raw.riskAssessment.reasonsToAvoidTrade)
+    ?? coerceStringArray(raw.riskAssessment.reasonsToAvoidTrade);
+  if (!riskLevel || !RISK.has(riskLevel)) {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "riskAssessment invalid" };
   }
 
@@ -612,20 +768,20 @@ export function validateHfmReasoningModelResponse(input: {
   if (typeof raw.nextConfirmation.required !== "boolean") {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "nextConfirmation.required invalid" };
   }
-  const conditions = asStringArray(raw.nextConfirmation.conditions);
-  const timeframesToWatch = asStringArray(raw.nextConfirmation.timeframesToWatch);
-  if (!conditions || !timeframesToWatch) {
-    return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "nextConfirmation arrays invalid" };
-  }
+  const conditions = asStringArray(raw.nextConfirmation.conditions)
+    ?? coerceStringArray(raw.nextConfirmation.conditions);
+  const timeframesToWatch = asStringArray(raw.nextConfirmation.timeframesToWatch)
+    ?? coerceStringArray(raw.nextConfirmation.timeframesToWatch);
 
   const disclaimer = asString(raw.disclaimer);
   if (disclaimer !== HFM_REASONING_DISCLAIMER) {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "disclaimer mismatch" };
   }
 
+  const incomplete = missingSections.length > 0;
   const result: HfmReasoningValidatedResult = {
     schemaVersion: HFM_REASONING_SCHEMA_VERSION,
-    analysisStatus: "COMPLETED",
+    analysisStatus: incomplete ? "COMPLETED_WITH_GAPS" : "COMPLETED",
     provider: "HFM_MT5",
     symbol: input.expected.symbol.toUpperCase(),
     contextId: input.expected.contextId,
@@ -640,6 +796,7 @@ export function validateHfmReasoningModelResponse(input: {
       summary,
     },
     marketOverview: {
+      sectionStatus: meta.marketOverviewProvided ? "PROVIDED" : "NOT_PROVIDED",
       marketCondition: marketCondition as HfmReasoningValidatedResult["marketOverview"]["marketCondition"],
       overallBias: overallBias as HfmReasoningValidatedResult["marketOverview"]["overallBias"],
       higherTimeframeBias,
@@ -670,6 +827,7 @@ export function validateHfmReasoningModelResponse(input: {
       dataQualityWarnings,
     },
     riskAssessment: {
+      sectionStatus: riskSection,
       riskLevel: riskLevel as HfmReasoningValidatedResult["riskAssessment"]["riskLevel"],
       reasons,
       reasonsToAvoidTrade,
@@ -679,6 +837,12 @@ export function validateHfmReasoningModelResponse(input: {
       conditions,
       timeframesToWatch,
     },
+    completeness: {
+      status: incomplete ? "INCOMPLETE" : "COMPLETE",
+      missingSections,
+      notes: completenessNotes,
+    },
+    pricePrecision,
     disclaimer: HFM_REASONING_DISCLAIMER,
     placesOrders: false,
     mutatesBroker: false,
@@ -699,6 +863,7 @@ export function buildMockValidReasoningPayload(expected: {
 }): Record<string, unknown> {
   const action = expected.action ?? "NO_TRADE";
   const tf = {
+    sectionStatus: "PROVIDED",
     bias: "NEUTRAL",
     structure: "range",
     observations: ["obs"],
@@ -729,6 +894,7 @@ export function buildMockValidReasoningPayload(expected: {
       summary: "Mock summary",
     },
     marketOverview: {
+      sectionStatus: "PROVIDED",
       marketCondition: "UNCLEAR",
       overallBias: "NEUTRAL",
       higherTimeframeBias: "neutral",
@@ -740,9 +906,7 @@ export function buildMockValidReasoningPayload(expected: {
       direction: isTrade ? action : "NONE",
       setupStatus: isTrade ? "READY" : "NOT_APPLICABLE",
       entryZone: isTrade
-        ? action === "BUY"
-          ? { low: 100, high: 101 }
-          : { low: 100, high: 101 }
+        ? { low: 100, high: 101 }
         : { low: null, high: null },
       stopLoss: isTrade ? (action === "BUY" ? 99 : 102) : null,
       takeProfitTargets: isTrade ? (action === "BUY" ? [103] : [98]) : [],
@@ -758,6 +922,7 @@ export function buildMockValidReasoningPayload(expected: {
       dataQualityWarnings: [],
     },
     riskAssessment: {
+      sectionStatus: "PROVIDED",
       riskLevel: "MODERATE",
       reasons: ["r"],
       reasonsToAvoidTrade: isTrade ? [] : ["no setup"],

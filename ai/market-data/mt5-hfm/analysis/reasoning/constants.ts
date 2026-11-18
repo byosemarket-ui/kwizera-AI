@@ -1,9 +1,11 @@
 /**
- * Phase 3 — HFM AI Reasoning constants (analysis-only; no execution).
+ * Phase 3 / 3.1 — HFM AI Reasoning constants (analysis-only; no execution).
  */
 
-export const HFM_REASONING_SCHEMA_VERSION = "hfm-ai-analysis-v1" as const;
-export const HFM_REASONING_PROMPT_VERSION = "hfm-ai-reasoning-prompt-v1" as const;
+/** Current write schema (Phase 3.1). Legacy stored records may still be v1. */
+export const HFM_REASONING_SCHEMA_VERSION = "hfm-ai-analysis-v1.1" as const;
+export const HFM_REASONING_SCHEMA_VERSION_LEGACY = "hfm-ai-analysis-v1" as const;
+export const HFM_REASONING_PROMPT_VERSION = "hfm-ai-reasoning-prompt-v1.1" as const;
 export const HFM_REASONING_PROVIDER = "HFM_MT5" as const;
 
 export const HFM_REASONING_REQUIRED_TFS = ["H1", "M30", "M15", "M5"] as const;
@@ -18,3 +20,5 @@ export const HFM_REASONING_RETENTION_DAYS = 90;
 
 export const HFM_REASONING_DISCLAIMER =
   "Analytical output only. Not execution authorization. No broker orders are placed.";
+
+export const HFM_REASONING_NOT_PROVIDED = "NOT_PROVIDED" as const;

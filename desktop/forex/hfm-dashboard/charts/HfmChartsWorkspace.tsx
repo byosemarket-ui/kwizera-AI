@@ -893,6 +893,47 @@ export function HfmChartsWorkspace() {
               {" · "}
               Confidence is model-reported analytical confidence (not profit probability).
             </div>
+            {(() => {
+              const r = phase3Result.result as {
+                analysisStatus?: string;
+                completeness?: { status?: string; missingSections?: string[]; notes?: string[] };
+                marketOverview?: { sectionStatus?: string };
+                riskAssessment?: { sectionStatus?: string; riskLevel?: string };
+                timeframeAnalysis?: Record<string, { sectionStatus?: string }>;
+                pricePrecision?: { verified?: boolean; reason?: string | null };
+              };
+              const missing = r.completeness?.missingSections ?? [];
+              const tfStatuses = ["H1", "M30", "M15", "M5"].map((tf) => {
+                const st = r.timeframeAnalysis?.[tf]?.sectionStatus;
+                return `${tf}:${st === "NOT_PROVIDED" ? "Not provided by AI" : st === "PROVIDED" ? "provided" : "—"}`;
+              });
+              return (
+                <div data-phase3-completeness="true" style={{ marginTop: 6 }}>
+                  <div>
+                    Completeness: {r.completeness?.status ?? "—"}
+                    {r.analysisStatus === "COMPLETED_WITH_GAPS" ? " · AI analysis incomplete" : ""}
+                  </div>
+                  <div>Timeframes: {tfStatuses.join(" · ")}</div>
+                  <div>
+                    Market overview: {r.marketOverview?.sectionStatus === "NOT_PROVIDED"
+                      ? "Not provided by AI"
+                      : r.marketOverview?.sectionStatus === "PROVIDED"
+                        ? "provided"
+                        : "—"}
+                    {" · "}
+                    Risk: {r.riskAssessment?.sectionStatus === "NOT_PROVIDED"
+                      ? "Not provided by AI"
+                      : (r.riskAssessment?.riskLevel ?? "—")}
+                  </div>
+                  {missing.length ? (
+                    <div data-phase3-missing="true">Missing evidence: {missing.join(", ")}</div>
+                  ) : null}
+                  {r.pricePrecision?.verified === false && r.pricePrecision.reason ? (
+                    <div>Price precision: {r.pricePrecision.reason}</div>
+                  ) : null}
+                </div>
+              );
+            })()}
           </div>
         ) : null}
         <pre className="hfm-charts-contract-preview" hidden>

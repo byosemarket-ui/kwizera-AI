@@ -9,6 +9,7 @@ import {
   openAiChatMultimodalJson,
 } from "../../../../forex-ai/snapshot-openai/openai-client.js";
 import { isOpenAiVisionEligibleModel } from "../../../../forex-ai/multi-image-openai/vision-policy.js";
+import { getHfmCatalogService } from "../../catalog-service.js";
 import {
   HFM_REASONING_OPENAI_TIMEOUT_MS,
   HFM_REASONING_PROMPT_VERSION,
@@ -24,6 +25,7 @@ import {
   setActiveReasoningRecord,
   tryAcquireReasoningLock,
 } from "./job.js";
+import type { HfmReasoningInstrumentMeta } from "./price-precision.js";
 import { buildHfmReasoningSystemPrompt, buildHfmReasoningUserPrompt } from "./prompts.js";
 import { getHfmReasoningStorage } from "./storage.js";
 import type { HfmReasoningErrorCode, HfmReasoningRecord } from "./types.js";
@@ -250,14 +252,31 @@ export async function runHfmAiReasoning(input: {
       snapshotHash: evidence.snapshotHash,
       model,
     };
+    let instrument: HfmReasoningInstrumentMeta | null = null;
+    try {
+      const cat = await getHfmCatalogService().getSymbol(evidence.symbol);
+      if (cat && cat.symbol) {
+        instrument = {
+          symbol: cat.symbol,
+          digits: cat.digits ?? null,
+          point: cat.point ?? null,
+          tickSize: cat.tickSize ?? null,
+          source: "HFM_CATALOG",
+        };
+      }
+    } catch {
+      instrument = null;
+    }
     let validated = validateHfmReasoningModelResponse({
       raw: chat.data,
       expected: expectedIds,
+      instrument,
     });
     if (!validated.ok && typeof chat.rawText === "string") {
       validated = validateHfmReasoningModelResponse({
         raw: chat.rawText,
         expected: expectedIds,
+        instrument,
       });
     }
     if (!validated.ok) {
@@ -291,6 +310,7 @@ export async function runHfmAiReasoning(input: {
         validated = validateHfmReasoningModelResponse({
           raw: repair.data,
           expected: expectedIds,
+          instrument,
         });
       }
       if (!validated.ok) {

@@ -22,6 +22,8 @@ export function buildHfmReasoningSystemPrompt(): string {
     "Session gaps labeled POSSIBLE_SESSION_GAP or UNKNOWN_GAP are not confirmed missing data; disclose the limitation and reduce confidence when relevant.",
     "Never use external news, calendars, or other brokers.",
     `Return ONLY valid JSON matching schemaVersion "${HFM_REASONING_SCHEMA_VERSION}".`,
+    "If you cannot analyze a timeframe, omit that timeframe block rather than inventing NEUTRAL filler.",
+    "If riskLevel is unknown, omit riskAssessment.riskLevel rather than guessing MODERATE.",
     "Include disclaimer exactly:",
     HFM_REASONING_DISCLAIMER,
     "Set placesOrders=false, mutatesBroker=false, acceptsForExecution=false.",
