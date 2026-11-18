@@ -294,11 +294,19 @@ export async function runHfmAiReasoning(input: {
         });
       }
       if (!validated.ok) {
+        const decisionDiag = (() => {
+          const src = repair.ok && repair.data ? repair.data : chat.data;
+          if (!src || typeof src !== "object") return "decision=missing";
+          const dec = (src as Record<string, unknown>).decision;
+          if (!dec || typeof dec !== "object") return `decisionType=${typeof dec}`;
+          const o = dec as Record<string, unknown>;
+          return `decisionKeys=${Object.keys(o).join(",")} action=${String(o.action)} confidenceType=${typeof o.confidence} label=${String(o.confidenceLabel)}`;
+        })();
         record = {
           ...record,
           status: "FAILED",
           errorCode: validated.code as HfmReasoningErrorCode,
-          errorMessage: `${validated.error} (topKeys=${keys})`,
+          errorMessage: `${validated.error} (topKeys=${keys}; ${decisionDiag})`.slice(0, 500),
           usage: {
             promptTokens: numOrNull(usageObj?.prompt_tokens),
             completionTokens: numOrNull(usageObj?.completion_tokens),

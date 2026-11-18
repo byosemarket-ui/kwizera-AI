@@ -127,6 +127,26 @@ export function normalizeHfmReasoningRawPayload(
       },
     };
   }
+  if (isObj(cur.decision)) {
+    const d = { ...cur.decision };
+    if (typeof d.action === "string") d.action = d.action.trim().toUpperCase().replace(/\s+/g, "_");
+    if (typeof d.confidence === "string" && d.confidence.trim() !== "") {
+      const n = Number(d.confidence);
+      if (Number.isFinite(n)) d.confidence = n;
+    }
+    if (typeof d.confidence === "number" && Number.isFinite(d.confidence)) {
+      d.confidence = Math.max(0, Math.min(100, d.confidence));
+    }
+    if (typeof d.confidenceLabel === "string") {
+      const lab = d.confidenceLabel.trim().toUpperCase();
+      d.confidenceLabel = lab === "MEDIUM" ? "MODERATE" : lab;
+    } else if (typeof d.confidence === "number") {
+      d.confidenceLabel = d.confidence >= 70 ? "HIGH" : d.confidence >= 40 ? "MODERATE" : "LOW";
+    }
+    if (d.summary != null && typeof d.summary !== "string") d.summary = String(d.summary);
+    if (!d.summary) d.summary = "No summary provided.";
+    cur = { ...cur, decision: d };
+  }
 
   if (expected) {
     cur = {
