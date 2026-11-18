@@ -110,10 +110,13 @@ export function inspectCandleSeries(
       const gap = c.timestamp - last;
       if (gap > step * 1.5) {
         const missed = Math.max(0, Math.round(gap / step) - 1);
-        missingApprox += missed;
+        // Large gaps (≥12 bars or ≥24h) are treated as session/weekend closures —
+        // warn only; do not inflate HIGH_GAP_RATIO as confirmed missing data.
+        const sessionLike = missed >= 12 || gap >= 86_400;
+        if (!sessionLike) missingApprox += missed;
         warnings.push(
           issue(
-            "POSSIBLE_SESSION_GAP",
+            sessionLike ? "POSSIBLE_SESSION_GAP" : "MISSING_BARS_SUSPECTED",
             `gap ${gap}s (~${missed} bars) between ${last} and ${c.timestamp}`,
             "warning",
             { symbol, timeframe, sourceField: "timestamp" },
