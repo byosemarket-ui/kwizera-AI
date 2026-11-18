@@ -66,6 +66,8 @@ export interface HfmChartsAnalysisSnapshot {
   symbol: string;
   instrumentDescription: string | null;
   timeframe: string;
+  /** True when timeframe is outside the verified live set (M1–D1). */
+  unsupportedTimeframe: boolean;
   historicalCandles: HfmChartsAnalysisCandle[];
   currentCandle: HfmChartsAnalysisCandle | null;
   bid: number | null;
@@ -75,14 +77,21 @@ export interface HfmChartsAnalysisSnapshot {
   tickTimestamp: number | null;
   receiveTimestamp: string | null;
   freshness: HfmChartsAnalysisFreshness;
+  connectionStatus: string;
   validationStatus: HfmChartsAnalysisValidationStatus;
   indicatorDefinitions: HfmChartsAnalysisIndicatorDefinition[];
+  /** Optional last computed indicator values for the forming tip (read-only). */
+  indicatorValues: Array<{ id: string; name: string; value: number | null }>;
   sourceIdentity: string;
   sourceProvenance: string;
+  /** Analysis may request any timeframe independently of the visible chart. */
+  analysisMayRequestIndependentTimeframe: true;
   placesOrders: false;
   mutatesBroker: false;
   acceptsForExecution: false;
 }
+
+const VERIFIED_LIVE = new Set(["M1", "M5", "M15", "M30", "H1", "H4", "D1"]);
 
 /** Builder used by STEP 3/Analysis consumers — no signals. */
 export function buildHfmChartsAnalysisSnapshot(input: {
@@ -95,22 +104,27 @@ export function buildHfmChartsAnalysisSnapshot(input: {
   ask?: number | null;
   latestTick?: HfmChartsAnalysisTick | null;
   freshness: HfmChartsAnalysisFreshness;
+  connectionStatus?: string;
   validationStatus: HfmChartsAnalysisValidationStatus;
   sourceProvenance: string;
   indicatorDefinitions?: HfmChartsAnalysisIndicatorDefinition[];
+  indicatorValues?: Array<{ id: string; name: string; value: number | null }>;
 }): HfmChartsAnalysisSnapshot {
   const bid = input.bid ?? input.latestTick?.bid ?? null;
   const ask = input.ask ?? input.latestTick?.ask ?? null;
-  const spread =
-    bid != null && ask != null && Number.isFinite(bid) && Number.isFinite(ask) && ask >= bid
-      ? ask - bid
-      : null;
+  let spread: number | null = null;
+  if (bid != null && ask != null && Number.isFinite(bid) && Number.isFinite(ask) && ask >= bid) {
+    // Prefer rounded display-safe spread in the contract (digits ≈ 5 fallback).
+    spread = Math.round((ask - bid) * 1e10) / 1e10;
+  }
+  const tf = input.timeframe.toUpperCase();
   return {
     provider: HFM_CHARTS_ANALYSIS_PROVIDER,
     environment: HFM_CHARTS_ANALYSIS_ENVIRONMENT,
     symbol: input.symbol.toUpperCase(),
     instrumentDescription: input.instrumentDescription ?? null,
     timeframe: input.timeframe,
+    unsupportedTimeframe: !VERIFIED_LIVE.has(tf),
     historicalCandles: input.historicalCandles,
     currentCandle: input.currentCandle ?? null,
     bid,
@@ -120,10 +134,13 @@ export function buildHfmChartsAnalysisSnapshot(input: {
     tickTimestamp: input.latestTick?.brokerTimestamp ?? null,
     receiveTimestamp: input.latestTick?.receiveTimestamp ?? null,
     freshness: input.freshness,
+    connectionStatus: input.connectionStatus ?? input.freshness,
     validationStatus: input.validationStatus,
     indicatorDefinitions: input.indicatorDefinitions ?? [],
+    indicatorValues: input.indicatorValues ?? [],
     sourceIdentity: "HFM_MT5",
     sourceProvenance: input.sourceProvenance,
+    analysisMayRequestIndependentTimeframe: true,
     placesOrders: false,
     mutatesBroker: false,
     acceptsForExecution: false,

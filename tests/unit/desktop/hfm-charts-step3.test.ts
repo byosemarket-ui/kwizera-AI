@@ -117,9 +117,11 @@ describe("STEP 3 HFM Charts workspace", () => {
     const api = read("desktop/forex/hfm-dashboard/charts/api.ts");
     expect(api).toContain("/charts/drawings");
     expect(api).toContain("/charts/templates");
+    expect(api).toContain("/charts/preferences");
     const ws = read("desktop/forex/hfm-dashboard/charts/HfmChartsWorkspace.tsx");
     expect(ws).toContain("saveHfmChartDrawings");
     expect(ws).toContain("saveHfmChartTemplate");
+    expect(ws).toContain("saveHfmChartPreferences");
     expect(ws).toContain("formatHfmSpread");
     expect(ws).toContain("Selected drawing");
   });

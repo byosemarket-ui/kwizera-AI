@@ -226,7 +226,8 @@ export async function handleMt5HfmApi(
 
   const chartsWorkspacePath =
     url.pathname === "/api/forex/providers/mt5-hfm/charts/drawings" ||
-    url.pathname === "/api/forex/providers/mt5-hfm/charts/templates";
+    url.pathname === "/api/forex/providers/mt5-hfm/charts/templates" ||
+    url.pathname === "/api/forex/providers/mt5-hfm/charts/preferences";
   const chartsMutationMethod =
     chartsWorkspacePath &&
     (req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE");
@@ -1037,13 +1038,16 @@ export async function handleMt5HfmApi(
       const symbol = String(url.searchParams.get("symbol") || "").toUpperCase();
       const timeframe = String(url.searchParams.get("timeframe") || "").toUpperCase();
       const store = getHfmChartsWorkspaceStore();
+      const state = await store.load();
       const drawings = await store.listDrawings(symbol || undefined, timeframe || undefined);
+      const revisionKey = symbol && timeframe ? store.scopeKey(symbol, timeframe) : null;
       const payload = {
         ok: true,
         provider: "HFM_MT5" as const,
         symbol: symbol || null,
         timeframe: timeframe || null,
         drawings,
+        revision: revisionKey ? (state.drawingRevisions[revisionKey] ?? 0) : null,
         placesOrders: false,
         mutatesBroker: false,
         acceptsForExecution: false,
@@ -1065,17 +1069,34 @@ export async function handleMt5HfmApi(
         return true;
       }
       const store = getHfmChartsWorkspaceStore();
-      const drawings = await store.putDrawingsForScope(
+      const expectedRevision =
+        typeof body.expectedRevision === "number" ? body.expectedRevision : null;
+      const result = await store.putDrawingsForScope(
         symbol,
         timeframe,
         Array.isArray(body.drawings) ? body.drawings : [],
+        expectedRevision,
       );
+      if (result.conflict) {
+        sendJson(res, 409, {
+          ok: false,
+          conflict: true,
+          revision: result.revision,
+          drawings: result.drawings,
+          error: { code: "REVISION_CONFLICT", message: "Drawings were updated elsewhere; reload and retry." },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
       const payload = {
         ok: true,
         provider: "HFM_MT5" as const,
         symbol,
         timeframe,
-        drawings,
+        drawings: result.drawings,
+        revision: result.revision,
         placesOrders: false,
         mutatesBroker: false,
         acceptsForExecution: false,
@@ -1169,6 +1190,50 @@ export async function handleMt5HfmApi(
       const id = String(body.id ?? url.searchParams.get("id") ?? "");
       const ok = id ? await getHfmChartsWorkspaceStore().deleteTemplate(id) : false;
       sendJson(res, ok ? 200 : 404, { ok, provider: "HFM_MT5", id });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/charts/preferences" && req.method === "GET") {
+      const prefs = await getHfmChartsWorkspaceStore().getPreferences();
+      sendJson(res, 200, {
+        ok: true,
+        provider: "HFM_MT5",
+        preferences: prefs,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/charts/preferences" && req.method === "PUT") {
+      const body = await readJsonBody(req, CHARTS_WORKSPACE_BODY_MAX);
+      const expectedRevision =
+        typeof body.expectedRevision === "number" ? body.expectedRevision : null;
+      const result = await getHfmChartsWorkspaceStore().putPreferences(
+        body.preferences ?? body,
+        expectedRevision,
+      );
+      if (result.conflict) {
+        sendJson(res, 409, {
+          ok: false,
+          conflict: true,
+          preferences: result.preferences,
+          error: { code: "REVISION_CONFLICT", message: "Preferences were updated elsewhere; reload and retry." },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        provider: "HFM_MT5",
+        preferences: result.preferences,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
       return true;
     }
 

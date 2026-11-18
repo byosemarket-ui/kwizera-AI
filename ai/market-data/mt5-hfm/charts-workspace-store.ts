@@ -64,23 +64,97 @@ export interface HfmChartTemplate {
   isDefault?: boolean;
 }
 
+/** Workspace preferences — no candles, quotes, or credentials. */
+export interface HfmChartWorkspacePreferences {
+  chartType: "candlestick" | "ohlc" | "line" | "area";
+  showGrid: boolean;
+  defaultTimeframe: string;
+  lastSymbol: string | null;
+  indicators: Array<Record<string, unknown>>;
+  updatedAt: string;
+  /** Monotonic revision for optimistic concurrency on preference writes. */
+  revision: number;
+}
+
 export interface HfmChartsWorkspacePayload {
   provider: "HFM_MT5";
-  version: 1;
+  version: 1 | 2;
   updatedAt: string;
   drawings: HfmChartWorkspaceDrawing[];
   templates: HfmChartTemplate[];
   defaultTemplateId: string | null;
+  preferences: HfmChartWorkspacePreferences | null;
+  /** Per symbol:timeframe revision for concurrent drawing saves. */
+  drawingRevisions: Record<string, number>;
+}
+
+function emptyPreferences(): HfmChartWorkspacePreferences {
+  return {
+    chartType: "candlestick",
+    showGrid: true,
+    defaultTimeframe: "H4",
+    lastSymbol: null,
+    indicators: [],
+    updatedAt: new Date().toISOString(),
+    revision: 1,
+  };
 }
 
 function emptyPayload(): HfmChartsWorkspacePayload {
   return {
     provider: "HFM_MT5",
-    version: 1,
+    version: 2,
     updatedAt: new Date().toISOString(),
     drawings: [],
     templates: [],
     defaultTemplateId: null,
+    preferences: null,
+    drawingRevisions: {},
+  };
+}
+
+const CHART_TYPES = new Set(["candlestick", "ohlc", "line", "area"]);
+
+export function validateHfmChartPreferences(raw: unknown): HfmChartWorkspacePreferences | null {
+  if (!raw || typeof raw !== "object") return null;
+  const p = raw as Record<string, unknown>;
+  const chartType = typeof p.chartType === "string" && CHART_TYPES.has(p.chartType)
+    ? (p.chartType as HfmChartWorkspacePreferences["chartType"])
+    : "candlestick";
+  const defaultTimeframe =
+    typeof p.defaultTimeframe === "string" && p.defaultTimeframe.trim()
+      ? p.defaultTimeframe.trim().toUpperCase().slice(0, 8)
+      : "H4";
+  const lastSymbol =
+    typeof p.lastSymbol === "string" && p.lastSymbol.trim()
+      ? p.lastSymbol.trim().toUpperCase().slice(0, 32)
+      : null;
+  const indicators = Array.isArray(p.indicators)
+    ? p.indicators
+        .filter((x) => x && typeof x === "object")
+        .map((x) => {
+          const row = { ...(x as Record<string, unknown>) };
+          delete row.bars;
+          delete row.candles;
+          delete row.prices;
+          delete row.bid;
+          delete row.ask;
+          return row;
+        })
+        .slice(0, 40)
+    : [];
+  const revision =
+    typeof p.revision === "number" && Number.isFinite(p.revision) && p.revision >= 0
+      ? Math.floor(p.revision)
+      : 1;
+  return {
+    chartType,
+    showGrid: p.showGrid !== false,
+    defaultTimeframe,
+    lastSymbol,
+    indicators,
+    updatedAt: typeof p.updatedAt === "string" ? p.updatedAt : new Date().toISOString(),
+    revision,
   };
 }
 
@@ -211,14 +285,24 @@ export class HfmChartsWorkspaceStore {
       const templates = Array.isArray(parsed.templates)
         ? parsed.templates.map(validateHfmChartTemplate).filter((t): t is HfmChartTemplate => Boolean(t))
         : [];
+      const drawingRevisions =
+        parsed.drawingRevisions && typeof parsed.drawingRevisions === "object"
+          ? Object.fromEntries(
+              Object.entries(parsed.drawingRevisions as Record<string, unknown>)
+                .filter(([, v]) => typeof v === "number" && Number.isFinite(v))
+                .map(([k, v]) => [k, Math.floor(v as number)]),
+            )
+          : {};
       return {
         provider: "HFM_MT5",
-        version: 1,
+        version: 2,
         updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : new Date().toISOString(),
         drawings,
         templates,
         defaultTemplateId:
           typeof parsed.defaultTemplateId === "string" ? parsed.defaultTemplateId : null,
+        preferences: validateHfmChartPreferences(parsed.preferences),
+        drawingRevisions,
       };
     } catch {
       return emptyPayload();
@@ -228,11 +312,13 @@ export class HfmChartsWorkspaceStore {
   async save(payload: HfmChartsWorkspacePayload): Promise<HfmChartsWorkspacePayload> {
     const next: HfmChartsWorkspacePayload = {
       provider: "HFM_MT5",
-      version: 1,
+      version: 2,
       updatedAt: new Date().toISOString(),
       drawings: payload.drawings.map(validateHfmChartDrawing).filter((d): d is HfmChartWorkspaceDrawing => Boolean(d)),
       templates: payload.templates.map(validateHfmChartTemplate).filter((t): t is HfmChartTemplate => Boolean(t)),
       defaultTemplateId: payload.defaultTemplateId,
+      preferences: validateHfmChartPreferences(payload.preferences) ?? payload.preferences,
+      drawingRevisions: payload.drawingRevisions ?? {},
     };
     await atomicWriteJson(this.statePath(), next);
     return next;
@@ -247,24 +333,85 @@ export class HfmChartsWorkspaceStore {
     });
   }
 
+  scopeKey(symbol: string, timeframe: string): string {
+    return `${symbol.toUpperCase()}:${timeframe.toUpperCase()}`;
+  }
+
+  /**
+   * Replace drawings for one symbol/timeframe.
+   * When `expectedRevision` is provided and mismatches, returns conflict (no write).
+   */
   async putDrawingsForScope(
     symbol: string,
     timeframe: string,
     drawings: unknown[],
-  ): Promise<HfmChartWorkspaceDrawing[]> {
+    expectedRevision?: number | null,
+  ): Promise<{
+    drawings: HfmChartWorkspaceDrawing[];
+    revision: number;
+    conflict: boolean;
+  }> {
     const state = await this.load();
     const sym = symbol.toUpperCase();
     const tf = timeframe.toUpperCase();
+    const key = this.scopeKey(sym, tf);
+    const currentRev = state.drawingRevisions[key] ?? 0;
+    if (
+      typeof expectedRevision === "number" &&
+      Number.isFinite(expectedRevision) &&
+      expectedRevision !== currentRev
+    ) {
+      return {
+        drawings: state.drawings.filter((d) => d.symbol === sym && d.timeframe === tf),
+        revision: currentRev,
+        conflict: true,
+      };
+    }
     const kept = state.drawings.filter((d) => !(d.symbol === sym && d.timeframe === tf));
     const incoming = drawings
       .map(validateHfmChartDrawing)
       .filter((d): d is HfmChartWorkspaceDrawing => Boolean(d))
-      .map((d) => ({ ...d, symbol: sym, timeframe: tf }));
+      .map((d) => ({ ...d, symbol: sym, timeframe: tf }))
+      .slice(0, 200);
+    const nextRev = currentRev + 1;
     const next = await this.save({
       ...state,
       drawings: [...kept, ...incoming].slice(0, 500),
+      drawingRevisions: { ...state.drawingRevisions, [key]: nextRev },
     });
-    return next.drawings.filter((d) => d.symbol === sym && d.timeframe === tf);
+    return {
+      drawings: next.drawings.filter((d) => d.symbol === sym && d.timeframe === tf),
+      revision: nextRev,
+      conflict: false,
+    };
+  }
+
+  async getPreferences(): Promise<HfmChartWorkspacePreferences | null> {
+    return (await this.load()).preferences;
+  }
+
+  async putPreferences(
+    raw: unknown,
+    expectedRevision?: number | null,
+  ): Promise<{ preferences: HfmChartWorkspacePreferences; conflict: boolean }> {
+    const state = await this.load();
+    const incoming = validateHfmChartPreferences(raw) ?? emptyPreferences();
+    const current = state.preferences;
+    if (
+      current &&
+      typeof expectedRevision === "number" &&
+      Number.isFinite(expectedRevision) &&
+      expectedRevision !== current.revision
+    ) {
+      return { preferences: current, conflict: true };
+    }
+    const preferences: HfmChartWorkspacePreferences = {
+      ...incoming,
+      revision: (current?.revision ?? 0) + 1,
+      updatedAt: new Date().toISOString(),
+    };
+    await this.save({ ...state, preferences });
+    return { preferences, conflict: false };
   }
 
   async clearDrawingsForScope(symbol: string, timeframe: string): Promise<number> {

@@ -213,7 +213,7 @@ describe("STEP 3 drawings + templates persistence", () => {
     const dir = mkdtempSync(join(tmpdir(), "hfm-charts-"));
     try {
       const store = new HfmChartsWorkspaceStore(dir);
-      await store.putDrawingsForScope("XAUUSD", "H4", [
+      const put = await store.putDrawingsForScope("XAUUSD", "H4", [
         {
           id: "d1",
           tool: "hline",
@@ -226,6 +226,8 @@ describe("STEP 3 drawings + templates persistence", () => {
           price: 2000,
         },
       ]);
+      expect(put.conflict).toBe(false);
+      expect(put.revision).toBeGreaterThan(0);
       const listed = await store.listDrawings("XAUUSD", "H4");
       expect(listed).toHaveLength(1);
       expect(await store.listDrawings("EURUSD", "H4")).toHaveLength(0);

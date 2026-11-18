@@ -15,6 +15,17 @@ const QUOTE_WATCH = "/api/forex/providers/mt5-hfm/market/quote-watch";
 const QUOTE = "/api/forex/providers/mt5-hfm/quotes";
 const DRAWINGS = "/api/forex/providers/mt5-hfm/charts/drawings";
 const TEMPLATES = "/api/forex/providers/mt5-hfm/charts/templates";
+const PREFERENCES = "/api/forex/providers/mt5-hfm/charts/preferences";
+
+export interface HfmChartPreferencesPayload {
+  chartType: "candlestick" | "ohlc" | "line" | "area";
+  showGrid: boolean;
+  defaultTimeframe: string;
+  lastSymbol: string | null;
+  indicators: Array<Record<string, unknown>>;
+  updatedAt?: string;
+  revision?: number;
+}
 
 async function requestJson<T>(
   path: string,
@@ -200,14 +211,14 @@ export async function fetchHfmChartDrawings(
   symbol: string,
   timeframe: string,
   signal?: AbortSignal,
-): Promise<HfmDrawing[]> {
+): Promise<{ drawings: HfmDrawing[]; revision: number }> {
   const path = `${DRAWINGS}?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`;
   try {
-    const { status, body } = await requestJson<{ drawings?: HfmDrawing[] }>(path, { signal });
-    if (status >= 400 || !Array.isArray(body.drawings)) return [];
-    return body.drawings;
+    const { status, body } = await requestJson<{ drawings?: HfmDrawing[]; revision?: number }>(path, { signal });
+    if (status >= 400 || !Array.isArray(body.drawings)) return { drawings: [], revision: 0 };
+    return { drawings: body.drawings, revision: typeof body.revision === "number" ? body.revision : 0 };
   } catch {
-    return [];
+    return { drawings: [], revision: 0 };
   }
 }
 
@@ -215,14 +226,61 @@ export async function saveHfmChartDrawings(
   symbol: string,
   timeframe: string,
   drawings: HfmDrawing[],
+  expectedRevision?: number | null,
   signal?: AbortSignal,
-): Promise<HfmDrawing[]> {
-  const { body } = await requestJson<{ drawings?: HfmDrawing[] }>(DRAWINGS, {
+): Promise<{ drawings: HfmDrawing[]; revision: number; conflict: boolean }> {
+  const { status, body } = await requestJson<{
+    drawings?: HfmDrawing[];
+    revision?: number;
+    conflict?: boolean;
+  }>(DRAWINGS, {
     method: "PUT",
     signal,
-    body: { symbol, timeframe, drawings },
+    body: { symbol, timeframe, drawings, expectedRevision: expectedRevision ?? undefined },
   });
-  return Array.isArray(body.drawings) ? body.drawings : drawings;
+  return {
+    drawings: Array.isArray(body.drawings) ? body.drawings : drawings,
+    revision: typeof body.revision === "number" ? body.revision : expectedRevision ?? 0,
+    conflict: status === 409 || Boolean(body.conflict),
+  };
+}
+
+export async function fetchHfmChartPreferences(
+  signal?: AbortSignal,
+): Promise<HfmChartPreferencesPayload | null> {
+  try {
+    const { status, body } = await requestJson<{ preferences?: HfmChartPreferencesPayload | null }>(
+      PREFERENCES,
+      { signal },
+    );
+    if (status >= 400) return null;
+    return body.preferences ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveHfmChartPreferences(
+  preferences: HfmChartPreferencesPayload,
+  expectedRevision?: number | null,
+  signal?: AbortSignal,
+): Promise<{ preferences: HfmChartPreferencesPayload | null; conflict: boolean }> {
+  try {
+    const { status, body } = await requestJson<{
+      preferences?: HfmChartPreferencesPayload;
+      conflict?: boolean;
+    }>(PREFERENCES, {
+      method: "PUT",
+      signal,
+      body: { preferences, expectedRevision: expectedRevision ?? undefined },
+    });
+    return {
+      preferences: body.preferences ?? null,
+      conflict: status === 409 || Boolean(body.conflict),
+    };
+  } catch {
+    return { preferences: null, conflict: false };
+  }
 }
 
 export async function clearHfmChartDrawings(

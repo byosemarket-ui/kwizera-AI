@@ -12,9 +12,11 @@ import {
   clearHfmChartDrawings,
   deleteHfmChartTemplate,
   fetchHfmChartDrawings,
+  fetchHfmChartPreferences,
   fetchHfmChartTemplates,
   renameHfmChartTemplate,
   saveHfmChartDrawings,
+  saveHfmChartPreferences,
   saveHfmChartTemplate,
   setDefaultHfmChartTemplate,
 } from "./api";
@@ -81,7 +83,11 @@ export function HfmChartsWorkspace() {
   const [persistNote, setPersistNote] = useState<string | null>(null);
   const chartRef = useRef<HfmChartEngineHandle>(null);
   const persistTimer = useRef<number | null>(null);
+  const prefsTimer = useRef<number | null>(null);
   const drawingsHydrated = useRef(false);
+  const prefsHydrated = useRef(false);
+  const drawingRevisionRef = useRef(0);
+  const prefsRevisionRef = useRef(0);
 
   const series = useHfmChartData(symbol, timeframe);
   const digits = series.quote.digits ?? (symbol.includes("XAU") || symbol.includes("XAG") ? 2 : 5);
@@ -106,15 +112,31 @@ export function HfmChartsWorkspace() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const pack = await fetchHfmChartTemplates();
+      const [pack, prefs] = await Promise.all([
+        fetchHfmChartTemplates(),
+        fetchHfmChartPreferences(),
+      ]);
       if (cancelled) return;
       setTemplates(pack.templates);
       setDefaultTemplateId(pack.defaultTemplateId);
-      const def = pack.templates.find((t) => t.id === pack.defaultTemplateId);
-      if (def) {
-        setChartType(def.chartType);
-        setShowGrid(def.showGrid);
-        if (def.indicators?.length) setIndicators(def.indicators);
+      if (prefs) {
+        prefsRevisionRef.current = prefs.revision ?? 0;
+        setChartType(prefs.chartType);
+        setShowGrid(prefs.showGrid);
+        if (prefs.defaultTimeframe) setTimeframe(prefs.defaultTimeframe as HfmChartTimeframe);
+        if (prefs.lastSymbol) setSymbol(prefs.lastSymbol);
+        if (prefs.indicators?.length) {
+          setIndicators(prefs.indicators as HfmIndicatorConfig[]);
+        }
+        prefsHydrated.current = true;
+      } else {
+        const def = pack.templates.find((t) => t.id === pack.defaultTemplateId);
+        if (def) {
+          setChartType(def.chartType);
+          setShowGrid(def.showGrid);
+          if (def.indicators?.length) setIndicators(def.indicators);
+        }
+        prefsHydrated.current = true;
       }
     })();
     return () => {
@@ -127,11 +149,12 @@ export function HfmChartsWorkspace() {
     drawingsHydrated.current = false;
     setSelectedDrawingId(null);
     (async () => {
-      const rows = await fetchHfmChartDrawings(symbol, timeframe);
+      const pack = await fetchHfmChartDrawings(symbol, timeframe);
       if (cancelled) return;
+      drawingRevisionRef.current = pack.revision;
       setDrawings((prev) => {
         const others = prev.filter((d) => !(d.symbol === symbol && d.timeframe === timeframe));
-        return [...others, ...rows];
+        return [...others, ...pack.drawings];
       });
       drawingsHydrated.current = true;
     })();
@@ -145,11 +168,48 @@ export function HfmChartsWorkspace() {
     if (persistTimer.current) window.clearTimeout(persistTimer.current);
     persistTimer.current = window.setTimeout(() => {
       const scope = next.filter((d) => d.symbol === symbol && d.timeframe === timeframe);
-      void saveHfmChartDrawings(symbol, timeframe, scope)
-        .then(() => setPersistNote("Drawings saved"))
+      void saveHfmChartDrawings(symbol, timeframe, scope, drawingRevisionRef.current)
+        .then((res) => {
+          if (res.conflict) {
+            setPersistNote("Drawing save conflict — reloaded");
+            drawingRevisionRef.current = res.revision;
+            setDrawings((prev) => {
+              const others = prev.filter((d) => !(d.symbol === symbol && d.timeframe === timeframe));
+              return [...others, ...res.drawings];
+            });
+            return;
+          }
+          drawingRevisionRef.current = res.revision;
+          setPersistNote("Drawings saved");
+        })
         .catch(() => setPersistNote("Drawing save failed"));
     }, 450);
   }, [symbol, timeframe]);
+
+  // Debounced chart preferences (not every tick).
+  useEffect(() => {
+    if (!prefsHydrated.current) return;
+    if (prefsTimer.current) window.clearTimeout(prefsTimer.current);
+    prefsTimer.current = window.setTimeout(() => {
+      void saveHfmChartPreferences(
+        {
+          chartType,
+          showGrid,
+          defaultTimeframe: timeframe,
+          lastSymbol: symbol,
+          indicators: indicators as unknown as Array<Record<string, unknown>>,
+        },
+        prefsRevisionRef.current,
+      ).then((res) => {
+        if (res.conflict && res.preferences) {
+          prefsRevisionRef.current = res.preferences.revision ?? prefsRevisionRef.current;
+          setPersistNote("Preferences conflict — kept server copy");
+          return;
+        }
+        if (res.preferences?.revision != null) prefsRevisionRef.current = res.preferences.revision;
+      });
+    }, 1200);
+  }, [chartType, showGrid, timeframe, symbol, indicators]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -228,6 +288,7 @@ export function HfmChartsWorkspace() {
         : series.status === "DISCONNECTED" ? "DISCONNECTED"
           : series.status === "EMPTY" || series.status === "UNAVAILABLE" ? "NO_HISTORY"
             : "WAITING_FOR_DATA",
+    connectionStatus: series.status,
     validationStatus: series.bars.length ? "ok" : "unavailable",
     sourceProvenance: series.source ?? "HFM_MT5",
     indicatorDefinitions: indicators.map((i) => ({
