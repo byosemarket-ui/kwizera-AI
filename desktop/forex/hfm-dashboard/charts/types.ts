@@ -82,7 +82,18 @@ export interface HfmDrawingBase {
   lineWidth: number;
   lineStyle: "solid" | "dashed" | "dotted";
   visible: boolean;
+  locked?: boolean;
   label?: string;
+}
+
+export interface HfmChartTemplate {
+  id: string;
+  name: string;
+  chartType: HfmChartTypeId;
+  showGrid: boolean;
+  indicators: HfmIndicatorConfig[];
+  updatedAt: string;
+  isDefault?: boolean;
 }
 
 export interface HfmPricePoint {

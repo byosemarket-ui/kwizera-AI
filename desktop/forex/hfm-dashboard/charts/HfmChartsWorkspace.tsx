@@ -7,9 +7,21 @@ import type { HfmCatalogInstrument } from "../../../../ai/market-data/mt5-hfm/ca
 import { useHfmRealtimeStore } from "../hfm-realtime-store";
 import { HfmChartEngine, type HfmChartEngineHandle, type HfmCrosshairInfo } from "./HfmChartEngine";
 import { useHfmChartData } from "./use-hfm-chart-data";
+import { formatHfmSpread, isLiveFormingTimeframe } from "./live-forming";
+import {
+  clearHfmChartDrawings,
+  deleteHfmChartTemplate,
+  fetchHfmChartDrawings,
+  fetchHfmChartTemplates,
+  renameHfmChartTemplate,
+  saveHfmChartDrawings,
+  saveHfmChartTemplate,
+  setDefaultHfmChartTemplate,
+} from "./api";
 import {
   HFM_CHART_TIMEFRAMES,
   isVerifiedHfmChartTf,
+  type HfmChartTemplate,
   type HfmChartTimeframe,
   type HfmChartTypeId,
   type HfmDrawing,
@@ -55,6 +67,7 @@ export function HfmChartsWorkspace() {
   const [drawings, setDrawings] = useState<HfmDrawing[]>([]);
   const [undoStack, setUndoStack] = useState<HfmDrawing[][]>([]);
   const [redoStack, setRedoStack] = useState<HfmDrawing[][]>([]);
+  const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null);
   const [indicators, setIndicators] = useState<HfmIndicatorConfig[]>([
     { id: "ema-50", kind: "ema", period: 50, visible: true, color: "#60a5fa" },
     { id: "ema-200", kind: "ema", period: 200, visible: true, color: "#e879f9" },
@@ -63,10 +76,16 @@ export function HfmChartsWorkspace() {
   const [addKind, setAddKind] = useState<HfmIndicatorKind>("sma");
   const [showGrid, setShowGrid] = useState(true);
   const [crosshair, setCrosshair] = useState<HfmCrosshairInfo | null>(null);
+  const [templates, setTemplates] = useState<HfmChartTemplate[]>([]);
+  const [defaultTemplateId, setDefaultTemplateId] = useState<string | null>(null);
+  const [persistNote, setPersistNote] = useState<string | null>(null);
   const chartRef = useRef<HfmChartEngineHandle>(null);
+  const persistTimer = useRef<number | null>(null);
+  const drawingsHydrated = useRef(false);
 
   const series = useHfmChartData(symbol, timeframe);
   const digits = series.quote.digits ?? (symbol.includes("XAU") || symbol.includes("XAG") ? 2 : 5);
+  const liveCapable = isLiveFormingTimeframe(timeframe);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +103,54 @@ export function HfmChartsWorkspace() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const pack = await fetchHfmChartTemplates();
+      if (cancelled) return;
+      setTemplates(pack.templates);
+      setDefaultTemplateId(pack.defaultTemplateId);
+      const def = pack.templates.find((t) => t.id === pack.defaultTemplateId);
+      if (def) {
+        setChartType(def.chartType);
+        setShowGrid(def.showGrid);
+        if (def.indicators?.length) setIndicators(def.indicators);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    drawingsHydrated.current = false;
+    setSelectedDrawingId(null);
+    (async () => {
+      const rows = await fetchHfmChartDrawings(symbol, timeframe);
+      if (cancelled) return;
+      setDrawings((prev) => {
+        const others = prev.filter((d) => !(d.symbol === symbol && d.timeframe === timeframe));
+        return [...others, ...rows];
+      });
+      drawingsHydrated.current = true;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol, timeframe]);
+
+  const schedulePersistDrawings = useCallback((next: HfmDrawing[]) => {
+    if (!drawingsHydrated.current) return;
+    if (persistTimer.current) window.clearTimeout(persistTimer.current);
+    persistTimer.current = window.setTimeout(() => {
+      const scope = next.filter((d) => d.symbol === symbol && d.timeframe === timeframe);
+      void saveHfmChartDrawings(symbol, timeframe, scope)
+        .then(() => setPersistNote("Drawings saved"))
+        .catch(() => setPersistNote("Drawing save failed"));
+    }, 450);
+  }, [symbol, timeframe]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return catalog.slice(0, 80);
@@ -100,16 +167,29 @@ export function HfmChartsWorkspace() {
     setUndoStack((u) => [...u.slice(-30), drawings]);
     setRedoStack([]);
     setDrawings(next);
-  }, [drawings]);
+    schedulePersistDrawings(next);
+  }, [drawings, schedulePersistDrawings]);
 
   const commitDrawing = useCallback((d: HfmDrawing) => {
     pushDrawings([...drawings, d]);
+    setSelectedDrawingId(d.id);
+    setActiveTool("cursor");
   }, [drawings, pushDrawings]);
+
+  const updateDrawing = useCallback((d: HfmDrawing) => {
+    setDrawings((cur) => {
+      const next = cur.map((x) => (x.id === d.id ? d : x));
+      schedulePersistDrawings(next);
+      return next;
+    });
+  }, [schedulePersistDrawings]);
 
   const visibleDrawings = useMemo(
     () => drawings.filter((d) => d.symbol === symbol && d.timeframe === timeframe),
     [drawings, symbol, timeframe],
   );
+
+  const selected = visibleDrawings.find((d) => d.id === selectedDrawingId) ?? null;
 
   const analysisBoundary = useMemo(() => buildHfmChartsAnalysisSnapshot({
     symbol,
@@ -177,6 +257,35 @@ export function HfmChartsWorkspace() {
   const open = series.bars[0]?.open ?? null;
   const prevClose = series.bars.length >= 2 ? series.bars[series.bars.length - 2]!.close : null;
 
+  const applyTemplate = (tpl: HfmChartTemplate) => {
+    setChartType(tpl.chartType);
+    setShowGrid(tpl.showGrid);
+    if (tpl.indicators?.length) setIndicators(tpl.indicators);
+    setPersistNote(`Applied template “${tpl.name}”`);
+  };
+
+  const saveCurrentTemplate = async () => {
+    const name = window.prompt("Template name", `Template ${templates.length + 1}`);
+    if (!name) return;
+    const tpl: HfmChartTemplate = {
+      id: `tpl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: name.trim().slice(0, 80),
+      chartType,
+      showGrid,
+      indicators,
+      updatedAt: new Date().toISOString(),
+    };
+    const saved = await saveHfmChartTemplate(tpl);
+    if (!saved) {
+      setPersistNote("Template save failed");
+      return;
+    }
+    const pack = await fetchHfmChartTemplates();
+    setTemplates(pack.templates);
+    setDefaultTemplateId(pack.defaultTemplateId);
+    setPersistNote(`Saved template “${saved.name}”`);
+  };
+
   return (
     <div className="hfm-charts-workspace" data-hfm-charts="true" data-provider="HFM_MT5" data-readonly="true">
       <header className="hfm-charts-page-head">
@@ -191,6 +300,7 @@ export function HfmChartsWorkspace() {
           <span className="hfm-charts-pill" data-tone={series.status === "CONNECTED" ? "ok" : "warn"}>
             {connLabel}
           </span>
+          {persistNote ? <span className="hfm-charts-muted">{persistNote}</span> : null}
         </div>
       </header>
 
@@ -234,7 +344,7 @@ export function HfmChartsWorkspace() {
         <dl className="hfm-charts-quote-strip">
           <div><dt>Bid</dt><dd data-tone="up">{formatPrice(series.quote.bid, digits)}</dd></div>
           <div><dt>Ask</dt><dd data-tone="down">{formatPrice(series.quote.ask, digits)}</dd></div>
-          <div><dt>Spread</dt><dd>{series.quote.spread == null ? "—" : series.quote.spread.toFixed(Math.min(digits, 2))}</dd></div>
+          <div><dt>Spread</dt><dd>{formatHfmSpread(series.quote.spread, digits)}</dd></div>
           <div>
             <dt>Change</dt>
             <dd data-tone={(series.quote.change ?? 0) >= 0 ? "up" : "down"}>
@@ -256,7 +366,7 @@ export function HfmChartsWorkspace() {
               type="button"
               data-active={timeframe === tf}
               data-verified={isVerifiedHfmChartTf(tf) ? "true" : "false"}
-              title={isVerifiedHfmChartTf(tf) ? "STEP 2 verified" : "Request from HFM — may be unavailable"}
+              title={isVerifiedHfmChartTf(tf) ? "STEP 2 verified · live forming" : "Request from HFM — may be unavailable"}
               onClick={() => setTimeframe(tf)}
             >
               {tf === "MN1" ? "MN" : tf}
@@ -325,6 +435,7 @@ export function HfmChartsWorkspace() {
             setRedoStack((r) => [...r, drawings]);
             setUndoStack((u) => u.slice(0, -1));
             setDrawings(prev);
+            schedulePersistDrawings(prev);
           }}
         >
           Undo
@@ -338,10 +449,31 @@ export function HfmChartsWorkspace() {
             setUndoStack((u) => [...u, drawings]);
             setRedoStack((r) => r.slice(0, -1));
             setDrawings(next);
+            schedulePersistDrawings(next);
           }}
         >
           Redo
         </button>
+        <button type="button" className="hfm-charts-action" onClick={() => void saveCurrentTemplate()}>Save template</button>
+        <label>
+          Templates
+          <select
+            aria-label="Chart templates"
+            value=""
+            onChange={(e) => {
+              const id = e.target.value;
+              const tpl = templates.find((t) => t.id === id);
+              if (tpl) applyTemplate(tpl);
+            }}
+          >
+            <option value="">Load…</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}{t.id === defaultTemplateId ? " ★" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
         <button type="button" className="hfm-charts-action" onClick={() => series.refresh()}>Refresh</button>
       </div>
 
@@ -363,7 +495,10 @@ export function HfmChartsWorkspace() {
             title="Clear drawings"
             onClick={() => {
               if (!window.confirm("Clear drawings for this symbol/timeframe?")) return;
-              pushDrawings(drawings.filter((d) => !(d.symbol === symbol && d.timeframe === timeframe)));
+              const next = drawings.filter((d) => !(d.symbol === symbol && d.timeframe === timeframe));
+              pushDrawings(next);
+              void clearHfmChartDrawings(symbol, timeframe);
+              setSelectedDrawingId(null);
             }}
           >
             Clear
@@ -387,8 +522,11 @@ export function HfmChartsWorkspace() {
               drawings={visibleDrawings}
               activeTool={activeTool}
               showGrid={showGrid}
+              selectedDrawingId={selectedDrawingId}
+              onSelectDrawing={setSelectedDrawingId}
               onCrosshair={setCrosshair}
               onDrawingCommit={commitDrawing}
+              onDrawingUpdate={updateDrawing}
               onLoadOlder={series.hasMore ? series.loadOlder : undefined}
             />
           ) : series.status !== "LOADING" ? (
@@ -402,7 +540,7 @@ export function HfmChartsWorkspace() {
               <div><dt>C</dt><dd>{formatPrice(crosshair.close, digits)}</dd></div>
               <div><dt>TickVol</dt><dd>{crosshair.tickVolume ?? "—"}</dd></div>
               <div><dt>RealVol</dt><dd>{crosshair.realVolume ?? "—"}</dd></div>
-              <div><dt>Spread</dt><dd>{crosshair.spread ?? "—"}</dd></div>
+              <div><dt>Spread</dt><dd>{formatHfmSpread(crosshair.spread, digits)}</dd></div>
               <div><dt>Time</dt><dd>{new Date(crosshair.time * 1000).toISOString().replace(".000Z", "Z")}</dd></div>
             </dl>
           ) : null}
@@ -413,13 +551,21 @@ export function HfmChartsWorkspace() {
           <dl>
             <div><dt>Bid</dt><dd>{formatPrice(series.quote.bid, digits)}</dd></div>
             <div><dt>Ask</dt><dd>{formatPrice(series.quote.ask, digits)}</dd></div>
-            <div><dt>Spread</dt><dd>{series.quote.spread ?? "—"}</dd></div>
+            <div><dt>Spread</dt><dd>{formatHfmSpread(series.quote.spread, digits)}</dd></div>
             <div><dt>High</dt><dd>{formatPrice(dayHigh, digits)}</dd></div>
             <div><dt>Low</dt><dd>{formatPrice(dayLow, digits)}</dd></div>
             <div><dt>Open</dt><dd>{formatPrice(open, digits)}</dd></div>
             <div><dt>Prev close</dt><dd>{formatPrice(prevClose, digits)}</dd></div>
+            <div><dt>Forming</dt><dd>
+              {series.forming
+                ? `${formatPrice(series.forming.open, digits)} / ${formatPrice(series.forming.high, digits)} / ${formatPrice(series.forming.low, digits)} / ${formatPrice(series.forming.close, digits)}`
+                : "—"}
+            </dd></div>
             <div><dt>Source</dt><dd>{series.source ?? "—"}</dd></div>
-            <div><dt>Live</dt><dd>{series.liveStatus}{timeframe === "M1" ? " · M1 forming" : " · hist native"}</dd></div>
+            <div><dt>Live</dt><dd>
+              {series.liveStatus}
+              {liveCapable ? ` · ${timeframe} forming` : " · hist only (TF not live-verified)"}
+            </dd></div>
           </dl>
           <h2>Indicators</h2>
           <ul className="hfm-charts-ind-list">
@@ -441,16 +587,116 @@ export function HfmChartsWorkspace() {
           <ul className="hfm-charts-ind-list">
             {visibleDrawings.map((d) => (
               <li key={d.id}>
-                <span>{d.tool}</span>
+                <button type="button" className="hfm-charts-action" data-active={selectedDrawingId === d.id} onClick={() => setSelectedDrawingId(d.id)}>
+                  {d.tool}{d.locked ? " 🔒" : ""}
+                </button>
                 <button type="button" onClick={() => pushDrawings(drawings.filter((x) => x.id !== d.id))}>Delete</button>
               </li>
             ))}
             {!visibleDrawings.length ? <li className="hfm-charts-muted">None on {symbol} {timeframe}</li> : null}
           </ul>
+          {selected ? (
+            <div className="hfm-charts-drawing-props" aria-label="Selected drawing properties">
+              <h2>Selected drawing</h2>
+              <label>
+                Color
+                <input
+                  type="color"
+                  value={/^#[0-9a-fA-F]{6}$/.test(selected.color) ? selected.color : "#8b5cf6"}
+                  disabled={selected.locked}
+                  onChange={(e) => updateDrawing({ ...selected, color: e.target.value })}
+                />
+              </label>
+              <label>
+                Style
+                <select
+                  value={selected.lineStyle}
+                  disabled={selected.locked}
+                  onChange={(e) => updateDrawing({
+                    ...selected,
+                    lineStyle: e.target.value as HfmDrawing["lineStyle"],
+                  })}
+                >
+                  <option value="solid">Solid</option>
+                  <option value="dashed">Dashed</option>
+                  <option value="dotted">Dotted</option>
+                </select>
+              </label>
+              <label>
+                Width
+                <input
+                  type="number"
+                  min={1}
+                  max={6}
+                  value={selected.lineWidth}
+                  disabled={selected.locked}
+                  onChange={(e) => updateDrawing({ ...selected, lineWidth: Math.max(1, Math.min(6, Number(e.target.value) || 1)) })}
+                />
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selected.visible}
+                  onChange={() => updateDrawing({ ...selected, visible: !selected.visible })}
+                />
+                Visible
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={Boolean(selected.locked)}
+                  onChange={() => updateDrawing({ ...selected, locked: !selected.locked })}
+                />
+                Locked
+              </label>
+            </div>
+          ) : null}
+          <h2>Templates</h2>
+          <ul className="hfm-charts-ind-list">
+            {templates.map((t) => (
+              <li key={t.id}>
+                <button type="button" onClick={() => applyTemplate(t)}>{t.name}</button>
+                <button
+                  type="button"
+                  title="Set default"
+                  onClick={async () => {
+                    await setDefaultHfmChartTemplate(t.id);
+                    setDefaultTemplateId(t.id);
+                  }}
+                >
+                  ★
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const name = window.prompt("Rename template", t.name);
+                    if (!name) return;
+                    await renameHfmChartTemplate(t.id, name);
+                    const pack = await fetchHfmChartTemplates();
+                    setTemplates(pack.templates);
+                  }}
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!window.confirm(`Delete template “${t.name}”?`)) return;
+                    await deleteHfmChartTemplate(t.id);
+                    const pack = await fetchHfmChartTemplates();
+                    setTemplates(pack.templates);
+                    setDefaultTemplateId(pack.defaultTemplateId);
+                  }}
+                >
+                  Del
+                </button>
+              </li>
+            ))}
+            {!templates.length ? <li className="hfm-charts-muted">No saved templates</li> : null}
+          </ul>
         </aside>
       </div>
 
-      {/* Reserved STEP 4 / Analysis boundary — no AI signals in STEP 3 */}
       <section
         className="hfm-charts-analysis-boundary"
         data-hfm-analysis-boundary="true"

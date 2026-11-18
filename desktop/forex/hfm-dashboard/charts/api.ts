@@ -6,13 +6,15 @@ import {
   getForexAdminToken,
 } from "../../admin-access/forex-admin-token";
 import { HfmMwApiError } from "../market-watch/api";
-import type { HfmChartCandle } from "./types";
+import type { HfmChartCandle, HfmChartTemplate, HfmDrawing } from "./types";
 
 const CANDLES = "/api/forex/providers/mt5-hfm/market/candles";
 const TICKS = "/api/forex/providers/mt5-hfm/market/ticks";
 const LIVE_CANDLE = "/api/forex/providers/mt5-hfm/market/live-candle";
 const QUOTE_WATCH = "/api/forex/providers/mt5-hfm/market/quote-watch";
 const QUOTE = "/api/forex/providers/mt5-hfm/quotes";
+const DRAWINGS = "/api/forex/providers/mt5-hfm/charts/drawings";
+const TEMPLATES = "/api/forex/providers/mt5-hfm/charts/templates";
 
 async function requestJson<T>(
   path: string,
@@ -191,6 +193,127 @@ export async function fetchHfmLiveCandle(
     return bars[0];
   } catch {
     return null;
+  }
+}
+
+export async function fetchHfmChartDrawings(
+  symbol: string,
+  timeframe: string,
+  signal?: AbortSignal,
+): Promise<HfmDrawing[]> {
+  const path = `${DRAWINGS}?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`;
+  try {
+    const { status, body } = await requestJson<{ drawings?: HfmDrawing[] }>(path, { signal });
+    if (status >= 400 || !Array.isArray(body.drawings)) return [];
+    return body.drawings;
+  } catch {
+    return [];
+  }
+}
+
+export async function saveHfmChartDrawings(
+  symbol: string,
+  timeframe: string,
+  drawings: HfmDrawing[],
+  signal?: AbortSignal,
+): Promise<HfmDrawing[]> {
+  const { body } = await requestJson<{ drawings?: HfmDrawing[] }>(DRAWINGS, {
+    method: "PUT",
+    signal,
+    body: { symbol, timeframe, drawings },
+  });
+  return Array.isArray(body.drawings) ? body.drawings : drawings;
+}
+
+export async function clearHfmChartDrawings(
+  symbol: string,
+  timeframe: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  await requestJson(DRAWINGS, {
+    method: "DELETE",
+    signal,
+    body: { symbol, timeframe },
+  });
+}
+
+export async function fetchHfmChartTemplates(signal?: AbortSignal): Promise<{
+  templates: HfmChartTemplate[];
+  defaultTemplateId: string | null;
+}> {
+  try {
+    const { body } = await requestJson<{
+      templates?: HfmChartTemplate[];
+      defaultTemplateId?: string | null;
+    }>(TEMPLATES, { signal });
+    return {
+      templates: Array.isArray(body.templates) ? body.templates : [],
+      defaultTemplateId: body.defaultTemplateId ?? null,
+    };
+  } catch {
+    return { templates: [], defaultTemplateId: null };
+  }
+}
+
+export async function saveHfmChartTemplate(
+  template: HfmChartTemplate,
+  signal?: AbortSignal,
+): Promise<HfmChartTemplate | null> {
+  try {
+    const { body } = await requestJson<{ template?: HfmChartTemplate }>(TEMPLATES, {
+      method: "POST",
+      signal,
+      body: { template },
+    });
+    return body.template ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function renameHfmChartTemplate(
+  id: string,
+  name: string,
+  signal?: AbortSignal,
+): Promise<HfmChartTemplate | null> {
+  try {
+    const { body } = await requestJson<{ template?: HfmChartTemplate }>(TEMPLATES, {
+      method: "PATCH",
+      signal,
+      body: { id, name },
+    });
+    return body.template ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteHfmChartTemplate(id: string, signal?: AbortSignal): Promise<boolean> {
+  try {
+    const { body } = await requestJson<{ ok?: boolean }>(TEMPLATES, {
+      method: "DELETE",
+      signal,
+      body: { id },
+    });
+    return Boolean(body.ok);
+  } catch {
+    return false;
+  }
+}
+
+export async function setDefaultHfmChartTemplate(
+  id: string | null,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  try {
+    const { body } = await requestJson<{ ok?: boolean }>(TEMPLATES, {
+      method: "PATCH",
+      signal,
+      body: { id, setDefault: true },
+    });
+    return Boolean(body.ok);
+  } catch {
+    return false;
   }
 }
 

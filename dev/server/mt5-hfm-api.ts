@@ -87,6 +87,7 @@ import { fetchHfmHistoricalCandles } from "../../ai/market-data/mt5-hfm/historic
 import { fetchHfmTicks, fetchHfmChartTick, setHfmQuoteWatch } from "../../ai/market-data/mt5-hfm/tick-engine.js";
 import { getHfmLiveCandleEngine } from "../../ai/market-data/mt5-hfm/live-candle-engine.js";
 import { buildHfmChartsAnalysisSnapshot } from "../../ai/market-data/mt5-hfm/charts-analysis-contract.js";
+import { getHfmChartsWorkspaceStore } from "../../ai/market-data/mt5-hfm/charts-workspace-store.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -141,13 +142,16 @@ function requireAdmin(
   return true;
 }
 
-async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+async function readJsonBody(
+  req: IncomingMessage,
+  maxBytes = MAX_BODY_BYTES,
+): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
   let total = 0;
   for await (const chunk of req) {
     const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     total += buf.length;
-    if (total > MAX_BODY_BYTES) {
+    if (total > maxBytes) {
       throw Object.assign(new Error("Request body too large"), { code: "PAYLOAD_TOO_LARGE" });
     }
     chunks.push(buf);
@@ -163,6 +167,9 @@ async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknow
     return {};
   }
 }
+
+/** Charts drawings/templates payloads (still bounded; no market-tick floods). */
+const CHARTS_WORKSPACE_BODY_MAX = 256_000;
 
 function sendLiveLocked(
   res: ServerResponse,
@@ -217,7 +224,13 @@ export async function handleMt5HfmApi(
 ): Promise<boolean> {
   if (!url.pathname.startsWith("/api/forex/providers/mt5-hfm")) return false;
 
-  const isMutation = req.method === "POST";
+  const chartsWorkspacePath =
+    url.pathname === "/api/forex/providers/mt5-hfm/charts/drawings" ||
+    url.pathname === "/api/forex/providers/mt5-hfm/charts/templates";
+  const chartsMutationMethod =
+    chartsWorkspacePath &&
+    (req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE");
+  const isMutation = req.method === "POST" || chartsMutationMethod;
   if (!isMutation && req.method !== "GET" && req.method !== "HEAD") {
     sendJson(res, 405, {
       ok: false,
@@ -867,8 +880,11 @@ export async function handleMt5HfmApi(
           startPos: Number(body.startPos ?? body.start_pos ?? 0),
           refresh: Boolean(body.refresh || body.forceOndemand),
         });
-        const forming = getHfmLiveCandleEngine().getForming(hist.symbol, hist.timeframe);
-        if (forming) getHfmLiveCandleEngine().reconcileWithHistory(hist.symbol, hist.timeframe, hist.bars);
+        const engine = getHfmLiveCandleEngine();
+        // Seed / reconcile forming from CopyRates tip so H4+ charts start live-capable.
+        const forming = hist.bars.length
+          ? engine.reconcileWithHistory(hist.symbol, hist.timeframe, hist.bars)
+          : engine.getForming(hist.symbol, hist.timeframe);
         const payload = {
           ok: hist.available,
           provider: "HFM_MT5" as const,
@@ -1013,6 +1029,146 @@ export async function handleMt5HfmApi(
       };
       assertNoSecretsInMt5HfmPayload(payload);
       sendJson(res, forming ? 200 : 404, payload);
+      return true;
+    }
+
+    // ——— STEP 3 Charts workspace persistence (drawings + templates) ———
+    if (url.pathname === "/api/forex/providers/mt5-hfm/charts/drawings" && req.method === "GET") {
+      const symbol = String(url.searchParams.get("symbol") || "").toUpperCase();
+      const timeframe = String(url.searchParams.get("timeframe") || "").toUpperCase();
+      const store = getHfmChartsWorkspaceStore();
+      const drawings = await store.listDrawings(symbol || undefined, timeframe || undefined);
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        symbol: symbol || null,
+        timeframe: timeframe || null,
+        drawings,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/charts/drawings" && req.method === "PUT") {
+      const body = await readJsonBody(req, CHARTS_WORKSPACE_BODY_MAX);
+      const symbol = String(body.symbol ?? "").toUpperCase();
+      const timeframe = String(body.timeframe ?? "").toUpperCase();
+      if (!symbol || !timeframe) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "VALIDATION_ERROR", message: "symbol and timeframe required" },
+        });
+        return true;
+      }
+      const store = getHfmChartsWorkspaceStore();
+      const drawings = await store.putDrawingsForScope(
+        symbol,
+        timeframe,
+        Array.isArray(body.drawings) ? body.drawings : [],
+      );
+      const payload = {
+        ok: true,
+        provider: "HFM_MT5" as const,
+        symbol,
+        timeframe,
+        drawings,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/charts/drawings" && req.method === "DELETE") {
+      const body = await readJsonBody(req);
+      const symbol = String(body.symbol ?? url.searchParams.get("symbol") ?? "").toUpperCase();
+      const timeframe = String(body.timeframe ?? url.searchParams.get("timeframe") ?? "").toUpperCase();
+      if (!symbol || !timeframe) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "VALIDATION_ERROR", message: "symbol and timeframe required" },
+        });
+        return true;
+      }
+      const removed = await getHfmChartsWorkspaceStore().clearDrawingsForScope(symbol, timeframe);
+      sendJson(res, 200, {
+        ok: true,
+        provider: "HFM_MT5",
+        symbol,
+        timeframe,
+        removed,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/charts/templates" && req.method === "GET") {
+      const store = getHfmChartsWorkspaceStore();
+      const state = await store.load();
+      sendJson(res, 200, {
+        ok: true,
+        provider: "HFM_MT5",
+        templates: state.templates,
+        defaultTemplateId: state.defaultTemplateId,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/charts/templates" && req.method === "POST") {
+      const body = await readJsonBody(req, CHARTS_WORKSPACE_BODY_MAX);
+      const tpl = await getHfmChartsWorkspaceStore().upsertTemplate(body.template ?? body);
+      if (!tpl) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "VALIDATION_ERROR", message: "Invalid chart template payload" },
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        provider: "HFM_MT5",
+        template: tpl,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/charts/templates" && req.method === "PATCH") {
+      const body = await readJsonBody(req);
+      const id = String(body.id ?? "");
+      const store = getHfmChartsWorkspaceStore();
+      if (body.setDefault === true) {
+        const ok = await store.setDefaultTemplate(id || null);
+        sendJson(res, ok ? 200 : 404, { ok, provider: "HFM_MT5", defaultTemplateId: id || null });
+        return true;
+      }
+      if (typeof body.name === "string") {
+        const tpl = await store.renameTemplate(id, body.name);
+        sendJson(res, tpl ? 200 : 404, { ok: Boolean(tpl), provider: "HFM_MT5", template: tpl });
+        return true;
+      }
+      sendJson(res, 400, { ok: false, error: { code: "VALIDATION_ERROR", message: "name or setDefault required" } });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/charts/templates" && req.method === "DELETE") {
+      const body = await readJsonBody(req);
+      const id = String(body.id ?? url.searchParams.get("id") ?? "");
+      const ok = id ? await getHfmChartsWorkspaceStore().deleteTemplate(id) : false;
+      sendJson(res, ok ? 200 : 404, { ok, provider: "HFM_MT5", id });
       return true;
     }
 

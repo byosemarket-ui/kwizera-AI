@@ -98,6 +98,30 @@ describe("STEP 3 HFM Charts workspace", () => {
     expect(eng).toContain("fib_retracement");
     expect(eng).toContain("createPriceLine");
     expect(eng).toContain('from "lightweight-charts"');
+    expect(eng).toContain("series.update");
+    expect(eng).toContain("hfm-draw-handle");
+    expect(eng).toContain("onDrawingUpdate");
+  });
+
+  it("applies live Bid ticks to verified timeframes (not M1-only)", () => {
+    const hook = read("desktop/forex/hfm-dashboard/charts/use-hfm-chart-data.ts");
+    expect(hook).toContain("applyBidToFormingCandle");
+    expect(hook).toContain("isLiveFormingTimeframe");
+    expect(hook).not.toContain('timeframe === "M1" && sq.bid');
+    const live = read("desktop/forex/hfm-dashboard/charts/live-forming.ts");
+    expect(live).toContain("resolveFormingBucket");
+    expect(live).toContain("formatHfmSpread");
+  });
+
+  it("persists drawings and templates via Admin charts APIs", () => {
+    const api = read("desktop/forex/hfm-dashboard/charts/api.ts");
+    expect(api).toContain("/charts/drawings");
+    expect(api).toContain("/charts/templates");
+    const ws = read("desktop/forex/hfm-dashboard/charts/HfmChartsWorkspace.tsx");
+    expect(ws).toContain("saveHfmChartDrawings");
+    expect(ws).toContain("saveHfmChartTemplate");
+    expect(ws).toContain("formatHfmSpread");
+    expect(ws).toContain("Selected drawing");
   });
 
   it("preserves read-only safety markers in workspace", () => {

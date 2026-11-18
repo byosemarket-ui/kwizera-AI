@@ -288,6 +288,26 @@
   z-index: 5;
 }
 
+[data-hfm-dashboard] .hfm-chart-draw-layer.is-editing line,
+[data-hfm-dashboard] .hfm-chart-draw-layer.is-editing rect,
+[data-hfm-dashboard] .hfm-chart-draw-layer.is-editing polyline,
+[data-hfm-dashboard] .hfm-chart-draw-layer.is-editing text,
+[data-hfm-dashboard] .hfm-chart-draw-layer.is-editing .hfm-draw-handle {
+  pointer-events: stroke;
+  cursor: move;
+}
+
+[data-hfm-dashboard] .hfm-chart-draw-layer.is-editing .hfm-draw-handle {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+[data-hfm-dashboard] .hfm-chart-draw-layer .is-selected line,
+[data-hfm-dashboard] .hfm-chart-draw-layer .is-selected rect,
+[data-hfm-dashboard] .hfm-chart-draw-layer .is-selected polyline {
+  filter: drop-shadow(0 0 2px rgba(248, 250, 252, 0.45));
+}
+
 [data-hfm-dashboard] .hfm-chart-ind-readout {
   display: flex;
   flex-wrap: wrap;

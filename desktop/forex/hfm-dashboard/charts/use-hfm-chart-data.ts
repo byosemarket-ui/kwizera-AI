@@ -7,6 +7,11 @@ import {
   setHfmChartsQuoteWatch,
   type HfmChartsHistoryResult,
 } from "./api";
+import {
+  applyBidToFormingCandle,
+  isLiveFormingTimeframe,
+  seedFormingFromBar,
+} from "./live-forming";
 import type { HfmChartCandle, HfmChartDataStatus, HfmChartTimeframe } from "./types";
 
 export interface HfmChartQuoteView {
@@ -73,6 +78,20 @@ function mergeForming(bars: HfmChartCandle[], forming: HfmChartCandle | null): H
   return bars;
 }
 
+function unionForming(seed: HfmChartCandle, live: HfmChartCandle | null): HfmChartCandle {
+  if (!live || live.time !== seed.time) return { ...seed, closed: false };
+  return {
+    ...seed,
+    open: seed.open,
+    high: Math.max(seed.high, live.high),
+    low: Math.min(seed.low, live.low),
+    close: live.close,
+    tickVolume: Math.max(seed.tickVolume ?? 0, live.tickVolume ?? 0),
+    spread: live.spread ?? seed.spread,
+    closed: false,
+  };
+}
+
 export function useHfmChartData(symbol: string, timeframe: HfmChartTimeframe): HfmChartSeriesState {
   const realtime = useHfmRealtimeStore();
   const [history, setHistory] = useState<HfmChartsHistoryResult | null>(null);
@@ -93,6 +112,13 @@ export function useHfmChartData(symbol: string, timeframe: HfmChartTimeframe): H
   const [startPos, setStartPos] = useState(0);
   const genRef = useRef(0);
   const barsRef = useRef<HfmChartCandle[]>([]);
+  const formingRef = useRef<HfmChartCandle | null>(null);
+  const lastTickKeyRef = useRef<string>("");
+  const liveCapable = isLiveFormingTimeframe(timeframe);
+
+  useEffect(() => {
+    formingRef.current = forming;
+  }, [forming]);
 
   const load = async (opts?: { refresh?: boolean; append?: boolean; pos?: number }) => {
     const gen = ++genRef.current;
@@ -112,6 +138,7 @@ export function useHfmChartData(symbol: string, timeframe: HfmChartTimeframe): H
         setHistory(result);
         barsRef.current = [];
         setForming(null);
+        formingRef.current = null;
         setStatus(result.errors.length ? "UNAVAILABLE" : "EMPTY");
         setError(result.errors[0] ?? "No HFM historical candles for this symbol/timeframe.");
         return;
@@ -131,7 +158,23 @@ export function useHfmChartData(symbol: string, timeframe: HfmChartTimeframe): H
       } else {
         barsRef.current = result.bars;
         setHistory(result);
-        setForming(result.currentCandle);
+        const tip = result.bars[result.bars.length - 1] ?? null;
+        const seeded =
+          result.currentCandle
+            ? { ...result.currentCandle, closed: false as const }
+            : tip
+              ? seedFormingFromBar(tip)
+              : null;
+        // Do not let an older REST tip overwrite a newer live forming candle.
+        const live = formingRef.current;
+        const next =
+          seeded && live && live.time === seeded.time
+            ? unionForming(seeded, live)
+            : live && seeded && live.time > seeded.time
+              ? live
+              : seeded;
+        setForming(next);
+        formingRef.current = next;
       }
       setError(null);
       setStatus(mapFreshnessToStatus(result.freshness, "CONNECTED"));
@@ -148,6 +191,8 @@ export function useHfmChartData(symbol: string, timeframe: HfmChartTimeframe): H
   useEffect(() => {
     genRef.current += 1;
     barsRef.current = [];
+    formingRef.current = null;
+    lastTickKeyRef.current = "";
     setHistory(null);
     setForming(null);
     setStartPos(0);
@@ -180,7 +225,7 @@ export function useHfmChartData(symbol: string, timeframe: HfmChartTimeframe): H
     };
   }, [symbol, timeframe]);
 
-  // Merge SSE quote for selected symbol when present.
+  // Merge SSE quote for selected symbol → update Bid/Ask AND forming candle (all verified TFs).
   useEffect(() => {
     const sq = realtime.quotes[symbol.toUpperCase()];
     if (!sq || sq.bid == null || sq.ask == null) return;
@@ -193,47 +238,58 @@ export function useHfmChartData(symbol: string, timeframe: HfmChartTimeframe): H
       tickTime: sq.tickTime,
       receivedAt: sq.receivedAt ?? prev.receivedAt,
     }));
-    if (timeframe === "M1" && sq.bid > 0 && typeof sq.tickTime === "number" && sq.tickTime > 0) {
-      const bucket = Math.floor(sq.tickTime / 60) * 60;
-      setForming((prev) => {
-        if (prev && prev.time === bucket) {
-          return {
-            ...prev,
-            high: Math.max(prev.high, sq.bid),
-            low: Math.min(prev.low, sq.bid),
-            close: sq.bid,
-            closed: false,
-          };
-        }
-        return {
-          time: bucket,
-          open: sq.bid,
-          high: sq.bid,
-          low: sq.bid,
-          close: sq.bid,
-          tickVolume: 1,
-          realVolume: null,
-          spread: sq.spread,
-          closed: false,
-        };
+    if (!liveCapable) return;
+    if (!(sq.bid > 0) || typeof sq.tickTime !== "number" || !(sq.tickTime > 0)) return;
+    const dedupe = `${symbol}|${timeframe}|${sq.tickTime}|${sq.bid}|${sq.ask}`;
+    if (dedupe === lastTickKeyRef.current) return;
+    lastTickKeyRef.current = dedupe;
+    setForming((prev) => {
+      const tip = barsRef.current[barsRef.current.length - 1] ?? null;
+      const next = applyBidToFormingCandle(prev, sq.bid!, sq.tickTime!, timeframe, {
+        anchorTime: prev?.time ?? tip?.time ?? null,
+        spread: sq.spread,
       });
-    }
-  }, [realtime.quotes, symbol, timeframe]);
+      formingRef.current = next;
+      return next;
+    });
+  }, [realtime.quotes, symbol, timeframe, liveCapable]);
 
-  // Poll live-candle for M1 reconciliation.
+  // Poll live-candle API for server-side reconciliation (all verified TFs).
   useEffect(() => {
-    if (timeframe !== "M1") return;
+    if (!liveCapable) return;
     let cancelled = false;
     const tick = async () => {
-      const live = await fetchHfmLiveCandle(symbol, "M1");
-      if (!cancelled && live) setForming(live);
+      const live = await fetchHfmLiveCandle(symbol, timeframe);
+      if (cancelled || !live) return;
+      setForming((prev) => {
+        const next = unionForming(live, prev);
+        // Prefer live close/high/low when server is newer tip on same bucket.
+        if (prev && prev.time === live.time) {
+          const merged = {
+            ...live,
+            high: Math.max(live.high, prev.high),
+            low: Math.min(live.low, prev.low),
+            close: prev.close,
+            closed: false as const,
+          };
+          formingRef.current = merged;
+          return merged;
+        }
+        if (prev && prev.time > live.time) {
+          formingRef.current = prev;
+          return prev;
+        }
+        formingRef.current = next;
+        return next;
+      });
     };
+    void tick();
     const id = window.setInterval(() => void tick(), 5000);
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, liveCapable]);
 
   const feedStatus: HfmChartDataStatus =
     realtime.connectionState === "disconnected" || realtime.freshness === "DISCONNECTED"
@@ -251,7 +307,7 @@ export function useHfmChartData(symbol: string, timeframe: HfmChartTimeframe): H
     forming,
     status: history?.available ? feedStatus : status,
     historyStatus: history?.available ? "CONNECTED" : status,
-    liveStatus: timeframe === "M1" && forming ? "CONNECTED" : feedStatus,
+    liveStatus: liveCapable && forming ? "CONNECTED" : feedStatus,
     source: history?.source ?? null,
     freshness: history?.freshness ?? realtime.freshness,
     error,

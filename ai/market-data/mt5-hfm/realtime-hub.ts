@@ -510,25 +510,32 @@ async function pollOnce(): Promise<void> {
           symbolKey,
         );
 
-        // STEP 2: incremental forming candles from validated bid (CopyRates price basis).
-        // Default M1 only in hub to bound SSE volume; Charts may poll other TFs via API.
+        // STEP 3: incremental forming candles for all verified chart timeframes
+        // (M1/M5/M15/M30/H1/H4/D1) from validated Bid. Engine state is multi-TF;
+        // SSE publishes a bounded subset (finalized + latest update per TF) to avoid floods.
         if (typeof tickTime === "number" && tickTime > 0) {
-          const candleEvents = getHfmLiveCandleEngine().applyTick(
-            {
-              symbol: symbolKey,
-              bid: q.bid,
-              ask: q.ask,
-              last: null,
-              timeSec: tickTime,
-              timeMsc: typeof q.quoteTimestampMs === "number" ? q.quoteTimestampMs : null,
-              receiveMs: Date.parse(q.receivedAt) || Date.now(),
-              volume: null,
-              flags: null,
-              acquisition: "SymbolInfoTick",
-            },
-            "M1",
-          );
-          for (const ev of candleEvents.slice(-2)) {
+          const candleEvents = getHfmLiveCandleEngine().applyTickVerifiedTimeframes({
+            symbol: symbolKey,
+            bid: q.bid,
+            ask: q.ask,
+            last: null,
+            timeSec: tickTime,
+            timeMsc: typeof q.quoteTimestampMs === "number" ? q.quoteTimestampMs : null,
+            receiveMs: Date.parse(q.receivedAt) || Date.now(),
+            volume: null,
+            flags: null,
+            acquisition: "SymbolInfoTick",
+          });
+          const finalized = candleEvents.filter((e) => e.type === "candle_finalized");
+          const updates = candleEvents.filter((e) => e.type === "candle_update");
+          // Prefer publishing all finalizations + one update per timeframe (≤7).
+          const latestByTf = new Map<string, (typeof updates)[number]>();
+          for (const ev of updates) {
+            const tf = "timeframe" in ev.candle ? String(ev.candle.timeframe) : "M1";
+            latestByTf.set(tf, ev);
+          }
+          const toPublish = [...finalized, ...latestByTf.values()];
+          for (const ev of toPublish) {
             const evType = ev.type === "candle_finalized" ? "candle_finalized" : "candle_update";
             publish(
               evType,

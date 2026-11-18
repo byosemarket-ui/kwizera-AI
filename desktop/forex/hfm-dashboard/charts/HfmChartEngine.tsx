@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type MutableRefObject,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
   ColorType,
@@ -76,6 +77,9 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
   showGrid: boolean;
   onCrosshair: (info: HfmCrosshairInfo | null) => void;
   onDrawingCommit: (drawing: HfmDrawing) => void;
+  onDrawingUpdate?: (drawing: HfmDrawing) => void;
+  selectedDrawingId?: string | null;
+  onSelectDrawing?: (id: string | null) => void;
   onLoadOlder?: () => void;
 }>(function HfmChartEngine(props, ref) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -87,6 +91,8 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
   const priceLinesRef = useRef<IPriceLine[]>([]);
   const draftRef = useRef<HfmPriceDraft | null>(null);
   const [draftPreview, setDraftPreview] = useState<HfmDrawing | null>(null);
+  const barsFingerprintRef = useRef<string>("");
+  const lastBarRef = useRef<{ time: number; open: number; high: number; low: number; close: number } | null>(null);
 
   const precision = Math.min(5, Math.max(0, Math.round(props.digits)));
   const minMove = Number((10 ** -precision).toFixed(precision));
@@ -247,9 +253,47 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
     if (!bars.length) {
       // @ts-expect-error setData union
       series.setData([]);
+      barsFingerprintRef.current = "";
+      lastBarRef.current = null;
       return;
     }
-    if (props.chartType === "candlestick" || props.chartType === "ohlc") {
+    const tip = bars[bars.length - 1]!;
+    const histKey = `${bars.length}|${bars[0]!.time}|${bars.length > 1 ? bars[bars.length - 2]!.time : 0}`;
+    const ohlc = props.chartType === "candlestick" || props.chartType === "ohlc";
+    const canIncremental =
+      barsFingerprintRef.current === histKey &&
+      lastBarRef.current != null &&
+      (lastBarRef.current.time === tip.time || lastBarRef.current.time < tip.time);
+
+    if (canIncremental) {
+      try {
+        if (ohlc) {
+          // @ts-expect-error union
+          series.update({
+            time: tip.time as UTCTimestamp,
+            open: tip.open,
+            high: tip.high,
+            low: tip.low,
+            close: tip.close,
+          });
+        } else {
+          // @ts-expect-error union
+          series.update({ time: tip.time as UTCTimestamp, value: tip.close });
+        }
+        lastBarRef.current = {
+          time: tip.time,
+          open: tip.open,
+          high: tip.high,
+          low: tip.low,
+          close: tip.close,
+        };
+        return;
+      } catch {
+        // Fall through to full setData if update rejected (e.g. time went backwards).
+      }
+    }
+
+    if (ohlc) {
       // @ts-expect-error union
       series.setData(bars.map((b) => ({
         time: b.time as UTCTimestamp,
@@ -262,6 +306,14 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
       // @ts-expect-error union
       series.setData(bars.map((b) => ({ time: b.time as UTCTimestamp, value: b.close })));
     }
+    barsFingerprintRef.current = histKey;
+    lastBarRef.current = {
+      time: tip.time,
+      open: tip.open,
+      high: tip.high,
+      low: tip.low,
+      close: tip.close,
+    };
   }, [props.bars, props.chartType]);
 
   // Overlays + oscillator pane
@@ -453,7 +505,11 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
     chart.subscribeCrosshairMove(onMove);
 
     const onClick = (param: MouseEventParams) => {
-      if (props.activeTool === "cursor") return;
+      if (props.activeTool === "cursor") {
+        // Deselect when clicking empty chart in cursor mode (selection handled in SVG).
+        props.onSelectDrawing?.(null);
+        return;
+      }
       if (param.time == null || param.point == null) return;
       const series = seriesRef.current;
       if (!series) return;
@@ -470,6 +526,7 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
         lineWidth: 1 as number,
         lineStyle: "solid" as const,
         visible: true,
+        locked: false,
       };
 
       if (tool === "hline") {
@@ -514,7 +571,7 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
       chart.unsubscribeCrosshairMove(onMove);
       chart.unsubscribeClick(onClick);
     };
-  }, [props.activeTool, props.bars, props.symbol, props.timeframe, props.onCrosshair, props.onDrawingCommit]);
+  }, [props.activeTool, props.bars, props.symbol, props.timeframe, props.onCrosshair, props.onDrawingCommit, props.onSelectDrawing]);
 
   // Load older when scrolled left
   useEffect(() => {
@@ -547,7 +604,7 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
 
   const overlayDrawings = props.drawings.filter(
     (d) => d.visible && d.symbol === props.symbol && d.timeframe === props.timeframe
-      && (d.tool === "trendline" || d.tool === "rectangle" || d.tool === "channel" || d.tool === "vline" || d.tool === "text"),
+      && (d.tool === "trendline" || d.tool === "rectangle" || d.tool === "channel" || d.tool === "vline" || d.tool === "text" || d.tool === "hline" || d.tool === "fib_retracement" || d.tool === "fib_extension"),
   );
 
   return (
@@ -558,6 +615,10 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
         series={seriesRef}
         drawings={overlayDrawings}
         draft={draftPreview}
+        selectedId={props.selectedDrawingId ?? null}
+        activeTool={props.activeTool}
+        onSelect={props.onSelectDrawing}
+        onUpdate={props.onDrawingUpdate}
       />
       <div className="hfm-chart-pane-host" ref={paneRef} data-chart-host="pane" aria-label="Indicator pane" />
       <ul className="hfm-chart-ind-readout" aria-label="Indicator values">
@@ -577,17 +638,117 @@ interface HfmPriceDraft {
   points: Array<{ time: number; price: number }>;
 }
 
+type AnchorId = "a" | "b" | "c" | "price" | "time" | "point" | "offset";
+type DragMode =
+  | { id: string; kind: "body"; startX: number; startY: number; origin: HfmDrawing }
+  | { id: string; kind: "anchor"; anchor: AnchorId; startX: number; startY: number; origin: HfmDrawing };
+
 function DrawingSvgOverlay(props: {
   chart: MutableRefObject<IChartApi | null>;
   series: MutableRefObject<ISeriesApi<"Candlestick"> | ISeriesApi<"Bar"> | ISeriesApi<"Line"> | ISeriesApi<"Area"> | null>;
   drawings: HfmDrawing[];
   draft: HfmDrawing | null;
+  selectedId: string | null;
+  activeTool: HfmDrawingToolId;
+  onSelect?: (id: string | null) => void;
+  onUpdate?: (drawing: HfmDrawing) => void;
 }) {
   const [, bump] = useState(0);
+  const dragRef = useRef<DragMode | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
   useEffect(() => {
-    const id = window.setInterval(() => bump((n) => n + 1), 500);
+    const id = window.setInterval(() => bump((n) => n + 1), 400);
     return () => window.clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    const onMove = (ev: PointerEvent) => {
+      const drag = dragRef.current;
+      const chart = props.chart.current;
+      const series = props.series.current;
+      if (!drag || !chart || !series || !props.onUpdate) return;
+      const origin = drag.origin;
+      if (origin.locked) return;
+      const dx = ev.clientX - drag.startX;
+      const dy = ev.clientY - drag.startY;
+      const midTime = (() => {
+        if ("a" in origin) return origin.a.time;
+        if ("point" in origin) return origin.point.time;
+        if ("time" in origin) return origin.time;
+        const lr = chart.timeScale().getVisibleLogicalRange();
+        if (!lr) return Date.now() / 1000;
+        const t = chart.timeScale().coordinateToTime((lr.from + lr.to) / 2);
+        return typeof t === "number" ? t : Date.now() / 1000;
+      })();
+      const midPrice = (() => {
+        if ("a" in origin) return origin.a.price;
+        if ("point" in origin) return origin.point.price;
+        if ("price" in origin) return origin.price;
+        return series.coordinateToPrice(100) ?? 0;
+      })();
+      const x0 = chart.timeScale().timeToCoordinate(midTime as UTCTimestamp) ?? 0;
+      const y0 = series.priceToCoordinate(midPrice) ?? 0;
+      const t1 = chart.timeScale().coordinateToTime((x0 + dx) as number);
+      const p1 = series.coordinateToPrice(y0 + dy);
+      if (t1 == null || p1 == null) return;
+      const dTime = Number(t1) - midTime;
+      const dPrice = Number(p1) - midPrice;
+
+      const shiftPoint = (pt: { time: number; price: number }) => ({
+        time: pt.time + dTime,
+        price: pt.price + dPrice,
+      });
+
+      let next: HfmDrawing = origin;
+      if (drag.kind === "body") {
+        if (origin.tool === "hline") next = { ...origin, price: origin.price + dPrice };
+        else if (origin.tool === "vline") next = { ...origin, time: origin.time + dTime };
+        else if (origin.tool === "text") next = { ...origin, point: shiftPoint(origin.point) };
+        else if (origin.tool === "trendline" || origin.tool === "rectangle" || origin.tool === "fib_retracement") {
+          next = { ...origin, a: shiftPoint(origin.a), b: shiftPoint(origin.b) };
+        } else if (origin.tool === "channel") {
+          next = { ...origin, a: shiftPoint(origin.a), b: shiftPoint(origin.b) };
+        } else if (origin.tool === "fib_extension") {
+          next = { ...origin, a: shiftPoint(origin.a), b: shiftPoint(origin.b), c: shiftPoint(origin.c) };
+        }
+      } else {
+        const ax = drag.anchor;
+        if (origin.tool === "hline" && ax === "price") next = { ...origin, price: origin.price + dPrice };
+        else if (origin.tool === "vline" && ax === "time") next = { ...origin, time: origin.time + dTime };
+        else if (origin.tool === "text" && ax === "point") next = { ...origin, point: shiftPoint(origin.point) };
+        else if (
+          (origin.tool === "trendline" || origin.tool === "rectangle" || origin.tool === "fib_retracement" || origin.tool === "channel")
+          && (ax === "a" || ax === "b")
+        ) {
+          next = { ...origin, [ax]: shiftPoint(origin[ax]) };
+        } else if (origin.tool === "channel" && ax === "offset") {
+          next = { ...origin, offsetPrice: origin.offsetPrice + dPrice };
+        } else if (origin.tool === "fib_extension" && (ax === "a" || ax === "b" || ax === "c")) {
+          next = { ...origin, [ax]: shiftPoint(origin[ax]) };
+        }
+      }
+      // Reset drag origin baseline each move for smooth incremental updates
+      dragRef.current = {
+        ...drag,
+        startX: ev.clientX,
+        startY: ev.clientY,
+        origin: next,
+      };
+      props.onUpdate(next);
+      bump((n) => n + 1);
+    };
+    const onUp = () => {
+      dragRef.current = null;
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [props]);
+
   const chart = props.chart.current;
   const series = props.series.current;
   if (!chart || !series) return null;
@@ -599,24 +760,118 @@ function DrawingSvgOverlay(props: {
     return { x, y };
   };
 
+  const beginDrag = (
+    ev: ReactPointerEvent,
+    drawing: HfmDrawing,
+    kind: DragMode["kind"],
+    anchor?: AnchorId,
+  ) => {
+    if (props.activeTool !== "cursor") return;
+    if (drawing.locked) {
+      props.onSelect?.(drawing.id);
+      return;
+    }
+    ev.stopPropagation();
+    ev.preventDefault();
+    props.onSelect?.(drawing.id);
+    if (kind === "body") {
+      dragRef.current = {
+        id: drawing.id,
+        kind: "body",
+        startX: ev.clientX,
+        startY: ev.clientY,
+        origin: drawing,
+      };
+    } else {
+      dragRef.current = {
+        id: drawing.id,
+        kind: "anchor",
+        anchor: anchor ?? "a",
+        startX: ev.clientX,
+        startY: ev.clientY,
+        origin: drawing,
+      };
+    }
+  };
+
+  const handle = (x: number, y: number, drawing: HfmDrawing, anchor: AnchorId) => (
+    <circle
+      key={`${drawing.id}-${anchor}`}
+      cx={x}
+      cy={y}
+      r={5}
+      className="hfm-draw-handle"
+      fill="#f8fafc"
+      stroke={drawing.color}
+      strokeWidth={2}
+      onPointerDown={(ev) => beginDrag(ev, drawing, "anchor", anchor)}
+    />
+  );
+
   const items = [...props.drawings, ...(props.draft ? [props.draft] : [])];
+  const editing = props.activeTool === "cursor";
+
   return (
-    <svg className="hfm-chart-draw-layer" aria-hidden="true">
+    <svg
+      ref={svgRef}
+      className={`hfm-chart-draw-layer${editing ? " is-editing" : ""}`}
+      aria-hidden="true"
+    >
       {items.map((d) => {
+        const selected = props.selectedId === d.id;
         if (d.tool === "vline") {
-          const p = toXY(d.time, 0);
-          // vline: use time coordinate only
           const x = chart.timeScale().timeToCoordinate(d.time as UTCTimestamp);
           if (x == null) return null;
-          return <line key={d.id} x1={x} x2={x} y1={0} y2="100%" stroke={d.color} strokeWidth={d.lineWidth} strokeDasharray={d.lineStyle === "dashed" ? "6 4" : undefined} />;
+          return (
+            <g key={d.id} className={selected ? "is-selected" : undefined}>
+              <line
+                x1={x}
+                x2={x}
+                y1={0}
+                y2="100%"
+                stroke={d.color}
+                strokeWidth={d.lineWidth + (selected ? 1 : 0)}
+                strokeDasharray={d.lineStyle === "dashed" ? "6 4" : d.lineStyle === "dotted" ? "2 3" : undefined}
+                onPointerDown={(ev) => beginDrag(ev, d, "body")}
+              />
+              {selected && editing ? handle(x, 24, d, "time") : null}
+            </g>
+          );
         }
-        if (d.tool === "trendline" || d.tool === "channel") {
+        if (d.tool === "hline") {
+          const y = series.priceToCoordinate(d.price);
+          if (y == null) return null;
+          return (
+            <g key={d.id} className={selected ? "is-selected" : undefined}>
+              <line
+                x1={0}
+                x2="100%"
+                y1={y}
+                y2={y}
+                stroke={d.color}
+                strokeWidth={d.lineWidth + (selected ? 1 : 0)}
+                strokeDasharray={d.lineStyle === "dashed" ? "6 4" : undefined}
+                onPointerDown={(ev) => beginDrag(ev, d, "body")}
+              />
+              {selected && editing ? handle(40, y, d, "price") : null}
+            </g>
+          );
+        }
+        if (d.tool === "trendline" || d.tool === "channel" || d.tool === "fib_retracement") {
           const a = toXY(d.a.time, d.a.price);
           const b = toXY(d.b.time, d.b.price);
           if (!a || !b) return null;
           return (
-            <g key={d.id}>
-              <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={d.color} strokeWidth={d.lineWidth} />
+            <g key={d.id} className={selected ? "is-selected" : undefined}>
+              <line
+                x1={a.x}
+                y1={a.y}
+                x2={b.x}
+                y2={b.y}
+                stroke={d.color}
+                strokeWidth={d.lineWidth + (selected ? 1 : 0)}
+                onPointerDown={(ev) => beginDrag(ev, d, "body")}
+              />
               {d.tool === "channel" ? (
                 <line
                   x1={a.x}
@@ -626,7 +881,38 @@ function DrawingSvgOverlay(props: {
                   stroke={d.color}
                   strokeWidth={d.lineWidth}
                   strokeDasharray="4 3"
+                  onPointerDown={(ev) => beginDrag(ev, d, "anchor", "offset")}
                 />
+              ) : null}
+              {selected && editing ? (
+                <>
+                  {handle(a.x, a.y, d, "a")}
+                  {handle(b.x, b.y, d, "b")}
+                </>
+              ) : null}
+            </g>
+          );
+        }
+        if (d.tool === "fib_extension") {
+          const a = toXY(d.a.time, d.a.price);
+          const b = toXY(d.b.time, d.b.price);
+          const c = toXY(d.c.time, d.c.price);
+          if (!a || !b || !c) return null;
+          return (
+            <g key={d.id} className={selected ? "is-selected" : undefined}>
+              <polyline
+                points={`${a.x},${a.y} ${b.x},${b.y} ${c.x},${c.y}`}
+                fill="none"
+                stroke={d.color}
+                strokeWidth={d.lineWidth + (selected ? 1 : 0)}
+                onPointerDown={(ev) => beginDrag(ev, d, "body")}
+              />
+              {selected && editing ? (
+                <>
+                  {handle(a.x, a.y, d, "a")}
+                  {handle(b.x, b.y, d, "b")}
+                  {handle(c.x, c.y, d, "c")}
+                </>
               ) : null}
             </g>
           );
@@ -638,25 +924,48 @@ function DrawingSvgOverlay(props: {
           const x = Math.min(a.x, b.x);
           const y = Math.min(a.y, b.y);
           return (
-            <rect
-              key={d.id}
-              x={x}
-              y={y}
-              width={Math.abs(b.x - a.x)}
-              height={Math.abs(b.y - a.y)}
-              fill={`${d.color}22`}
-              stroke={d.color}
-              strokeWidth={d.lineWidth}
-            />
+            <g key={d.id} className={selected ? "is-selected" : undefined}>
+              <rect
+                x={x}
+                y={y}
+                width={Math.abs(b.x - a.x)}
+                height={Math.abs(b.y - a.y)}
+                fill={`${d.color}22`}
+                stroke={d.color}
+                strokeWidth={d.lineWidth + (selected ? 1 : 0)}
+                onPointerDown={(ev) => beginDrag(ev, d, "body")}
+              />
+              {selected && editing ? (
+                <>
+                  {handle(a.x, a.y, d, "a")}
+                  {handle(b.x, b.y, d, "b")}
+                </>
+              ) : null}
+            </g>
           );
         }
         if (d.tool === "text") {
           const p = toXY(d.point.time, d.point.price);
           if (!p) return null;
           return (
-            <text key={d.id} x={p.x} y={p.y} fill={d.color} fontSize="11">
-              {d.text}
-            </text>
+            <g key={d.id} className={selected ? "is-selected" : undefined}>
+              <text
+                x={p.x}
+                y={p.y}
+                fill={d.color}
+                fontSize="11"
+                onPointerDown={(ev) => beginDrag(ev, d, "body")}
+                onDoubleClick={() => {
+                  if (d.locked || !props.onUpdate) return;
+                  const text = window.prompt("Annotation text", d.text);
+                  if (text == null) return;
+                  props.onUpdate({ ...d, text: text.slice(0, 500) });
+                }}
+              >
+                {d.text}
+              </text>
+              {selected && editing ? handle(p.x, p.y, d, "point") : null}
+            </g>
           );
         }
         return null;

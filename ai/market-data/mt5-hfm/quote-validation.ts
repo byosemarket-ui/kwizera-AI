@@ -42,10 +42,22 @@ function asNullableString(v: unknown): string | null {
   return s.length ? s : null;
 }
 
-export function calculateSpreadPrice(bid: number | null, ask: number | null): number | null {
+export function calculateSpreadPrice(
+  bid: number | null,
+  ask: number | null,
+  digits?: number | null,
+): number | null {
   if (bid == null || ask == null) return null;
   if (!(bid > 0) || !(ask > 0)) return null;
-  return ask - bid;
+  const raw = ask - bid;
+  // Round to instrument digits (or 10 dp fallback) to avoid binary float artifacts
+  // such as 0.3400000000001455 in UI/canonical quote payloads.
+  const d =
+    typeof digits === "number" && Number.isInteger(digits) && digits >= 0 && digits <= 12
+      ? digits
+      : 10;
+  const factor = 10 ** d;
+  return Math.round(raw * factor) / factor;
 }
 
 export function calculateSpreadPoints(
@@ -172,7 +184,7 @@ export function validateHfmRawQuote(
     }
   }
 
-  const spread = calculateSpreadPrice(hasBid ? bid : null, hasAsk ? ask : null);
+  const spread = calculateSpreadPrice(hasBid ? bid : null, hasAsk ? ask : null, digits);
   const spreadPoints = calculateSpreadPoints(hasBid ? bid : null, hasAsk ? ask : null, point);
 
   if (
