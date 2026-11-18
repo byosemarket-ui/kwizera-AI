@@ -110,9 +110,11 @@ export function inspectCandleSeries(
       const gap = c.timestamp - last;
       if (gap > step * 1.5) {
         const missed = Math.max(0, Math.round(gap / step) - 1);
-        // Large gaps (≥12 bars or ≥24h) are treated as session/weekend closures —
-        // warn only; do not inflate HIGH_GAP_RATIO as confirmed missing data.
-        const sessionLike = missed >= 12 || gap >= 86_400;
+        // Session/weekend/off-hours holes are common in FX. Treat as session gaps when:
+        // - large (≥12 bars or ≥24h), or
+        // - small (≤3 bars) — typical lunch/rollover holes, not confirmed feed loss.
+        // Only mid-size anomalous holes count toward HIGH_GAP_RATIO.
+        const sessionLike = missed >= 12 || gap >= 86_400 || missed <= 3;
         if (!sessionLike) missingApprox += missed;
         warnings.push(
           issue(
@@ -303,10 +305,11 @@ export function evaluateAnalysisDataQuality(input: {
     }
   }
 
+  const materialWarning = warnings.some(
+    (w) => w.code !== "POSSIBLE_SESSION_GAP" && w.code !== "MARKET_CLOSED_QUOTE",
+  );
+
   let status: HfmAnalysisQualityStatus = "VALID";
-  if (errors.some((e) => e.code === "STALE_QUOTE") || (stale && errors.length === 0 && incomplete === false)) {
-    // Stale tip alone → STALE/DEGRADED; critical quote stale already in errors
-  }
   if (errors.length) {
     if (incomplete && errors.every((e) => e.code === "MISSING_TIMEFRAME" || e.code === "INSUFFICIENT_CANDLES")) {
       status = "INCOMPLETE";
@@ -315,12 +318,14 @@ export function evaluateAnalysisDataQuality(input: {
     } else {
       status = "INVALID";
     }
-  } else if (stale || q.quoteStatus === "DEGRADED" || warnings.length > 0) {
-    status = stale && q.quoteStatus !== "DEGRADED" ? "STALE" : "DEGRADED";
-    if (!stale && warnings.length && q.quoteStatus === "VALID") status = "DEGRADED";
+  } else if (stale) {
+    status = "STALE";
+  } else if (q.quoteStatus === "DEGRADED" || materialWarning) {
+    status = "DEGRADED";
   }
 
   // Fail-closed: only VALID is approved for future AI reasoning.
+  // Informational POSSIBLE_SESSION_GAP warnings alone do not block VALID.
   const approvedForAiReasoning = status === "VALID";
 
   return {
@@ -329,6 +334,6 @@ export function evaluateAnalysisDataQuality(input: {
     warnings,
     approvedForAiReasoning,
     policyNote:
-      "Quote LIVE<=15s STALE<=180s (HFM DEFAULT_MT5_HFM_FRESHNESS_POLICY). Candle tip grace=2×TF. minCandles=30. Gaps classified as POSSIBLE_SESSION_GAP unless ratio excessive. Only VALID is AI-approved.",
+      "Quote LIVE<=15s STALE<=180s (HFM DEFAULT_MT5_HFM_FRESHNESS_POLICY). Candle tip grace=2×TF. minCandles=30. Session/weekend gaps are informational (POSSIBLE_SESSION_GAP) and do not alone block VALID. Only VALID is AI-approved.",
   };
 }
