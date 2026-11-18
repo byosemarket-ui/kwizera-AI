@@ -149,6 +149,25 @@ export function normalizeHfmReasoningRawPayload(
   }
   if (!isObj(cur)) return cur;
 
+  /** Parse a section that may be a JSON string; leave other types unchanged. */
+  const maybeParseSection = (v: unknown): unknown => {
+    if (typeof v !== "string") return v;
+    const t = v.trim();
+    if (!t.startsWith("{") && !t.startsWith("[")) return v;
+    try {
+      return JSON.parse(t) as unknown;
+    } catch {
+      return v;
+    }
+  };
+
+  const defaultScenario = (): Record<string, unknown> => ({
+    status: "NOT_SUPPORTED",
+    conditions: [],
+    confirmation: [],
+    invalidation: [],
+  });
+
   // Coerce flattened decision fields into decision object.
   if (!isObj(cur.decision) && typeof cur.action === "string") {
     cur = {
@@ -183,28 +202,49 @@ export function normalizeHfmReasoningRawPayload(
     cur = { ...cur, decision: d };
   }
 
-  if (isObj(cur.marketOverview)) {
-    const m = { ...cur.marketOverview };
+  // marketOverview — accept alternate key names and synthesize when missing/non-object.
+  {
+    let moRaw = maybeParseSection(cur.marketOverview);
+    if (!isObj(moRaw)) {
+      moRaw = {
+        marketCondition: cur.marketCondition ?? cur.condition,
+        overallBias: cur.overallBias ?? cur.bias,
+        higherTimeframeBias: cur.higherTimeframeBias ?? cur.htfBias,
+        timeframeAlignment: cur.timeframeAlignment ?? cur.alignment,
+      };
+    }
+    const m: Record<string, unknown> = { ...(moRaw as Record<string, unknown>) };
+    if (m.marketCondition == null) m.marketCondition = m.condition ?? m.market_condition;
+    if (m.overallBias == null) m.overallBias = m.bias ?? m.overall_bias;
+    if (m.higherTimeframeBias == null) {
+      m.higherTimeframeBias = m.htfBias ?? m.higher_timeframe_bias ?? m.htf;
+    }
+    if (m.timeframeAlignment == null) {
+      m.timeframeAlignment = m.alignment ?? m.timeframe_alignment ?? m.tfAlignment;
+    }
     const mc = enumToken(m.marketCondition);
     const ob = enumToken(m.overallBias);
     const ta = enumToken(m.timeframeAlignment);
-    if (mc) m.marketCondition = mc;
-    if (ob) m.overallBias = ob;
-    if (ta) m.timeframeAlignment = ta;
+    if (mc && CONDITIONS.has(mc)) m.marketCondition = mc;
+    else m.marketCondition = "UNCLEAR";
+    if (ob && BIASES.has(ob)) m.overallBias = ob;
+    else m.overallBias = "NEUTRAL";
+    if (ta && ALIGN.has(ta)) m.timeframeAlignment = ta;
+    else m.timeframeAlignment = "UNCLEAR";
     if (m.higherTimeframeBias != null && typeof m.higherTimeframeBias !== "string") {
       m.higherTimeframeBias = String(m.higherTimeframeBias);
     }
     if (!m.higherTimeframeBias) m.higherTimeframeBias = String(m.overallBias ?? "NEUTRAL");
-    if (!m.marketCondition) m.marketCondition = "UNCLEAR";
-    if (!m.overallBias) m.overallBias = "NEUTRAL";
-    if (!m.timeframeAlignment) m.timeframeAlignment = "UNCLEAR";
     cur = { ...cur, marketOverview: m };
   }
 
-  if (isObj(cur.timeframeAnalysis)) {
-    const tfa: Record<string, unknown> = { ...cur.timeframeAnalysis };
+  // timeframeAnalysis
+  {
+    let tfaRaw = maybeParseSection(cur.timeframeAnalysis);
+    if (!isObj(tfaRaw)) tfaRaw = {};
+    const tfa: Record<string, unknown> = { ...(tfaRaw as Record<string, unknown>) };
     for (const tf of HFM_REASONING_REQUIRED_TFS) {
-      const block = tfa[tf];
+      let block = maybeParseSection(tfa[tf] ?? tfa[tf.toLowerCase()] ?? tfa[tf.toUpperCase()]);
       if (!isObj(block)) {
         tfa[tf] = {
           bias: "NEUTRAL",
@@ -222,52 +262,88 @@ export function normalizeHfmReasoningRawPayload(
       if (b.structure != null && typeof b.structure !== "string") b.structure = String(b.structure);
       if (!b.structure) b.structure = "unspecified";
       b.observations = coerceStringArray(b.observations);
-      b.supportingEvidence = coerceStringArray(b.supportingEvidence);
+      b.supportingEvidence = coerceStringArray(b.supportingEvidence ?? b.evidence);
       b.risks = coerceStringArray(b.risks);
       tfa[tf] = b;
     }
     cur = { ...cur, timeframeAnalysis: tfa };
   }
 
-  if (isObj(cur.scenarios)) {
-    const sc: Record<string, unknown> = { ...cur.scenarios };
+  // scenarios — object, array, or alternate top-level bullish/bearish keys
+  {
+    let scRaw = maybeParseSection(cur.scenarios);
+    let sc: Record<string, unknown> = {};
+    if (isObj(scRaw)) {
+      sc = { ...scRaw };
+    } else if (Array.isArray(scRaw)) {
+      for (const item of scRaw) {
+        if (!isObj(item)) continue;
+        const name = String(item.name ?? item.side ?? item.type ?? item.scenario ?? "")
+          .trim()
+          .toLowerCase();
+        if (name.includes("bull")) sc.bullish = item;
+        else if (name.includes("bear")) sc.bearish = item;
+      }
+    }
+    if (!isObj(sc.bullish)) {
+      sc.bullish = maybeParseSection(cur.bullishScenario ?? cur.bullish) ?? sc.Bullish ?? defaultScenario();
+    }
+    if (!isObj(sc.bearish)) {
+      sc.bearish = maybeParseSection(cur.bearishScenario ?? cur.bearish) ?? sc.Bearish ?? defaultScenario();
+    }
     for (const name of ["bullish", "bearish"] as const) {
-      const block = sc[name];
+      let block = maybeParseSection(sc[name]);
       if (!isObj(block)) {
-        sc[name] = {
-          status: "NOT_SUPPORTED",
-          conditions: [],
-          confirmation: [],
-          invalidation: [],
-        };
+        sc[name] = defaultScenario();
         continue;
       }
       const b = { ...block };
       const st = enumToken(b.status);
       if (st && SCENARIO.has(st)) b.status = st;
-      else if (!st || !SCENARIO.has(String(b.status))) b.status = "NOT_SUPPORTED";
+      else b.status = "NOT_SUPPORTED";
       b.conditions = coerceStringArray(b.conditions);
-      b.confirmation = coerceStringArray(b.confirmation);
-      b.invalidation = coerceStringArray(b.invalidation);
+      b.confirmation = coerceStringArray(b.confirmation ?? b.confirmations);
+      b.invalidation = coerceStringArray(b.invalidation ?? b.invalidations);
       sc[name] = b;
     }
-    cur = { ...cur, scenarios: sc };
+    cur = { ...cur, scenarios: { bullish: sc.bullish, bearish: sc.bearish } };
   }
 
-  if (isObj(cur.tradePlan)) {
-    const tp = { ...cur.tradePlan };
+  // tradePlan
+  {
+    let tpRaw = maybeParseSection(cur.tradePlan ?? cur.plan ?? cur.trade_plan);
+    if (!isObj(tpRaw)) tpRaw = {};
+    const tp: Record<string, unknown> = { ...(tpRaw as Record<string, unknown>) };
+    if (tp.direction == null) tp.direction = tp.dir ?? tp.side;
+    if (tp.setupStatus == null) tp.setupStatus = tp.status ?? tp.setup ?? tp.setup_status;
+    if (tp.entryZone == null) tp.entryZone = tp.entry ?? tp.entry_zone;
+    if (tp.stopLoss == null) tp.stopLoss = tp.sl ?? tp.stop ?? tp.stop_loss;
+    if (tp.takeProfitTargets == null) {
+      tp.takeProfitTargets = tp.targets ?? tp.takeProfits ?? tp.take_profit_targets ?? tp.tp;
+    }
+    if (tp.invalidationPrice == null) tp.invalidationPrice = tp.invalidation ?? tp.invalidation_price;
+    if (tp.riskRewardEstimate == null) tp.riskRewardEstimate = tp.rr ?? tp.riskReward ?? tp.risk_reward;
+    if (tp.explanation == null) tp.explanation = tp.notes ?? tp.reason ?? tp.rationale;
+
     const dir = enumToken(tp.direction);
     if (dir === "BUY" || dir === "SELL" || dir === "NONE") tp.direction = dir;
-    else if (!tp.direction) tp.direction = "NONE";
+    else tp.direction = "NONE";
     let setup = enumToken(tp.setupStatus);
     if (setup === "WAITING_FOR_CONFIRMATION") setup = "WAITING";
     if (setup && SETUP.has(setup)) tp.setupStatus = setup;
-    else if (!tp.setupStatus) tp.setupStatus = "NOT_APPLICABLE";
-    if (!isObj(tp.entryZone)) tp.entryZone = { low: null, high: null };
-    else {
+    else tp.setupStatus = "NOT_APPLICABLE";
+    if (!isObj(tp.entryZone)) {
+      if (typeof tp.entryZone === "number" || typeof tp.entry === "number") {
+        const px = coerceNullableNumberField(tp.entryZone ?? tp.entry);
+        tp.entryZone = { low: px, high: px };
+      } else {
+        tp.entryZone = { low: null, high: null };
+      }
+    } else {
+      const ez = tp.entryZone as Record<string, unknown>;
       tp.entryZone = {
-        low: coerceNullableNumberField((tp.entryZone as Record<string, unknown>).low),
-        high: coerceNullableNumberField((tp.entryZone as Record<string, unknown>).high),
+        low: coerceNullableNumberField(ez.low ?? ez.min ?? ez.from),
+        high: coerceNullableNumberField(ez.high ?? ez.max ?? ez.to),
       };
     }
     tp.stopLoss = coerceNullableNumberField(tp.stopLoss);
@@ -277,49 +353,65 @@ export function normalizeHfmReasoningRawPayload(
       tp.takeProfitTargets = tp.takeProfitTargets
         .map((x) => coerceNullableNumberField(x))
         .filter((x): x is number => x != null);
+    } else if (typeof tp.takeProfitTargets === "number") {
+      tp.takeProfitTargets = [tp.takeProfitTargets];
     } else {
       tp.takeProfitTargets = [];
     }
     if (tp.explanation != null && typeof tp.explanation !== "string") tp.explanation = String(tp.explanation);
     if (!tp.explanation) tp.explanation = "No trade-plan explanation provided.";
-    // Align direction with non-trade decisions when model left BUY/SELL by mistake.
     if (isObj(cur.decision)) {
       const act = String((cur.decision as Record<string, unknown>).action ?? "");
       if (act === "NO_TRADE" || act === "WAITING_FOR_CONFIRMATION") {
         tp.direction = "NONE";
-        if (!SETUP.has(String(tp.setupStatus))) tp.setupStatus = act === "WAITING_FOR_CONFIRMATION" ? "WAITING" : "NOT_APPLICABLE";
+        if (!SETUP.has(String(tp.setupStatus)) || act === "WAITING_FOR_CONFIRMATION") {
+          tp.setupStatus = act === "WAITING_FOR_CONFIRMATION" ? "WAITING" : "NOT_APPLICABLE";
+        }
       }
     }
     cur = { ...cur, tradePlan: tp };
   }
 
-  if (isObj(cur.evidence)) {
-    const ev = { ...cur.evidence };
-    ev.observedFacts = coerceStringArray(ev.observedFacts);
-    ev.interpretations = coerceStringArray(ev.interpretations);
-    ev.uncertainties = coerceStringArray(ev.uncertainties);
-    ev.missingData = coerceStringArray(ev.missingData);
-    ev.dataQualityWarnings = coerceStringArray(ev.dataQualityWarnings);
+  // evidence
+  {
+    let evRaw = maybeParseSection(cur.evidence);
+    if (!isObj(evRaw)) evRaw = {};
+    const ev: Record<string, unknown> = { ...(evRaw as Record<string, unknown>) };
+    ev.observedFacts = coerceStringArray(ev.observedFacts ?? ev.facts ?? ev.observations);
+    ev.interpretations = coerceStringArray(ev.interpretations ?? ev.analysis);
+    ev.uncertainties = coerceStringArray(ev.uncertainties ?? ev.unknowns);
+    ev.missingData = coerceStringArray(ev.missingData ?? ev.missing);
+    ev.dataQualityWarnings = coerceStringArray(ev.dataQualityWarnings ?? ev.warnings);
     cur = { ...cur, evidence: ev };
   }
 
-  if (isObj(cur.riskAssessment)) {
-    const ra = { ...cur.riskAssessment };
+  // riskAssessment
+  {
+    let raRaw = maybeParseSection(cur.riskAssessment ?? cur.risk);
+    if (!isObj(raRaw)) raRaw = {};
+    const ra: Record<string, unknown> = { ...(raRaw as Record<string, unknown>) };
+    if (ra.riskLevel == null) ra.riskLevel = ra.level ?? ra.risk;
     const rl = enumToken(ra.riskLevel);
     if (rl && RISK.has(rl)) ra.riskLevel = rl;
-    else if (!ra.riskLevel) ra.riskLevel = "MODERATE";
+    else ra.riskLevel = "MODERATE";
     ra.reasons = coerceStringArray(ra.reasons);
-    ra.reasonsToAvoidTrade = coerceStringArray(ra.reasonsToAvoidTrade);
+    ra.reasonsToAvoidTrade = coerceStringArray(ra.reasonsToAvoidTrade ?? ra.avoid ?? ra.reasonsToAvoid);
     cur = { ...cur, riskAssessment: ra };
   }
 
-  if (isObj(cur.nextConfirmation)) {
-    const nc = { ...cur.nextConfirmation };
+  // nextConfirmation
+  {
+    let ncRaw = maybeParseSection(cur.nextConfirmation ?? cur.confirmation);
+    if (!isObj(ncRaw)) ncRaw = {};
+    const nc: Record<string, unknown> = { ...(ncRaw as Record<string, unknown>) };
     if (typeof nc.required !== "boolean") {
-      nc.required = Boolean(nc.required) || String(nc.required).toLowerCase() === "true";
+      const req = nc.required;
+      nc.required = req === true || String(req).toLowerCase() === "true"
+        || (isObj(cur.decision)
+          && String((cur.decision as Record<string, unknown>).action) === "WAITING_FOR_CONFIRMATION");
     }
-    nc.conditions = coerceStringArray(nc.conditions);
-    nc.timeframesToWatch = coerceStringArray(nc.timeframesToWatch);
+    nc.conditions = coerceStringArray(nc.conditions ?? nc.requirements);
+    nc.timeframesToWatch = coerceStringArray(nc.timeframesToWatch ?? nc.timeframes ?? nc.watch);
     cur = { ...cur, nextConfirmation: nc };
   }
 

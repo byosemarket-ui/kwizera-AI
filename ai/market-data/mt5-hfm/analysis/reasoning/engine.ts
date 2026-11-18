@@ -298,23 +298,27 @@ export async function runHfmAiReasoning(input: {
           const src = repair.ok && repair.data ? repair.data : chat.data;
           if (!src || typeof src !== "object") return "payload=missing";
           const root = src as Record<string, unknown>;
+          const typeOf = (k: string) => {
+            const v = root[k];
+            if (v === null) return `${k}=null`;
+            if (Array.isArray(v)) return `${k}=array(${v.length})`;
+            if (typeof v === "object") return `${k}=object(${Object.keys(v as object).slice(0, 8).join(",")})`;
+            return `${k}=${typeof v}`;
+          };
+          const parts = [
+            typeOf("decision"),
+            typeOf("marketOverview"),
+            typeOf("timeframeAnalysis"),
+            typeOf("scenarios"),
+            typeOf("tradePlan"),
+            typeOf("evidence"),
+            typeOf("riskAssessment"),
+            typeOf("nextConfirmation"),
+          ];
           const dec = root.decision;
-          const mo = root.marketOverview;
-          const tp = root.tradePlan;
-          const parts: string[] = [];
-          if (!dec || typeof dec !== "object") parts.push(`decisionType=${typeof dec}`);
-          else {
+          if (dec && typeof dec === "object") {
             const o = dec as Record<string, unknown>;
-            parts.push(`decisionKeys=${Object.keys(o).join(",")} action=${String(o.action)} confidenceType=${typeof o.confidence} label=${String(o.confidenceLabel)}`);
-          }
-          if (!mo || typeof mo !== "object") parts.push(`marketOverviewType=${typeof mo}`);
-          else {
-            const o = mo as Record<string, unknown>;
-            parts.push(`mo=${String(o.marketCondition)}/${String(o.overallBias)}/${String(o.timeframeAlignment)}`);
-          }
-          if (tp && typeof tp === "object") {
-            const o = tp as Record<string, unknown>;
-            parts.push(`tpDir=${String(o.direction)} setup=${String(o.setupStatus)}`);
+            parts.push(`action=${String(o.action)} label=${String(o.confidenceLabel)}`);
           }
           return parts.join("; ");
         })();

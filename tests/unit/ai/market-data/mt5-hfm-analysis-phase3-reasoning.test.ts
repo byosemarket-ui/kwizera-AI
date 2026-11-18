@@ -211,6 +211,39 @@ describe("HFM Analysis Phase 3 — response validation", () => {
     if (v.ok) expect(v.result.tradePlan.direction).toBe("NONE");
   });
 
+  it("synthesizes scenarios when model returns null/array shapes", () => {
+    const expected = {
+      symbol: "XAUUSD",
+      contextId: "ctx",
+      snapshotId: "ctx",
+      snapshotHash: "hash",
+      model: "gpt-6-luna",
+    };
+    const raw = buildMockValidReasoningPayload({ ...expected, action: "WAITING_FOR_CONFIRMATION" });
+    (raw as { scenarios: unknown }).scenarios = null;
+    (raw as { marketOverview: Record<string, unknown> }).marketOverview = {
+      condition: "volatile",
+      bias: "bearish",
+      alignment: "conflicting",
+    };
+    (raw as { tradePlan: Record<string, unknown> }).tradePlan = {
+      dir: "none",
+      setup: "waiting",
+      explanation: "awaiting M5 confirmation",
+    };
+    const v = validateHfmReasoningModelResponse({ raw, expected });
+    expect(v.ok).toBe(true);
+    if (v.ok) {
+      expect(v.result.scenarios.bullish.status).toBe("NOT_SUPPORTED");
+      expect(v.result.scenarios.bearish.status).toBe("NOT_SUPPORTED");
+      expect(v.result.marketOverview.marketCondition).toBe("VOLATILE");
+      expect(v.result.marketOverview.overallBias).toBe("BEARISH");
+      expect(v.result.marketOverview.timeframeAlignment).toBe("CONFLICTING");
+      expect(v.result.tradePlan.direction).toBe("NONE");
+      expect(v.result.tradePlan.setupStatus).toBe("WAITING");
+    }
+  });
+
   it("coerces lowercase gpt-6-luna enum fields into schema", () => {
     const expected = {
       symbol: "XAUUSD",
