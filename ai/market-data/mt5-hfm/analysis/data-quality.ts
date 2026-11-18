@@ -110,15 +110,12 @@ export function inspectCandleSeries(
       const gap = c.timestamp - last;
       if (gap > step * 1.5) {
         const missed = Math.max(0, Math.round(gap / step) - 1);
-        // Session/weekend/off-hours holes are common in FX. Treat as session gaps when:
-        // - large (≥12 bars or ≥24h), or
-        // - small (≤3 bars) — typical lunch/rollover holes, not confirmed feed loss.
-        // Only mid-size anomalous holes count toward HIGH_GAP_RATIO.
-        const sessionLike = missed >= 12 || gap >= 86_400 || missed <= 3;
-        if (!sessionLike) missingApprox += missed;
+        // Without a broker session calendar, gaps cannot be confirmed as missing data.
+        // Record POSSIBLE_SESSION_GAP / UNKNOWN_GAP as informational only (not AI-blocking).
+        const code = missed >= 12 || gap >= 86_400 ? "POSSIBLE_SESSION_GAP" : "UNKNOWN_GAP";
         warnings.push(
           issue(
-            sessionLike ? "POSSIBLE_SESSION_GAP" : "MISSING_BARS_SUSPECTED",
+            code,
             `gap ${gap}s (~${missed} bars) between ${last} and ${c.timestamp}`,
             "warning",
             { symbol, timeframe, sourceField: "timestamp" },
@@ -306,7 +303,11 @@ export function evaluateAnalysisDataQuality(input: {
   }
 
   const materialWarning = warnings.some(
-    (w) => w.code !== "POSSIBLE_SESSION_GAP" && w.code !== "MARKET_CLOSED_QUOTE",
+    (w) =>
+      w.code !== "POSSIBLE_SESSION_GAP" &&
+      w.code !== "UNKNOWN_GAP" &&
+      w.code !== "MARKET_CLOSED_QUOTE" &&
+      w.code !== "HIGH_GAP_RATIO",
   );
 
   let status: HfmAnalysisQualityStatus = "VALID";
