@@ -25,3 +25,17 @@ export const MIF_QUALITY_STEP2_MTF_ENGINE_VERSION = "1.0.0" as const;
 /** Named HFM analysis quote freshness profile (Phase 2 15s/180s semantics; not universal). */
 export const MIF_QUOTE_FRESHNESS_PROFILE_HFM_ANALYSIS_ID = "hfm-analysis-quote" as const;
 export const MIF_QUOTE_FRESHNESS_PROFILE_HFM_ANALYSIS_VERSION = "1.0.0" as const;
+
+/** Step 3 — unified assessment + shadow bridge (additive; does not replace quality.v1). */
+export const MIF_UNIFIED_QUALITY_CONTRACT_ID = "kwizera.mif.unified-quality.v1" as const;
+export const MIF_UNIFIED_QUALITY_CONTRACT_VERSION = "1.0.0" as const;
+export const MIF_QUALITY_STEP3_UNIFIED_ENGINE_ID = "mif-quality-step3-unified" as const;
+export const MIF_QUALITY_STEP3_UNIFIED_ENGINE_VERSION = "1.0.0" as const;
+export const MIF_QUALITY_STEP3_SHADOW_ENGINE_ID = "mif-quality-step3-phase2-shadow" as const;
+export const MIF_QUALITY_STEP3_SHADOW_ENGINE_VERSION = "1.0.0" as const;
+export const MIF_QUALITY_STEP3_POLICY_ENGINE_ID = "mif-quality-step3-policy" as const;
+export const MIF_QUALITY_STEP3_POLICY_ENGINE_VERSION = "1.0.0" as const;
+
+/** Built-in observational policy (no universal thresholds). */
+export const MIF_POLICY_OBSERVATIONAL_HFM_ID = "mif-observational-hfm" as const;
+export const MIF_POLICY_OBSERVATIONAL_HFM_VERSION = "1.0.0" as const;

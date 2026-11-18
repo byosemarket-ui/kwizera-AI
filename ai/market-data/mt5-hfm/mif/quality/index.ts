@@ -1,8 +1,9 @@
 /**
  * Phase 5B.2 — MIF quality exports.
  * Step 1: data integrity / gaps / coverage.
- * Step 2: quote / instrument / multi-timeframe (additive).
- * Does not wire AI approval or Phase 2 gates. No Step 3 unified assessment.
+ * Step 2: quote / instrument / multi-timeframe.
+ * Step 3: policy registry, Phase 2 shadow bridge, unified assessment.
+ * Does not wire AI approval or Phase 2 gates. doesNotApproveAiReasoning remains true.
  */
 export * from "./contracts.js";
 export * from "./codes.js";
@@ -20,3 +21,6 @@ export * from "./assess-data-integrity.js";
 export * from "./quote/index.js";
 export * from "./instrument/index.js";
 export * from "./multi-timeframe/index.js";
+export * from "./policy/index.js";
+export * from "./shadow/index.js";
+export * from "./unified/index.js";
