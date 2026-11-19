@@ -1,0 +1,28 @@
+/**
+ * Phase 5C Step 1B — chart pattern reason codes.
+ */
+
+export const MIF_PAT_POLICY_UNAVAILABLE = "POLICY_UNAVAILABLE" as const;
+export const MIF_PAT_POLICY_INVALID = "POLICY_INVALID" as const;
+export const MIF_PAT_QUALITY_MISSING = "QUALITY_MISSING" as const;
+export const MIF_PAT_QUALITY_BLOCKED = "QUALITY_BLOCKED" as const;
+export const MIF_PAT_QUALITY_DISALLOWS_CONFIRMED = "QUALITY_DISALLOWS_CONFIRMED" as const;
+export const MIF_PAT_ADAPTER_BLOCKED = "ADAPTER_BLOCKED" as const;
+export const MIF_PAT_INSUFFICIENT_SWINGS = "INSUFFICIENT_SWINGS" as const;
+export const MIF_PAT_NO_CANDIDATES = "NO_CANDIDATES" as const;
+export const MIF_PAT_ATR_UNAVAILABLE = "ATR_UNAVAILABLE" as const;
+export const MIF_PAT_GEOMETRY_REJECTED = "GEOMETRY_REJECTED" as const;
+export const MIF_PAT_OK = "OK" as const;
+
+export type MifChartPatternReasonCode =
+  | typeof MIF_PAT_POLICY_UNAVAILABLE
+  | typeof MIF_PAT_POLICY_INVALID
+  | typeof MIF_PAT_QUALITY_MISSING
+  | typeof MIF_PAT_QUALITY_BLOCKED
+  | typeof MIF_PAT_QUALITY_DISALLOWS_CONFIRMED
+  | typeof MIF_PAT_ADAPTER_BLOCKED
+  | typeof MIF_PAT_INSUFFICIENT_SWINGS
+  | typeof MIF_PAT_NO_CANDIDATES
+  | typeof MIF_PAT_ATR_UNAVAILABLE
+  | typeof MIF_PAT_GEOMETRY_REJECTED
+  | typeof MIF_PAT_OK;
