@@ -151,6 +151,29 @@ export interface MifProductionIntegrationResult extends MifSafetyFlags {
     hasChartPatterns: boolean;
     hasHarmonic: boolean;
     hasUnified: boolean;
+    hasMarketStructure: boolean;
+    hasSupportResistance: boolean;
+    hasLiquidityReference: boolean;
+    hasMomentum: boolean;
+  } | null;
+  /** Phase 5D.6 evidence quality (not a win probability). */
+  evidenceQuality?: {
+    overallBand: string;
+    analysisImpact: string;
+    explanation: string;
+    dataQuality: string;
+    evidenceCompleteness: string;
+    mtfAgreement: string;
+    partialSourceFamilies: readonly string[];
+    executionReadiness: false;
+    notWinProbability: true;
+  } | null;
+  /** Persistence metadata when durable store is enabled. */
+  persistence?: {
+    persisted: boolean;
+    runId: string | null;
+    candidateIds: readonly string[];
+    created: boolean;
   } | null;
   doesNotApproveAiReasoning: true;
   analyticalIntegrationOnly: true;

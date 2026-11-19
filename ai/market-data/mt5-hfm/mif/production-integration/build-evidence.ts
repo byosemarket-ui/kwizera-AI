@@ -1,15 +1,19 @@
 /**
- * Phase 5D.5 — project Phase 5B/5C assessments into strategy evidence refs.
- * Never fabricates structure/swings/zones; PARTIAL families are projected only
- * when the source assessment honestly supports presence.
+ * Phase 5D.5/5D.6 — project assessments into strategy evidence refs.
+ * Prefers dedicated 5D.6 engines (structure/S-R/liquidity/momentum) over regime projections.
+ * Never fabricates institutional liquidity or win probabilities.
  */
 import type { MifCanonicalCandle } from "../canonical/candle.js";
 import type { MifCandleState } from "../canonical/types.js";
 import type { MifFibonacciAssessment } from "../analysis/fibonacci/types.js";
 import type { MifHarmonicAssessment } from "../analysis/harmonics/types.js";
+import type { MifLiquidityReferenceAssessment } from "../analysis/liquidity-reference/types.js";
+import type { MifMarketStructureAssessment } from "../analysis/market-structure/types.js";
+import type { MifMomentumAssessment } from "../analysis/momentum/types.js";
 import type { MifMtfRelationshipsAssessment } from "../analysis/mtf-relationships/types.js";
 import type { MifChartPatternAssessment } from "../analysis/patterns/types.js";
 import type { MifMarketRegimeAssessment } from "../analysis/regime/types.js";
+import type { MifSupportResistanceAssessment } from "../analysis/support-resistance/types.js";
 import type { MifUnifiedChartAnalysisAssessment } from "../analysis/unified/types.js";
 import type { MifStep1DataIntegrityAssessment } from "../quality/types.js";
 import { getDefaultMifStrategyIntelligenceRegistry } from "../strategy-intelligence/registry.js";
@@ -113,6 +117,10 @@ export interface BuildProductionEvidenceInput {
   /** Retained for call-site symmetry; OD context attaches unified separately. */
   unified?: MifUnifiedChartAnalysisAssessment | null;
   mtf: MifMtfRelationshipsAssessment | null;
+  marketStructure?: MifMarketStructureAssessment | null;
+  supportResistance?: MifSupportResistanceAssessment | null;
+  liquidityReference?: MifLiquidityReferenceAssessment | null;
+  momentum?: MifMomentumAssessment | null;
   primaryCandles: readonly MifCanonicalCandle[];
 }
 
@@ -135,6 +143,28 @@ export function buildProductionEvidenceRefs(
   const geoQ = mapAssessmentStatus(input.chartPatterns?.status);
   const harQ = mapAssessmentStatus(input.harmonic?.status);
   const qualityQ = mapAssessmentStatus(input.dataQualityStatus);
+  const structureQ = mapAssessmentStatus(input.marketStructure?.status);
+  const srQ = mapAssessmentStatus(input.supportResistance?.status);
+  const liqQ = mapAssessmentStatus(input.liquidityReference?.status);
+  const momQ = mapAssessmentStatus(input.momentum?.status);
+
+  const structureEnginePresent =
+    !!input.marketStructure
+    && usableQuality(structureQ)
+    && input.marketStructure.primaryRef != null;
+  const srEnginePresent =
+    !!input.supportResistance
+    && usableQuality(srQ)
+    && input.supportResistance.primaryBoundary != null;
+  const liqEnginePresent =
+    !!input.liquidityReference
+    && usableQuality(liqQ)
+    && input.liquidityReference.primaryReference != null;
+  const momEnginePresent =
+    !!input.momentum
+    && usableQuality(momQ)
+    && input.momentum.direction !== "UNKNOWN"
+    && input.momentum.phase !== "INSUFFICIENT_EVIDENCE";
 
   const regimePresent =
     !!input.regime
@@ -213,14 +243,6 @@ export function buildProductionEvidenceRefs(
       presence = "UNSUPPORTED";
       qualityStatus = "MISSING";
       notes = "upstream availability UNSUPPORTED — not fabricated";
-    } else if (req.availability === "PLANNED" && family === "LIQUIDITY_REFERENCE") {
-      presence = "ABSENT";
-      qualityStatus = "MISSING";
-      notes = "LIQUIDITY_REFERENCE engine PLANNED — not fabricated";
-    } else if (req.availability === "PLANNED" && family === "MOMENTUM") {
-      presence = "ABSENT";
-      qualityStatus = "MISSING";
-      notes = "MOMENTUM family PLANNED — not fabricated";
     } else {
       switch (family) {
         case "DATA_QUALITY": {
@@ -346,7 +368,27 @@ export function buildProductionEvidenceRefs(
           break;
         }
         case "MARKET_STRUCTURE": {
-          if (structurePartialPresent) {
+          if (structureEnginePresent) {
+            const pref = input.marketStructure!.primaryRef!;
+            presence = "PRESENT";
+            qualityStatus = structureQ;
+            sourceEngine = input.marketStructure!.engineId;
+            sourceContractId = input.marketStructure!.contractId;
+            sourceContractVersion = input.marketStructure!.contractVersion;
+            sourcePolicyVersion = input.marketStructure!.policyVersion;
+            sourceAssessmentId = input.marketStructure!.assessmentId;
+            sourceInputIdentity = input.marketStructure!.inputIdentity;
+            notes = [
+              `refId=${pref.refId}`,
+              `refType=${pref.refType}`,
+              `refSide=${pref.refSide}`,
+              `confirmed=TRUE`,
+              `swingState=CONFIRMED`,
+              `temporalOrder=BEFORE_SWEEP`,
+              `bias=${input.marketStructure!.bias}`,
+              `price=${pref.price}`,
+            ].join("; ");
+          } else if (structurePartialPresent) {
             presence = "PRESENT";
             qualityStatus = regimeQ;
             sourceEngine = input.regime!.engineId;
@@ -355,11 +397,11 @@ export function buildProductionEvidenceRefs(
             sourcePolicyVersion = input.regime!.policyVersion;
             sourceAssessmentId = input.regime!.assessmentId;
             sourceInputIdentity = input.regime!.inputIdentity;
-            notes = `PARTIAL projection from regime.structure=${input.regime!.structure}; not a dedicated structure engine`;
+            notes = `PARTIAL projection from regime.structure=${input.regime!.structure}; dedicated structure engine unavailable`;
           } else {
             presence = "ABSENT";
             qualityStatus = "MISSING";
-            notes = "MARKET_STRUCTURE PARTIAL — no usable regime structure projection";
+            notes = "MARKET_STRUCTURE — no dedicated or regime projection available";
           }
           break;
         }
@@ -370,9 +412,25 @@ export function buildProductionEvidenceRefs(
             sourceEngine = input.regime!.engineId;
             sourceContractId = input.regime!.contractId;
             sourceAssessmentId = input.regime!.assessmentId;
+            const atr = input.regime!.trendEvidence?.displacementAtr
+              ?? input.regime!.breakoutEvidence?.displacementAtr;
+            const dir =
+              input.regime!.direction === "UP"
+                ? "UP"
+                : input.regime!.direction === "DOWN"
+                  ? "DOWN"
+                  : "UNKNOWN";
+            const expanding =
+              (typeof atr === "number" && atr >= 1)
+              || input.momentum?.phase === "EXPANDING";
             notes = [
-              `PARTIAL from regime displacementAtr trend=${input.regime!.trendEvidence?.displacementAtr ?? "null"}`,
-              `breakout=${input.regime!.breakoutEvidence?.displacementAtr ?? "null"}`,
+              `direction=${dir}`,
+              `phase=${expanding ? "EXPANDING" : "STABLE"}`,
+              `atrExpand=${expanding ? "TRUE" : "FALSE"}`,
+              `expand=${expanding ? "TRUE" : "FALSE"}`,
+              `magnitude=${atr ?? "null"}`,
+              `closeState=${tip === "CLOSED" ? "CLOSED" : tip ?? "UNKNOWN"}`,
+              `PARTIAL from regime displacementAtr`,
             ].join("; ");
           } else {
             presence = "ABSENT";
@@ -387,7 +445,15 @@ export function buildProductionEvidenceRefs(
             qualityStatus = regimeQ;
             sourceEngine = input.regime!.engineId;
             sourceAssessmentId = input.regime!.assessmentId;
-            notes = `volatility=${input.regime!.volatility}; atrRatio=${input.regime!.volatilityEvidence?.atrRatio ?? "null"}`;
+            const expanding =
+              input.regime!.volatility === "HIGH" || input.regime!.volatility === "EXTREME";
+            notes = [
+              `volState=${input.regime!.volatility}`,
+              `volatility=${input.regime!.volatility}`,
+              `expand=${expanding ? "TRUE" : "FALSE"}`,
+              `directional=${input.regime!.direction === "UP" || input.regime!.direction === "DOWN" ? "TRUE" : "FALSE"}`,
+              `atrRatio=${input.regime!.volatilityEvidence?.atrRatio ?? "null"}`,
+            ].join("; ");
           } else {
             presence = "ABSENT";
             qualityStatus = "MISSING";
@@ -410,7 +476,24 @@ export function buildProductionEvidenceRefs(
           break;
         }
         case "SUPPORT_RESISTANCE": {
-          if (boundaryPresent) {
+          if (srEnginePresent) {
+            const b = input.supportResistance!.primaryBoundary!;
+            presence = "PRESENT";
+            qualityStatus = srQ;
+            sourceEngine = input.supportResistance!.engineId;
+            sourceContractId = input.supportResistance!.contractId;
+            sourceContractVersion = input.supportResistance!.contractVersion;
+            sourcePolicyVersion = input.supportResistance!.policyVersion;
+            sourceAssessmentId = input.supportResistance!.assessmentId;
+            sourceInputIdentity = input.supportResistance!.inputIdentity;
+            notes = [
+              `boundaryId=${b.boundaryId}`,
+              `kind=${b.kind}`,
+              `mid=${b.mid}`,
+              `lifecycle=${b.lifecycle}`,
+              `touchCount=${b.touchCount}`,
+            ].join("; ");
+          } else if (boundaryPresent) {
             presence = "PRESENT";
             qualityStatus = regimeQ;
             sourceEngine = input.regime!.engineId;
@@ -419,21 +502,30 @@ export function buildProductionEvidenceRefs(
           } else {
             presence = "ABSENT";
             qualityStatus = "MISSING";
-            notes = "SUPPORT_RESISTANCE PARTIAL — no defensible boundary from regime";
+            notes = "SUPPORT_RESISTANCE — no dedicated boundary or regime projection";
           }
           break;
         }
         case "CANDLE_CONFIRMATION": {
+          const tipObs = input.liquidityReference?.tipObservation;
           if (candleConfirmPresent) {
             presence = "PRESENT";
             qualityStatus = "VALID";
             candleState = "CLOSED";
-            notes = "tip candle CLOSED from canonical series";
+            notes = tipObs
+              ? [
+                  `closeState=CLOSED`,
+                  `excursion=${tipObs.excursion}`,
+                  `reclaim=${tipObs.reclaim === "YES" ? "TRUE" : tipObs.reclaim === "NO" ? "FALSE" : "UNKNOWN"}`,
+                  `accepted=${tipObs.accepted ? "TRUE" : "FALSE"}`,
+                  tipObs.accepted ? "reject=FALSE" : "reject=TRUE",
+                ].join("; ")
+              : "tip candle CLOSED from canonical series; closeState=CLOSED";
           } else if (tip === "FORMING") {
             presence = "PRESENT";
             qualityStatus = "WARNING";
             candleState = "FORMING";
-            notes = "tip candle FORMING — closed confirmation not satisfied";
+            notes = "tip candle FORMING — closed confirmation not satisfied; closeState=FORMING";
           } else {
             presence = "ABSENT";
             qualityStatus = "MISSING";
@@ -441,11 +533,53 @@ export function buildProductionEvidenceRefs(
           }
           break;
         }
-        case "LIQUIDITY_REFERENCE":
+        case "LIQUIDITY_REFERENCE": {
+          if (liqEnginePresent) {
+            const r = input.liquidityReference!.primaryReference!;
+            presence = "PRESENT";
+            qualityStatus = liqQ;
+            sourceEngine = input.liquidityReference!.engineId;
+            sourceContractId = input.liquidityReference!.contractId;
+            sourceContractVersion = input.liquidityReference!.contractVersion;
+            sourcePolicyVersion = input.liquidityReference!.policyVersion;
+            sourceAssessmentId = input.liquidityReference!.assessmentId;
+            sourceInputIdentity = input.liquidityReference!.inputIdentity;
+            notes = [
+              `refId=${r.referenceId}`,
+              `refType=${r.refType}`,
+              `refSide=${r.refSide}`,
+              `confirmed=TRUE`,
+              `lifecycle=${r.lifecycle}`,
+              `doesNotClaimRestingOrders=TRUE`,
+            ].join("; ");
+          } else {
+            presence = "ABSENT";
+            qualityStatus = "MISSING";
+            notes = "LIQUIDITY_REFERENCE — dedicated engine produced no usable reference";
+          }
+          break;
+        }
         case "MOMENTUM": {
-          presence = "ABSENT";
-          qualityStatus = "MISSING";
-          notes = `${family} not fabricated by production bridge`;
+          if (momEnginePresent) {
+            presence = "PRESENT";
+            qualityStatus = momQ;
+            sourceEngine = input.momentum!.engineId;
+            sourceContractId = input.momentum!.contractId;
+            sourceContractVersion = input.momentum!.contractVersion;
+            sourcePolicyVersion = input.momentum!.policyVersion;
+            sourceAssessmentId = input.momentum!.assessmentId;
+            sourceInputIdentity = input.momentum!.inputIdentity;
+            notes = [
+              `direction=${input.momentum!.direction}`,
+              `phase=${input.momentum!.phase}`,
+              `fabricated=FALSE`,
+              `notWinProbability=TRUE`,
+            ].join("; ");
+          } else {
+            presence = "ABSENT";
+            qualityStatus = "MISSING";
+            notes = "MOMENTUM — dedicated engine insufficient or absent; not fabricated";
+          }
           break;
         }
         default: {

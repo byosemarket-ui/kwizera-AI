@@ -25,8 +25,10 @@ describe("Phase 5D Step1 — integration & safety", () => {
     expect(MIF_EVIDENCE_FAMILY_CATALOG.MULTI_TIMEFRAME_RELATIONSHIP.expectedSourceContractId).toBe(
       MIF_MTF_RELATIONSHIPS_CONTRACT_ID,
     );
-    expect(MIF_EVIDENCE_FAMILY_CATALOG.LIQUIDITY_REFERENCE.availability).toBe("PLANNED");
-    expect(MIF_EVIDENCE_FAMILY_CATALOG.MOMENTUM.availability).toBe("PLANNED");
+    expect(MIF_EVIDENCE_FAMILY_CATALOG.LIQUIDITY_REFERENCE.availability).toBe("AVAILABLE");
+    expect(MIF_EVIDENCE_FAMILY_CATALOG.MOMENTUM.availability).toBe("AVAILABLE");
+    expect(MIF_EVIDENCE_FAMILY_CATALOG.MARKET_STRUCTURE.availability).toBe("AVAILABLE");
+    expect(MIF_EVIDENCE_FAMILY_CATALOG.SUPPORT_RESISTANCE.availability).toBe("AVAILABLE");
   });
 
   it("registry and Phase 5C engines remain independently callable with safety flags", () => {

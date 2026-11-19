@@ -16,3 +16,7 @@ export * from "./regime/index.js";
 export * from "./step2-bridge.js";
 export * from "./mtf-relationships/index.js";
 export * from "./step3-bridge.js";
+export * from "./market-structure/index.js";
+export * from "./support-resistance/index.js";
+export * from "./liquidity-reference/index.js";
+export * from "./momentum/index.js";

@@ -1,12 +1,17 @@
 /**
- * Phase 5D.5 — HFM_MT5 MIF Opportunity Detection Admin API (read-only / analytical).
+ * Phase 5D.5/5D.6 — HFM_MT5 MIF Opportunity Detection Admin API (read-only / analytical).
  *
- * Selected surface: admin HTTP endpoint (not a background worker).
- * Rationale: on-demand analysis reuses existing admin auth, avoids uncontrolled
- * polling on a resource-constrained VPS, and mirrors Phase 2 analysis API patterns.
+ * Primary surface: on-demand admin HTTP.
+ * Optional worker: disabled by default; explicit enable required.
  *
  * POST /api/forex/providers/mt5-hfm/mif/opportunity-detection
  * GET  /api/forex/providers/mt5-hfm/mif/opportunity-detection/status
+ * GET  /api/forex/providers/mt5-hfm/mif/runs/:runId
+ * GET  /api/forex/providers/mt5-hfm/mif/candidates
+ * GET  /api/forex/providers/mt5-hfm/mif/candidates/:candidateId
+ * GET  /api/forex/providers/mt5-hfm/mif/candidates/:candidateId/history
+ * POST /api/forex/providers/mt5-hfm/mif/candidates/:candidateId/lifecycle
+ * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { assertAdminAccess, rolesFromHeaders, adminTokenFromHeaders } from "../../ai/admin-control-plane/admin-auth-boundary.js";
@@ -16,7 +21,12 @@ import {
   MIF_PRODUCTION_INTEGRATION_CONTRACT_ID,
   MIF_PRODUCTION_PRIMARY_TIMEFRAME,
   MIF_PROVIDER_ID,
+  disableMifOdWorker,
+  enableMifOdWorker,
+  getMifOdWorkerStatus,
+  getMifOpportunityStorage,
   runMifHfmOpportunityPipelineLive,
+  type MifCandidateLifecycleState,
 } from "../../ai/market-data/mt5-hfm/mif/index.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -257,6 +267,170 @@ export async function handleMt5HfmMifApi(
         doesNotApproveAiReasoning: true,
       });
     }
+    return true;
+  }
+
+  // --- Persistence retrieval ---
+  const runMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/runs\/([^/]+)$/.exec(url.pathname);
+  if (runMatch && req.method === "GET") {
+    const run = await getMifOpportunityStorage().getRun(decodeURIComponent(runMatch[1]!));
+    if (!run) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "RUN_NOT_FOUND", message: "analysis run not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const payload = { ok: true, run, placesOrders: false, mutatesBroker: false, acceptsForExecution: false };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/candidates` && req.method === "GET") {
+    const listed = await getMifOpportunityStorage().listCandidates({
+      providerSymbol: url.searchParams.get("symbol") ?? undefined,
+      strategyId: url.searchParams.get("strategyId") ?? undefined,
+      direction: url.searchParams.get("direction") ?? undefined,
+      lifecycleState: (url.searchParams.get("lifecycleState") as MifCandidateLifecycleState | null) ?? undefined,
+      fromIso: url.searchParams.get("from") ?? undefined,
+      toIso: url.searchParams.get("to") ?? undefined,
+      limit: Number(url.searchParams.get("limit") ?? 50) || 50,
+      offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+    });
+    const payload = {
+      ok: true,
+      ...listed,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const candMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/candidates\/([^/]+)$/.exec(url.pathname);
+  if (candMatch && req.method === "GET") {
+    const candidate = await getMifOpportunityStorage().getCandidate(decodeURIComponent(candMatch[1]!));
+    if (!candidate) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "CANDIDATE_NOT_FOUND", message: "candidate not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const payload = { ok: true, candidate, placesOrders: false, mutatesBroker: false, acceptsForExecution: false };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const histMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/candidates\/([^/]+)\/history$/.exec(url.pathname);
+  if (histMatch && req.method === "GET") {
+    const history = await getMifOpportunityStorage().getCandidateHistory(decodeURIComponent(histMatch[1]!));
+    sendJson(res, 200, {
+      ok: true,
+      candidateId: decodeURIComponent(histMatch[1]!),
+      history,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  const lifeMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/candidates\/([^/]+)\/lifecycle$/.exec(url.pathname);
+  if (lifeMatch && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const toState = String(body.toState || "").trim() as MifCandidateLifecycleState;
+    const reason = String(body.reason || "manual_transition").trim();
+    const result = await getMifOpportunityStorage().transitionLifecycle({
+      candidateId: decodeURIComponent(lifeMatch[1]!),
+      toState,
+      reason,
+      notes: typeof body.notes === "string" ? body.notes : "",
+      outcomeKind: (body.outcomeKind as never) ?? null,
+    });
+    sendJson(res, result.ok ? 200 : 400, {
+      ok: result.ok,
+      candidate: result.candidate,
+      error: result.error ? { code: "LIFECYCLE_ERROR", message: result.error } : undefined,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  // --- Optional worker (disabled by default) ---
+  if (url.pathname === `${PATH_PREFIX}/worker/status` && req.method === "GET") {
+    sendJson(res, 200, {
+      ok: true,
+      worker: getMifOdWorkerStatus(),
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+  if (url.pathname === `${PATH_PREFIX}/worker/enable` && req.method === "POST") {
+    let body: Record<string, unknown> = {};
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      body = {};
+    }
+    const symbol = String(body.symbol || "").trim().toUpperCase();
+    if (!symbol) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INSTRUMENT", message: "symbol required to enable worker" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const worker = enableMifOdWorker({
+      symbol,
+      intervalMs: typeof body.intervalMs === "number" ? body.intervalMs : undefined,
+    });
+    sendJson(res, 200, {
+      ok: true,
+      worker,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+  if (url.pathname === `${PATH_PREFIX}/worker/disable` && req.method === "POST") {
+    sendJson(res, 200, {
+      ok: true,
+      worker: disableMifOdWorker(),
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
     return true;
   }
 

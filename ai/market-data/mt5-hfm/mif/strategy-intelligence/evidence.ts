@@ -26,10 +26,10 @@ export const MIF_EVIDENCE_FAMILY_CATALOG: Record<
   }
 > = {
   MARKET_STRUCTURE: {
-    availability: "PARTIAL",
-    expectedSourceEngine: "forex-structure / mif-adapter",
-    expectedSourceContractId: null,
-    notes: "Swing/structure via existing forex-structure; no dedicated MIF structure assessment contract yet.",
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-market-structure",
+    expectedSourceContractId: "kwizera.mif.market-structure.v1",
+    notes: "Phase 5D.6 dedicated market-structure assessment (forex-structure swings/BOS/CHoCH).",
   },
   MARKET_REGIME: {
     availability: "AVAILABLE",
@@ -62,16 +62,16 @@ export const MIF_EVIDENCE_FAMILY_CATALOG: Record<
     notes: "Phase 5C Step 2 harmonic patterns.",
   },
   SUPPORT_RESISTANCE: {
-    availability: "PARTIAL",
-    expectedSourceEngine: "forex-structure zones / pattern boundaries",
-    expectedSourceContractId: null,
-    notes: "Boundaries available via structure zones / pattern necklines; no dedicated MIF S/R contract.",
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-support-resistance",
+    expectedSourceContractId: "kwizera.mif.support-resistance.v1",
+    notes: "Phase 5D.6 dedicated support/resistance from confirmed swing zones.",
   },
   LIQUIDITY_REFERENCE: {
-    availability: "PLANNED",
-    expectedSourceEngine: null,
-    expectedSourceContractId: null,
-    notes: "Planned for later Phase 5D liquidity detector — do not fabricate.",
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-liquidity-reference",
+    expectedSourceContractId: "kwizera.mif.liquidity-reference.v1",
+    notes: "Phase 5D.6 price-structure liquidity references — does not claim resting orders.",
   },
   PRICE_DISPLACEMENT: {
     availability: "PARTIAL",
@@ -80,10 +80,10 @@ export const MIF_EVIDENCE_FAMILY_CATALOG: Record<
     notes: "Displacement/ATR fields exist on regime trend/breakout evidence.",
   },
   MOMENTUM: {
-    availability: "PLANNED",
-    expectedSourceEngine: null,
-    expectedSourceContractId: null,
-    notes: "No dedicated MIF momentum oscillator engine yet.",
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-momentum",
+    expectedSourceContractId: "kwizera.mif.momentum.v1",
+    notes: "Phase 5D.6 ROC+RSI momentum assessment — not a win probability.",
   },
   VOLATILITY: {
     availability: "AVAILABLE",

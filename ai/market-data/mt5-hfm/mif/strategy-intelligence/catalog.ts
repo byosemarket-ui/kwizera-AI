@@ -626,9 +626,9 @@ export const MIF_STRATEGY_LIQUIDITY_SWEEP: MifStrategyDefinition = {
       evidenceId: "ls.liquidity_ref",
       family: "LIQUIDITY_REFERENCE",
       mode: "OPTIONAL",
-      availabilityOverride: "PLANNED",
+      availabilityOverride: "AVAILABLE",
       missingAffects: "WARNING",
-      notes: "Dedicated liquidity reference engine is PLANNED — optional until available.",
+      notes: "Phase 5D.6 dedicated liquidity reference engine — optional enrichment; does not claim resting orders.",
     }),
     evidenceReq({
       evidenceId: "ls.regime",
@@ -804,9 +804,9 @@ export const MIF_STRATEGY_MOMENTUM_EXPANSION: MifStrategyDefinition = {
       evidenceId: "me.momentum",
       family: "MOMENTUM",
       mode: "OPTIONAL",
-      availabilityOverride: "PLANNED",
+      availabilityOverride: "AVAILABLE",
       missingAffects: "WARNING",
-      notes: "Dedicated momentum oscillator engine is PLANNED.",
+      notes: "Phase 5D.6 ROC+RSI momentum assessment — not a win probability.",
     }),
     evidenceReq({
       evidenceId: "me.structure",

@@ -9,16 +9,24 @@ import { MIF_PROVIDER_ID } from "../canonical/types.js";
 import type { MifCanonicalCandle } from "../canonical/candle.js";
 import { assessMifFibonacci } from "../analysis/fibonacci/assess-fibonacci.js";
 import { assessMifHarmonicPatterns } from "../analysis/harmonics/assess-harmonic-patterns.js";
+import { assessMifLiquidityReference } from "../analysis/liquidity-reference/assess-liquidity-reference.js";
+import { assessMifMarketStructure } from "../analysis/market-structure/assess-market-structure.js";
+import { assessMifMomentum } from "../analysis/momentum/assess-momentum.js";
 import { assessMifMultiTimeframeRelationships } from "../analysis/mtf-relationships/assess-mtf-relationships.js";
 import type { MifMtfTimeframeSources } from "../analysis/mtf-relationships/types.js";
 import { assessMifChartPatterns } from "../analysis/patterns/detect-chart-patterns.js";
 import { assessMifMarketRegime } from "../analysis/regime/assess-market-regime.js";
+import { assessMifSupportResistance } from "../analysis/support-resistance/assess-support-resistance.js";
 import { assessMifUnifiedChartAnalysis } from "../analysis/unified/assess-unified-chart-analysis.js";
 import { assessMifDataIntegrity } from "../quality/assess-data-integrity.js";
 import { runMifOpportunityDetection } from "../opportunity-detection/run-opportunity-detection.js";
 import type { MifOpportunityDetectionContext } from "../opportunity-detection/types.js";
 import { getDefaultMifStrategyIntelligenceRegistry } from "../strategy-intelligence/registry.js";
 import { buildStrategyEvidenceSummaryFromContext } from "../opportunity-detection/evidence-summary.js";
+import {
+  applyEvidenceQualityToCandidates,
+  assessMifEvidenceQuality,
+} from "./evidence-quality.js";
 import {
   MIF_PRODUCTION_CANDLE_LIMIT,
   MIF_PRODUCTION_DEFAULT_TIMEFRAMES,
@@ -97,6 +105,10 @@ function assessOneTf(input: {
   chartPatterns: ReturnType<typeof assessMifChartPatterns>;
   harmonic: ReturnType<typeof assessMifHarmonicPatterns>;
   unified: ReturnType<typeof assessMifUnifiedChartAnalysis>;
+  marketStructure: ReturnType<typeof assessMifMarketStructure>;
+  supportResistance: ReturnType<typeof assessMifSupportResistance>;
+  liquidityReference: ReturnType<typeof assessMifLiquidityReference>;
+  momentum: ReturnType<typeof assessMifMomentum>;
 } {
   const integrity = assessMifDataIntegrity({
     candles: [...input.candles],
@@ -108,6 +120,36 @@ function assessOneTf(input: {
     quality: { kind: "step1-data-integrity", assessment: integrity },
   }).quality;
 
+  const marketStructure = assessMifMarketStructure({
+    candles: [...input.candles],
+    providerSymbol: input.symbol,
+    timeframe: input.timeframe,
+    quality,
+    assessmentTimestamp: input.assessmentTimestamp,
+  });
+  const supportResistance = assessMifSupportResistance({
+    candles: [...input.candles],
+    providerSymbol: input.symbol,
+    timeframe: input.timeframe,
+    quality,
+    marketStructure,
+    assessmentTimestamp: input.assessmentTimestamp,
+  });
+  const liquidityReference = assessMifLiquidityReference({
+    candles: [...input.candles],
+    providerSymbol: input.symbol,
+    timeframe: input.timeframe,
+    quality,
+    marketStructure,
+    assessmentTimestamp: input.assessmentTimestamp,
+  });
+  const momentum = assessMifMomentum({
+    candles: [...input.candles],
+    providerSymbol: input.symbol,
+    timeframe: input.timeframe,
+    quality,
+    assessmentTimestamp: input.assessmentTimestamp,
+  });
   const regime = assessMifMarketRegime({
     candles: [...input.candles],
     providerSymbol: input.symbol,
@@ -142,7 +184,18 @@ function assessOneTf(input: {
     assessmentTimestamp: input.assessmentTimestamp,
   });
 
-  return { integrity, regime, fibonacci, chartPatterns, harmonic, unified };
+  return {
+    integrity,
+    regime,
+    fibonacci,
+    chartPatterns,
+    harmonic,
+    unified,
+    marketStructure,
+    supportResistance,
+    liquidityReference,
+    momentum,
+  };
 }
 
 function adaptSeries(
@@ -198,7 +251,7 @@ function deriveDataQualityStatus(
  */
 export function runMifHfmOpportunityPipelineFromSeries(
   input: MifProductionPipelineFromSeriesInput,
-  opts?: { includeDebugContext?: boolean },
+  opts?: { includeDebugContext?: boolean; persist?: boolean },
 ): MifProductionIntegrationResult {
   const processingTimestamp = new Date().toISOString();
   const requestId = String(input.requestId || "").trim() || randomUUID();
@@ -681,6 +734,10 @@ export function runMifHfmOpportunityPipelineFromSeries(
     harmonic: primaryBundle.harmonic,
     unified: primaryBundle.unified,
     mtf,
+    marketStructure: primaryBundle.marketStructure,
+    supportResistance: primaryBundle.supportResistance,
+    liquidityReference: primaryBundle.liquidityReference,
+    momentum: primaryBundle.momentum,
     primaryCandles,
   });
 
@@ -716,6 +773,21 @@ export function runMifHfmOpportunityPipelineFromSeries(
   let detection: ReturnType<typeof runMifOpportunityDetection> | null = null;
   try {
     detection = runMifOpportunityDetection({ context });
+    const eq = assessMifEvidenceQuality({
+      context,
+      eligibility,
+      candidates: detection.candidates,
+      assessmentTimestamp,
+    });
+    if (eq.analysisImpact === "FAIL_ANALYSIS") {
+      failureCodes.push("QUALITY_BLOCKED");
+    }
+    const adjusted = applyEvidenceQualityToCandidates(detection.candidates, eq);
+    detection = {
+      ...detection,
+      candidates: adjusted.candidates,
+    };
+    (detection as { _evidenceQuality?: typeof eq })._evidenceQuality = eq;
   } catch (err) {
     failureCodes.push("ORCHESTRATOR_ERROR");
     return baseResult({
@@ -750,10 +822,30 @@ export function runMifHfmOpportunityPipelineFromSeries(
         hasChartPatterns: true,
         hasHarmonic: true,
         hasUnified: true,
+        hasMarketStructure: !!primaryBundle.marketStructure,
+        hasSupportResistance: !!primaryBundle.supportResistance,
+        hasLiquidityReference: !!primaryBundle.liquidityReference,
+        hasMomentum: !!primaryBundle.momentum,
       },
       ...(opts?.includeDebugContext ? { _debugContext: context } : {}),
     });
   }
+
+  const evidenceQualityRaw = (detection as { _evidenceQuality?: ReturnType<typeof assessMifEvidenceQuality> })
+    ._evidenceQuality ?? null;
+  const evidenceQuality = evidenceQualityRaw
+    ? {
+        overallBand: evidenceQualityRaw.overallBand,
+        analysisImpact: evidenceQualityRaw.analysisImpact,
+        explanation: evidenceQualityRaw.explanation,
+        dataQuality: evidenceQualityRaw.dataQuality,
+        evidenceCompleteness: evidenceQualityRaw.evidenceCompleteness,
+        mtfAgreement: evidenceQualityRaw.mtfAgreement,
+        partialSourceFamilies: evidenceQualityRaw.partialSourceFamilies,
+        executionReadiness: false as const,
+        notWinProbability: true as const,
+      }
+    : null;
 
   // Distinguish empty vs insufficient vs degraded vs failed
   const eligibleCount = eligibility.filter((e) => e.status === "ELIGIBLE_FOR_DETECTION").length;
@@ -761,9 +853,14 @@ export function runMifHfmOpportunityPipelineFromSeries(
   const candidateCount = detection.candidates.length;
 
   let analysisStatus: MifProductionIntegrationResult["analysisStatus"] = "OK";
-  if (dataQualityStatus === "BLOCKED") {
+  if (dataQualityStatus === "BLOCKED" || evidenceQualityRaw?.analysisImpact === "FAIL_ANALYSIS") {
     analysisStatus = "FAILED_UPSTREAM_DATA";
   } else if (failureCodes.includes("STALE_CANDLES") || failureCodes.includes("INVALID_OHLC")) {
+    analysisStatus = "PARTIAL_DEGRADED";
+  } else if (
+    evidenceQualityRaw?.analysisImpact === "PARTIAL_DEGRADED"
+    || evidenceQualityRaw?.analysisImpact === "FORCE_NEEDS_CONFIRMATION"
+  ) {
     analysisStatus = "PARTIAL_DEGRADED";
   } else if (candidateCount === 0 && eligibleCount === 0 && insufficientCount > 0) {
     analysisStatus = "INSUFFICIENT_EVIDENCE";
@@ -817,6 +914,10 @@ export function runMifHfmOpportunityPipelineFromSeries(
         hasChartPatterns: true,
         hasHarmonic: true,
         hasUnified: true,
+        hasMarketStructure: !!primaryBundle.marketStructure,
+        hasSupportResistance: !!primaryBundle.supportResistance,
+        hasLiquidityReference: !!primaryBundle.liquidityReference,
+        hasMomentum: !!primaryBundle.momentum,
       },
     });
   }
@@ -853,16 +954,67 @@ export function runMifHfmOpportunityPipelineFromSeries(
       hasChartPatterns: true,
       hasHarmonic: true,
       hasUnified: true,
+      hasMarketStructure: !!primaryBundle.marketStructure,
+      hasSupportResistance: !!primaryBundle.supportResistance,
+      hasLiquidityReference: !!primaryBundle.liquidityReference,
+      hasMomentum: !!primaryBundle.momentum,
     },
+    evidenceQuality,
+    persistence: null,
     ...(opts?.includeDebugContext ? { _debugContext: context } : {}),
   });
+}
+
+/**
+ * Run series pipeline and optionally persist (default: persist when successful-ish).
+ */
+export async function runMifHfmOpportunityPipelineFromSeriesPersisted(
+  input: MifProductionPipelineFromSeriesInput,
+  opts?: { includeDebugContext?: boolean; persist?: boolean },
+): Promise<MifProductionIntegrationResult> {
+  const started = new Date().toISOString();
+  const result = runMifHfmOpportunityPipelineFromSeries(input, opts);
+  const shouldPersist = opts?.persist !== false
+    && !String(result.analysisStatus).startsWith("FAILED_VALIDATION");
+  if (!shouldPersist) return result;
+  try {
+    const { getMifOpportunityStorage } = await import("./persistence/storage.js");
+    const store = getMifOpportunityStorage();
+    const saved = await store.persistAnalysisResult(result, {
+      analysisStartedAt: started,
+      runId: result.requestId,
+    });
+    return {
+      ...result,
+      persistence: {
+        persisted: true,
+        runId: saved.run.runId,
+        candidateIds: saved.candidates.map((c) => c.candidateId),
+        created: saved.created,
+      },
+    };
+  } catch (err) {
+    return {
+      ...result,
+      warnings: [
+        ...result.warnings,
+        `persistence_failed:${err instanceof Error ? err.message : String(err)}`,
+      ],
+      persistence: {
+        persisted: false,
+        runId: null,
+        candidateIds: [],
+        created: false,
+      },
+    };
+  }
 }
 
 /**
  * Live HFM_MT5 fetch → series pipeline. Read-only agent path only.
  */
 export async function runMifHfmOpportunityPipelineLive(
-  input: MifProductionLiveFetchInput,
+  input: MifProductionLiveFetchInput & { persist?: boolean },
 ): Promise<MifProductionIntegrationResult> {
   const processingTimestamp = new Date().toISOString();
   const requestId = String(input.requestId || "").trim() || randomUUID();
@@ -938,16 +1090,19 @@ export async function runMifHfmOpportunityPipelineLive(
     }
   }
 
-  const result = runMifHfmOpportunityPipelineFromSeries({
-    requestId,
-    providerId: MIF_PROVIDER_ID,
-    providerSymbol: symbol,
-    timeframes,
-    primaryTimeframe: input.primaryTimeframe,
-    series,
-    assessmentTimestamp: input.assessmentTimestamp ?? processingTimestamp,
-    maxCandleAgeSec: input.maxCandleAgeSec,
-  });
+  let result = await runMifHfmOpportunityPipelineFromSeriesPersisted(
+    {
+      requestId,
+      providerId: MIF_PROVIDER_ID,
+      providerSymbol: symbol,
+      timeframes,
+      primaryTimeframe: input.primaryTimeframe,
+      series,
+      assessmentTimestamp: input.assessmentTimestamp ?? processingTimestamp,
+      maxCandleAgeSec: input.maxCandleAgeSec,
+    },
+    { persist: input.persist !== false },
+  );
 
   if (fetchErrors.length && result.analysisStatus.startsWith("FAILED") === false
     && result.resolvedTimeframes.length === 0) {
@@ -960,7 +1115,7 @@ export async function runMifHfmOpportunityPipelineLive(
   }
 
   if (fetchErrors.length) {
-    return {
+    result = {
       ...result,
       warnings: [...result.warnings, ...fetchErrors],
       failureCodes: [...new Set([...result.failureCodes, ...failureCodes])],
