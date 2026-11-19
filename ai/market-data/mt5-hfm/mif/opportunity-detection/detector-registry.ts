@@ -1,6 +1,7 @@
 /**
  * Phase 5D Step 2 — immutable Opportunity Detector Registry.
- * Empty by default — no fake detectors. Does not invent opportunities.
+ * Default registry loads only implemented detectors (Phase 5D Step 3+).
+ * Does not invent opportunities or register unimplemented strategies.
  */
 import {
   getDefaultMifStrategyIntelligenceRegistry,
@@ -12,6 +13,7 @@ import {
   MIF_OPPORTUNITY_DETECTION_POLICY_ID,
   MIF_OPPORTUNITY_DETECTION_POLICY_VERSION,
 } from "./contracts.js";
+import { MIF_IMPLEMENTED_OPPORTUNITY_DETECTORS } from "./detectors/catalog.js";
 import type {
   MifDetectorAvailabilityStatus,
   MifOpportunityDetector,
@@ -130,10 +132,13 @@ export class MifOpportunityDetectorRegistry {
 
 let defaultRegistry: MifOpportunityDetectorRegistry | null = null;
 
-/** Default empty detector registry — STEP 2 does not ship strategy detectors. */
+/**
+ * Default registry over implemented detectors only.
+ * Unimplemented strategies remain without detectors (reported via diagnostics).
+ */
 export function getDefaultMifOpportunityDetectorRegistry(): MifOpportunityDetectorRegistry {
   if (!defaultRegistry) {
-    defaultRegistry = new MifOpportunityDetectorRegistry([]);
+    defaultRegistry = new MifOpportunityDetectorRegistry(MIF_IMPLEMENTED_OPPORTUNITY_DETECTORS);
   }
   return defaultRegistry;
 }

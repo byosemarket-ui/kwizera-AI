@@ -28,7 +28,7 @@ function evidence(over: Partial<MifDetectionEvidenceRef> & Pick<MifDetectionEvid
     sourceAssessmentId: over.sourceAssessmentId ?? `${over.evidenceId}.src`,
     sourceInputIdentity: over.sourceInputIdentity ?? null,
     timeframe: over.timeframe ?? "H1",
-    timeframeRole: over.timeframeRole ?? "OPPORTUNITY_ARCHITECTURE",
+    timeframeRole: over.timeframeRole ?? "OPPORTUNITY_FORMATION",
     assessmentTimestamp: over.assessmentTimestamp ?? "2024-06-01T12:00:00.000Z",
     qualityStatus: over.qualityStatus ?? "VALID",
     candleState: over.candleState ?? "CLOSED",
@@ -49,7 +49,7 @@ function baseContext(over: Partial<MifOpportunityDetectionContext> = {}): MifOpp
       "PRIMARY_DIRECTION",
       "INTERMEDIATE_STRUCTURE",
       "SETUP_DEVELOPMENT",
-      "OPPORTUNITY_ARCHITECTURE",
+      "OPPORTUNITY_FORMATION",
       "LOWER_TIMEFRAME_CONFIRMATION",
     ],
     evidence: [
@@ -68,7 +68,7 @@ function baseContext(over: Partial<MifOpportunityDetectionContext> = {}): MifOpp
         "PRIMARY_DIRECTION",
         "INTERMEDIATE_STRUCTURE",
         "SETUP_DEVELOPMENT",
-        "OPPORTUNITY_ARCHITECTURE",
+        "OPPORTUNITY_FORMATION",
         "LOWER_TIMEFRAME_CONFIRMATION",
       ],
       evidence: [

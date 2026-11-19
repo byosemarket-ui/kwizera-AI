@@ -343,10 +343,23 @@ export function runMifOpportunityDetection(
   // but do not copy deeply (assessments are treated as immutable by contract).
   const context = input.context;
 
-  let registry = input.detectorRegistry ?? getDefaultMifOpportunityDetectorRegistry();
-  if (input.detectors && input.detectors.length > 0) {
-    const merged = [...registry.listDetectors(), ...input.detectors];
-    registry = createMifOpportunityDetectorRegistry(merged, registry.getStrategyRegistry());
+  // When `detectors` is supplied without an explicit registry, run only those detectors
+  // (test/isolated runs). When both are supplied, merge by detectorId (explicit overrides).
+  let registry: MifOpportunityDetectorRegistry;
+  if (input.detectorRegistry && input.detectors && input.detectors.length > 0) {
+    const byId = new Map<string, MifOpportunityDetector>();
+    for (const d of input.detectorRegistry.listDetectors()) byId.set(d.detectorId, d);
+    for (const d of input.detectors) byId.set(d.detectorId, d);
+    registry = createMifOpportunityDetectorRegistry(
+      [...byId.values()],
+      input.detectorRegistry.getStrategyRegistry(),
+    );
+  } else if (input.detectorRegistry) {
+    registry = input.detectorRegistry;
+  } else if (input.detectors && input.detectors.length > 0) {
+    registry = createMifOpportunityDetectorRegistry(input.detectors);
+  } else {
+    registry = getDefaultMifOpportunityDetectorRegistry();
   }
 
   const strategyRegistry = registry.getStrategyRegistry();

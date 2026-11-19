@@ -32,7 +32,7 @@ function evidence(
     sourceAssessmentId: over.sourceAssessmentId ?? `${over.evidenceId}.src`,
     sourceInputIdentity: over.sourceInputIdentity ?? null,
     timeframe: over.timeframe ?? "H1",
-    timeframeRole: over.timeframeRole ?? "OPPORTUNITY_ARCHITECTURE",
+    timeframeRole: over.timeframeRole ?? "OPPORTUNITY_FORMATION",
     assessmentTimestamp: over.assessmentTimestamp ?? "2024-06-01T12:00:00.000Z",
     qualityStatus: over.qualityStatus ?? "VALID",
     candleState: over.candleState ?? "CLOSED",
@@ -54,7 +54,7 @@ function eligibleTrendContext(
       "PRIMARY_DIRECTION",
       "INTERMEDIATE_STRUCTURE",
       "SETUP_DEVELOPMENT",
-      "OPPORTUNITY_ARCHITECTURE",
+      "OPPORTUNITY_FORMATION",
       "LOWER_TIMEFRAME_CONFIRMATION",
     ],
     evidence: [
@@ -73,7 +73,7 @@ function eligibleTrendContext(
         "PRIMARY_DIRECTION",
         "INTERMEDIATE_STRUCTURE",
         "SETUP_DEVELOPMENT",
-        "OPPORTUNITY_ARCHITECTURE",
+        "OPPORTUNITY_FORMATION",
         "LOWER_TIMEFRAME_CONFIRMATION",
       ],
       evidence: [
@@ -133,7 +133,7 @@ function stubDetector(
     detectorVersion: over.detectorVersion ?? "1.0.0",
     policyVersion: over.policyVersion ?? "1.0.0",
     availabilityStatus: over.availabilityStatus ?? "ACTIVE",
-    supportedTimeframeRoles: over.supportedTimeframeRoles ?? ["OPPORTUNITY_ARCHITECTURE"],
+    supportedTimeframeRoles: over.supportedTimeframeRoles ?? ["OPPORTUNITY_FORMATION"],
     supportedSymbols: over.supportedSymbols ?? null,
     notes: over.notes ?? "test stub — not a production detector",
     placesOrders: false,
@@ -148,7 +148,7 @@ describe("Phase 5D Step2 — orchestrator", () => {
   it("reports DETECTOR_NOT_REGISTERED for all ten strategies when registry empty", () => {
     const result = runMifOpportunityDetection({
       context: eligibleTrendContext(),
-      detectorRegistry: getDefaultMifOpportunityDetectorRegistry(),
+      detectorRegistry: createMifOpportunityDetectorRegistry([]),
     });
     expect(result.contractId).toBe(MIF_OPPORTUNITY_DETECTION_CONTRACT_ID);
     expect(result.doesNotRankOpportunities).toBe(true);

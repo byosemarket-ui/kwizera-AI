@@ -23,7 +23,7 @@ function stubDetector(
     detectorVersion: over.detectorVersion ?? "1.0.0",
     policyVersion: over.policyVersion ?? "1.0.0",
     availabilityStatus: over.availabilityStatus ?? "ACTIVE",
-    supportedTimeframeRoles: over.supportedTimeframeRoles ?? ["OPPORTUNITY_ARCHITECTURE"],
+    supportedTimeframeRoles: over.supportedTimeframeRoles ?? ["OPPORTUNITY_FORMATION"],
     supportedSymbols: over.supportedSymbols ?? null,
     notes: over.notes ?? "test stub",
     placesOrders: false,
@@ -35,14 +35,29 @@ function stubDetector(
 }
 
 describe("Phase 5D Step2 — detector registry", () => {
-  it("starts empty with no fake detectors and reports strategies without detectors", () => {
-    const reg = getDefaultMifOpportunityDetectorRegistry();
+  it("empty constructed registry reports all strategies without detectors", () => {
+    const reg = createMifOpportunityDetectorRegistry([]);
     expect(reg.listDetectors()).toHaveLength(0);
     expect(reg.getPolicyId()).toBe(MIF_OPPORTUNITY_DETECTION_POLICY_ID);
     const d = reg.diagnostics();
     expect(d.detectorCount).toBe(0);
     expect(d.strategiesWithoutDetector).toHaveLength(10);
     expect(d.validationOk).toBe(true);
+  });
+
+  it("default registry loads only implemented detectors (no fake fillers)", () => {
+    const reg = getDefaultMifOpportunityDetectorRegistry();
+    const d = reg.diagnostics();
+    expect(d.validationOk).toBe(true);
+    expect(d.detectorCount).toBe(reg.listDetectors().length);
+    expect(d.detectorCount).toBeGreaterThan(0);
+    // Unimplemented strategies must remain without detectors.
+    expect(d.strategiesWithoutDetector.length).toBe(10 - d.detectorCount);
+    for (const det of reg.listDetectors()) {
+      expect(det.placesOrders).toBe(false);
+      expect(det.acceptsForExecution).toBe(false);
+      expect(typeof det.evaluate).toBe("function");
+    }
   });
 
   it("registers a valid detector and supports lookup / ordering", () => {

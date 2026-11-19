@@ -17,12 +17,12 @@ import {
 } from "../../../../ai/market-data/mt5-hfm/mif/index";
 
 describe("Phase 5D Step2 — integration & safety", () => {
-  it("keeps Step1 registry and empty OD registry independently usable", () => {
+  it("keeps Step1 registry and OD registry independently usable", () => {
     const strategies = getDefaultMifStrategyIntelligenceRegistry();
     const detectors = getDefaultMifOpportunityDetectorRegistry();
     expect(strategies.diagnostics().activeCount).toBe(10);
-    expect(detectors.diagnostics().detectorCount).toBe(0);
     expect(detectors.getPolicyId()).toBe(MIF_OPPORTUNITY_DETECTION_POLICY_ID);
+    expect(detectors.diagnostics().validationOk).toBe(true);
 
     for (const id of [
       "TREND_CONTINUATION",
@@ -37,8 +37,11 @@ describe("Phase 5D Step2 — integration & safety", () => {
       "PATTERN_COMPLETION",
     ] as const) {
       expect(strategies.getStrategy(id)?.lifecycleStatus).toBe("ACTIVE");
-      expect(detectors.findByStrategyId(id)).toHaveLength(0);
     }
+    // Implemented detectors only for TC + Pullback after Step 3; others remain unregistered.
+    expect(detectors.findByStrategyId("TREND_CONTINUATION").length).toBeGreaterThanOrEqual(1);
+    expect(detectors.findByStrategyId("PULLBACK").length).toBeGreaterThanOrEqual(1);
+    expect(detectors.findByStrategyId("REVERSAL")).toHaveLength(0);
   });
 
   it("runs detection without mutating Phase 5C assessments or enabling execution", () => {
