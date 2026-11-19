@@ -42,6 +42,7 @@ import { bootForexMonitor, handleForexMonitorApi } from "./forex-monitor-api.js"
 import { handleForexConnectApi } from "./forexconnect-api.js";
 import { handleMt5HfmApi } from "./mt5-hfm-api.js";
 import { handleMt5HfmAnalysisApi } from "./mt5-hfm-analysis-api.js";
+import { handleMt5HfmMifApi } from "./mt5-hfm-mif-api.js";
 import { isVerifiedLive, loadDeploymentRecord, loadImagePrepVerification } from "./deployment-status.js";
 import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
 import { AudioIntelligenceError } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
@@ -1210,6 +1211,10 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   }
 
   if (await handleMt5HfmAnalysisApi(req, res, url, sendJson)) {
+    return;
+  }
+
+  if (await handleMt5HfmMifApi(req, res, url, sendJson)) {
     return;
   }
 

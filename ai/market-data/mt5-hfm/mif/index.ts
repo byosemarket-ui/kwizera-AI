@@ -16,6 +16,7 @@
  * Phase 5D Step 9 — supply/demand opportunity detector (additive, read-only).
  * Phase 5D Step 10 — momentum expansion opportunity detector (additive, read-only).
  * Phase 5D Step 11 — pattern completion opportunity detector (additive, read-only).
+ * Phase 5D.5 — HFM_MT5 production integration pipeline (additive, read-only).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";
@@ -29,3 +30,4 @@ export * from "./quality/index.js";
 export * from "./analysis/index.js";
 export * from "./strategy-intelligence/index.js";
 export * from "./opportunity-detection/index.js";
+export * from "./production-integration/index.js";
