@@ -130,6 +130,7 @@ describe("Phase 5D audit — orchestrator isolation and immutability", () => {
   });
 
   it("isolates a throwing detector without blocking the other nine", () => {
+    // Eligibility must pass so evaluate() is reached; otherwise orchestrator short-circuits to INELIGIBLE.
     const boom: MifOpportunityDetector = {
       ...getDefaultMifOpportunityDetectorRegistry().getDetector(MIF_TREND_CONTINUATION_DETECTOR_ID)!,
       evaluate: () => {
@@ -139,8 +140,52 @@ describe("Phase 5D audit — orchestrator isolation and immutability", () => {
     const others = getDefaultMifOpportunityDetectorRegistry()
       .listDetectors()
       .filter((d) => d.detectorId !== MIF_TREND_CONTINUATION_DETECTOR_ID);
+    const tcEvidence = [
+      ev({
+        evidenceId: "tc.regime",
+        family: "MARKET_REGIME",
+        candleState: null,
+        notes: "structure=TRENDING;direction=UP",
+      }),
+      ev({
+        evidenceId: "tc.mtf",
+        family: "MULTI_TIMEFRAME_RELATIONSHIP",
+        notes: "relation=ALIGNMENT",
+      }),
+      ev({
+        evidenceId: "tc.structure",
+        family: "MARKET_STRUCTURE",
+        notes: "structure=TRENDING;direction=UP",
+      }),
+      ev({ evidenceId: "tc.quality", family: "DATA_QUALITY", candleState: null }),
+    ];
     const result = runMifOpportunityDetection({
-      context: emptyCtx(),
+      context: emptyCtx({
+        evidence: tcEvidence,
+        evidenceSummary: {
+          providerSymbol: "XAUUSD",
+          dataQualityStatus: "VALID",
+          regimeDirection: "UP",
+          regimeStructure: "TRENDING",
+          regimeVolatility: "NORMAL",
+          availableTimeframeRoles: [
+            "PRIMARY_DIRECTION",
+            "INTERMEDIATE_STRUCTURE",
+            "SETUP_DEVELOPMENT",
+            "OPPORTUNITY_TRIGGER",
+            "LOWER_TIMEFRAME_CONFIRMATION",
+          ],
+          evidence: tcEvidence.map((e) => ({
+            evidenceId: e.evidenceId,
+            family: e.family,
+            presence: e.presence,
+            qualityStatus: e.qualityStatus,
+            closedCandleSatisfied: e.candleState === "CLOSED" ? true : null,
+            sourceAssessmentId: e.sourceAssessmentId,
+            sourceContractId: e.sourceContractId,
+          })),
+        },
+      }),
       detectors: [boom, ...others],
       reportMissingDetectors: false,
     });
