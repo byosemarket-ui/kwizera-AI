@@ -114,7 +114,15 @@ function parseRelationFromNotes(notes: string | undefined): MifMtfDirectionalRel
 
 export function resolveMtfView(
   ctx: MifOpportunityDetectionContext,
-  preferredEvidenceIds: readonly string[] = ["tc.mtf", "pb.mtf", "rv.mtf", "bo.mtf", "brt.mtf", "rg.mtf"],
+  preferredEvidenceIds: readonly string[] = [
+    "tc.mtf",
+    "pb.mtf",
+    "rv.mtf",
+    "bo.mtf",
+    "brt.mtf",
+    "rg.mtf",
+    "ls.mtf",
+  ],
 ): ResolvedMtfView {
   const mtf = ctx.mtfRelationships;
   if (mtf) {

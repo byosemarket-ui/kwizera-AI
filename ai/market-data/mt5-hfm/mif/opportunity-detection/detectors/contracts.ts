@@ -19,3 +19,6 @@ export const MIF_BREAKOUT_RETEST_DETECTOR_VERSION = "1.0.0" as const;
 
 export const MIF_RANGE_DETECTOR_ID = "mif.detector.range" as const;
 export const MIF_RANGE_DETECTOR_VERSION = "1.0.0" as const;
+
+export const MIF_LIQUIDITY_SWEEP_DETECTOR_ID = "mif.detector.liquidity-sweep" as const;
+export const MIF_LIQUIDITY_SWEEP_DETECTOR_VERSION = "1.0.0" as const;

@@ -38,14 +38,15 @@ describe("Phase 5D Step2 — integration & safety", () => {
     ] as const) {
       expect(strategies.getStrategy(id)?.lifecycleStatus).toBe("ACTIVE");
     }
-    // Implemented detectors: TC + Pullback + Reversal + Breakout + Breakout Retest + Range; later strategies remain unregistered.
+    // Implemented detectors through Liquidity Sweep; Supply/Demand+ remain unregistered.
     expect(detectors.findByStrategyId("TREND_CONTINUATION").length).toBeGreaterThanOrEqual(1);
     expect(detectors.findByStrategyId("PULLBACK").length).toBeGreaterThanOrEqual(1);
     expect(detectors.findByStrategyId("REVERSAL").length).toBeGreaterThanOrEqual(1);
     expect(detectors.findByStrategyId("BREAKOUT").length).toBeGreaterThanOrEqual(1);
     expect(detectors.findByStrategyId("BREAKOUT_RETEST").length).toBeGreaterThanOrEqual(1);
     expect(detectors.findByStrategyId("RANGE").length).toBeGreaterThanOrEqual(1);
-    expect(detectors.findByStrategyId("LIQUIDITY_SWEEP")).toHaveLength(0);
+    expect(detectors.findByStrategyId("LIQUIDITY_SWEEP").length).toBeGreaterThanOrEqual(1);
+    expect(detectors.findByStrategyId("SUPPLY_DEMAND")).toHaveLength(0);
   });
 
   it("runs detection without mutating Phase 5C assessments or enabling execution", () => {
