@@ -1,0 +1,26 @@
+/**
+ * Phase 5C Step 3 — multi-timeframe relationships reason codes.
+ */
+
+export const MIF_MTF_POLICY_UNAVAILABLE = "POLICY_UNAVAILABLE" as const;
+export const MIF_MTF_POLICY_INVALID = "POLICY_INVALID" as const;
+export const MIF_MTF_MIXED_INSTRUMENTS = "MIXED_INSTRUMENTS" as const;
+export const MIF_MTF_DUPLICATE_TIMEFRAME = "DUPLICATE_TIMEFRAME" as const;
+export const MIF_MTF_UNSUPPORTED_TIMEFRAME = "UNSUPPORTED_TIMEFRAME" as const;
+export const MIF_MTF_INSUFFICIENT_COVERAGE = "INSUFFICIENT_COVERAGE" as const;
+export const MIF_MTF_TIMEBASE_INCOMPARABLE = "TIMEBASE_INCOMPARABLE" as const;
+export const MIF_MTF_SOURCE_DEGRADED = "SOURCE_DEGRADED" as const;
+export const MIF_MTF_CONFLICT_PRESERVED = "CONFLICT_PRESERVED" as const;
+export const MIF_MTF_OK = "OK" as const;
+
+export type MifMtfRelationshipsReasonCode =
+  | typeof MIF_MTF_POLICY_UNAVAILABLE
+  | typeof MIF_MTF_POLICY_INVALID
+  | typeof MIF_MTF_MIXED_INSTRUMENTS
+  | typeof MIF_MTF_DUPLICATE_TIMEFRAME
+  | typeof MIF_MTF_UNSUPPORTED_TIMEFRAME
+  | typeof MIF_MTF_INSUFFICIENT_COVERAGE
+  | typeof MIF_MTF_TIMEBASE_INCOMPARABLE
+  | typeof MIF_MTF_SOURCE_DEGRADED
+  | typeof MIF_MTF_CONFLICT_PRESERVED
+  | typeof MIF_MTF_OK;

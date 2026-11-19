@@ -4,6 +4,7 @@
  * Step 1B: geometric chart pattern detection.
  * Step 1C: unified pattern + Fibonacci chart analysis.
  * Step 2: harmonic patterns + market regime (dimensional).
+ * Step 3: multi-timeframe relationships.
  */
 export * from "./adapter/mif-to-structure-candle.js";
 export * from "./quality/assessment-quality-gate.js";
@@ -13,3 +14,5 @@ export * from "./unified/index.js";
 export * from "./harmonics/index.js";
 export * from "./regime/index.js";
 export * from "./step2-bridge.js";
+export * from "./mtf-relationships/index.js";
+export * from "./step3-bridge.js";
