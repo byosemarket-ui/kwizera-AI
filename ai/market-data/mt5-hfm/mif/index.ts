@@ -3,6 +3,7 @@
  * Phase 5B.1 — canonical types + three-dialect adapters.
  * Phase 5B.2 — data integrity / quote / instrument / MTF / unified quality (additive).
  * Phase 5C Step 1A — analytical foundation + Fibonacci (additive, read-only).
+ * Phase 5C Step 2 — harmonic patterns + market regime (additive, read-only).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";
