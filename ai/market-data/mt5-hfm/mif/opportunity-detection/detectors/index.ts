@@ -8,4 +8,5 @@ export * from "./pullback.js";
 export * from "./reversal.js";
 export * from "./breakout.js";
 export * from "./breakout-retest.js";
+export * from "./range.js";
 export * from "./catalog.js";
