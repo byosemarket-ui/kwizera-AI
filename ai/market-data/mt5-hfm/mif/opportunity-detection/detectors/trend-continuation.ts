@@ -117,7 +117,7 @@ function evaluateTrendContinuation(context: MifOpportunityDetectionContext): {
   }
 
   const supportingEvidenceIds = ["tc.regime", "tc.mtf", "tc.structure", "tc.quality"].filter(
-    (id) => isPresentUsable(findEvidenceById(context, id)) || id === "tc.quality",
+    (id) => isPresentUsable(findEvidenceById(context, id)),
   );
   // Ensure listed ids that exist under family match
   for (const e of [structureEv, mtfEv]) {

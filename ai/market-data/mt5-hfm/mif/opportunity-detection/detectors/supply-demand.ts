@@ -504,7 +504,7 @@ function evaluateSupplyDemand(context: MifOpportunityDetectionContext): {
       : "DETECTED";
 
   const supportingEvidenceIds = ["sd.structure", "sd.displacement", "sd.quality"].filter(
-    (id) => isPresentUsable(findEvidenceById(context, id)) || id === "sd.quality",
+    (id) => isPresentUsable(findEvidenceById(context, id)),
   );
   for (const e of [
     structureEv,

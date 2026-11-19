@@ -624,7 +624,7 @@ function evaluateMomentumExpansion(context: MifOpportunityDetectionContext): {
     "me.vol",
     "me.regime",
     "me.quality",
-  ].filter((id) => isPresentUsable(findEvidenceById(context, id)) || id === "me.quality" || id === "me.regime");
+  ].filter((id) => isPresentUsable(findEvidenceById(context, id)));
   for (const e of [
     displacementEv,
     volEv,

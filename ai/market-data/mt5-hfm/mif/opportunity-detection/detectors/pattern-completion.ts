@@ -101,9 +101,15 @@ function mapCompletionState(
   confirmationMet: boolean | null,
   przTouched: boolean | null,
 ): CompletionState {
-  if (sourceLifecycle === "FAILED") return "FAILED";
-  if (sourceLifecycle === "INVALIDATED") return "INVALIDATED";
-  if (sourceLifecycle === "CONFIRMED" || confirmationMet === true) return "CONFIRMED";
+  if (sourceLifecycle === "FAILED" || completionRaw === "FAILED") return "FAILED";
+  if (sourceLifecycle === "INVALIDATED" || completionRaw === "INVALIDATED") {
+    return "INVALIDATED";
+  }
+  // Source lifecycle CONFIRMED is authoritative. confirmationMet alone must NOT
+  // upgrade FORMING → CONFIRMED (FORMING ≠ CONFIRMED; prevents fabricated notes).
+  if (sourceLifecycle === "CONFIRMED" || completionRaw === "CONFIRMED") {
+    return "CONFIRMED";
+  }
 
   if (
     completionRaw === "APPROACHING_COMPLETION"
@@ -118,14 +124,16 @@ function mapCompletionState(
   ) {
     return "COMPLETION_REACHED";
   }
-  if (przTouched === true && sourceLifecycle === "FORMING") {
+  // PRZ touch or confirm flag while still FORMING = completion area reached, not confirmed.
+  if (
+    sourceLifecycle === "FORMING"
+    && (przTouched === true || confirmationMet === true)
+  ) {
     return "COMPLETION_REACHED";
   }
-  if (sourceLifecycle === "FORMING") return "FORMING";
-  if (completionRaw === "FORMING") return "FORMING";
-  if (completionRaw === "FAILED") return "FAILED";
-  if (completionRaw === "INVALIDATED") return "INVALIDATED";
-  if (completionRaw === "CONFIRMED") return "CONFIRMED";
+  if (sourceLifecycle === "FORMING" || completionRaw === "FORMING") return "FORMING";
+  // confirmationMet without lifecycle: treat as completion reached, not confirmed.
+  if (confirmationMet === true) return "COMPLETION_REACHED";
   return "INSUFFICIENT_EVIDENCE";
 }
 
@@ -705,8 +713,9 @@ function evaluatePatternCompletion(context: MifOpportunityDetectionContext): {
     // status already DETECTED unless needsConfirmByLifecycle (false when confirmed+closed)
   }
 
-  const supportingEvidenceIds: string[] = ["pc.quality"];
+  const supportingEvidenceIds: string[] = [];
   for (const id of [
+    qualityEv?.evidenceId,
     actionable.evidenceId,
     confluence.evidenceId,
     candleEv?.evidenceId,
@@ -714,7 +723,9 @@ function evaluatePatternCompletion(context: MifOpportunityDetectionContext): {
     findEvidenceById(context, "pc.geometric")?.evidenceId,
     findEvidenceById(context, "pc.harmonic")?.evidenceId,
   ]) {
-    if (id && !supportingEvidenceIds.includes(id)) supportingEvidenceIds.push(id);
+    if (id && isPresentUsable(findEvidenceById(context, id)) && !supportingEvidenceIds.includes(id)) {
+      supportingEvidenceIds.push(id);
+    }
   }
 
   const thesis =
