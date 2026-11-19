@@ -1,0 +1,34 @@
+/**
+ * Phase 5C Step 1C — unified chart-analysis reason codes.
+ */
+
+export const MIF_UCA_POLICY_UNAVAILABLE = "POLICY_UNAVAILABLE" as const;
+export const MIF_UCA_POLICY_INVALID = "POLICY_INVALID" as const;
+export const MIF_UCA_SOURCE_MISSING = "SOURCE_MISSING" as const;
+export const MIF_UCA_SOURCE_INCOMPATIBLE = "SOURCE_INCOMPATIBLE" as const;
+export const MIF_UCA_CONTRACT_INCOMPATIBLE = "CONTRACT_INCOMPATIBLE" as const;
+export const MIF_UCA_PROVIDER_MISMATCH = "PROVIDER_MISMATCH" as const;
+export const MIF_UCA_SYMBOL_MISMATCH = "SYMBOL_MISMATCH" as const;
+export const MIF_UCA_TIMEFRAME_MISMATCH = "TIMEFRAME_MISMATCH" as const;
+export const MIF_UCA_SNAPSHOT_MISMATCH = "SNAPSHOT_MISMATCH" as const;
+export const MIF_UCA_QUALITY_BLOCKED = "QUALITY_BLOCKED" as const;
+export const MIF_UCA_QUALITY_MISSING = "QUALITY_MISSING" as const;
+export const MIF_UCA_NO_RELATIONSHIPS = "NO_RELATIONSHIPS" as const;
+export const MIF_UCA_BOUNDARY_UNAVAILABLE = "BOUNDARY_UNAVAILABLE" as const;
+export const MIF_UCA_OK = "OK" as const;
+
+export type MifUnifiedChartAnalysisReasonCode =
+  | typeof MIF_UCA_POLICY_UNAVAILABLE
+  | typeof MIF_UCA_POLICY_INVALID
+  | typeof MIF_UCA_SOURCE_MISSING
+  | typeof MIF_UCA_SOURCE_INCOMPATIBLE
+  | typeof MIF_UCA_CONTRACT_INCOMPATIBLE
+  | typeof MIF_UCA_PROVIDER_MISMATCH
+  | typeof MIF_UCA_SYMBOL_MISMATCH
+  | typeof MIF_UCA_TIMEFRAME_MISMATCH
+  | typeof MIF_UCA_SNAPSHOT_MISMATCH
+  | typeof MIF_UCA_QUALITY_BLOCKED
+  | typeof MIF_UCA_QUALITY_MISSING
+  | typeof MIF_UCA_NO_RELATIONSHIPS
+  | typeof MIF_UCA_BOUNDARY_UNAVAILABLE
+  | typeof MIF_UCA_OK;
