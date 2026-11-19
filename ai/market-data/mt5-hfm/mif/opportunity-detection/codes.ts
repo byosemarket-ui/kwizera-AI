@@ -1,0 +1,42 @@
+/**
+ * Phase 5D Step 2 — opportunity detection reason codes.
+ */
+
+export const MIF_OD_OK = "OK" as const;
+export const MIF_OD_INVALID_CONTEXT = "INVALID_CONTEXT" as const;
+export const MIF_OD_MIXED_INSTRUMENTS = "MIXED_INSTRUMENTS" as const;
+export const MIF_OD_DUPLICATE_EVIDENCE = "DUPLICATE_EVIDENCE" as const;
+export const MIF_OD_DETECTOR_INVALID = "DETECTOR_INVALID" as const;
+export const MIF_OD_DETECTOR_DUPLICATE = "DETECTOR_DUPLICATE" as const;
+export const MIF_OD_STRATEGY_MISSING = "STRATEGY_MISSING" as const;
+export const MIF_OD_STRATEGY_NOT_ACTIVE = "STRATEGY_NOT_ACTIVE" as const;
+export const MIF_OD_DETECTOR_NOT_REGISTERED = "DETECTOR_NOT_REGISTERED" as const;
+export const MIF_OD_DETECTOR_DISABLED = "DETECTOR_DISABLED" as const;
+export const MIF_OD_INELIGIBLE = "INELIGIBLE" as const;
+export const MIF_OD_INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE" as const;
+export const MIF_OD_BLOCKED_BY_DATA_QUALITY = "BLOCKED_BY_DATA_QUALITY" as const;
+export const MIF_OD_NO_CANDIDATE = "NO_CANDIDATE" as const;
+export const MIF_OD_CANDIDATE_PRODUCED = "CANDIDATE_PRODUCED" as const;
+export const MIF_OD_CANDIDATE_INVALID = "CANDIDATE_INVALID" as const;
+export const MIF_OD_DUPLICATE_CANDIDATE_ID = "DUPLICATE_CANDIDATE_ID" as const;
+export const MIF_OD_DETECTOR_ERROR = "DETECTOR_ERROR" as const;
+
+export type MifOpportunityDetectionReasonCode =
+  | typeof MIF_OD_OK
+  | typeof MIF_OD_INVALID_CONTEXT
+  | typeof MIF_OD_MIXED_INSTRUMENTS
+  | typeof MIF_OD_DUPLICATE_EVIDENCE
+  | typeof MIF_OD_DETECTOR_INVALID
+  | typeof MIF_OD_DETECTOR_DUPLICATE
+  | typeof MIF_OD_STRATEGY_MISSING
+  | typeof MIF_OD_STRATEGY_NOT_ACTIVE
+  | typeof MIF_OD_DETECTOR_NOT_REGISTERED
+  | typeof MIF_OD_DETECTOR_DISABLED
+  | typeof MIF_OD_INELIGIBLE
+  | typeof MIF_OD_INSUFFICIENT_EVIDENCE
+  | typeof MIF_OD_BLOCKED_BY_DATA_QUALITY
+  | typeof MIF_OD_NO_CANDIDATE
+  | typeof MIF_OD_CANDIDATE_PRODUCED
+  | typeof MIF_OD_CANDIDATE_INVALID
+  | typeof MIF_OD_DUPLICATE_CANDIDATE_ID
+  | typeof MIF_OD_DETECTOR_ERROR;
