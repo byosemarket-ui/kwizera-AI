@@ -5,6 +5,7 @@
  * Phase 5C Step 1A — analytical foundation + Fibonacci (additive, read-only).
  * Phase 5C Step 2 — harmonic patterns + market regime (additive, read-only).
  * Phase 5C Step 3 — multi-timeframe relationships (additive, read-only).
+ * Phase 5D Step 1 — strategy intelligence foundation & registry (additive, read-only).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";
@@ -16,3 +17,4 @@ export * from "./adapters/live-forming-adapter.js";
 export * from "./adapters/unified-hfm-adapter.js";
 export * from "./quality/index.js";
 export * from "./analysis/index.js";
+export * from "./strategy-intelligence/index.js";

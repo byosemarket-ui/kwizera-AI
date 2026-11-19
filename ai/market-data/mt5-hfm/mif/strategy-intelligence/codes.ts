@@ -1,0 +1,30 @@
+/**
+ * Phase 5D Step 1 — strategy intelligence reason codes.
+ */
+
+export const MIF_SI_OK = "OK" as const;
+export const MIF_SI_UNKNOWN_STRATEGY = "UNKNOWN_STRATEGY" as const;
+export const MIF_SI_INVALID_DEFINITION = "INVALID_DEFINITION" as const;
+export const MIF_SI_DUPLICATE_ID = "DUPLICATE_ID" as const;
+export const MIF_SI_LIFECYCLE_BLOCKED = "LIFECYCLE_BLOCKED" as const;
+export const MIF_SI_MISSING_REQUIRED_EVIDENCE = "MISSING_REQUIRED_EVIDENCE" as const;
+export const MIF_SI_FAILED_REQUIREMENT = "FAILED_REQUIREMENT" as const;
+export const MIF_SI_UNSUPPORTED_EVIDENCE = "UNSUPPORTED_EVIDENCE" as const;
+export const MIF_SI_DATA_QUALITY_BLOCKED = "DATA_QUALITY_BLOCKED" as const;
+export const MIF_SI_INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE" as const;
+export const MIF_SI_REGIME_INCOMPATIBLE = "REGIME_INCOMPATIBLE" as const;
+export const MIF_SI_TIMEFRAME_ROLE_MISSING = "TIMEFRAME_ROLE_MISSING" as const;
+
+export type MifStrategyIntelligenceReasonCode =
+  | typeof MIF_SI_OK
+  | typeof MIF_SI_UNKNOWN_STRATEGY
+  | typeof MIF_SI_INVALID_DEFINITION
+  | typeof MIF_SI_DUPLICATE_ID
+  | typeof MIF_SI_LIFECYCLE_BLOCKED
+  | typeof MIF_SI_MISSING_REQUIRED_EVIDENCE
+  | typeof MIF_SI_FAILED_REQUIREMENT
+  | typeof MIF_SI_UNSUPPORTED_EVIDENCE
+  | typeof MIF_SI_DATA_QUALITY_BLOCKED
+  | typeof MIF_SI_INSUFFICIENT_EVIDENCE
+  | typeof MIF_SI_REGIME_INCOMPATIBLE
+  | typeof MIF_SI_TIMEFRAME_ROLE_MISSING;
