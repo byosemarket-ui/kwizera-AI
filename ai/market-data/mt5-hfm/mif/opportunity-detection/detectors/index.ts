@@ -12,4 +12,5 @@ export * from "./range.js";
 export * from "./liquidity-sweep.js";
 export * from "./supply-demand.js";
 export * from "./momentum-expansion.js";
+export * from "./pattern-completion.js";
 export * from "./catalog.js";

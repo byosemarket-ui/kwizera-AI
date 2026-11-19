@@ -28,3 +28,6 @@ export const MIF_SUPPLY_DEMAND_DETECTOR_VERSION = "1.0.0" as const;
 
 export const MIF_MOMENTUM_EXPANSION_DETECTOR_ID = "mif.detector.momentum-expansion" as const;
 export const MIF_MOMENTUM_EXPANSION_DETECTOR_VERSION = "1.0.0" as const;
+
+export const MIF_PATTERN_COMPLETION_DETECTOR_ID = "mif.detector.pattern-completion" as const;
+export const MIF_PATTERN_COMPLETION_DETECTOR_VERSION = "1.0.0" as const;

@@ -68,7 +68,6 @@ describe("Phase 5D Step9 — integration & safety", () => {
     expect(reg.diagnostics().strategiesWithoutDetector.length).toBe(
       10 - reg.diagnostics().activeCount,
     );
-    expect(reg.diagnostics().strategiesWithoutDetector).toContain("PATTERN_COMPLETION");
     for (const d of reg.listDetectors()) {
       expect(d.placesOrders).toBe(false);
       expect(d.acceptsForExecution).toBe(false);

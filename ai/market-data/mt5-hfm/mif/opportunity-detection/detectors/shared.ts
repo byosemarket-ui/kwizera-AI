@@ -124,6 +124,7 @@ export function resolveMtfView(
     "ls.mtf",
     "sd.mtf",
     "me.mtf",
+    "pc.mtf",
   ],
 ): ResolvedMtfView {
   const mtf = ctx.mtfRelationships;
