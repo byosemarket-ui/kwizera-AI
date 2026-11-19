@@ -13,3 +13,6 @@ export const MIF_REVERSAL_DETECTOR_VERSION = "1.0.0" as const;
 
 export const MIF_BREAKOUT_DETECTOR_ID = "mif.detector.breakout" as const;
 export const MIF_BREAKOUT_DETECTOR_VERSION = "1.0.0" as const;
+
+export const MIF_BREAKOUT_RETEST_DETECTOR_ID = "mif.detector.breakout-retest" as const;
+export const MIF_BREAKOUT_RETEST_DETECTOR_VERSION = "1.0.0" as const;

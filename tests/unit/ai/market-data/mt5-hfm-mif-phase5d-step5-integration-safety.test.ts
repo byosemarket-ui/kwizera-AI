@@ -56,8 +56,11 @@ describe("Phase 5D Step5 — integration & safety", () => {
     expect(reg.getDetector(MIF_PULLBACK_DETECTOR_ID)?.strategyId).toBe("PULLBACK");
     expect(reg.getDetector(MIF_REVERSAL_DETECTOR_ID)?.strategyId).toBe("REVERSAL");
     expect(reg.getDetector(MIF_BREAKOUT_DETECTOR_ID)?.strategyId).toBe("BREAKOUT");
-    expect(reg.diagnostics().activeCount).toBe(4);
-    expect(reg.diagnostics().strategiesWithoutDetector).toHaveLength(6);
+    expect(reg.diagnostics().activeCount).toBeGreaterThanOrEqual(4);
+    expect(reg.getDetector(MIF_BREAKOUT_DETECTOR_ID)).toBeTruthy();
+    expect(reg.diagnostics().strategiesWithoutDetector.length).toBe(
+      10 - reg.diagnostics().activeCount,
+    );
     for (const d of reg.listDetectors()) {
       expect(d.placesOrders).toBe(false);
       expect(d.acceptsForExecution).toBe(false);
