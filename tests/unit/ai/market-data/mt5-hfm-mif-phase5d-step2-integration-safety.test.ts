@@ -38,7 +38,7 @@ describe("Phase 5D Step2 — integration & safety", () => {
     ] as const) {
       expect(strategies.getStrategy(id)?.lifecycleStatus).toBe("ACTIVE");
     }
-    // Implemented detectors through Liquidity Sweep; Supply/Demand+ remain unregistered.
+    // Implemented detectors through Supply/Demand; Momentum Expansion + Pattern Completion remain unregistered.
     expect(detectors.findByStrategyId("TREND_CONTINUATION").length).toBeGreaterThanOrEqual(1);
     expect(detectors.findByStrategyId("PULLBACK").length).toBeGreaterThanOrEqual(1);
     expect(detectors.findByStrategyId("REVERSAL").length).toBeGreaterThanOrEqual(1);
@@ -46,7 +46,9 @@ describe("Phase 5D Step2 — integration & safety", () => {
     expect(detectors.findByStrategyId("BREAKOUT_RETEST").length).toBeGreaterThanOrEqual(1);
     expect(detectors.findByStrategyId("RANGE").length).toBeGreaterThanOrEqual(1);
     expect(detectors.findByStrategyId("LIQUIDITY_SWEEP").length).toBeGreaterThanOrEqual(1);
-    expect(detectors.findByStrategyId("SUPPLY_DEMAND")).toHaveLength(0);
+    expect(detectors.findByStrategyId("SUPPLY_DEMAND").length).toBeGreaterThanOrEqual(1);
+    expect(detectors.findByStrategyId("MOMENTUM_EXPANSION")).toHaveLength(0);
+    expect(detectors.findByStrategyId("PATTERN_COMPLETION")).toHaveLength(0);
   });
 
   it("runs detection without mutating Phase 5C assessments or enabling execution", () => {

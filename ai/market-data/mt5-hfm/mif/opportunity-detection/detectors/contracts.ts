@@ -22,3 +22,6 @@ export const MIF_RANGE_DETECTOR_VERSION = "1.0.0" as const;
 
 export const MIF_LIQUIDITY_SWEEP_DETECTOR_ID = "mif.detector.liquidity-sweep" as const;
 export const MIF_LIQUIDITY_SWEEP_DETECTOR_VERSION = "1.0.0" as const;
+
+export const MIF_SUPPLY_DEMAND_DETECTOR_ID = "mif.detector.supply-demand" as const;
+export const MIF_SUPPLY_DEMAND_DETECTOR_VERSION = "1.0.0" as const;

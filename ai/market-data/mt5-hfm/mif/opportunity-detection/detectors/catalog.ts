@@ -1,5 +1,5 @@
 /**
- * Phase 5D Steps 3–8 — implemented detector catalog (deterministic order).
+ * Phase 5D Steps 3–9 — implemented detector catalog (deterministic order).
  * Only detectors that are implemented and tested belong here.
  */
 import type { MifOpportunityDetector } from "../types.js";
@@ -9,6 +9,7 @@ import { mifLiquiditySweepDetector } from "./liquidity-sweep.js";
 import { mifPullbackDetector } from "./pullback.js";
 import { mifRangeDetector } from "./range.js";
 import { mifReversalDetector } from "./reversal.js";
+import { mifSupplyDemandDetector } from "./supply-demand.js";
 import { mifTrendContinuationDetector } from "./trend-continuation.js";
 
 /** Stable alphabetical-by-id order for deterministic registry loading. */
@@ -19,5 +20,6 @@ export const MIF_IMPLEMENTED_OPPORTUNITY_DETECTORS: readonly MifOpportunityDetec
   mifPullbackDetector,
   mifRangeDetector,
   mifReversalDetector,
+  mifSupplyDemandDetector,
   mifTrendContinuationDetector,
 ]);

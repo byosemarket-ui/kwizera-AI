@@ -122,6 +122,7 @@ export function resolveMtfView(
     "brt.mtf",
     "rg.mtf",
     "ls.mtf",
+    "sd.mtf",
   ],
 ): ResolvedMtfView {
   const mtf = ctx.mtfRelationships;
