@@ -14,6 +14,7 @@
  * Phase 5D Step 7 — range opportunity detector (additive, read-only).
  * Phase 5D Step 8 — liquidity sweep opportunity detector (additive, read-only).
  * Phase 5D Step 9 — supply/demand opportunity detector (additive, read-only).
+ * Phase 5D Step 10 — momentum expansion opportunity detector (additive, read-only).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";

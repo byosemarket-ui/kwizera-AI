@@ -11,4 +11,5 @@ export * from "./breakout-retest.js";
 export * from "./range.js";
 export * from "./liquidity-sweep.js";
 export * from "./supply-demand.js";
+export * from "./momentum-expansion.js";
 export * from "./catalog.js";
