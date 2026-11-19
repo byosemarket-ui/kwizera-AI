@@ -45,6 +45,13 @@ const RELATION_SET = new Set<string>([
   "UNKNOWN",
 ]);
 
+/** Parse `key=VALUE` tokens from evidence notes (case-insensitive key). */
+export function noteValue(notes: string | undefined, key: string): string | null {
+  if (!notes) return null;
+  const m = new RegExp(`(?:^|[;,]\\s*)${key}\\s*=\\s*([A-Za-z0-9_]+)`, "i").exec(notes);
+  return m ? m[1]!.toUpperCase() : null;
+}
+
 export function findEvidenceById(
   ctx: MifOpportunityDetectionContext,
   evidenceId: string,
@@ -107,7 +114,7 @@ function parseRelationFromNotes(notes: string | undefined): MifMtfDirectionalRel
 
 export function resolveMtfView(
   ctx: MifOpportunityDetectionContext,
-  preferredEvidenceIds: readonly string[] = ["tc.mtf", "pb.mtf", "rv.mtf"],
+  preferredEvidenceIds: readonly string[] = ["tc.mtf", "pb.mtf", "rv.mtf", "bo.mtf"],
 ): ResolvedMtfView {
   const mtf = ctx.mtfRelationships;
   if (mtf) {

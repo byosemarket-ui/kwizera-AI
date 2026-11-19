@@ -9,6 +9,7 @@
  * Phase 5D Step 2 — opportunity detection framework (additive, read-only).
  * Phase 5D Step 3 — trend continuation & pullback detectors (additive, read-only).
  * Phase 5D Step 4 — reversal detector (additive, read-only).
+ * Phase 5D Step 5 — breakout detector (additive, read-only).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";
