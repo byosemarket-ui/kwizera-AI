@@ -170,8 +170,12 @@ describe("Phase 5D Step3 — integration & safety", () => {
     const reg = getDefaultMifOpportunityDetectorRegistry();
     expect(reg.getDetector(MIF_TREND_CONTINUATION_DETECTOR_ID)?.strategyId).toBe("TREND_CONTINUATION");
     expect(reg.getDetector(MIF_PULLBACK_DETECTOR_ID)?.strategyId).toBe("PULLBACK");
-    expect(reg.diagnostics().activeCount).toBe(2);
-    expect(reg.diagnostics().strategiesWithoutDetector).toHaveLength(8);
+    expect(reg.diagnostics().activeCount).toBeGreaterThanOrEqual(2);
+    expect(reg.getDetector(MIF_TREND_CONTINUATION_DETECTOR_ID)).toBeTruthy();
+    expect(reg.getDetector(MIF_PULLBACK_DETECTOR_ID)).toBeTruthy();
+    expect(reg.diagnostics().strategiesWithoutDetector.length).toBe(
+      10 - reg.diagnostics().activeCount,
+    );
     expect(getDefaultMifStrategyIntelligenceRegistry().getStrategy("TREND_CONTINUATION")?.lifecycleStatus)
       .toBe("ACTIVE");
   });

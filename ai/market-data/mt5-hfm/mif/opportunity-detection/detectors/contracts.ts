@@ -7,3 +7,6 @@ export const MIF_TREND_CONTINUATION_DETECTOR_VERSION = "1.0.0" as const;
 
 export const MIF_PULLBACK_DETECTOR_ID = "mif.detector.pullback" as const;
 export const MIF_PULLBACK_DETECTOR_VERSION = "1.0.0" as const;
+
+export const MIF_REVERSAL_DETECTOR_ID = "mif.detector.reversal" as const;
+export const MIF_REVERSAL_DETECTOR_VERSION = "1.0.0" as const;

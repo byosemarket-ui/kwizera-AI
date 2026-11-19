@@ -38,10 +38,11 @@ describe("Phase 5D Step2 — integration & safety", () => {
     ] as const) {
       expect(strategies.getStrategy(id)?.lifecycleStatus).toBe("ACTIVE");
     }
-    // Implemented detectors only for TC + Pullback after Step 3; others remain unregistered.
+    // Implemented detectors: TC + Pullback + Reversal; later strategies remain unregistered.
     expect(detectors.findByStrategyId("TREND_CONTINUATION").length).toBeGreaterThanOrEqual(1);
     expect(detectors.findByStrategyId("PULLBACK").length).toBeGreaterThanOrEqual(1);
-    expect(detectors.findByStrategyId("REVERSAL")).toHaveLength(0);
+    expect(detectors.findByStrategyId("REVERSAL").length).toBeGreaterThanOrEqual(1);
+    expect(detectors.findByStrategyId("BREAKOUT")).toHaveLength(0);
   });
 
   it("runs detection without mutating Phase 5C assessments or enabling execution", () => {
