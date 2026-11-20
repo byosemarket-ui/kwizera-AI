@@ -15,3 +15,4 @@ export * from "./storage.js";
 export * from "./dataset-builder.js";
 export * from "./exporter.js";
 export * from "./replay-bridge.js";
+export * from "./analogue/index.js";

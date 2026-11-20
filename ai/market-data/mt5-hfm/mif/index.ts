@@ -23,6 +23,7 @@
  * Phase 5E Step 2 — evidence & probability intelligence (additive, statistical only).
  * Phase 5E Step 3 — AI market reasoning (additive, analytical interpretation only).
  * Phase 5F Step 1 — historical research foundation (additive, read-only archive).
+ * Phase 5F Step 2 — historical analogue & market similarity (additive, analytical only).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";

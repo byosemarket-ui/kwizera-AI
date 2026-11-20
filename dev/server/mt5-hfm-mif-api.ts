@@ -38,6 +38,12 @@
  * POST /api/forex/providers/mt5-hfm/mif/research/export
  * GET  /api/forex/providers/mt5-hfm/mif/research/timeframes
  * GET  /api/forex/providers/mt5-hfm/mif/research/coverage
+ * POST /api/forex/providers/mt5-hfm/mif/research/analogues/reference
+ * POST /api/forex/providers/mt5-hfm/mif/research/analogues/search
+ * GET  /api/forex/providers/mt5-hfm/mif/research/analogues/searches
+ * GET  /api/forex/providers/mt5-hfm/mif/research/analogues/searches/:searchId
+ * GET  /api/forex/providers/mt5-hfm/mif/research/analogues/searches/:searchId/analogues
+ * GET  /api/forex/providers/mt5-hfm/mif/research/analogues/searches/:searchId/analogues/:analogueId
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -58,12 +64,15 @@ import {
   computeOpportunityPerformanceStatistics,
   disableMifOdWorker,
   enableMifOdWorker,
+  buildAnalogueReferenceState,
+  getMifAnalogueSearchStorage,
   getMifHistoricalResearchStorage,
   getMifOdWorkerStatus,
   getMifOpportunityStorage,
   isResearchExportExplicitlyEnabled,
   observeCandidateAgainstCandles,
   rankOpportunityCandidates,
+  runAnalogueSearch,
   runMifAiMarketReasoning,
   runMifHistoricalReplay,
   runMifHfmOpportunityPipelineLive,
@@ -943,6 +952,368 @@ export async function handleMt5HfmMifApi(
     };
     assertNoSecretsInMt5HfmPayload(payload);
     sendJson(res, result.job.status === "FAILED" ? 400 : 200, payload);
+    return true;
+  }
+
+  // --- Phase 5F STEP 2: historical analogue search (analytical, read-only) ---
+  if (url.pathname === `${PATH_PREFIX}/research/analogues/reference` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const datasetId = String(body.datasetId || "").trim();
+    const tipOpenTimeSec = Number(body.tipOpenTimeSec);
+    const versionRaw = body.version != null ? Number(body.version) : undefined;
+    if (!datasetId || !Number.isFinite(tipOpenTimeSec)) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INPUT", message: "datasetId and tipOpenTimeSec required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const store = getMifHistoricalResearchStorage();
+    const manifest = await store.getDatasetManifest(
+      datasetId,
+      Number.isFinite(versionRaw) ? versionRaw : undefined,
+    );
+    if (!manifest) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "DATASET_NOT_FOUND", message: "research dataset not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const page = await store.getDatasetBars(manifest.datasetId, manifest.version);
+    if (!page) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "DATASET_BARS_NOT_FOUND", message: "bars not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const built = buildAnalogueReferenceState({
+      manifest,
+      bars: page.bars,
+      tipOpenTimeSec,
+      lookbackBars: typeof body.lookbackBars === "number" ? body.lookbackBars : undefined,
+      warmupBars: typeof body.warmupBars === "number" ? body.warmupBars : undefined,
+      eligibilityMode:
+        typeof body.eligibilityMode === "string"
+          ? (body.eligibilityMode as "PRICE_ACTION")
+          : "PRICE_ACTION",
+    });
+    if (!built.ok) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: built.code, message: built.message },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+        analyticalOnly: true,
+        doesNotApproveAiReasoning: true,
+        similarityIsNotProbability: true,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      reference: built.reference,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      analyticalOnly: true,
+      doesNotApproveAiReasoning: true,
+      similarityIsNotProbability: true,
+      researchReadOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/research/analogues/search` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBodyBounded(req, 64 * 1024);
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      sendJson(res, code === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
+        ok: false,
+        error: { code: code ?? "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const datasetId = String(body.datasetId || "").trim();
+    const tipOpenTimeSec = Number(body.tipOpenTimeSec);
+    if (!datasetId || !Number.isFinite(tipOpenTimeSec)) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INPUT", message: "datasetId and tipOpenTimeSec required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const researchStore = getMifHistoricalResearchStorage();
+    const versionRaw = body.version != null ? Number(body.version) : undefined;
+    const manifest = await researchStore.getDatasetManifest(
+      datasetId,
+      Number.isFinite(versionRaw) ? versionRaw : undefined,
+    );
+    if (!manifest) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "DATASET_NOT_FOUND", message: "research dataset not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const page = await researchStore.getDatasetBars(manifest.datasetId, manifest.version);
+    if (!page) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "DATASET_BARS_NOT_FOUND", message: "bars not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const built = buildAnalogueReferenceState({
+      manifest,
+      bars: page.bars,
+      tipOpenTimeSec,
+      lookbackBars: typeof body.lookbackBars === "number" ? body.lookbackBars : undefined,
+      warmupBars: typeof body.warmupBars === "number" ? body.warmupBars : undefined,
+      eligibilityMode:
+        typeof body.eligibilityMode === "string"
+          ? (body.eligibilityMode as "PRICE_ACTION")
+          : "PRICE_ACTION",
+    });
+    if (!built.ok) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: built.code, message: built.message },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+        analyticalOnly: true,
+        similarityIsNotProbability: true,
+      });
+      return true;
+    }
+    const paramsBody =
+      body.params && typeof body.params === "object" && !Array.isArray(body.params)
+        ? (body.params as Record<string, unknown>)
+        : {};
+    const corpusDatasetIds = Array.isArray(body.corpusDatasetIds)
+      ? body.corpusDatasetIds.map((x) => String(x))
+      : undefined;
+    const search = await runAnalogueSearch({
+      storage: researchStore,
+      reference: built.reference,
+      corpusDatasetIds,
+      params: {
+        maxDatasets: typeof paramsBody.maxDatasets === "number" ? paramsBody.maxDatasets : undefined,
+        maxCandidatesScanned:
+          typeof paramsBody.maxCandidatesScanned === "number"
+            ? paramsBody.maxCandidatesScanned
+            : undefined,
+        maxResults: typeof paramsBody.maxResults === "number" ? paramsBody.maxResults : undefined,
+        stride: typeof paramsBody.stride === "number" ? paramsBody.stride : undefined,
+        timeoutMs: typeof paramsBody.timeoutMs === "number" ? paramsBody.timeoutMs : undefined,
+        allowCrossInstrument: paramsBody.allowCrossInstrument === true,
+        minFeatureCoverage:
+          typeof paramsBody.minFeatureCoverage === "number"
+            ? paramsBody.minFeatureCoverage
+            : undefined,
+      },
+    });
+    const persisted = await getMifAnalogueSearchStorage().persistSearch(search);
+    const payload = {
+      ok: true,
+      search,
+      persisted,
+      note: "Similarity score is not a probability or trade recommendation.",
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      analyticalOnly: true,
+      doesNotApproveAiReasoning: true,
+      similarityIsNotProbability: true,
+      researchReadOnly: true,
+      autoWorker: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/research/analogues/searches` && req.method === "GET") {
+    const listed = await getMifAnalogueSearchStorage().listSearches({
+      offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+      limit: Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 50) || 50)),
+    });
+    const payload = {
+      ok: true,
+      ...listed,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      analyticalOnly: true,
+      similarityIsNotProbability: true,
+      researchReadOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const analogueSearchMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/research\/analogues\/searches\/([^/]+)$/.exec(
+      url.pathname,
+    );
+  if (analogueSearchMatch && req.method === "GET") {
+    const searchId = decodeURIComponent(analogueSearchMatch[1]!);
+    const search = await getMifAnalogueSearchStorage().getSearch(searchId);
+    if (!search) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "SEARCH_NOT_FOUND", message: "analogue search not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      search,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      analyticalOnly: true,
+      doesNotApproveAiReasoning: true,
+      similarityIsNotProbability: true,
+      researchReadOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const analogueListMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/research\/analogues\/searches\/([^/]+)\/analogues$/.exec(
+      url.pathname,
+    );
+  if (analogueListMatch && req.method === "GET") {
+    const searchId = decodeURIComponent(analogueListMatch[1]!);
+    const search = await getMifAnalogueSearchStorage().getSearch(searchId);
+    if (!search) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "SEARCH_NOT_FOUND", message: "analogue search not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0);
+    const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 25) || 25));
+    const page = search.analogues.slice(offset, offset + limit);
+    const payload = {
+      ok: true,
+      searchId: search.searchId,
+      status: search.status,
+      statusReason: search.statusReason,
+      analogues: page,
+      total: search.analogues.length,
+      offset,
+      limit,
+      suppressedCount: search.stats.candidatesSuppressed,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      analyticalOnly: true,
+      similarityIsNotProbability: true,
+      researchReadOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const analogueOneMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/research\/analogues\/searches\/([^/]+)\/analogues\/([^/]+)$/.exec(
+      url.pathname,
+    );
+  if (analogueOneMatch && req.method === "GET") {
+    const searchId = decodeURIComponent(analogueOneMatch[1]!);
+    const analogueId = decodeURIComponent(analogueOneMatch[2]!);
+    const search = await getMifAnalogueSearchStorage().getSearch(searchId);
+    if (!search) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "SEARCH_NOT_FOUND", message: "analogue search not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const analogue =
+      search.analogues.find((a) => a.analogueId === analogueId) ??
+      search.suppressedAnalogues.find((a) => a.analogueId === analogueId);
+    if (!analogue) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "ANALOGUE_NOT_FOUND", message: "analogue not found in search" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      searchId: search.searchId,
+      analogue,
+      note: "outcome is separated from similarity; probability not computed in STEP 2",
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      analyticalOnly: true,
+      doesNotApproveAiReasoning: true,
+      similarityIsNotProbability: true,
+      researchReadOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
     return true;
   }
 
