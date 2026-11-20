@@ -98,6 +98,8 @@ export interface MifProductionTfAssessmentSnapshot {
   candleCount: number;
   adapterFailures: number;
   dataIntegrityStatus: string | null;
+  /** Compact integrity finding codes that drove WARNING/DEGRADED/BLOCKED. */
+  integrityFindingCodes: readonly string[];
   regimeStatus: string | null;
   regimeDirection: string | null;
   regimeStructure: string | null;
@@ -111,6 +113,21 @@ export interface MifProductionTfAssessmentSnapshot {
   freshness: string | null;
   warnings: string[];
   errors: string[];
+}
+
+/** Traceable explanation for aggregate dataQualityStatus / PARTIAL_DEGRADED. */
+export interface MifProductionDataQualityDiagnostics {
+  dataQualityStatus: "VALID" | "WARNING" | "DEGRADED" | "BLOCKED" | "MISSING";
+  analysisStatusDriver: string;
+  perTimeframe: readonly {
+    timeframe: string;
+    integrityStatus: string | null;
+    findingCodes: readonly string[];
+  }[];
+  primaryFindingCodes: readonly string[];
+  explanation: string;
+  /** True when WARNING is solely from missing HFM session calendar authority. */
+  sessionCalendarAuthorityMissing: boolean;
 }
 
 export interface MifProductionIntegrationResult extends MifSafetyFlags {
@@ -131,6 +148,7 @@ export interface MifProductionIntegrationResult extends MifSafetyFlags {
   processingTimestamp: string;
   analysisStatus: MifProductionAnalysisStatus;
   dataQualityStatus: "VALID" | "WARNING" | "DEGRADED" | "BLOCKED" | "MISSING";
+  dataQualityDiagnostics: MifProductionDataQualityDiagnostics | null;
   availableTimeframeRoles: readonly MifTimeframeRole[];
   timeframeSnapshots: readonly MifProductionTfAssessmentSnapshot[];
   mtfStatus: string | null;

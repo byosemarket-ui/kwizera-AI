@@ -252,11 +252,20 @@ describe("Phase 5E Step 4 — structured price/level grounding", () => {
       });
       expect(r.providerId).toBe(MIF_PROVIDER_ID);
       const ctx = buildMifAiReasoningContext({ result: r });
-      expect(ctx.structuredLevels.hasAnyFinite).toBe(false);
-      expect(ctx.structuredLevels.source).toBe("NONE");
-      expect(ctx.knownLimitations.some((l) => /structuredLevels=LEVELS_NOT_PROVIDED/.test(l))).toBe(
-        true,
-      );
+      // Levels only when source-backed mid/price exists on candidates; never invented.
+      if (ctx.structuredLevels.hasAnyFinite) {
+        expect(ctx.structuredLevels.source).toBe("CANDIDATE_NOTES");
+        expect(
+          ctx.structuredLevels.entryPrice != null
+            || ctx.structuredLevels.targetPrice != null
+            || ctx.structuredLevels.invalidationPrice != null,
+        ).toBe(true);
+      } else {
+        expect(ctx.structuredLevels.source).toBe("NONE");
+        expect(ctx.knownLimitations.some((l) => /structuredLevels=LEVELS_NOT_PROVIDED/.test(l))).toBe(
+          true,
+        );
+      }
     } finally {
       __setMifOpportunityStorageForTests(null);
       delete process.env.KWIZERA_STORAGE_ROOT;

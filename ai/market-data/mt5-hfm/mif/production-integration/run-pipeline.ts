@@ -45,6 +45,7 @@ import {
   resolveAvailableTimeframeRoles,
 } from "./timeframe-roles.js";
 import type {
+  MifProductionDataQualityDiagnostics,
   MifProductionFailureCode,
   MifProductionIntegrationResult,
   MifProductionLiveFetchInput,
@@ -79,6 +80,40 @@ function baseResult(
     providerId: MIF_PROVIDER_ID,
     ...safetyFlags(),
     ...partial,
+    dataQualityDiagnostics: partial.dataQualityDiagnostics ?? null,
+  };
+}
+
+function buildDataQualityDiagnostics(input: {
+  dataQualityStatus: MifProductionIntegrationResult["dataQualityStatus"];
+  analysisStatus: MifProductionIntegrationResult["analysisStatus"];
+  snapshots: readonly MifProductionTfAssessmentSnapshot[];
+}): MifProductionDataQualityDiagnostics {
+  const perTimeframe = input.snapshots.map((s) => ({
+    timeframe: s.timeframe,
+    integrityStatus: s.dataIntegrityStatus,
+    findingCodes: [...(s.integrityFindingCodes ?? [])],
+  }));
+  const primaryFindingCodes = [
+    ...new Set(perTimeframe.flatMap((p) => p.findingCodes)),
+  ];
+  const sessionCalendarAuthorityMissing = primaryFindingCodes.includes(
+    "NO_AUTHORITATIVE_SESSION_CALENDAR",
+  );
+  const driver =
+    input.analysisStatus === "PARTIAL_DEGRADED"
+      ? `analysisStatus=PARTIAL_DEGRADED because dataQualityStatus=${input.dataQualityStatus}`
+        + (sessionCalendarAuthorityMissing
+          ? "; primary integrity warning includes NO_AUTHORITATIVE_SESSION_CALENDAR (expected until HFM session calendar authority exists)"
+          : "")
+      : `analysisStatus=${input.analysisStatus}; dataQualityStatus=${input.dataQualityStatus}`;
+  return {
+    dataQualityStatus: input.dataQualityStatus,
+    analysisStatusDriver: driver,
+    perTimeframe,
+    primaryFindingCodes,
+    explanation: driver,
+    sessionCalendarAuthorityMissing,
   };
 }
 
@@ -524,12 +559,24 @@ export function runMifHfmOpportunityPipelineFromSeries(
       }
       if (series.freshness) dataFreshness = series.freshness;
 
+      const integrityCodes = [
+        ...new Set(
+          (bundle.integrity.findings ?? [])
+            .filter((f) => f.severity === "warning" || f.severity === "degraded" || f.severity === "blocking")
+            .map((f) => String(f.code)),
+        ),
+      ];
+      const integrityMsgs = (bundle.integrity.findings ?? [])
+        .filter((f) => f.severity === "warning" || f.severity === "degraded" || f.severity === "blocking")
+        .slice(0, 8)
+        .map((f) => `${f.code}: ${f.message}`);
       snapshots.push({
         timeframe: tf,
         barCount: series.bars.length,
         candleCount: adapted.candles.length,
         adapterFailures: adapted.adapterFailures,
         dataIntegrityStatus: bundle.integrity.status,
+        integrityFindingCodes: integrityCodes,
         regimeStatus: bundle.regime.status,
         regimeDirection: bundle.regime.direction,
         regimeStructure: bundle.regime.structure,
@@ -541,7 +588,10 @@ export function runMifHfmOpportunityPipelineFromSeries(
         tipOpenTimeSec: tip.openTimeSec,
         newestTimestampSec: series.newestTimestampSec ?? tip.openTimeSec,
         freshness: series.freshness ?? null,
-        warnings: adapted.errors.filter((e) => !e.startsWith("INVALID")),
+        warnings: [
+          ...adapted.errors.filter((e) => !e.startsWith("INVALID")),
+          ...integrityMsgs,
+        ],
         errors: adapted.errors.filter((e) => e.startsWith("INVALID") || e.includes("MISMATCH")),
       });
 
@@ -1035,6 +1085,12 @@ export function runMifHfmOpportunityPipelineFromSeries(
     );
   }
 
+  const dataQualityDiagnostics = buildDataQualityDiagnostics({
+    dataQualityStatus,
+    analysisStatus,
+    snapshots,
+  });
+
   return baseResult({
     requestId,
     providerSymbol: symbol,
@@ -1048,6 +1104,7 @@ export function runMifHfmOpportunityPipelineFromSeries(
     processingTimestamp,
     analysisStatus,
     dataQualityStatus,
+    dataQualityDiagnostics,
     availableTimeframeRoles,
     timeframeSnapshots: snapshots,
     mtfStatus: mtf.status,

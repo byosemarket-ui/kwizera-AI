@@ -52,6 +52,49 @@ export function noteValue(notes: string | undefined, key: string): string | null
   return m ? m[1]!.toUpperCase() : null;
 }
 
+/** Parse numeric `key=123.45` tokens from evidence notes. Never invents values. */
+export function noteNumeric(notes: string | undefined, key: string): number | null {
+  if (!notes) return null;
+  const m = new RegExp(`(?:^|[;,]\\s*)${key}\\s*=\\s*(-?\\d+(?:\\.\\d+)?)`, "i").exec(notes);
+  if (!m) return null;
+  const v = Number(m[1]);
+  return Number.isFinite(v) ? v : null;
+}
+
+/**
+ * Collect source-backed boundary/structure prices from present evidence notes.
+ * Used to attach parseable level tokens to candidates without inventing prices.
+ */
+export function extractSourceBackedPricesFromEvidence(
+  evidence: readonly MifDetectionEvidenceRef[],
+  evidenceIds: readonly string[],
+): {
+  boundaryMid: number | null;
+  structurePrice: number | null;
+  sources: string[];
+} {
+  let boundaryMid: number | null = null;
+  let structurePrice: number | null = null;
+  const sources: string[] = [];
+  const idSet = new Set(evidenceIds);
+  for (const e of evidence) {
+    if (!idSet.has(e.evidenceId)) continue;
+    if (e.presence !== "PRESENT") continue;
+    if (e.qualityStatus === "BLOCKED" || e.qualityStatus === "MISSING") continue;
+    const mid = noteNumeric(e.notes, "mid");
+    const price = noteNumeric(e.notes, "price");
+    if (mid != null && boundaryMid == null) {
+      boundaryMid = mid;
+      sources.push(`${e.evidenceId}:mid`);
+    }
+    if (price != null && structurePrice == null) {
+      structurePrice = price;
+      sources.push(`${e.evidenceId}:price`);
+    }
+  }
+  return { boundaryMid, structurePrice, sources };
+}
+
 export function findEvidenceById(
   ctx: MifOpportunityDetectionContext,
   evidenceId: string,

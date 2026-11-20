@@ -389,6 +389,17 @@ export function ForexAdminMt5HfmMifPage() {
             {String(lastOd.placesOrders)} · mutatesBroker={String(lastOd.mutatesBroker)} · acceptsForExecution=
             {String(lastOd.acceptsForExecution)}
           </p>
+          {(() => {
+            const dq = asRecord(lastOd.dataQualityDiagnostics);
+            if (!Object.keys(dq).length) return null;
+            return (
+              <p className="fxa-muted">
+                quality driver: {String(dq.explanation ?? dq.analysisStatusDriver ?? "—")} · codes=
+                {JSON.stringify(dq.primaryFindingCodes ?? [])} · sessionCalendarMissing=
+                {String(dq.sessionCalendarAuthorityMissing)}
+              </p>
+            );
+          })()}
         </section>
       ) : null}
     </div>
