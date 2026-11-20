@@ -196,6 +196,24 @@ export interface MifProductionIntegrationResult extends MifSafetyFlags {
     isWinProbability: false;
     executionReadiness: false;
   } | null;
+  /** Phase 5E Step 2 — evidence + probability intelligence (nullable probability when insufficient). */
+  probabilityIntelligence?: {
+    assessedCount: number;
+    insufficientSampleCount: number;
+    unavailableCount: number;
+    withProbabilityCount: number;
+    top: readonly {
+      candidateId: string;
+      sampleStatus: string;
+      probability: number | null;
+      reliabilityStatus: string;
+      calibrationStatus: string;
+      isWinProbability: boolean;
+    }[];
+    placesOrders: false;
+    mutatesBroker: false;
+    acceptsForExecution: false;
+  } | null;
   doesNotApproveAiReasoning: true;
   analyticalIntegrationOnly: true;
   notExecutable: true;
@@ -203,6 +221,8 @@ export interface MifProductionIntegrationResult extends MifSafetyFlags {
   _debugContext?: MifOpportunityDetectionContext;
   /** Full ranking run retained for persistence/tests — not a win-probability payload. */
   _rankingRun?: import("../opportunity-ranking/types.js").MifOpportunityRankingRun | null;
+  /** Full Step 2 bundles retained for persistence/tests. */
+  _probabilityBundles?: readonly import("../probability-intelligence/types.js").MifProbabilityBundle[] | null;
 }
 
 export interface MifProductionAssessmentBundle {

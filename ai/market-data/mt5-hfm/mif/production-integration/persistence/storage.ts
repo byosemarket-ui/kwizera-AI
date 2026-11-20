@@ -10,6 +10,12 @@ import type { MifOutcomeEvaluationRecord } from "../outcome-evaluation.js";
 import type { MifHistoricalReplayRun } from "../historical-replay.js";
 import type { MifOpportunityRankingRun } from "../../opportunity-ranking/types.js";
 import type {
+  MifCalibrationRun,
+  MifEvidenceIntelligenceAssessment,
+  MifProbabilityAssessment,
+  MifProbabilityBundle,
+} from "../../probability-intelligence/types.js";
+import type {
   MifCandidateLifecycleState,
   MifCandidateListFilter,
   MifCandidateOutcomeKind,
@@ -159,6 +165,9 @@ export class MifOpportunityStorage {
   readonly outcomesDir: string;
   readonly replaysDir: string;
   readonly rankingsDir: string;
+  readonly evidenceIntelDir: string;
+  readonly probabilityDir: string;
+  readonly calibrationDir: string;
   readonly indexPath: string;
   /** Simple in-process mutex for concurrent API writes. */
   private writeChain: Promise<void> = Promise.resolve();
@@ -171,6 +180,9 @@ export class MifOpportunityStorage {
     this.outcomesDir = path.join(this.root, "outcomes");
     this.replaysDir = path.join(this.root, "replays");
     this.rankingsDir = path.join(this.root, "rankings");
+    this.evidenceIntelDir = path.join(this.root, "evidence-intelligence");
+    this.probabilityDir = path.join(this.root, "probability-assessments");
+    this.calibrationDir = path.join(this.root, "calibration-runs");
     this.indexPath = path.join(this.root, "index.json");
   }
 
@@ -181,6 +193,9 @@ export class MifOpportunityStorage {
     await ensureDir(this.outcomesDir);
     await ensureDir(this.replaysDir);
     await ensureDir(this.rankingsDir);
+    await ensureDir(this.evidenceIntelDir);
+    await ensureDir(this.probabilityDir);
+    await ensureDir(this.calibrationDir);
   }
 
   /** Serialize mutating operations within this process. */
@@ -227,6 +242,27 @@ export class MifOpportunityStorage {
     );
   }
 
+  evidenceIntelPath(assessmentId: string): string {
+    return path.join(
+      this.evidenceIntelDir,
+      `${assessmentId.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`,
+    );
+  }
+
+  probabilityPath(assessmentId: string): string {
+    return path.join(
+      this.probabilityDir,
+      `${assessmentId.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`,
+    );
+  }
+
+  calibrationPath(calibrationRunId: string): string {
+    return path.join(
+      this.calibrationDir,
+      `${calibrationRunId.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`,
+    );
+  }
+
   /**
    * Persist a completed analysis result idempotently by requestId/runId.
    * If the same requestId already exists, returns the existing run without overwrite.
@@ -239,6 +275,7 @@ export class MifOpportunityStorage {
     created: boolean;
     candidates: MifPersistedCandidate[];
     rankingRunId: string | null;
+    probabilityAssessmentIds: string[];
   }> {
     await this.ensureReady();
     const analysisCompletedAt = result.processingTimestamp || new Date().toISOString();
@@ -253,6 +290,7 @@ export class MifOpportunityStorage {
         created: false,
         candidates: cands.items.filter((c) => c.runId === runId),
         rankingRunId: result.ranking?.rankingRunId ?? null,
+        probabilityAssessmentIds: [],
       };
     }
 
@@ -263,14 +301,16 @@ export class MifOpportunityStorage {
         ? Math.max(0, completedMs - startedMs)
         : 0;
 
-    // Strip debug/internal ranking payload from persisted snapshot (ranking stored separately)
+    // Strip debug/internal payloads from persisted snapshot (ranking/prob stored separately)
     const {
       _debugContext: _drop,
       _rankingRun: rankingRun,
+      _probabilityBundles: probabilityBundles,
       ...safeResult
     } = result as MifProductionIntegrationResult & {
       _debugContext?: unknown;
       _rankingRun?: MifOpportunityRankingRun | null;
+      _probabilityBundles?: readonly MifProbabilityBundle[] | null;
     };
     void _drop;
 
@@ -389,7 +429,16 @@ export class MifOpportunityStorage {
       rankingRunId = result.ranking.rankingRunId;
     }
 
-    return { run, created: true, candidates, rankingRunId };
+    const probabilityAssessmentIds: string[] = [];
+    if (probabilityBundles?.length) {
+      for (const bundle of probabilityBundles) {
+        await this.persistEvidenceIntelligence(bundle.evidence);
+        await this.persistProbabilityAssessment(bundle.probability);
+        probabilityAssessmentIds.push(bundle.probability.assessmentId);
+      }
+    }
+
+    return { run, created: true, candidates, rankingRunId, probabilityAssessmentIds };
   }
 
   private async touchIndex(run: MifPersistedAnalysisRun): Promise<void> {
@@ -578,6 +627,110 @@ export class MifOpportunityStorage {
     return readJsonFile(this.rankingPath(rankingRunId));
   }
 
+  async persistEvidenceIntelligence(
+    assessment: MifEvidenceIntelligenceAssessment,
+  ): Promise<{ ok: boolean; path: string; created: boolean }> {
+    await this.ensureReady();
+    return this.withWriteLock(async () => {
+      const p = this.evidenceIntelPath(assessment.assessmentId);
+      const existing = await readJsonFile(p);
+      if (existing) return { ok: true, path: p, created: false };
+      await atomicWrite(p, `${JSON.stringify(assessment, null, 2)}\n`);
+      return { ok: true, path: p, created: true };
+    });
+  }
+
+  async getEvidenceIntelligence(
+    assessmentId: string,
+  ): Promise<MifEvidenceIntelligenceAssessment | null> {
+    return readJsonFile(this.evidenceIntelPath(assessmentId));
+  }
+
+  async persistProbabilityAssessment(
+    assessment: MifProbabilityAssessment,
+  ): Promise<{ ok: boolean; path: string; created: boolean }> {
+    await this.ensureReady();
+    return this.withWriteLock(async () => {
+      const p = this.probabilityPath(assessment.assessmentId);
+      const existing = await readJsonFile(p);
+      if (existing) return { ok: true, path: p, created: false };
+      await atomicWrite(p, `${JSON.stringify(assessment, null, 2)}\n`);
+      return { ok: true, path: p, created: true };
+    });
+  }
+
+  async getProbabilityAssessment(
+    assessmentId: string,
+  ): Promise<MifProbabilityAssessment | null> {
+    return readJsonFile(this.probabilityPath(assessmentId));
+  }
+
+  async listProbabilityAssessments(filter?: {
+    providerSymbol?: string;
+    strategyId?: string;
+    fromIso?: string;
+    toIso?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    items: MifProbabilityAssessment[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    await this.ensureReady();
+    const limit = Math.min(200, Math.max(1, filter?.limit ?? 50));
+    const offset = Math.max(0, filter?.offset ?? 0);
+    let names: string[] = [];
+    try {
+      names = (await fs.readdir(this.probabilityDir)).filter((n) => n.endsWith(".json"));
+    } catch {
+      names = [];
+    }
+    const items: MifProbabilityAssessment[] = [];
+    for (const name of names) {
+      const r = await readJsonFileDetailed<MifProbabilityAssessment>(
+        path.join(this.probabilityDir, name),
+      );
+      if (!r.ok || !r.value) continue;
+      const a = r.value;
+      if (
+        filter?.providerSymbol
+        && a.providerSymbol.toUpperCase() !== filter.providerSymbol.toUpperCase()
+      ) {
+        continue;
+      }
+      if (filter?.strategyId && a.strategyId !== filter.strategyId) continue;
+      if (filter?.fromIso && a.calculatedAt < filter.fromIso) continue;
+      if (filter?.toIso && a.calculatedAt > filter.toIso) continue;
+      items.push(a);
+    }
+    items.sort((a, b) => b.calculatedAt.localeCompare(a.calculatedAt));
+    return {
+      items: items.slice(offset, offset + limit),
+      total: items.length,
+      limit,
+      offset,
+    };
+  }
+
+  async persistCalibrationRun(
+    run: MifCalibrationRun,
+  ): Promise<{ ok: boolean; path: string; created: boolean }> {
+    await this.ensureReady();
+    return this.withWriteLock(async () => {
+      const p = this.calibrationPath(run.calibrationRunId);
+      const existing = await readJsonFile(p);
+      if (existing) return { ok: true, path: p, created: false };
+      await atomicWrite(p, `${JSON.stringify(run, null, 2)}\n`);
+      return { ok: true, path: p, created: true };
+    });
+  }
+
+  async getCalibrationRun(calibrationRunId: string): Promise<MifCalibrationRun | null> {
+    return readJsonFile(this.calibrationPath(calibrationRunId));
+  }
+
   async listRankingRuns(filter?: {
     providerSymbol?: string;
     strategyId?: string;
@@ -731,6 +884,9 @@ export class MifOpportunityStorage {
     outcomes: number;
     replays: number;
     rankings: number;
+    evidenceIntelligence: number;
+    probabilityAssessments: number;
+    calibrationRuns: number;
     indexEntries: number;
     corruptQuarantinedHint: string;
     permissionsWritable: boolean;
@@ -760,6 +916,9 @@ export class MifOpportunityStorage {
       outcomes: await count(this.outcomesDir),
       replays: await count(this.replaysDir),
       rankings: await count(this.rankingsDir),
+      evidenceIntelligence: await count(this.evidenceIntelDir),
+      probabilityAssessments: await count(this.probabilityDir),
+      calibrationRuns: await count(this.calibrationDir),
       indexEntries: idx?.runs?.length ?? 0,
       corruptQuarantinedHint: path.join(this.runsDir, "_corrupt"),
       permissionsWritable,

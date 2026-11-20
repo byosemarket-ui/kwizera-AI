@@ -21,6 +21,13 @@
  * POST /api/forex/providers/mt5-hfm/mif/ranking
  * GET  /api/forex/providers/mt5-hfm/mif/ranking
  * GET  /api/forex/providers/mt5-hfm/mif/ranking/:rankingRunId
+ * POST /api/forex/providers/mt5-hfm/mif/evidence-intelligence
+ * GET  /api/forex/providers/mt5-hfm/mif/evidence-intelligence/:assessmentId
+ * POST /api/forex/providers/mt5-hfm/mif/probability
+ * GET  /api/forex/providers/mt5-hfm/mif/probability
+ * GET  /api/forex/providers/mt5-hfm/mif/probability/:assessmentId
+ * POST /api/forex/providers/mt5-hfm/mif/calibration
+ * GET  /api/forex/providers/mt5-hfm/mif/calibration/:calibrationRunId
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -31,6 +38,9 @@ import {
   MIF_PRODUCTION_INTEGRATION_CONTRACT_ID,
   MIF_PRODUCTION_PRIMARY_TIMEFRAME,
   MIF_PROVIDER_ID,
+  assessEvidenceIntelligence,
+  assessProbabilityIntelligence,
+  buildCalibrationRun,
   computeOpportunityPerformanceStatistics,
   disableMifOdWorker,
   enableMifOdWorker,
@@ -44,6 +54,7 @@ import {
   type MifCanonicalCandle,
   type MifDetectionEvidenceRef,
   type MifOpportunityCandidate,
+  type MifProbabilityTargetEvent,
 } from "../../ai/market-data/mt5-hfm/mif/index.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -834,6 +845,299 @@ export async function handleMt5HfmMifApi(
       ranking,
       isWinProbability: false,
       executionReadiness: false,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  // --- Phase 5E Step 2: evidence intelligence ---
+  if (url.pathname === `${PATH_PREFIX}/evidence-intelligence` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const candidateId = String(body.candidateId || "").trim();
+    const store = getMifOpportunityStorage();
+    let candidate: MifOpportunityCandidate | null = null;
+    let evidence: MifDetectionEvidenceRef[] = [];
+    if (candidateId) {
+      const persisted = await store.getCandidate(candidateId);
+      if (!persisted) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "CANDIDATE_NOT_FOUND", message: "candidate not found" },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      candidate = persisted.candidateSnapshot;
+      const run = await store.getRun(persisted.runId);
+      evidence = (run?.resultSnapshot?.evidenceRefs ?? []) as MifDetectionEvidenceRef[];
+    } else if (body.candidate && typeof body.candidate === "object") {
+      candidate = body.candidate as MifOpportunityCandidate;
+      evidence = Array.isArray(body.evidence) ? (body.evidence as MifDetectionEvidenceRef[]) : [];
+    }
+    if (!candidate) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INPUT", message: "candidateId or candidate required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const assessment = assessEvidenceIntelligence({
+      candidate,
+      evidence,
+      analysisRunId: typeof body.analysisRunId === "string" ? body.analysisRunId : null,
+      primaryTimeframe: typeof body.primaryTimeframe === "string" ? body.primaryTimeframe : null,
+    });
+    await store.persistEvidenceIntelligence(assessment);
+    const payload = {
+      ok: true,
+      assessment,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      doesNotApproveAiReasoning: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const eviMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/evidence-intelligence\/([^/]+)$/.exec(
+    url.pathname,
+  );
+  if (eviMatch && req.method === "GET") {
+    const assessment = await getMifOpportunityStorage().getEvidenceIntelligence(
+      decodeURIComponent(eviMatch[1]!),
+    );
+    if (!assessment) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "EVIDENCE_NOT_FOUND", message: "evidence assessment not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      assessment,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  // --- Phase 5E Step 2: probability ---
+  if (url.pathname === `${PATH_PREFIX}/probability` && req.method === "GET") {
+    const listed = await getMifOpportunityStorage().listProbabilityAssessments({
+      providerSymbol: url.searchParams.get("symbol") ?? undefined,
+      strategyId: url.searchParams.get("strategyId") ?? undefined,
+      fromIso: url.searchParams.get("from") ?? undefined,
+      toIso: url.searchParams.get("to") ?? undefined,
+      limit: Number(url.searchParams.get("limit") ?? 50) || 50,
+      offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+    });
+    const payload = {
+      ok: true,
+      ...listed,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      isGuaranteedOutcome: false,
+      executionReadiness: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/probability` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const store = getMifOpportunityStorage();
+    const candidateId = String(body.candidateId || "").trim();
+    let candidate: MifOpportunityCandidate | null = null;
+    let evidence: MifDetectionEvidenceRef[] = [];
+    if (candidateId) {
+      const persisted = await store.getCandidate(candidateId);
+      if (!persisted) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "CANDIDATE_NOT_FOUND", message: "candidate not found" },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      candidate = persisted.candidateSnapshot;
+      const run = await store.getRun(persisted.runId);
+      evidence = (run?.resultSnapshot?.evidenceRefs ?? []) as MifDetectionEvidenceRef[];
+    } else if (body.candidate && typeof body.candidate === "object") {
+      candidate = body.candidate as MifOpportunityCandidate;
+      evidence = Array.isArray(body.evidence) ? (body.evidence as MifDetectionEvidenceRef[]) : [];
+    }
+    if (!candidate) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INPUT", message: "candidateId or candidate required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const hist = await store.listCandidates({
+      providerSymbol: candidate.providerSymbol,
+      limit: 200,
+    });
+    const evals = await store.listOutcomeEvaluations({ limit: 200 });
+    const targetEvent = (typeof body.targetEvent === "string"
+      ? body.targetEvent
+      : "TARGET_REACHED_BEFORE_INVALIDATION_WITHIN_HORIZON") as MifProbabilityTargetEvent;
+    const bundle = assessProbabilityIntelligence({
+      candidate,
+      evidence,
+      historicalCandidates: hist.items,
+      evaluations: evals.items,
+      targetEvent,
+      analysisRunId: typeof body.analysisRunId === "string" ? body.analysisRunId : null,
+      primaryTimeframe: typeof body.primaryTimeframe === "string" ? body.primaryTimeframe : null,
+      dataQualityStatus: typeof body.dataQualityStatus === "string" ? body.dataQualityStatus : null,
+      evaluationHorizonBars:
+        typeof body.evaluationHorizonBars === "number" ? body.evaluationHorizonBars : null,
+    });
+    await store.persistEvidenceIntelligence(bundle.evidence);
+    await store.persistProbabilityAssessment(bundle.probability);
+    const payload = {
+      ok: true,
+      evidence: bundle.evidence,
+      probability: bundle.probability,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      isGuaranteedOutcome: false,
+      executionReadiness: false,
+      doesNotApproveAiReasoning: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const probMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/probability\/([^/]+)$/.exec(
+    url.pathname,
+  );
+  if (probMatch && req.method === "GET") {
+    const assessment = await getMifOpportunityStorage().getProbabilityAssessment(
+      decodeURIComponent(probMatch[1]!),
+    );
+    if (!assessment) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "PROBABILITY_NOT_FOUND", message: "probability assessment not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      probability: assessment,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      isGuaranteedOutcome: false,
+      executionReadiness: false,
+    });
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/calibration` && req.method === "POST") {
+    const store = getMifOpportunityStorage();
+    const listed = await store.listProbabilityAssessments({ limit: 200 });
+    const evals = await store.listOutcomeEvaluations({ limit: 200 });
+    const resolved = new Map<string, { outcome: 0 | 1; resolvedAt: string }>();
+    for (const ev of evals.items) {
+      if (ev.outcomeKind === "TARGET_REACHED") {
+        resolved.set(ev.candidateId, {
+          outcome: 1,
+          resolvedAt: ev.evaluationTimestamp,
+        });
+      } else if (ev.outcomeKind === "INVALIDATION_REACHED") {
+        resolved.set(ev.candidateId, {
+          outcome: 0,
+          resolvedAt: ev.evaluationTimestamp,
+        });
+      }
+    }
+    const run = buildCalibrationRun({
+      historicalAssessments: listed.items,
+      resolvedOutcomes: resolved,
+    });
+    await store.persistCalibrationRun(run);
+    sendJson(res, 200, {
+      ok: true,
+      calibration: run,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  const calMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/calibration\/([^/]+)$/.exec(
+    url.pathname,
+  );
+  if (calMatch && req.method === "GET") {
+    const calibration = await getMifOpportunityStorage().getCalibrationRun(
+      decodeURIComponent(calMatch[1]!),
+    );
+    if (!calibration) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "CALIBRATION_NOT_FOUND", message: "calibration run not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      calibration,
       placesOrders: false,
       mutatesBroker: false,
       acceptsForExecution: false,

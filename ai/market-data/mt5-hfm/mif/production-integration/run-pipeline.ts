@@ -38,6 +38,7 @@ import {
   MIF_PRODUCTION_PRIMARY_TIMEFRAME,
 } from "./contracts.js";
 import { rankOpportunityCandidates } from "../opportunity-ranking/rank-candidates.js";
+import { assessProbabilityIntelligenceBatch } from "../probability-intelligence/assess.js";
 import { buildProductionEvidenceRefs } from "./build-evidence.js";
 import {
   isSupportedProductionTimeframe,
@@ -258,12 +259,20 @@ function deriveDataQualityStatus(
   return "WARNING";
 }
 
+export interface MifProductionPipelineRunOpts {
+  includeDebugContext?: boolean;
+  persist?: boolean;
+  /** Optional historical peers for Step 2 probability (never required; empty → insufficient). */
+  historicalCandidates?: import("./persistence/types.js").MifPersistedCandidate[];
+  historicalEvaluations?: import("./outcome-evaluation.js").MifOutcomeEvaluationRecord[];
+}
+
 /**
  * Core production path from already-retrieved HFM series (fixtures or live).
  */
 export function runMifHfmOpportunityPipelineFromSeries(
   input: MifProductionPipelineFromSeriesInput,
-  opts?: { includeDebugContext?: boolean; persist?: boolean },
+  opts?: MifProductionPipelineRunOpts,
 ): MifProductionIntegrationResult {
   const processingTimestamp = new Date().toISOString();
   const requestId = String(input.requestId || "").trim() || randomUUID();
@@ -975,6 +984,57 @@ export function runMifHfmOpportunityPipelineFromSeries(
     );
   }
 
+  // Phase 5E Step 2 — evidence + probability (historical peers optional; never fabricate)
+  let probabilitySummary: MifProductionIntegrationResult["probabilityIntelligence"] = null;
+  let probabilityBundles: ReturnType<typeof assessProbabilityIntelligenceBatch> | null = null;
+  try {
+    probabilityBundles = assessProbabilityIntelligenceBatch({
+      candidates: detection.candidates,
+      evidence,
+      historicalCandidates: opts?.historicalCandidates ?? [],
+      evaluations: opts?.historicalEvaluations ?? [],
+      analysisRunId: requestId,
+      rankingRunId: rankingRunFull?.rankingRunId ?? null,
+      primaryTimeframe,
+      marketRegime: primaryBundle.regime.structure,
+      rankingScoreBand: rankingRunFull?.rankings?.[0]?.scoreBand ?? null,
+      dataQualityStatus,
+      calculatedAt: processingTimestamp,
+      maxCandidates: 20,
+    });
+    probabilitySummary = {
+      assessedCount: probabilityBundles.length,
+      insufficientSampleCount: probabilityBundles.filter(
+        (b) =>
+          b.probability.sampleStatus === "INSUFFICIENT_SAMPLE"
+          || b.probability.sampleStatus === "INSUFFICIENT_HISTORICAL_COVERAGE",
+      ).length,
+      unavailableCount: probabilityBundles.filter(
+        (b) =>
+          b.probability.sampleStatus === "UNAVAILABLE"
+          || b.probability.sampleStatus === "LEVELS_NOT_PROVIDED"
+          || b.probability.sampleStatus === "BLOCKED_BY_DATA_QUALITY",
+      ).length,
+      withProbabilityCount: probabilityBundles.filter((b) => b.probability.probability != null)
+        .length,
+      top: probabilityBundles.slice(0, 20).map((b) => ({
+        candidateId: b.probability.candidateId,
+        sampleStatus: b.probability.sampleStatus,
+        probability: b.probability.probability,
+        reliabilityStatus: b.probability.reliabilityStatus,
+        calibrationStatus: b.probability.calibrationStatus,
+        isWinProbability: b.probability.isWinProbability,
+      })),
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+  } catch (err) {
+    warnings.push(
+      `probability_intelligence_failed:${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
   return baseResult({
     requestId,
     providerSymbol: symbol,
@@ -1016,8 +1076,10 @@ export function runMifHfmOpportunityPipelineFromSeries(
     },
     evidenceQuality,
     ranking: rankingSummary,
+    probabilityIntelligence: probabilitySummary,
     persistence: null,
     _rankingRun: rankingRunFull,
+    _probabilityBundles: probabilityBundles,
     ...(opts?.includeDebugContext ? { _debugContext: context } : {}),
   });
 }
@@ -1027,10 +1089,28 @@ export function runMifHfmOpportunityPipelineFromSeries(
  */
 export async function runMifHfmOpportunityPipelineFromSeriesPersisted(
   input: MifProductionPipelineFromSeriesInput,
-  opts?: { includeDebugContext?: boolean; persist?: boolean },
+  opts?: MifProductionPipelineRunOpts,
 ): Promise<MifProductionIntegrationResult> {
   const started = new Date().toISOString();
-  const result = runMifHfmOpportunityPipelineFromSeries(input, opts);
+  // Enrich with stored historical peers when available (no future leakage inside cohort engine).
+  let histOpts = opts;
+  try {
+    const { getMifOpportunityStorage } = await import("./persistence/storage.js");
+    const store = getMifOpportunityStorage();
+    const listed = await store.listCandidates({
+      providerSymbol: input.providerSymbol,
+      limit: 200,
+    });
+    const evals = await store.listOutcomeEvaluations({ limit: 200 });
+    histOpts = {
+      ...opts,
+      historicalCandidates: opts?.historicalCandidates ?? listed.items,
+      historicalEvaluations: opts?.historicalEvaluations ?? evals.items,
+    };
+  } catch {
+    histOpts = opts;
+  }
+  const result = runMifHfmOpportunityPipelineFromSeries(input, histOpts);
   const shouldPersist = opts?.persist !== false
     && !String(result.analysisStatus).startsWith("FAILED_VALIDATION");
   if (!shouldPersist) return result;

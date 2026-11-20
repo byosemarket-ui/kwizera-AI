@@ -729,6 +729,74 @@ export const forexProvidersApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  /** Phase 5E Step 2 — evidence / probability intelligence (nullable probability). */
+  mt5HfmMifEvidenceIntelligenceCreate: (body: {
+    candidateId?: string;
+    analysisRunId?: string;
+    primaryTimeframe?: string;
+  }) =>
+    request<{ ok: boolean; assessment: unknown }>(
+      "/api/forex/providers/mt5-hfm/mif/evidence-intelligence",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+  mt5HfmMifEvidenceIntelligenceGet: (assessmentId: string) =>
+    request<{ ok: boolean; assessment: unknown }>(
+      `/api/forex/providers/mt5-hfm/mif/evidence-intelligence/${encodeURIComponent(assessmentId)}`,
+    ),
+  mt5HfmMifProbabilityList: (params?: {
+    symbol?: string;
+    strategyId?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.symbol) q.set("symbol", params.symbol);
+    if (params?.strategyId) q.set("strategyId", params.strategyId);
+    if (params?.from) q.set("from", params.from);
+    if (params?.to) q.set("to", params.to);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      items: unknown[];
+      total: number;
+      executionReadiness: false;
+      isGuaranteedOutcome: false;
+    }>(`/api/forex/providers/mt5-hfm/mif/probability${qs ? `?${qs}` : ""}`);
+  },
+  mt5HfmMifProbabilityGet: (assessmentId: string) =>
+    request<{ ok: boolean; probability: unknown; executionReadiness: false }>(
+      `/api/forex/providers/mt5-hfm/mif/probability/${encodeURIComponent(assessmentId)}`,
+    ),
+  mt5HfmMifProbabilityCreate: (body: {
+    candidateId?: string;
+    targetEvent?: string;
+    analysisRunId?: string;
+    primaryTimeframe?: string;
+    evaluationHorizonBars?: number;
+  }) =>
+    request<{
+      ok: boolean;
+      evidence: unknown;
+      probability: unknown;
+      executionReadiness: false;
+      isGuaranteedOutcome: false;
+    }>("/api/forex/providers/mt5-hfm/mif/probability", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  mt5HfmMifCalibrationCreate: () =>
+    request<{ ok: boolean; calibration: unknown }>(
+      "/api/forex/providers/mt5-hfm/mif/calibration",
+      { method: "POST", body: "{}" },
+    ),
+  mt5HfmMifCalibrationGet: (calibrationRunId: string) =>
+    request<{ ok: boolean; calibration: unknown }>(
+      `/api/forex/providers/mt5-hfm/mif/calibration/${encodeURIComponent(calibrationRunId)}`,
+    ),
   forexConnectInstruments: () =>
     request<{
       ok: boolean;
