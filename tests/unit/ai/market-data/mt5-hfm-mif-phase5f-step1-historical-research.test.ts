@@ -14,6 +14,7 @@ import {
   assertCostAdjustedBacktestAllowed,
   assertNoFutureBarsBeyondTip,
   assessResearchEligibility,
+  buildResearchCoverageMatrix,
   buildResearchDatasetManifest,
   classifyResearchCostAvailability,
   classifyTimeframeLayer,
@@ -617,12 +618,37 @@ describe("Phase 5F STEP 1 — historical research foundation", () => {
     );
     expect(api).toContain("/research/datasets");
     expect(api).toContain("/research/export");
+    expect(api).toContain("/research/coverage");
     expect(api).toContain("EXPORT_DISABLED");
     expect(api).toContain("isResearchExportExplicitlyEnabled");
     expect(api).toContain("MIF_RESEARCH_API_MAX_BAR_PAGE");
     expect(api).toContain("autoWorker: false");
     expect(api).toContain("verifyDatasetConsistency");
     expect(api).not.toMatch(/research\/export[\s\S]{0,400}mutatesBroker:\s*true/);
+  });
+
+  it("builds coverage matrix distinguishing archived vs exportable layers", async () => {
+    await runResearchHistoricalExport({
+      instrument: "EURUSD",
+      timeframe: "H1",
+      allowExport: true,
+      storage: store,
+      fetchFn: mockFetchPages([
+        { bars: Array.from({ length: 5 }, (_, i) => makeBar(i)), hasMore: false },
+      ]),
+    });
+    const matrix = await buildResearchCoverageMatrix(store, {
+      instruments: ["EURUSD", "GBPUSD"],
+      timeframes: ["H1", "W1"],
+    });
+    expect(matrix.summary.cells).toBe(4);
+    const eurusdH1 = matrix.cells.find((c) => c.instrument === "EURUSD" && c.timeframe === "H1");
+    expect(eurusdH1?.operationallyExportable).toBe(true);
+    expect(eurusdH1?.actuallyArchived).toBe(true);
+    expect(eurusdH1?.researchEligible).toBe(true);
+    const w1 = matrix.cells.find((c) => c.timeframe === "W1");
+    expect(w1?.verifiedLive).toBe(false);
+    expect(w1?.operationallyExportable).toBe(false);
   });
 
   it("exposes research eligibility and forbids cost-adjusted backtest when costs incomplete", async () => {

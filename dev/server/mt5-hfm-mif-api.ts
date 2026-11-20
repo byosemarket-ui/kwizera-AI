@@ -37,6 +37,7 @@
  * GET  /api/forex/providers/mt5-hfm/mif/research/export-jobs/:jobId
  * POST /api/forex/providers/mt5-hfm/mif/research/export
  * GET  /api/forex/providers/mt5-hfm/mif/research/timeframes
+ * GET  /api/forex/providers/mt5-hfm/mif/research/coverage
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -52,6 +53,7 @@ import {
   assessEvidenceIntelligence,
   assessProbabilityIntelligence,
   buildCalibrationRun,
+  buildResearchCoverageMatrix,
   classifyTimeframeLayer,
   computeOpportunityPerformanceStatistics,
   disableMifOdWorker,
@@ -686,6 +688,22 @@ export async function handleMt5HfmMifApi(
   }
 
   // --- Phase 5F STEP 1: historical research (read-only archive) ---
+  if (url.pathname === `${PATH_PREFIX}/research/coverage` && req.method === "GET") {
+    const matrix = await buildResearchCoverageMatrix(getMifHistoricalResearchStorage());
+    const payload = {
+      ok: true,
+      ...matrix,
+      note: "codeSupported ≠ verifiedLive ≠ operationallyExportable ≠ actuallyArchived ≠ researchEligible",
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      researchReadOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
   if (url.pathname === `${PATH_PREFIX}/research/timeframes` && req.method === "GET") {
     const tfParam = url.searchParams.get("timeframe");
     const payload = {

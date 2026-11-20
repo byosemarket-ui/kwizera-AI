@@ -10,6 +10,7 @@ export * from "./cost-source-evidence.js";
 export * from "./pit-metadata.js";
 export * from "./quality.js";
 export * from "./research-eligibility.js";
+export * from "./coverage-matrix.js";
 export * from "./storage.js";
 export * from "./dataset-builder.js";
 export * from "./exporter.js";
