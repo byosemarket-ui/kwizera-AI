@@ -20,6 +20,8 @@ import { assessMifMarketRegime } from "../analysis/regime/assess-market-regime.j
 import { assessMifSupportResistance } from "../analysis/support-resistance/assess-support-resistance.js";
 import { assessMifUnifiedChartAnalysis } from "../analysis/unified/assess-unified-chart-analysis.js";
 import { assessMifDataIntegrity } from "../quality/assess-data-integrity.js";
+import { createHfmCatalogSessionAuthority } from "../quality/hfm-session-authority.js";
+import type { MifExpectedIntervalAuthority } from "../quality/types.js";
 import { runMifOpportunityDetection } from "../opportunity-detection/run-opportunity-detection.js";
 import type { MifOpportunityDetectionContext } from "../opportunity-detection/types.js";
 import { getDefaultMifStrategyIntelligenceRegistry } from "../strategy-intelligence/registry.js";
@@ -104,8 +106,8 @@ function buildDataQualityDiagnostics(input: {
     input.analysisStatus === "PARTIAL_DEGRADED"
       ? `analysisStatus=PARTIAL_DEGRADED because dataQualityStatus=${input.dataQualityStatus}`
         + (sessionCalendarAuthorityMissing
-          ? "; primary integrity warning includes NO_AUTHORITATIVE_SESSION_CALENDAR (expected until HFM session calendar authority exists)"
-          : "")
+          ? "; primary integrity warning includes NO_AUTHORITATIVE_SESSION_CALENDAR (HFM catalog sessions unavailable or unusable)"
+          : "; HFM catalog session authority attached when present — holidays remain unknown")
       : `analysisStatus=${input.analysisStatus}; dataQualityStatus=${input.dataQualityStatus}`;
   return {
     dataQualityStatus: input.dataQualityStatus,
@@ -136,6 +138,7 @@ function assessOneTf(input: {
   timeframe: string;
   candles: readonly MifCanonicalCandle[];
   assessmentTimestamp: string;
+  expectedIntervalAuthority?: MifExpectedIntervalAuthority | null;
 }): {
   integrity: ReturnType<typeof assessMifDataIntegrity>;
   regime: ReturnType<typeof assessMifMarketRegime>;
@@ -154,6 +157,7 @@ function assessOneTf(input: {
     providerSymbol: input.symbol,
     timeframe: input.timeframe,
     assessmentTimestamp: input.assessmentTimestamp,
+    expectedIntervalAuthority: input.expectedIntervalAuthority ?? null,
   });
   const quality = qualityGate({
     quality: { kind: "step1-data-integrity", assessment: integrity },
@@ -424,6 +428,16 @@ export function runMifHfmOpportunityPipelineFromSeries(
     seriesByTf.set(normalizeTf(s.timeframe), s);
   }
 
+  const sessionAuthority: MifExpectedIntervalAuthority | null =
+    input.expectedIntervalAuthority === undefined
+      ? null
+      : input.expectedIntervalAuthority;
+  if (sessionAuthority) {
+    warnings.push(
+      `HFM session authority attached id=${sessionAuthority.authorityId}@${sessionAuthority.authorityVersion}`,
+    );
+  }
+
   const resolvedTimeframes: string[] = [];
   const snapshots: MifProductionTfAssessmentSnapshot[] = [];
   const mtfSources: MifMtfTimeframeSources[] = [];
@@ -545,6 +559,7 @@ export function runMifHfmOpportunityPipelineFromSeries(
         timeframe: tf,
         candles: adapted.candles,
         assessmentTimestamp,
+        expectedIntervalAuthority: sessionAuthority,
       });
 
       integrityStatuses.push(bundle.integrity.status);
@@ -685,6 +700,7 @@ export function runMifHfmOpportunityPipelineFromSeries(
         timeframe: fallbackTf,
         candles: adapted.candles,
         assessmentTimestamp,
+        expectedIntervalAuthority: sessionAuthority,
       });
       warnings.push(`primary timeframe ${primaryTimeframe} unavailable; using ${fallbackTf}`);
     }
@@ -1285,6 +1301,21 @@ export async function runMifHfmOpportunityPipelineLive(
     }
   }
 
+  let sessionAuthority: MifExpectedIntervalAuthority | null = null;
+  try {
+    const { getHfmCatalogService } = await import("../../catalog-service.js");
+    const cat = await getHfmCatalogService().getSymbol(symbol);
+    if (cat?.sessions) {
+      sessionAuthority = createHfmCatalogSessionAuthority({
+        providerSymbol: symbol,
+        sessions: cat.sessions as Record<string, unknown>,
+        catalogVersion: cat.catalogVersion ?? null,
+      });
+    }
+  } catch {
+    sessionAuthority = null;
+  }
+
   let result = await runMifHfmOpportunityPipelineFromSeriesPersisted(
     {
       requestId,
@@ -1295,6 +1326,7 @@ export async function runMifHfmOpportunityPipelineLive(
       series,
       assessmentTimestamp: input.assessmentTimestamp ?? processingTimestamp,
       maxCandleAgeSec: input.maxCandleAgeSec,
+      expectedIntervalAuthority: sessionAuthority,
     },
     { persist: input.persist !== false },
   );

@@ -15,6 +15,7 @@ export * from "./chronology-validator.js";
 export * from "./duplicate-detector.js";
 export * from "./gap-detector.js";
 export * from "./session-uncertainty.js";
+export * from "./hfm-session-authority.js";
 export * from "./coverage-assessor.js";
 export * from "./stable-identity.js";
 export * from "./assess-data-integrity.js";

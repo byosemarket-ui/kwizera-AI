@@ -517,54 +517,107 @@ string JsonStringProp(const string symbol, const ENUM_SYMBOL_INFO_STRING prop, c
 
 string BuildSessionSummary(const string symbol, string &errors, bool &firstErr)
   {
-   // Lightweight: day 0..6, session index 0 only (quote + trade). No SymbolSelect.
+   // Day 0..6, session indices 0..7 (trade + quote). No SymbolSelect.
+   // Emits primary tradeFrom/To (index 0 / first valid) plus tradeWindows/quoteWindows arrays.
    string out = "{";
    bool firstDay = true;
-   int tradeSessions = 0;
-   int quoteSessions = 0;
+   int tradeSessionDays = 0;
+   int quoteSessionDays = 0;
    for(int day = 0; day <= 6; day++)
      {
-      datetime fromT = 0;
-      datetime toT = 0;
-      bool hasTrade = SymbolInfoSessionTrade(symbol, (ENUM_DAY_OF_WEEK)day, 0, fromT, toT);
-      datetime qFrom = 0;
-      datetime qTo = 0;
-      bool hasQuote = SymbolInfoSessionQuote(symbol, (ENUM_DAY_OF_WEEK)day, 0, qFrom, qTo);
-      if(hasTrade)
-         tradeSessions++;
-      if(hasQuote)
-         quoteSessions++;
-      if(!hasTrade && !hasQuote)
-         continue;
+      string tradeWindows = "[";
+      string quoteWindows = "[";
+      bool firstTradeW = true;
+      bool firstQuoteW = true;
+      long primaryTradeFrom = -1;
+      long primaryTradeTo = -1;
+      long primaryQuoteFrom = -1;
+      long primaryQuoteTo = -1;
+      int tradeCount = 0;
+      int quoteCount = 0;
+      for(int idx = 0; idx < 8; idx++)
+        {
+         datetime fromT = 0;
+         datetime toT = 0;
+         if(SymbolInfoSessionTrade(symbol, (ENUM_DAY_OF_WEEK)day, idx, fromT, toT))
+           {
+            long f = (long)fromT;
+            long t = (long)toT;
+            // Zero-length windows are explicit closed slots — skip in window arrays.
+            if(t > f)
+              {
+               if(!firstTradeW)
+                  tradeWindows += ",";
+               firstTradeW = false;
+               tradeWindows += "{\"fromSec\":" + IntegerToString(f) + ",\"toSec\":" + IntegerToString(t) + "}";
+               if(primaryTradeFrom < 0)
+                 {
+                  primaryTradeFrom = f;
+                  primaryTradeTo = t;
+                 }
+               tradeCount++;
+              }
+           }
+         datetime qFrom = 0;
+         datetime qTo = 0;
+         if(SymbolInfoSessionQuote(symbol, (ENUM_DAY_OF_WEEK)day, idx, qFrom, qTo))
+           {
+            long f = (long)qFrom;
+            long t = (long)qTo;
+            if(t > f)
+              {
+               if(!firstQuoteW)
+                  quoteWindows += ",";
+               firstQuoteW = false;
+               quoteWindows += "{\"fromSec\":" + IntegerToString(f) + ",\"toSec\":" + IntegerToString(t) + "}";
+               if(primaryQuoteFrom < 0)
+                 {
+                  primaryQuoteFrom = f;
+                  primaryQuoteTo = t;
+                 }
+               quoteCount++;
+              }
+           }
+        }
+      tradeWindows += "]";
+      quoteWindows += "]";
+      // Always emit days 0..6 so closed weekdays are explicit (empty windows).
       if(!firstDay)
          out += ",";
       firstDay = false;
       out += "\"" + IntegerToString(day) + "\":{";
-      if(hasTrade)
+      if(primaryTradeFrom >= 0)
         {
-         out += "\"tradeFrom\":" + IntegerToString((long)fromT) + ",";
-         out += "\"tradeTo\":" + IntegerToString((long)toT);
+         out += "\"tradeFrom\":" + IntegerToString(primaryTradeFrom) + ",";
+         out += "\"tradeTo\":" + IntegerToString(primaryTradeTo);
         }
       else
         {
-         out += "\"tradeFrom\":null,\"tradeTo\":null";
+         out += "\"tradeFrom\":0,\"tradeTo\":0";
         }
       out += ",";
-      if(hasQuote)
+      if(primaryQuoteFrom >= 0)
         {
-         out += "\"quoteFrom\":" + IntegerToString((long)qFrom) + ",";
-         out += "\"quoteTo\":" + IntegerToString((long)qTo);
+         out += "\"quoteFrom\":" + IntegerToString(primaryQuoteFrom) + ",";
+         out += "\"quoteTo\":" + IntegerToString(primaryQuoteTo);
         }
       else
         {
-         out += "\"quoteFrom\":null,\"quoteTo\":null";
+         out += "\"quoteFrom\":0,\"quoteTo\":0";
         }
+      out += ",\"tradeWindows\":" + tradeWindows;
+      out += ",\"quoteWindows\":" + quoteWindows;
       out += "}";
+      if(tradeCount > 0)
+         tradeSessionDays++;
+      if(quoteCount > 0)
+         quoteSessionDays++;
      }
    if(firstDay)
       AppendFieldError(errors, firstErr, "sessions", "EMPTY");
-   out += ",\"tradeSessionDays\":" + IntegerToString(tradeSessions);
-   out += ",\"quoteSessionDays\":" + IntegerToString(quoteSessions);
+   out += ",\"tradeSessionDays\":" + IntegerToString(tradeSessionDays);
+   out += ",\"quoteSessionDays\":" + IntegerToString(quoteSessionDays);
+   out += ",\"sessionIndexScan\":8";
    out += "}";
    return out;
   }

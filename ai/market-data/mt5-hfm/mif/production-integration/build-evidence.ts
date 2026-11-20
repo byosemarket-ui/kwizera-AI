@@ -550,7 +550,12 @@ export function buildProductionEvidenceRefs(
             qualityStatus = regimeQ;
             sourceEngine = input.regime!.engineId;
             sourceAssessmentId = input.regime!.assessmentId;
-            notes = `range high=${input.regime!.rangeEvidence.high}; low=${input.regime!.rangeEvidence.low}`;
+            notes = [
+              `rangeHigh=${input.regime!.rangeEvidence.high}`,
+              `rangeLow=${input.regime!.rangeEvidence.low}`,
+              `high=${input.regime!.rangeEvidence.high}`,
+              `low=${input.regime!.rangeEvidence.low}`,
+            ].join("; ");
           } else {
             presence = "ABSENT";
             qualityStatus = "MISSING";
@@ -561,6 +566,15 @@ export function buildProductionEvidenceRefs(
         case "SUPPORT_RESISTANCE": {
           if (srEnginePresent) {
             const b = input.supportResistance!.primaryBoundary!;
+            const active = input.supportResistance!.boundaries.filter(
+              (x) => x.lifecycle === "ACTIVE",
+            );
+            const bestSupport = active
+              .filter((x) => x.kind === "SUPPORT")
+              .sort((a, c) => c.touchCount - a.touchCount)[0] ?? null;
+            const bestResistance = active
+              .filter((x) => x.kind === "RESISTANCE")
+              .sort((a, c) => c.touchCount - a.touchCount)[0] ?? null;
             presence = "PRESENT";
             qualityStatus = srQ;
             sourceEngine = input.supportResistance!.engineId;
@@ -573,9 +587,13 @@ export function buildProductionEvidenceRefs(
               `boundaryId=${b.boundaryId}`,
               `kind=${b.kind}`,
               `mid=${b.mid}`,
+              `high=${b.high}`,
+              `low=${b.low}`,
+              bestSupport ? `supportMid=${bestSupport.mid}` : null,
+              bestResistance ? `resistanceMid=${bestResistance.mid}` : null,
               `lifecycle=${b.lifecycle}`,
               `touchCount=${b.touchCount}`,
-            ].join("; ");
+            ].filter(Boolean).join("; ");
           } else if (boundaryPresent) {
             presence = "PRESENT";
             qualityStatus = regimeQ;
@@ -631,6 +649,7 @@ export function buildProductionEvidenceRefs(
               `refId=${r.referenceId}`,
               `refType=${r.refType}`,
               `refSide=${r.refSide}`,
+              `price=${r.price}`,
               `confirmed=TRUE`,
               `lifecycle=${r.lifecycle}`,
               `doesNotClaimRestingOrders=TRUE`,

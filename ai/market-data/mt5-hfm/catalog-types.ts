@@ -94,17 +94,31 @@ export interface HfmClassificationResult {
   classifierVersion: string;
 }
 
+export interface HfmSessionWindow {
+  fromSec: number;
+  toSec: number;
+}
+
 export interface HfmSessionDaySummary {
   tradeFrom: number | null;
   tradeTo: number | null;
   quoteFrom: number | null;
   quoteTo: number | null;
+  /** Multi-index trade windows when EA emits them (preferred over tradeFrom/To alone). */
+  tradeWindows?: HfmSessionWindow[];
+  quoteWindows?: HfmSessionWindow[];
 }
 
 export interface HfmSessionSummary {
   tradeSessionDays: number;
   quoteSessionDays: number;
+  sessionIndexScan?: number;
+  /**
+   * Optional nested map. Live catalog rows often flatten day keys ("0".."6")
+   * onto this object alongside tradeSessionDays — parsers must accept both.
+   */
   days?: Record<string, HfmSessionDaySummary>;
+  [dayKey: string]: unknown;
 }
 
 /** Raw symbol row as emitted by MQL NDJSON (before Node enrichment). */

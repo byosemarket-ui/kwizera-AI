@@ -78,6 +78,11 @@ export interface MifProductionPipelineFromSeriesInput {
   assessmentTimestamp?: string;
   /** Max age of newest CLOSED candle tip vs assessment time (sec). null = no stale gate. */
   maxCandleAgeSec?: number | null;
+  /**
+   * Optional HFM session-calendar authority (from catalog SymbolInfoSession*).
+   * When omitted, live path attempts catalog load; series tests may inject fixtures.
+   */
+  expectedIntervalAuthority?: import("../quality/types.js").MifExpectedIntervalAuthority | null;
 }
 
 export interface MifProductionLiveFetchInput {

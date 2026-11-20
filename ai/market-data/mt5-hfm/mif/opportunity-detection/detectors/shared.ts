@@ -61,6 +61,17 @@ export function noteNumeric(notes: string | undefined, key: string): number | nu
   return Number.isFinite(v) ? v : null;
 }
 
+export interface SourceBackedPriceBundle {
+  boundaryMid: number | null;
+  structurePrice: number | null;
+  supportMid: number | null;
+  resistanceMid: number | null;
+  rangeHigh: number | null;
+  rangeLow: number | null;
+  liquidityPrice: number | null;
+  sources: string[];
+}
+
 /**
  * Collect source-backed boundary/structure prices from present evidence notes.
  * Used to attach parseable level tokens to candidates without inventing prices.
@@ -68,13 +79,14 @@ export function noteNumeric(notes: string | undefined, key: string): number | nu
 export function extractSourceBackedPricesFromEvidence(
   evidence: readonly MifDetectionEvidenceRef[],
   evidenceIds: readonly string[],
-): {
-  boundaryMid: number | null;
-  structurePrice: number | null;
-  sources: string[];
-} {
+): SourceBackedPriceBundle {
   let boundaryMid: number | null = null;
   let structurePrice: number | null = null;
+  let supportMid: number | null = null;
+  let resistanceMid: number | null = null;
+  let rangeHigh: number | null = null;
+  let rangeLow: number | null = null;
+  let liquidityPrice: number | null = null;
   const sources: string[] = [];
   const idSet = new Set(evidenceIds);
   for (const e of evidence) {
@@ -83,6 +95,14 @@ export function extractSourceBackedPricesFromEvidence(
     if (e.qualityStatus === "BLOCKED" || e.qualityStatus === "MISSING") continue;
     const mid = noteNumeric(e.notes, "mid");
     const price = noteNumeric(e.notes, "price");
+    const sMid = noteNumeric(e.notes, "supportMid");
+    const rMid = noteNumeric(e.notes, "resistanceMid");
+    const rHigh =
+      noteNumeric(e.notes, "rangeHigh")
+      ?? noteNumeric(e.notes, "high");
+    const rLow =
+      noteNumeric(e.notes, "rangeLow")
+      ?? noteNumeric(e.notes, "low");
     if (mid != null && boundaryMid == null) {
       boundaryMid = mid;
       sources.push(`${e.evidenceId}:mid`);
@@ -91,8 +111,41 @@ export function extractSourceBackedPricesFromEvidence(
       structurePrice = price;
       sources.push(`${e.evidenceId}:price`);
     }
+    if (sMid != null && supportMid == null) {
+      supportMid = sMid;
+      sources.push(`${e.evidenceId}:supportMid`);
+    }
+    if (rMid != null && resistanceMid == null) {
+      resistanceMid = rMid;
+      sources.push(`${e.evidenceId}:resistanceMid`);
+    }
+    if (rHigh != null && rangeHigh == null) {
+      rangeHigh = rHigh;
+      sources.push(`${e.evidenceId}:rangeHigh`);
+    }
+    if (rLow != null && rangeLow == null) {
+      rangeLow = rLow;
+      sources.push(`${e.evidenceId}:rangeLow`);
+    }
+    if (
+      e.family === "LIQUIDITY_REFERENCE"
+      && price != null
+      && liquidityPrice == null
+    ) {
+      liquidityPrice = price;
+      sources.push(`${e.evidenceId}:liquidityPrice`);
+    }
   }
-  return { boundaryMid, structurePrice, sources };
+  return {
+    boundaryMid,
+    structurePrice,
+    supportMid,
+    resistanceMid,
+    rangeHigh,
+    rangeLow,
+    liquidityPrice,
+    sources,
+  };
 }
 
 export function findEvidenceById(

@@ -143,6 +143,7 @@ describe("Final audit — source-backed levels", () => {
 
     const leveled = attachSourceBackedLevelConditions({
       context: ctx,
+      strategyId: "TREND_CONTINUATION",
       supportingEvidenceIds: ["tc.structure"],
       invalidationConditions: ["tc.structure_break"],
       knownLimitations: [],
@@ -154,8 +155,10 @@ describe("Final audit — source-backed levels", () => {
       invalidationConditions: leveled.invalidationConditions,
     });
     expect(extracted.invalidationPrice).toBe(3594.92);
+    // No opposing SR/liquidity in fixture → target stays unavailable (not invented).
     expect(extracted.targetPrice).toBeNull();
   });
+
 
   it("does not invent levels when evidence has no mid/price", () => {
     const evidence: MifDetectionEvidenceRef[] = [

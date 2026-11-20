@@ -159,13 +159,9 @@ export function detectCandleGaps(input: {
 
     let confirmed = 0;
     let unknownAuth = 0;
+    let closedSession = 0;
+    let usedAuthorityEnumeration = false;
     if (authority) {
-      for (const open of candidates) {
-        const decision = authority.isExpectedOpen(input.providerSymbol, input.timeframe, open);
-        if (decision === true) confirmed += 1;
-        else if (decision === "unknown") unknownAuth += 1;
-        // false → not expected (session closed) — not missing
-      }
       if (typeof authority.listExpectedOpensBetween === "function") {
         const listed = authority.listExpectedOpensBetween(
           input.providerSymbol,
@@ -175,7 +171,23 @@ export function detectCandleGaps(input: {
         );
         if (Array.isArray(listed)) {
           confirmed = listed.length;
+          // Enumerated expected opens only. Non-listed candidates are treated as
+          // session closures for this authority (not residual unknown gaps).
+          closedSession = Math.max(0, missed - confirmed);
           unknownAuth = 0;
+          usedAuthorityEnumeration = true;
+        }
+      }
+      if (!usedAuthorityEnumeration) {
+        for (const open of candidates) {
+          const decision = authority.isExpectedOpen(
+            input.providerSymbol,
+            input.timeframe,
+            open,
+          );
+          if (decision === true) confirmed += 1;
+          else if (decision === "unknown") unknownAuth += 1;
+          else closedSession += 1; // false → weekly/session closure, not missing
         }
       }
     }
@@ -195,26 +207,24 @@ export function detectCandleGaps(input: {
           previousIndex: prev.index,
           gapSec,
           confirmed,
+          closedSession,
           authorityId: authority.authorityId,
         },
       });
     }
 
-    // Remainder / no authority → possible or unknown-session (never confirmed).
-    const residual = authority ? Math.max(0, missed - confirmed) : missed;
-    if (!authority || residual > 0 || unknownAuth > 0) {
-      const classifyCount = authority ? residual + unknownAuth : missed;
-      if (classifyCount <= 0) continue;
-      const code = classifyGapWithoutAuthority(classifyCount, gapSec);
+    if (!authority) {
+      // No authority → possible or unknown-session (never confirmed).
+      const code = classifyGapWithoutAuthority(missed, gapSec);
       if (code === MIF_QI_UNKNOWN_SESSION_GAP) {
-        counters.unknownSessionGapCount += classifyCount;
+        counters.unknownSessionGapCount += missed;
       } else {
-        counters.possibleMissingCount += classifyCount;
+        counters.possibleMissingCount += missed;
       }
       findings.push({
         code,
         severity: "warning",
-        message: `gap ${gapSec}s (~${classifyCount} bars) between ${prevOpen} and ${nextOpen}; not confirmed missing without authoritative schedule`,
+        message: `gap ${gapSec}s (~${missed} bars) between ${prevOpen} and ${nextOpen}; not confirmed missing without authoritative schedule`,
         candleIndex: next.index,
         openTimeSec: nextOpen,
         expectedOpenTimeSec: prevOpen + step,
@@ -223,8 +233,40 @@ export function detectCandleGaps(input: {
         evidence: {
           previousIndex: prev.index,
           gapSec,
-          classifyCount,
-          hasAuthority: Boolean(authority),
+          classifyCount: missed,
+          hasAuthority: false,
+        },
+      });
+      continue;
+    }
+
+    // Authority present: only unresolved ("unknown") candidates remain uncertain.
+    // Closed-session opens must not be reclassified as POSSIBLE/UNKNOWN gaps.
+    if (unknownAuth > 0) {
+      const code = classifyGapWithoutAuthority(unknownAuth, gapSec);
+      if (code === MIF_QI_UNKNOWN_SESSION_GAP) {
+        counters.unknownSessionGapCount += unknownAuth;
+      } else {
+        counters.possibleMissingCount += unknownAuth;
+      }
+      findings.push({
+        code,
+        severity: "warning",
+        message:
+          `gap ${gapSec}s (~${unknownAuth} bars) between ${prevOpen} and ${nextOpen}; `
+          + `authority could not classify these opens (closedSession=${closedSession})`,
+        candleIndex: next.index,
+        openTimeSec: nextOpen,
+        expectedOpenTimeSec: prevOpen + step,
+        actualOpenTimeSec: nextOpen,
+        expectedDurationSec: step,
+        evidence: {
+          previousIndex: prev.index,
+          gapSec,
+          classifyCount: unknownAuth,
+          closedSession,
+          hasAuthority: true,
+          authorityId: authority.authorityId,
         },
       });
     }
