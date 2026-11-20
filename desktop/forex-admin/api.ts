@@ -681,6 +681,54 @@ export const forexProvidersApi = {
       "/api/forex/providers/mt5-hfm/market/quotes",
       { method: "POST", body: JSON.stringify({ environment: "demo", symbols }) },
     ),
+  /** Phase 5E Step 1 — analytical ranking (not win probability). */
+  mt5HfmMifRankingList: (params?: {
+    symbol?: string;
+    strategyId?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.symbol) q.set("symbol", params.symbol);
+    if (params?.strategyId) q.set("strategyId", params.strategyId);
+    if (params?.from) q.set("from", params.from);
+    if (params?.to) q.set("to", params.to);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      items: unknown[];
+      total: number;
+      isWinProbability: false;
+      executionReadiness: false;
+    }>(`/api/forex/providers/mt5-hfm/mif/ranking${qs ? `?${qs}` : ""}`);
+  },
+  mt5HfmMifRankingGet: (rankingRunId: string) =>
+    request<{
+      ok: boolean;
+      ranking: unknown;
+      isWinProbability: false;
+      executionReadiness: false;
+    }>(`/api/forex/providers/mt5-hfm/mif/ranking/${encodeURIComponent(rankingRunId)}`),
+  mt5HfmMifRankingCreate: (body: {
+    analysisRunId?: string;
+    runId?: string;
+    strategyId?: string;
+    reuseExisting?: boolean;
+  }) =>
+    request<{
+      ok: boolean;
+      ranking: unknown;
+      reused?: boolean;
+      isWinProbability: false;
+      executionReadiness: false;
+    }>("/api/forex/providers/mt5-hfm/mif/ranking", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   forexConnectInstruments: () =>
     request<{
       ok: boolean;

@@ -37,6 +37,7 @@ import {
   MIF_PRODUCTION_INTEGRATION_ENGINE_VERSION,
   MIF_PRODUCTION_PRIMARY_TIMEFRAME,
 } from "./contracts.js";
+import { rankOpportunityCandidates } from "../opportunity-ranking/rank-candidates.js";
 import { buildProductionEvidenceRefs } from "./build-evidence.js";
 import {
   isSupportedProductionTimeframe,
@@ -936,6 +937,44 @@ export function runMifHfmOpportunityPipelineFromSeries(
     });
   }
 
+  // Phase 5E Step 1 — analytical ranking (never mutates candidates)
+  let rankingSummary: MifProductionIntegrationResult["ranking"] = null;
+  let rankingRunFull: ReturnType<typeof rankOpportunityCandidates> | null = null;
+  try {
+    rankingRunFull = rankOpportunityCandidates({
+      candidates: detection.candidates,
+      evidence,
+      dataQualityStatus,
+      mtfRelation: mtf.directional.relation,
+      regimeStructure: primaryBundle.regime.structure,
+      regimeDirection: primaryBundle.regime.direction,
+      analysisRunId: requestId,
+      providerSymbol: symbol,
+      primaryTimeframe,
+      rankedAt: processingTimestamp,
+    });
+    rankingSummary = {
+      rankingRunId: rankingRunFull.rankingRunId,
+      rankedCount: rankingRunFull.rankedCount,
+      blockedCount: rankingRunFull.blockedCount,
+      insufficientCount: rankingRunFull.insufficientCount,
+      top: rankingRunFull.rankings.slice(0, 20).map((r) => ({
+        candidateId: r.candidateId,
+        strategyId: String(r.strategyId),
+        rankPosition: r.rankPosition,
+        overallScore: r.overallScore,
+        scoreBand: r.scoreBand,
+        rankingEligibility: r.rankingEligibility,
+      })),
+      isWinProbability: false,
+      executionReadiness: false,
+    };
+  } catch (err) {
+    warnings.push(
+      `ranking_failed:${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
   return baseResult({
     requestId,
     providerSymbol: symbol,
@@ -956,6 +995,7 @@ export function runMifHfmOpportunityPipelineFromSeries(
     eligibility,
     detection,
     candidateCount,
+    evidenceRefs: evidence,
     warnings: [...warnings, ...detection.outcomes.flatMap((o) => o.warnings)].slice(0, 50),
     errors,
     failureCodes: [...new Set(failureCodes)],
@@ -975,7 +1015,9 @@ export function runMifHfmOpportunityPipelineFromSeries(
       hasPriceDisplacement: !!primaryBundle.priceDisplacement,
     },
     evidenceQuality,
+    ranking: rankingSummary,
     persistence: null,
+    _rankingRun: rankingRunFull,
     ...(opts?.includeDebugContext ? { _debugContext: context } : {}),
   });
 }
@@ -1006,6 +1048,7 @@ export async function runMifHfmOpportunityPipelineFromSeriesPersisted(
         runId: saved.run.runId,
         candidateIds: saved.candidates.map((c) => c.candidateId),
         created: saved.created,
+        rankingRunId: saved.rankingRunId,
       },
     };
   } catch (err) {

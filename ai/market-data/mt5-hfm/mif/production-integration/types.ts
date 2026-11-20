@@ -138,6 +138,8 @@ export interface MifProductionIntegrationResult extends MifSafetyFlags {
   eligibility: readonly MifStrategyEligibilityResult[];
   detection: MifOpportunityDetectionRunResult | null;
   candidateCount: number;
+  /** Compact evidence refs for ranking reproducibility (no secrets). */
+  evidenceRefs?: readonly import("../opportunity-detection/types.js").MifDetectionEvidenceRef[];
   warnings: readonly string[];
   errors: readonly string[];
   failureCodes: readonly MifProductionFailureCode[];
@@ -175,12 +177,32 @@ export interface MifProductionIntegrationResult extends MifSafetyFlags {
     runId: string | null;
     candidateIds: readonly string[];
     created: boolean;
+    rankingRunId?: string | null;
+  } | null;
+  /** Phase 5E Step 1 — analytical ranking (not win probability). */
+  ranking?: {
+    rankingRunId: string;
+    rankedCount: number;
+    blockedCount: number;
+    insufficientCount: number;
+    top: readonly {
+      candidateId: string;
+      strategyId: string;
+      rankPosition: number | null;
+      overallScore: number | null;
+      scoreBand: string;
+      rankingEligibility: string;
+    }[];
+    isWinProbability: false;
+    executionReadiness: false;
   } | null;
   doesNotApproveAiReasoning: true;
   analyticalIntegrationOnly: true;
   notExecutable: true;
   /** Internal context retained for tests only when explicitly requested. */
   _debugContext?: MifOpportunityDetectionContext;
+  /** Full ranking run retained for persistence/tests — not a win-probability payload. */
+  _rankingRun?: import("../opportunity-ranking/types.js").MifOpportunityRankingRun | null;
 }
 
 export interface MifProductionAssessmentBundle {

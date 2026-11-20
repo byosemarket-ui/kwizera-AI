@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import type { MifProductionIntegrationResult } from "../types.js";
 import type { MifOutcomeEvaluationRecord } from "../outcome-evaluation.js";
 import type { MifHistoricalReplayRun } from "../historical-replay.js";
+import type { MifOpportunityRankingRun } from "../../opportunity-ranking/types.js";
 import type {
   MifCandidateLifecycleState,
   MifCandidateListFilter,
@@ -157,6 +158,7 @@ export class MifOpportunityStorage {
   readonly eventsDir: string;
   readonly outcomesDir: string;
   readonly replaysDir: string;
+  readonly rankingsDir: string;
   readonly indexPath: string;
   /** Simple in-process mutex for concurrent API writes. */
   private writeChain: Promise<void> = Promise.resolve();
@@ -168,6 +170,7 @@ export class MifOpportunityStorage {
     this.eventsDir = path.join(this.root, "events");
     this.outcomesDir = path.join(this.root, "outcomes");
     this.replaysDir = path.join(this.root, "replays");
+    this.rankingsDir = path.join(this.root, "rankings");
     this.indexPath = path.join(this.root, "index.json");
   }
 
@@ -177,6 +180,7 @@ export class MifOpportunityStorage {
     await ensureDir(this.eventsDir);
     await ensureDir(this.outcomesDir);
     await ensureDir(this.replaysDir);
+    await ensureDir(this.rankingsDir);
   }
 
   /** Serialize mutating operations within this process. */
@@ -215,6 +219,14 @@ export class MifOpportunityStorage {
     return path.join(this.replaysDir, `${runId.replace(/[^a-zA-Z0-9._:-]/g, "_")}.json`);
   }
 
+  rankingPath(rankingRunId: string): string {
+    // Strip ':' — invalid on Windows paths (rank:<uuid> style ids).
+    return path.join(
+      this.rankingsDir,
+      `${rankingRunId.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`,
+    );
+  }
+
   /**
    * Persist a completed analysis result idempotently by requestId/runId.
    * If the same requestId already exists, returns the existing run without overwrite.
@@ -222,7 +234,12 @@ export class MifOpportunityStorage {
   async persistAnalysisResult(
     result: MifProductionIntegrationResult,
     opts?: { analysisStartedAt?: string; runId?: string },
-  ): Promise<{ run: MifPersistedAnalysisRun; created: boolean; candidates: MifPersistedCandidate[] }> {
+  ): Promise<{
+    run: MifPersistedAnalysisRun;
+    created: boolean;
+    candidates: MifPersistedCandidate[];
+    rankingRunId: string | null;
+  }> {
     await this.ensureReady();
     const analysisCompletedAt = result.processingTimestamp || new Date().toISOString();
     const analysisStartedAt = opts?.analysisStartedAt ?? analysisCompletedAt;
@@ -235,6 +252,7 @@ export class MifOpportunityStorage {
         run: existing,
         created: false,
         candidates: cands.items.filter((c) => c.runId === runId),
+        rankingRunId: result.ranking?.rankingRunId ?? null,
       };
     }
 
@@ -245,9 +263,14 @@ export class MifOpportunityStorage {
         ? Math.max(0, completedMs - startedMs)
         : 0;
 
-    // Strip debug context from persisted snapshot
-    const { _debugContext: _drop, ...safeResult } = result as MifProductionIntegrationResult & {
+    // Strip debug/internal ranking payload from persisted snapshot (ranking stored separately)
+    const {
+      _debugContext: _drop,
+      _rankingRun: rankingRun,
+      ...safeResult
+    } = result as MifProductionIntegrationResult & {
       _debugContext?: unknown;
+      _rankingRun?: MifOpportunityRankingRun | null;
     };
     void _drop;
 
@@ -356,7 +379,17 @@ export class MifOpportunityStorage {
     }
 
     await this.touchIndex(run);
-    return { run, created: true, candidates };
+
+    let rankingRunId: string | null = null;
+    if (rankingRun && rankingRun.rankingRunId) {
+      const saved = await this.persistRankingRun(rankingRun);
+      rankingRunId = rankingRun.rankingRunId;
+      void saved;
+    } else if (result.ranking?.rankingRunId) {
+      rankingRunId = result.ranking.rankingRunId;
+    }
+
+    return { run, created: true, candidates, rankingRunId };
   }
 
   private async touchIndex(run: MifPersistedAnalysisRun): Promise<void> {
@@ -528,6 +561,72 @@ export class MifOpportunityStorage {
     return readJsonFile(this.replayPath(runId));
   }
 
+  async persistRankingRun(
+    run: MifOpportunityRankingRun,
+  ): Promise<{ ok: boolean; path: string; created: boolean }> {
+    await this.ensureReady();
+    return this.withWriteLock(async () => {
+      const p = this.rankingPath(run.rankingRunId);
+      const existing = await readJsonFile(p);
+      if (existing) return { ok: true, path: p, created: false };
+      await atomicWrite(p, `${JSON.stringify(run, null, 2)}\n`);
+      return { ok: true, path: p, created: true };
+    });
+  }
+
+  async getRankingRun(rankingRunId: string): Promise<MifOpportunityRankingRun | null> {
+    return readJsonFile(this.rankingPath(rankingRunId));
+  }
+
+  async listRankingRuns(filter?: {
+    providerSymbol?: string;
+    strategyId?: string;
+    fromIso?: string;
+    toIso?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    items: MifOpportunityRankingRun[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    await this.ensureReady();
+    const limit = Math.min(200, Math.max(1, filter?.limit ?? 50));
+    const offset = Math.max(0, filter?.offset ?? 0);
+    let names: string[] = [];
+    try {
+      names = (await fs.readdir(this.rankingsDir)).filter((n) => n.endsWith(".json"));
+    } catch {
+      names = [];
+    }
+    const items: MifOpportunityRankingRun[] = [];
+    for (const name of names) {
+      const r = await readJsonFileDetailed<MifOpportunityRankingRun>(
+        path.join(this.rankingsDir, name),
+      );
+      if (!r.value) continue;
+      if (
+        filter?.providerSymbol
+        && r.value.providerSymbol
+        && r.value.providerSymbol !== filter.providerSymbol.toUpperCase()
+      ) {
+        continue;
+      }
+      if (filter?.strategyId && r.value.strategyFilter !== filter.strategyId) continue;
+      if (filter?.fromIso && r.value.completedAt < filter.fromIso) continue;
+      if (filter?.toIso && r.value.completedAt > filter.toIso) continue;
+      items.push(r.value);
+    }
+    items.sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+    return {
+      items: items.slice(offset, offset + limit),
+      total: items.length,
+      limit,
+      offset,
+    };
+  }
+
   async listCandidates(filter: MifCandidateListFilter = {}): Promise<{
     items: MifPersistedCandidate[];
     total: number;
@@ -631,6 +730,7 @@ export class MifOpportunityStorage {
     events: number;
     outcomes: number;
     replays: number;
+    rankings: number;
     indexEntries: number;
     corruptQuarantinedHint: string;
     permissionsWritable: boolean;
@@ -659,6 +759,7 @@ export class MifOpportunityStorage {
       events: await count(this.eventsDir),
       outcomes: await count(this.outcomesDir),
       replays: await count(this.replaysDir),
+      rankings: await count(this.rankingsDir),
       indexEntries: idx?.runs?.length ?? 0,
       corruptQuarantinedHint: path.join(this.runsDir, "_corrupt"),
       permissionsWritable,

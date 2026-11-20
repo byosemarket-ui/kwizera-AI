@@ -18,6 +18,9 @@
  * POST /api/forex/providers/mt5-hfm/mif/historical-replay
  * GET  /api/forex/providers/mt5-hfm/mif/historical-replay/:runId
  * GET  /api/forex/providers/mt5-hfm/mif/storage/audit
+ * POST /api/forex/providers/mt5-hfm/mif/ranking
+ * GET  /api/forex/providers/mt5-hfm/mif/ranking
+ * GET  /api/forex/providers/mt5-hfm/mif/ranking/:rankingRunId
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -34,10 +37,13 @@ import {
   getMifOdWorkerStatus,
   getMifOpportunityStorage,
   observeCandidateAgainstCandles,
+  rankOpportunityCandidates,
   runMifHistoricalReplay,
   runMifHfmOpportunityPipelineLive,
   type MifCandidateLifecycleState,
   type MifCanonicalCandle,
+  type MifDetectionEvidenceRef,
+  type MifOpportunityCandidate,
 } from "../../ai/market-data/mt5-hfm/mif/index.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -653,6 +659,181 @@ export async function handleMt5HfmMifApi(
     sendJson(res, 200, {
       ok: rebuilt.ok,
       rebuilt,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  // --- Phase 5E Step 1: ranking ---
+  if (url.pathname === `${PATH_PREFIX}/ranking` && req.method === "GET") {
+    const listed = await getMifOpportunityStorage().listRankingRuns({
+      providerSymbol: url.searchParams.get("symbol") ?? undefined,
+      strategyId: url.searchParams.get("strategyId") ?? undefined,
+      fromIso: url.searchParams.get("from") ?? undefined,
+      toIso: url.searchParams.get("to") ?? undefined,
+      limit: Number(url.searchParams.get("limit") ?? 50) || 50,
+      offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+    });
+    const payload = {
+      ok: true,
+      ...listed,
+      isWinProbability: false,
+      executionReadiness: false,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/ranking` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    // Preferred: rank from a persisted analysis runId
+    const analysisRunId = String(body.analysisRunId || body.runId || "").trim();
+    const store = getMifOpportunityStorage();
+    if (analysisRunId) {
+      const run = await store.getRun(analysisRunId);
+      if (!run) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "RUN_NOT_FOUND", message: "analysis run not found" },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      const snap = run.resultSnapshot;
+      const candidates = (snap.detection?.candidates ?? []) as MifOpportunityCandidate[];
+      const evidence = (snap.evidenceRefs
+        ?? snap._debugContext?.evidence
+        ?? []) as MifDetectionEvidenceRef[];
+      // If a ranking was already produced for this analysis and reuse requested, return it
+      if (body.reuseExisting !== false && snap.ranking?.rankingRunId) {
+        const existing = await store.getRankingRun(snap.ranking.rankingRunId);
+        if (existing) {
+          sendJson(res, 200, {
+            ok: true,
+            ranking: existing,
+            reused: true,
+            isWinProbability: false,
+            isExecutionApproval: false,
+            executionReadiness: false,
+            placesOrders: false,
+            mutatesBroker: false,
+            acceptsForExecution: false,
+          });
+          return true;
+        }
+      }
+      const ranking = rankOpportunityCandidates({
+        candidates,
+        evidence,
+        dataQualityStatus: snap.dataQualityStatus,
+        mtfRelation: snap.mtfRelation,
+        analysisRunId,
+        providerSymbol: run.providerSymbol,
+        primaryTimeframe: run.primaryTimeframe,
+        strategyFilter: typeof body.strategyId === "string" ? body.strategyId : null,
+      });
+      await store.persistRankingRun(ranking);
+      const payload = {
+        ok: true,
+        ranking,
+        isWinProbability: false,
+        isExecutionApproval: false,
+        executionReadiness: false,
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+
+    // Alternate: injected candidates+evidence (fixtures / bounded tests)
+    const candidates = Array.isArray(body.candidates)
+      ? (body.candidates as MifOpportunityCandidate[])
+      : [];
+    const evidence = Array.isArray(body.evidence)
+      ? (body.evidence as MifDetectionEvidenceRef[])
+      : [];
+    if (!candidates.length) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "INVALID_INPUT",
+          message: "analysisRunId or candidates[] required",
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const ranking = rankOpportunityCandidates({
+      candidates,
+      evidence,
+      dataQualityStatus: String(body.dataQualityStatus || "VALID"),
+      mtfRelation: typeof body.mtfRelation === "string" ? body.mtfRelation : null,
+      providerSymbol: typeof body.symbol === "string" ? body.symbol : null,
+      primaryTimeframe: typeof body.primaryTimeframe === "string" ? body.primaryTimeframe : null,
+      strategyFilter: typeof body.strategyId === "string" ? body.strategyId : null,
+    });
+    await store.persistRankingRun(ranking);
+    sendJson(res, 200, {
+      ok: true,
+      ranking,
+      isWinProbability: false,
+      isExecutionApproval: false,
+      executionReadiness: false,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  const rankingMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/ranking\/([^/]+)$/.exec(
+    url.pathname,
+  );
+  if (rankingMatch && req.method === "GET") {
+    const ranking = await getMifOpportunityStorage().getRankingRun(
+      decodeURIComponent(rankingMatch[1]!),
+    );
+    if (!ranking) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "RANKING_NOT_FOUND", message: "ranking run not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      ranking,
+      isWinProbability: false,
+      executionReadiness: false,
       placesOrders: false,
       mutatesBroker: false,
       acceptsForExecution: false,

@@ -19,6 +19,7 @@
  * Phase 5D.5 — HFM_MT5 production integration pipeline (additive, read-only).
  * Phase 5D.6 — structure/S-R/liquidity/momentum engines + persistence + quality (additive).
  * Phase 5D.7 — dedicated price displacement + outcome intelligence + replay (additive).
+ * Phase 5E Step 1 — opportunity ranking & scoring (additive, analytical only).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";
@@ -32,4 +33,5 @@ export * from "./quality/index.js";
 export * from "./analysis/index.js";
 export * from "./strategy-intelligence/index.js";
 export * from "./opportunity-detection/index.js";
+export * from "./opportunity-ranking/index.js";
 export * from "./production-integration/index.js";
