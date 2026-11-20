@@ -681,6 +681,55 @@ export const forexProvidersApi = {
       "/api/forex/providers/mt5-hfm/market/quotes",
       { method: "POST", body: JSON.stringify({ environment: "demo", symbols }) },
     ),
+  /** Phase 5D/5E — HFM_MT5 MIF opportunity detection (analytical). */
+  mt5HfmMifOpportunityDetection: (body: {
+    symbol: string;
+    timeframes?: string[];
+    primaryTimeframe?: string;
+    persist?: boolean;
+    candleLimit?: number;
+  }) =>
+    request<{
+      ok: boolean;
+      result?: Record<string, unknown>;
+      placesOrders?: false;
+      mutatesBroker?: false;
+      acceptsForExecution?: false;
+    }>("/api/forex/providers/mt5-hfm/mif/opportunity-detection", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  mt5HfmMifCandidatesList: (params?: {
+    symbol?: string;
+    strategyId?: string;
+    direction?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.symbol) q.set("symbol", params.symbol);
+    if (params?.strategyId) q.set("strategyId", params.strategyId);
+    if (params?.direction) q.set("direction", params.direction);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      items: unknown[];
+      total: number;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+    }>(`/api/forex/providers/mt5-hfm/mif/candidates${qs ? `?${qs}` : ""}`);
+  },
+  mt5HfmMifWorkerStatus: () =>
+    request<{
+      ok: boolean;
+      worker: { enabled?: boolean };
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+    }>("/api/forex/providers/mt5-hfm/mif/worker/status"),
   /** Phase 5E Step 1 — analytical ranking (not win probability). */
   mt5HfmMifRankingList: (params?: {
     symbol?: string;

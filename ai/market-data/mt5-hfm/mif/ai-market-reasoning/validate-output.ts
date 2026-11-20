@@ -59,10 +59,64 @@ function parseJsonObject(raw: string): { ok: true; value: Record<string, unknown
   }
 }
 
+function sourceLevelSet(ctx: MifAiReasoningContext): Set<string> {
+  const levels = ctx.structuredLevels;
+  const out = new Set<string>();
+  if (!levels) return out;
+  for (const v of [levels.entryPrice, levels.targetPrice, levels.invalidationPrice]) {
+    if (typeof v === "number" && Number.isFinite(v)) out.add(String(v));
+  }
+  return out;
+}
+
+function hasStructuredSourceLevels(ctx: MifAiReasoningContext): boolean {
+  return Boolean(ctx.structuredLevels?.hasAnyFinite);
+}
+
+/**
+ * Ground priceContextStatus against structured source levels.
+ * Never invents prices; downgrades unsupported AVAILABLE_FROM_SOURCE claims.
+ */
+export function groundPriceContextStatus(
+  claimed: string,
+  ctx: MifAiReasoningContext,
+  side: "BULLISH" | "BEARISH",
+  notes: string[],
+  errors: string[],
+): MifAiScenario["priceContextStatus"] {
+  let status = claimed.toUpperCase();
+  if (!PRICE_CTX.has(status)) {
+    errors.push(`scenario.${side}.invalid_priceContextStatus=${status}`);
+    status = "LEVELS_NOT_PROVIDED";
+  }
+
+  const hasLevels = hasStructuredSourceLevels(ctx);
+  const allowedNums = sourceLevelSet(ctx);
+
+  if (status === "AVAILABLE_FROM_SOURCE" && !hasLevels) {
+    errors.push(`scenario.${side}.price_available_without_structured_levels`);
+    status = "LEVELS_NOT_PROVIDED";
+  }
+
+  // Reject numeric prices in notes that are not present in structured source levels
+  for (const n of notes) {
+    const matches = n.matchAll(/(?:entry|target|tp|invalidation|sl|stop)\s*[=:]\s*(-?\d+(?:\.\d+)?)/gi);
+    for (const m of matches) {
+      const num = m[1]!;
+      if (!allowedNums.has(num)) {
+        errors.push(`scenario.${side}.invented_price_in_notes=${num}`);
+      }
+    }
+  }
+
+  return (PRICE_CTX.has(status) ? status : "LEVELS_NOT_PROVIDED") as MifAiScenario["priceContextStatus"];
+}
+
 function validateScenario(
   side: "BULLISH" | "BEARISH",
   raw: unknown,
   allowedEvidence: Set<string>,
+  ctx: MifAiReasoningContext,
   errors: string[],
 ): MifAiScenario {
   const o = isObj(raw) ? raw : {};
@@ -81,17 +135,20 @@ function validateScenario(
   for (const c of claimKinds) {
     if (!CLAIM.has(c)) errors.push(`scenario.${side}.invalid_claimKind=${c}`);
   }
-  const priceStatus = asString(o.priceContextStatus, "LEVELS_NOT_PROVIDED").toUpperCase();
-  if (!PRICE_CTX.has(priceStatus)) {
-    errors.push(`scenario.${side}.invalid_priceContextStatus=${priceStatus}`);
-  }
-  // Reject invented numeric price instructions in notes
   const notes = asStringArray(o.priceContextNotes);
   for (const n of notes) {
     if (/execute\s+(buy|sell)|submit\s+order|lot\s*size|market\s+order/i.test(n)) {
       errors.push(`scenario.${side}.execution_instruction_rejected`);
     }
   }
+
+  const priceContextStatus = groundPriceContextStatus(
+    asString(o.priceContextStatus, "LEVELS_NOT_PROVIDED"),
+    ctx,
+    side,
+    notes,
+    errors,
+  );
 
   let finalStatus = SCENARIO_STATUS.has(status) ? (status as MifAiScenario["status"]) : "LOW_EVIDENCE";
   // CONFIRMED requires at least one supporting CLOSED-capable evidence ref that exists
@@ -110,9 +167,7 @@ function validateScenario(
     confirmationConditions: asStringArray(o.confirmationConditions),
     invalidationConditions: asStringArray(o.invalidationConditions),
     claimKinds: claimKinds.filter((c) => CLAIM.has(c)) as MifAiScenario["claimKinds"],
-    priceContextStatus: PRICE_CTX.has(priceStatus)
-      ? (priceStatus as MifAiScenario["priceContextStatus"])
-      : "LEVELS_NOT_PROVIDED",
+    priceContextStatus,
     priceContextNotes: notes,
   };
 }
@@ -201,8 +256,8 @@ export function validateAndGroundMifAiReasoningOutput(
   const support = asString(o.evidenceSupportStatus, "UNAVAILABLE").toUpperCase();
   if (!SUPPORT.has(support)) errors.push(`invalid_evidenceSupportStatus=${support}`);
 
-  const bullish = validateScenario("BULLISH", o.bullishScenario, allowed, errors);
-  const bearish = validateScenario("BEARISH", o.bearishScenario, allowed, errors);
+  const bullish = validateScenario("BULLISH", o.bullishScenario, allowed, ctx, errors);
+  const bearish = validateScenario("BEARISH", o.bearishScenario, allowed, ctx, errors);
 
   // Invented absolute prices in conclusion (heuristic)
   const conclusion = asString(o.reasoningConclusion);
@@ -242,7 +297,7 @@ export function validateAndGroundMifAiReasoningOutput(
 
   // Hard fail classes
   const hard = errors.some((e) =>
-    /unknown_evidence|invented_execution|null_probability_misrepresented|ranking_score_labeled|probability_mismatch|execution_instruction/
+    /unknown_evidence|invented_execution|invented_price|price_available_without_structured|null_probability_misrepresented|ranking_score_labeled|probability_mismatch|execution_instruction/
       .test(e),
   );
   const missingRequired = errors.some((e) => e.startsWith("missing_or_empty="));

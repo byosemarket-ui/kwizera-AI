@@ -163,6 +163,14 @@ describe("Phase 5E Step 3 — grounding validation", () => {
         },
       ],
       candidates: [],
+      structuredLevels: {
+        entryPrice: null,
+        targetPrice: null,
+        invalidationPrice: null,
+        source: "NONE",
+        hasAnyFinite: false,
+        candidateId: null,
+      },
       ranking: {
         rankingRunId: "rank1",
         rankedCount: 0,

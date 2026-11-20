@@ -34,6 +34,7 @@ import { ForexAdminHistoricalPage } from "./ForexAdminHistoricalPage";
 import { ForexAdminStreamPage } from "./ForexAdminStreamPage";
 import { ForexAdminForexConnectPage } from "./ForexAdminForexConnectPage";
 import { ForexAdminMt5HfmPage } from "./ForexAdminMt5HfmPage";
+import { ForexAdminMt5HfmMifPage } from "./ForexAdminMt5HfmMifPage";
 import { ForexAdminAtRiskLimitsPanel } from "./ForexAdminAtRiskLimitsPanel";
 import { ForexAdminPerOrderRiskPanel } from "./ForexAdminPerOrderRiskPanel";
 import { ForexAdminDemoAdapterPanel } from "./ForexAdminDemoAdapterPanel";
@@ -943,6 +944,7 @@ export function titleForView(view: ForexAdminViewId): string {
     dashboard: "Forex AI Admin Dashboard",
     forexconnect: "ForexConnect",
     "mt5-hfm": "HFM MT5",
+    "mt5-hfm-mif": "HFM Market Intel",
     instruments: "FXCM Instruments",
     "historical-data": "FXCM Historical Data",
     stream: "FXCM Real-Time Stream",
@@ -989,6 +991,8 @@ export function ForexAdminPageRouter({
         return <ForexAdminForexConnectPage />;
       case "mt5-hfm":
         return <ForexAdminMt5HfmPage />;
+      case "mt5-hfm-mif":
+        return <ForexAdminMt5HfmMifPage />;
       case "instruments":
         return <ForexAdminInstrumentsPage onOpen={onOpen} />;
       case "historical-data":

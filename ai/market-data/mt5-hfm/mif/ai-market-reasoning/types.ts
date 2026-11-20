@@ -80,6 +80,18 @@ export interface MifAiReasoningContext {
     invalidationConditions: readonly string[];
     knownLimitations: readonly string[];
   }[];
+  /**
+   * Structured price levels extracted from candidate notes (never invented).
+   * USED to ground scenario priceContextStatus.
+   */
+  structuredLevels: {
+    entryPrice: number | null;
+    targetPrice: number | null;
+    invalidationPrice: number | null;
+    source: "CANDIDATE_NOTES" | "NONE";
+    hasAnyFinite: boolean;
+    candidateId: string | null;
+  };
   ranking: {
     rankingRunId: string | null;
     rankedCount: number;

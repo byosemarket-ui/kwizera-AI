@@ -7,6 +7,7 @@ import { stableSerialize } from "../quality/stable-identity.js";
 import type { MifProductionIntegrationResult } from "../production-integration/types.js";
 import type { MifOpportunityCandidate, MifDetectionEvidenceRef } from "../opportunity-detection/types.js";
 import type { MifOpportunityRankingRun } from "../opportunity-ranking/types.js";
+import { extractLevelsFromCandidateNotes } from "../production-integration/outcome-evaluation.js";
 import type { MifProbabilityBundle } from "../probability-intelligence/types.js";
 import { MIF_AI_MARKET_REASONING_CONTEXT_VERSION } from "./contracts.js";
 import type { MifAiReasoningContext } from "./types.js";
@@ -38,6 +39,25 @@ export function buildMifAiReasoningContext(
   }
   candidates = candidates.slice(0, MAX_CANDIDATES);
 
+  const focusCand = candidates[0] ?? null;
+  const extractedLevels = focusCand
+    ? extractLevelsFromCandidateNotes({
+        invalidationConditions: focusCand.invalidationConditions,
+        requiredConfirmations: focusCand.requiredConfirmations,
+        thesis: focusCand.thesis,
+        rationale: focusCand.rationale,
+      })
+    : { entryPrice: null, targetPrice: null, invalidationPrice: null };
+  const hasAnyFiniteLevel = [extractedLevels.entryPrice, extractedLevels.targetPrice, extractedLevels.invalidationPrice]
+    .some((v) => typeof v === "number" && Number.isFinite(v));
+  const structuredLevels: MifAiReasoningContext["structuredLevels"] = {
+    entryPrice: extractedLevels.entryPrice ?? null,
+    targetPrice: extractedLevels.targetPrice ?? null,
+    invalidationPrice: extractedLevels.invalidationPrice ?? null,
+    source: hasAnyFiniteLevel ? "CANDIDATE_NOTES" : "NONE",
+    hasAnyFinite: hasAnyFiniteLevel,
+    candidateId: focusCand?.candidateId ?? null,
+  };
   const evidenceSummaries = evidence.map((e: MifDetectionEvidenceRef) => ({
     evidenceId: e.evidenceId,
     family: String(e.family),
@@ -80,6 +100,9 @@ export function buildMifAiReasoningContext(
   }
   knownLimitations.push("rankingScore≠probability");
   knownLimitations.push("AI_must_not_invent_prices_or_evidence_ids");
+  if (!hasAnyFiniteLevel) {
+    knownLimitations.push("structuredLevels=LEVELS_NOT_PROVIDED");
+  }
 
   const contextBase = {
     providerId: "HFM_MT5" as const,
@@ -110,6 +133,7 @@ export function buildMifAiReasoningContext(
       invalidationConditions: c.invalidationConditions,
       knownLimitations: c.knownLimitations,
     })),
+    structuredLevels,
     ranking: {
       rankingRunId: r.ranking?.rankingRunId ?? input.rankingRun?.rankingRunId ?? null,
       rankedCount: r.ranking?.rankedCount ?? input.rankingRun?.rankedCount ?? 0,

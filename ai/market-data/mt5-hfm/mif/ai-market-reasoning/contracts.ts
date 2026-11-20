@@ -8,9 +8,9 @@ export const MIF_AI_MARKET_REASONING_CONTRACT_VERSION = "1.0.0" as const;
 export const MIF_AI_MARKET_REASONING_ENGINE_ID = "mif-ai-market-reasoning" as const;
 export const MIF_AI_MARKET_REASONING_ENGINE_VERSION = "1.0.0" as const;
 export const MIF_AI_MARKET_REASONING_PROMPT_VERSION =
-  "mif-ai-market-reasoning-prompt-v1.0.0" as const;
+  "mif-ai-market-reasoning-prompt-v1.1.0" as const;
 export const MIF_AI_MARKET_REASONING_CONTEXT_VERSION =
-  "mif-ai-market-reasoning-context-v1.0.0" as const;
+  "mif-ai-market-reasoning-context-v1.1.0" as const;
 export const MIF_AI_MARKET_REASONING_OPENAI_TIMEOUT_MS = 120_000 as const;
 export const MIF_AI_MARKET_REASONING_DISCLAIMER =
   "Analytical AI interpretation only. Not execution authorization. "
