@@ -1,5 +1,6 @@
 /**
- * Phase 5F STEP 1 — durable research storage under data/mt5-hfm/research/.
+ * Phase 5F STEP 1 — durable research storage under {STORAGE_ROOT}/mt5-hfm/research/.
+ * Resolves KWIZERA_STORAGE_ROOT when set (VPS production), else cwd/data.
  * Never uses /run tmpfs. Atomic writes. Immutable dataset versions.
  */
 import { promises as fs } from "node:fs";
