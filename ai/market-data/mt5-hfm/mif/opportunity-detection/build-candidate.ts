@@ -223,12 +223,11 @@ function attachEntryAndTarget(input: {
     }
     case "PULLBACK":
     case "TREND_CONTINUATION": {
-      // Pullback/continuation: entry at supportive SR mid; target at opposing SR / liquidity.
+      // Pullback/continuation: entry only from same-side SR; target from opposing SR/liquidity.
+      // Do not fall back to the opposite boundary mid (would invent a wrong-side entry).
       if (direction === "BUY") {
-        entry = extracted.supportMid ?? extracted.boundaryMid;
-        entryTag = extracted.supportMid != null
-          ? "SUPPORT_RESISTANCE.supportMid"
-          : "SUPPORT_RESISTANCE.mid";
+        entry = extracted.supportMid;
+        entryTag = "SUPPORT_RESISTANCE.supportMid";
         target = extracted.resistanceMid ?? extracted.liquidityPrice ?? extracted.rangeHigh;
         targetTag = extracted.resistanceMid != null
           ? "SUPPORT_RESISTANCE.resistanceMid"
@@ -236,10 +235,8 @@ function attachEntryAndTarget(input: {
             ? "LIQUIDITY_REFERENCE.price"
             : "RANGE.rangeHigh";
       } else {
-        entry = extracted.resistanceMid ?? extracted.boundaryMid;
-        entryTag = extracted.resistanceMid != null
-          ? "SUPPORT_RESISTANCE.resistanceMid"
-          : "SUPPORT_RESISTANCE.mid";
+        entry = extracted.resistanceMid;
+        entryTag = "SUPPORT_RESISTANCE.resistanceMid";
         target = extracted.supportMid ?? extracted.liquidityPrice ?? extracted.rangeLow;
         targetTag = extracted.supportMid != null
           ? "SUPPORT_RESISTANCE.supportMid"
