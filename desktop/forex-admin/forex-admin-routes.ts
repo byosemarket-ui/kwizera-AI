@@ -3,6 +3,7 @@ export type ForexAdminRouteId =
   | "forexconnect"
   | "mt5-hfm"
   | "mt5-hfm-mif"
+  | "mt5-hfm-analogue"
   | "instruments"
   | "historical-data"
   | "stream"
@@ -58,6 +59,14 @@ export const FOREX_ADMIN_NAV: ForexAdminNavItem[] = [
     id: "mt5-hfm-mif",
     label: "HFM Market Intel",
     path: "/admin/forex/mt5-hfm/mif",
+    implemented: true,
+    group: "market-data",
+    groupLabel: "Market Data",
+  },
+  {
+    id: "mt5-hfm-analogue",
+    label: "Historical Analogue Research",
+    path: "/admin/forex/mt5-hfm/analogue",
     implemented: true,
     group: "market-data",
     groupLabel: "Market Data",
@@ -123,6 +132,13 @@ export function parseForexAdminRouteFromLocation(
   }
   if (rest === "mt5-hfm/mif") {
     return { view: "mt5-hfm-mif", documentId: null, canonicalPath: "/admin/forex/mt5-hfm/mif" };
+  }
+  if (rest === "mt5-hfm/analogue") {
+    return {
+      view: "mt5-hfm-analogue",
+      documentId: null,
+      canonicalPath: "/admin/forex/mt5-hfm/analogue",
+    };
   }
   if (rest === "instruments") {
     return { view: "instruments", documentId: null, canonicalPath: "/admin/forex/instruments" };
@@ -221,6 +237,8 @@ export function getForexAdminDocumentTitle(view: ForexAdminViewId): string {
       return "KWIZERA AI STUDIO — HFM MT5 Demo";
     case "mt5-hfm-mif":
       return "KWIZERA AI STUDIO — HFM Market Intelligence";
+    case "mt5-hfm-analogue":
+      return "KWIZERA AI STUDIO — Historical Analogue Research";
     case "instruments":
       return "KWIZERA AI STUDIO — FXCM Instruments";
     case "historical-data":

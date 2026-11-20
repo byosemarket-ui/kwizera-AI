@@ -905,6 +905,193 @@ export const forexProvidersApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  /** Phase 5F STEP 2 — historical research coverage (read-only). */
+  mt5HfmMifResearchCoverage: () =>
+    request<{
+      ok: boolean;
+      summary?: Record<string, unknown>;
+      matrix?: unknown[];
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      researchReadOnly?: true;
+    }>("/api/forex/providers/mt5-hfm/mif/research/coverage"),
+  mt5HfmMifResearchDatasets: (params?: {
+    symbol?: string;
+    timeframe?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.symbol) q.set("symbol", params.symbol);
+    if (params?.timeframe) q.set("timeframe", params.timeframe);
+    if (params?.status) q.set("status", params.status);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      datasets: Array<Record<string, unknown>>;
+      total: number;
+      offset: number;
+      limit: number;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      researchReadOnly?: true;
+    }>(`/api/forex/providers/mt5-hfm/mif/research/datasets${qs ? `?${qs}` : ""}`);
+  },
+  mt5HfmMifResearchDatasetGet: (datasetId: string, params?: { version?: number; verify?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.version != null) q.set("version", String(params.version));
+    if (params?.verify) q.set("verify", "1");
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      manifest: Record<string, unknown>;
+      researchEligibility?: Record<string, unknown>;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+    }>(
+      `/api/forex/providers/mt5-hfm/mif/research/datasets/${encodeURIComponent(datasetId)}${qs ? `?${qs}` : ""}`,
+    );
+  },
+  /** Phase 5F STEP 2 — historical analogue research (analytical only; not probability). */
+  mt5HfmMifAnalogueReference: (body: {
+    datasetId: string;
+    tipOpenTimeSec: number;
+    version?: number;
+    lookbackBars?: number;
+    warmupBars?: number;
+    eligibilityMode?: string;
+  }) =>
+    request<{
+      ok: boolean;
+      reference?: Record<string, unknown>;
+      error?: { code?: string; message?: string };
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      analyticalOnly?: true;
+      similarityIsNotProbability?: true;
+      researchReadOnly?: true;
+    }>("/api/forex/providers/mt5-hfm/mif/research/analogues/reference", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  mt5HfmMifAnalogueSearch: (body: {
+    datasetId: string;
+    tipOpenTimeSec: number;
+    version?: number;
+    lookbackBars?: number;
+    warmupBars?: number;
+    eligibilityMode?: string;
+    corpusDatasetIds?: string[];
+    params?: {
+      maxDatasets?: number;
+      maxCandidatesScanned?: number;
+      maxResults?: number;
+      stride?: number;
+      timeoutMs?: number;
+      allowCrossInstrument?: boolean;
+      minFeatureCoverage?: number;
+    };
+  }) =>
+    request<{
+      ok: boolean;
+      search?: Record<string, unknown>;
+      persisted?: { ok?: boolean; code?: string; message?: string };
+      note?: string;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      analyticalOnly?: true;
+      doesNotApproveAiReasoning?: true;
+      similarityIsNotProbability?: true;
+      researchReadOnly?: true;
+      autoWorker?: false;
+    }>("/api/forex/providers/mt5-hfm/mif/research/analogues/search", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  mt5HfmMifAnalogueSearchesList: (params?: { limit?: number; offset?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      searches: Array<{
+        searchId: string;
+        searchHash: string;
+        createdAt: string;
+        status: string;
+      }>;
+      total: number;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      analyticalOnly?: true;
+      similarityIsNotProbability?: true;
+    }>(`/api/forex/providers/mt5-hfm/mif/research/analogues/searches${qs ? `?${qs}` : ""}`);
+  },
+  mt5HfmMifAnalogueSearchGet: (searchId: string) =>
+    request<{
+      ok: boolean;
+      search: Record<string, unknown>;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      analyticalOnly?: true;
+      doesNotApproveAiReasoning?: true;
+      similarityIsNotProbability?: true;
+    }>(
+      `/api/forex/providers/mt5-hfm/mif/research/analogues/searches/${encodeURIComponent(searchId)}`,
+    ),
+  mt5HfmMifAnalogueResultsList: (
+    searchId: string,
+    params?: { limit?: number; offset?: number },
+  ) => {
+    const q = new URLSearchParams();
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      searchId: string;
+      status?: string;
+      statusReason?: string | null;
+      analogues: unknown[];
+      total: number;
+      offset: number;
+      limit: number;
+      suppressedCount?: number;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      analyticalOnly?: true;
+      similarityIsNotProbability?: true;
+    }>(
+      `/api/forex/providers/mt5-hfm/mif/research/analogues/searches/${encodeURIComponent(searchId)}/analogues${qs ? `?${qs}` : ""}`,
+    );
+  },
+  mt5HfmMifAnalogueResultGet: (searchId: string, analogueId: string) =>
+    request<{
+      ok: boolean;
+      searchId: string;
+      analogue: Record<string, unknown>;
+      note?: string;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      analyticalOnly?: true;
+      doesNotApproveAiReasoning?: true;
+      similarityIsNotProbability?: true;
+    }>(
+      `/api/forex/providers/mt5-hfm/mif/research/analogues/searches/${encodeURIComponent(searchId)}/analogues/${encodeURIComponent(analogueId)}`,
+    ),
   forexConnectInstruments: () =>
     request<{
       ok: boolean;
