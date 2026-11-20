@@ -364,7 +364,7 @@ export const MIF_STRATEGY_BREAKOUT: MifStrategyDefinition = {
       evidenceId: "bo.displacement",
       family: "PRICE_DISPLACEMENT",
       mode: "REQUIRED",
-      availabilityOverride: "PARTIAL",
+      availabilityOverride: "AVAILABLE",
     }),
     evidenceReq({
       evidenceId: "bo.quality",
@@ -696,7 +696,7 @@ export const MIF_STRATEGY_SUPPLY_DEMAND: MifStrategyDefinition = {
       evidenceId: "sd.displacement",
       family: "PRICE_DISPLACEMENT",
       mode: "REQUIRED",
-      availabilityOverride: "PARTIAL",
+      availabilityOverride: "AVAILABLE",
     }),
     evidenceReq({
       evidenceId: "sd.quality",
@@ -780,7 +780,7 @@ export const MIF_STRATEGY_MOMENTUM_EXPANSION: MifStrategyDefinition = {
       evidenceId: "me.displacement",
       family: "PRICE_DISPLACEMENT",
       mode: "REQUIRED",
-      availabilityOverride: "PARTIAL",
+      availabilityOverride: "AVAILABLE",
     }),
     evidenceReq({
       evidenceId: "me.vol",

@@ -74,10 +74,11 @@ export const MIF_EVIDENCE_FAMILY_CATALOG: Record<
     notes: "Phase 5D.6 price-structure liquidity references — does not claim resting orders.",
   },
   PRICE_DISPLACEMENT: {
-    availability: "PARTIAL",
-    expectedSourceEngine: "mif-market-regime trendEvidence",
-    expectedSourceContractId: MIF_MARKET_REGIME_CONTRACT_ID,
-    notes: "Displacement/ATR fields exist on regime trend/breakout evidence.",
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-price-displacement",
+    expectedSourceContractId: "kwizera.mif.price-displacement.v1",
+    notes:
+      "Phase 5D.7 dedicated ATR-normalized displacement — CLOSED confirmed; FORMING provisional only; large candle ≠ structural breakout.",
   },
   MOMENTUM: {
     availability: "AVAILABLE",

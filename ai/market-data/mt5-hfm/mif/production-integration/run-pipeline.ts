@@ -12,6 +12,7 @@ import { assessMifHarmonicPatterns } from "../analysis/harmonics/assess-harmonic
 import { assessMifLiquidityReference } from "../analysis/liquidity-reference/assess-liquidity-reference.js";
 import { assessMifMarketStructure } from "../analysis/market-structure/assess-market-structure.js";
 import { assessMifMomentum } from "../analysis/momentum/assess-momentum.js";
+import { assessMifPriceDisplacement } from "../analysis/price-displacement/assess-price-displacement.js";
 import { assessMifMultiTimeframeRelationships } from "../analysis/mtf-relationships/assess-mtf-relationships.js";
 import type { MifMtfTimeframeSources } from "../analysis/mtf-relationships/types.js";
 import { assessMifChartPatterns } from "../analysis/patterns/detect-chart-patterns.js";
@@ -109,6 +110,7 @@ function assessOneTf(input: {
   supportResistance: ReturnType<typeof assessMifSupportResistance>;
   liquidityReference: ReturnType<typeof assessMifLiquidityReference>;
   momentum: ReturnType<typeof assessMifMomentum>;
+  priceDisplacement: ReturnType<typeof assessMifPriceDisplacement>;
 } {
   const integrity = assessMifDataIntegrity({
     candles: [...input.candles],
@@ -148,6 +150,14 @@ function assessOneTf(input: {
     providerSymbol: input.symbol,
     timeframe: input.timeframe,
     quality,
+    assessmentTimestamp: input.assessmentTimestamp,
+  });
+  const priceDisplacement = assessMifPriceDisplacement({
+    candles: [...input.candles],
+    providerSymbol: input.symbol,
+    timeframe: input.timeframe,
+    quality,
+    marketStructure,
     assessmentTimestamp: input.assessmentTimestamp,
   });
   const regime = assessMifMarketRegime({
@@ -195,6 +205,7 @@ function assessOneTf(input: {
     supportResistance,
     liquidityReference,
     momentum,
+    priceDisplacement,
   };
 }
 
@@ -738,6 +749,7 @@ export function runMifHfmOpportunityPipelineFromSeries(
     supportResistance: primaryBundle.supportResistance,
     liquidityReference: primaryBundle.liquidityReference,
     momentum: primaryBundle.momentum,
+    priceDisplacement: primaryBundle.priceDisplacement,
     primaryCandles,
   });
 
@@ -826,6 +838,7 @@ export function runMifHfmOpportunityPipelineFromSeries(
         hasSupportResistance: !!primaryBundle.supportResistance,
         hasLiquidityReference: !!primaryBundle.liquidityReference,
         hasMomentum: !!primaryBundle.momentum,
+        hasPriceDisplacement: !!primaryBundle.priceDisplacement,
       },
       ...(opts?.includeDebugContext ? { _debugContext: context } : {}),
     });
@@ -918,6 +931,7 @@ export function runMifHfmOpportunityPipelineFromSeries(
         hasSupportResistance: !!primaryBundle.supportResistance,
         hasLiquidityReference: !!primaryBundle.liquidityReference,
         hasMomentum: !!primaryBundle.momentum,
+        hasPriceDisplacement: !!primaryBundle.priceDisplacement,
       },
     });
   }
@@ -958,6 +972,7 @@ export function runMifHfmOpportunityPipelineFromSeries(
       hasSupportResistance: !!primaryBundle.supportResistance,
       hasLiquidityReference: !!primaryBundle.liquidityReference,
       hasMomentum: !!primaryBundle.momentum,
+      hasPriceDisplacement: !!primaryBundle.priceDisplacement,
     },
     evidenceQuality,
     persistence: null,

@@ -1,39 +1,62 @@
 /**
- * Phase 5D.6 — observational lifecycle updates from subsequent candles.
- * Does not invent entry/SL/TP. Does not interact with brokers.
- * Ambiguous same-candle target+invalidation → OUTCOME_UNKNOWN.
+ * Phase 5D.6/5D.7 — observational lifecycle updates from subsequent candles.
+ * Uses deterministic outcome-evaluation engine. Does not invent entry/SL/TP.
+ * Does not interact with brokers.
  */
 import type { MifCanonicalCandle } from "../canonical/candle.js";
+import {
+  evaluateOpportunityOutcome,
+  extractLevelsFromCandidateNotes,
+  type MifOutcomeEvaluationRecord,
+  type MifOutcomeLevelSpec,
+} from "./outcome-evaluation.js";
 import { getMifOpportunityStorage } from "./persistence/storage.js";
 import type { MifCandidateLifecycleState, MifCandidateOutcomeKind } from "./persistence/types.js";
 
 export interface ObserveCandidateInput {
   candidateId: string;
-  /** Subsequent closed candles after detection (chronological). */
+  /** Subsequent closed candles after detection (chronological preferred). */
   closedCandles: readonly MifCanonicalCandle[];
   /**
    * Optional analytical invalidation price from candidate notes/conditions.
-   * When absent, only expiry/observation bookkeeping is possible.
+   * When absent, levels are extracted from the persisted snapshot when present.
+   * Never fabricated.
    */
   invalidationPrice?: number | null;
   invalidationSide?: "ABOVE" | "BELOW" | null;
   /** Optional analytical target — never fabricated by this module. */
   targetPrice?: number | null;
   targetSide?: "ABOVE" | "BELOW" | null;
+  entryPrice?: number | null;
   maxAgeBars?: number;
+  /** Override activation time; default = tip openTimeSec from candidate snapshot if present. */
+  activationOpenTimeSec?: number | null;
+  persistEvaluation?: boolean;
 }
 
-function crossed(
-  candle: MifCanonicalCandle,
-  price: number,
-  side: "ABOVE" | "BELOW",
-): boolean {
-  if (side === "ABOVE") return candle.high >= price;
-  return candle.low <= price;
+function mapLifecycle(
+  resultKind: MifOutcomeEvaluationRecord["resultKind"],
+): { toState: MifCandidateLifecycleState; outcomeKind: MifCandidateOutcomeKind } | null {
+  switch (resultKind) {
+    case "BOTH_AMBIGUOUS_SAME_CANDLE":
+    case "AMBIGUOUS_OUTCOME":
+      return { toState: "OUTCOME_UNKNOWN", outcomeKind: "BOTH_AMBIGUOUS_SAME_CANDLE" };
+    case "INVALIDATION_REACHED":
+      return { toState: "INVALIDATED", outcomeKind: "INVALIDATION_REACHED" };
+    case "TARGET_REACHED":
+      return { toState: "COMPLETED", outcomeKind: "TARGET_REACHED" };
+    case "EXPIRED_UNRESOLVED":
+      return { toState: "EXPIRED", outcomeKind: "EXPIRED_UNRESOLVED" };
+    case "STILL_ACTIVE":
+      return { toState: "ACTIVE", outcomeKind: "NONE" };
+    default:
+      return null;
+  }
 }
 
 /**
  * Observe subsequent market data against a persisted candidate.
+ * Temporally correct via evaluateOpportunityOutcome.
  */
 export async function observeCandidateAgainstCandles(
   input: ObserveCandidateInput,
@@ -41,128 +64,131 @@ export async function observeCandidateAgainstCandles(
   ok: boolean;
   lifecycleState: MifCandidateLifecycleState | null;
   outcomeKind: MifCandidateOutcomeKind | null;
+  evaluation: MifOutcomeEvaluationRecord | null;
   error?: string;
 }> {
   const store = getMifOpportunityStorage();
   const candidate = await store.getCandidate(input.candidateId);
-  if (!candidate) return { ok: false, lifecycleState: null, outcomeKind: null, error: "not_found" };
+  if (!candidate) {
+    return {
+      ok: false,
+      lifecycleState: null,
+      outcomeKind: null,
+      evaluation: null,
+      error: "not_found",
+    };
+  }
 
-  const maxAge = input.maxAgeBars ?? 200;
-  const candles = input.closedCandles.filter((c) => c.candleState === "CLOSED").slice(0, maxAge);
-  if (!candles.length) {
+  const extracted = extractLevelsFromCandidateNotes({
+    invalidationConditions: candidate.invalidationConditions,
+    requiredConfirmations: candidate.requiredConfirmations,
+    thesis: candidate.thesis,
+    rationale: candidate.rationale,
+  });
+
+  const levels: MifOutcomeLevelSpec = {
+    targetPrice: input.targetPrice ?? extracted.targetPrice,
+    targetSide: input.targetSide ?? extracted.targetSide,
+    invalidationPrice: input.invalidationPrice ?? extracted.invalidationPrice,
+    invalidationSide: input.invalidationSide ?? extracted.invalidationSide,
+    entryPrice: input.entryPrice ?? extracted.entryPrice,
+  };
+
+  const snap = candidate.candidateSnapshot as {
+    tipOpenTimeSec?: number;
+    openTimeSec?: number;
+    assessmentTimestamp?: string;
+  } | undefined;
+
+  let activation =
+    input.activationOpenTimeSec
+    ?? snap?.tipOpenTimeSec
+    ?? snap?.openTimeSec
+    ?? null;
+
+  if (activation == null && candidate.assessmentTimestamp) {
+    const ms = Date.parse(candidate.assessmentTimestamp);
+    if (Number.isFinite(ms)) activation = Math.floor(ms / 1000) - 1;
+  }
+  if (activation == null) {
+    // Fail-safe: use earliest observation - 1 so first bar can evaluate if levels exist,
+    // but prefer explicit activation. Without any time anchor, report insufficient.
+    const first = input.closedCandles
+      .filter((c) => c.candleState === "CLOSED")
+      .sort((a, b) => a.openTimeSec - b.openTimeSec)[0];
+    if (!first) {
+      return {
+        ok: true,
+        lifecycleState: candidate.lifecycleState,
+        outcomeKind: candidate.outcomeKind,
+        evaluation: null,
+      };
+    }
+    activation = first.openTimeSec - 1;
+  }
+
+  const evaluation = evaluateOpportunityOutcome({
+    candidateId: input.candidateId,
+    opportunitySnapshotRef: candidate.candidateId,
+    activationOpenTimeSec: activation,
+    levels,
+    closedCandles: input.closedCandles,
+    maxAgeBars: input.maxAgeBars,
+  });
+
+  if (input.persistEvaluation !== false) {
+    await store.persistOutcomeEvaluation(evaluation);
+  }
+
+  const mapped = mapLifecycle(evaluation.resultKind);
+  if (!mapped) {
     return {
       ok: true,
       lifecycleState: candidate.lifecycleState,
       outcomeKind: candidate.outcomeKind,
+      evaluation,
     };
   }
 
-  let invalidationHit: MifCanonicalCandle | null = null;
-  let targetHit: MifCanonicalCandle | null = null;
-
-  for (const c of candles) {
-    if (
-      input.invalidationPrice != null
-      && input.invalidationSide
-      && crossed(c, input.invalidationPrice, input.invalidationSide)
-    ) {
-      invalidationHit = c;
-    }
-    if (
-      input.targetPrice != null
-      && input.targetSide
-      && crossed(c, input.targetPrice, input.targetSide)
-    ) {
-      targetHit = c;
-    }
-    if (invalidationHit && targetHit) break;
-  }
-
-  if (invalidationHit && targetHit && invalidationHit.openTimeSec === targetHit.openTimeSec) {
-    const tr = await store.transitionLifecycle({
-      candidateId: input.candidateId,
-      toState: "OUTCOME_UNKNOWN",
-      reason: "ambiguous_same_candle_target_and_invalidation",
-      observationOpenTimeSec: invalidationHit.openTimeSec,
-      outcomeKind: "BOTH_AMBIGUOUS_SAME_CANDLE",
-      notes: "Cannot establish event order within a single candle OHLC bar",
-    });
+  // Soft STILL_ACTIVE only advances DETECTED/NEEDS_CONFIRMATION → ACTIVE
+  if (
+    evaluation.resultKind === "STILL_ACTIVE"
+    && candidate.lifecycleState !== "DETECTED"
+    && candidate.lifecycleState !== "NEEDS_CONFIRMATION"
+  ) {
     return {
-      ok: tr.ok,
-      lifecycleState: tr.candidate?.lifecycleState ?? null,
-      outcomeKind: tr.candidate?.outcomeKind ?? null,
-      error: tr.error,
+      ok: true,
+      lifecycleState: candidate.lifecycleState,
+      outcomeKind: candidate.outcomeKind,
+      evaluation,
     };
   }
 
-  if (invalidationHit && (!targetHit || invalidationHit.openTimeSec <= targetHit.openTimeSec)) {
-    const tr = await store.transitionLifecycle({
-      candidateId: input.candidateId,
-      toState: "INVALIDATED",
-      reason: "invalidation_price_observed",
-      observationOpenTimeSec: invalidationHit.openTimeSec,
-      outcomeKind: "INVALIDATION_REACHED",
-    });
-    return {
-      ok: tr.ok,
-      lifecycleState: tr.candidate?.lifecycleState ?? null,
-      outcomeKind: tr.candidate?.outcomeKind ?? null,
-      error: tr.error,
-    };
-  }
+  const reason =
+    evaluation.resultKind === "BOTH_AMBIGUOUS_SAME_CANDLE"
+      ? "ambiguous_same_candle_target_and_invalidation"
+      : evaluation.resultKind === "INVALIDATION_REACHED"
+        ? "invalidation_price_observed"
+        : evaluation.resultKind === "TARGET_REACHED"
+          ? "target_price_observed"
+          : evaluation.resultKind === "EXPIRED_UNRESOLVED"
+            ? "max_observation_age"
+            : "observation_window_active";
 
-  if (targetHit) {
-    const tr = await store.transitionLifecycle({
-      candidateId: input.candidateId,
-      toState: "COMPLETED",
-      reason: "target_price_observed",
-      observationOpenTimeSec: targetHit.openTimeSec,
-      outcomeKind: "TARGET_REACHED",
-    });
-    return {
-      ok: tr.ok,
-      lifecycleState: tr.candidate?.lifecycleState ?? null,
-      outcomeKind: tr.candidate?.outcomeKind ?? null,
-      error: tr.error,
-    };
-  }
-
-  if (candles.length >= maxAge) {
-    const tr = await store.transitionLifecycle({
-      candidateId: input.candidateId,
-      toState: "EXPIRED",
-      reason: "max_observation_age",
-      observationOpenTimeSec: candles[candles.length - 1]!.openTimeSec,
-      outcomeKind: "EXPIRED_UNRESOLVED",
-    });
-    return {
-      ok: tr.ok,
-      lifecycleState: tr.candidate?.lifecycleState ?? null,
-      outcomeKind: tr.candidate?.outcomeKind ?? null,
-      error: tr.error,
-    };
-  }
-
-  // Soft progress: DETECTED → ACTIVE when observations exist without resolution
-  if (candidate.lifecycleState === "DETECTED" || candidate.lifecycleState === "NEEDS_CONFIRMATION") {
-    const tr = await store.transitionLifecycle({
-      candidateId: input.candidateId,
-      toState: "ACTIVE",
-      reason: "observation_window_active",
-      observationOpenTimeSec: candles[candles.length - 1]!.openTimeSec,
-      outcomeKind: "NONE",
-    });
-    return {
-      ok: tr.ok,
-      lifecycleState: tr.candidate?.lifecycleState ?? null,
-      outcomeKind: tr.candidate?.outcomeKind ?? null,
-      error: tr.error,
-    };
-  }
+  const tr = await store.transitionLifecycle({
+    candidateId: input.candidateId,
+    toState: mapped.toState,
+    reason,
+    observationOpenTimeSec: evaluation.resolvedOpenTimeSec,
+    outcomeKind: mapped.outcomeKind,
+    notes: evaluation.ambiguityReason ?? evaluation.exclusionReason ?? evaluation.evaluationId,
+  });
 
   return {
-    ok: true,
-    lifecycleState: candidate.lifecycleState,
-    outcomeKind: candidate.outcomeKind,
+    ok: tr.ok,
+    lifecycleState: tr.candidate?.lifecycleState ?? null,
+    outcomeKind: tr.candidate?.outcomeKind ?? null,
+    evaluation,
+    error: tr.error,
   };
 }

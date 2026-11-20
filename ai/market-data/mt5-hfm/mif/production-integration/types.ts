@@ -155,6 +155,7 @@ export interface MifProductionIntegrationResult extends MifSafetyFlags {
     hasSupportResistance: boolean;
     hasLiquidityReference: boolean;
     hasMomentum: boolean;
+    hasPriceDisplacement: boolean;
   } | null;
   /** Phase 5D.6 evidence quality (not a win probability). */
   evidenceQuality?: {

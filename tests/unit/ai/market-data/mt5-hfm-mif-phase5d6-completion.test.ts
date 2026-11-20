@@ -404,6 +404,7 @@ describe("Phase 5D.6 — integrated pipeline engines wired", () => {
     expect(r.contextSummary?.hasSupportResistance).toBe(true);
     expect(r.contextSummary?.hasLiquidityReference).toBe(true);
     expect(r.contextSummary?.hasMomentum).toBe(true);
+    expect(r.contextSummary?.hasPriceDisplacement).toBe(true);
     expect(r.evidenceQuality?.notWinProbability).toBe(true);
     expect(r.evidenceQuality?.executionReadiness).toBe(false);
     expect(r.detection?.outcomes).toHaveLength(10);

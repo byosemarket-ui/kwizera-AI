@@ -1,11 +1,13 @@
 /**
- * Phase 5D.6 — JSON-file durable store for MIF opportunity runs/candidates.
- * Mirrors HfmAnalysisStorage atomic-write pattern under KWIZERA_STORAGE_ROOT.
+ * Phase 5D.6/5D.7 — JSON-file durable store for MIF opportunity runs/candidates.
+ * Atomic writes + corrupt quarantine + index rebuild. Never silently discards history.
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { MifProductionIntegrationResult } from "../types.js";
+import type { MifOutcomeEvaluationRecord } from "../outcome-evaluation.js";
+import type { MifHistoricalReplayRun } from "../historical-replay.js";
 import type {
   MifCandidateLifecycleState,
   MifCandidateListFilter,
@@ -29,20 +31,92 @@ async function ensureDir(dir: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
 }
 
+/**
+ * Crash-safe atomic replacement: write temp → fsync → rename.
+ * On Windows rename over existing may fail; unlink then rename as fallback.
+ */
 async function atomicWrite(filePath: string, data: string): Promise<void> {
   await ensureDir(path.dirname(filePath));
-  const tmp = `${filePath}.tmp.${process.pid}.${Date.now()}`;
-  await fs.writeFile(tmp, data, "utf8");
-  await fs.rename(tmp, filePath);
+  const tmp = `${filePath}.tmp.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}`;
+  const handle = await fs.open(tmp, "w");
+  try {
+    await handle.writeFile(data, "utf8");
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  try {
+    await fs.rename(tmp, filePath);
+  } catch {
+    try {
+      await fs.unlink(filePath);
+    } catch {
+      /* target may not exist */
+    }
+    await fs.rename(tmp, filePath);
+  }
+}
+
+export interface MifJsonReadResult<T> {
+  ok: boolean;
+  value: T | null;
+  corrupt: boolean;
+  error?: string;
+}
+
+async function quarantineCorrupt(filePath: string, reason: string): Promise<void> {
+  const corruptDir = path.join(path.dirname(filePath), "_corrupt");
+  await ensureDir(corruptDir);
+  const base = path.basename(filePath);
+  const dest = path.join(corruptDir, `${base}.${Date.now()}.corrupt`);
+  try {
+    await fs.rename(filePath, dest);
+    await fs.writeFile(
+      `${dest}.reason.txt`,
+      `${reason}\noriginal=${filePath}\n`,
+      "utf8",
+    );
+  } catch {
+    /* best-effort quarantine — never delete original without rename */
+  }
+}
+
+async function readJsonFileDetailed<T>(filePath: string): Promise<MifJsonReadResult<T>> {
+  try {
+    const raw = await fs.readFile(filePath, "utf8");
+    if (!raw.trim()) {
+      await quarantineCorrupt(filePath, "empty_file");
+      return { ok: false, value: null, corrupt: true, error: "empty_file" };
+    }
+    try {
+      return { ok: true, value: JSON.parse(raw) as T, corrupt: false };
+    } catch (err) {
+      await quarantineCorrupt(
+        filePath,
+        err instanceof Error ? err.message : "json_parse_error",
+      );
+      return {
+        ok: false,
+        value: null,
+        corrupt: true,
+        error: err instanceof Error ? err.message : "json_parse_error",
+      };
+    }
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") return { ok: true, value: null, corrupt: false };
+    return {
+      ok: false,
+      value: null,
+      corrupt: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
 
 async function readJsonFile<T>(filePath: string): Promise<T | null> {
-  try {
-    const raw = await fs.readFile(filePath, "utf8");
-    return JSON.parse(raw) as T;
-  } catch {
-    return null;
-  }
+  const r = await readJsonFileDetailed<T>(filePath);
+  return r.value;
 }
 
 const ALLOWED_TRANSITIONS: Record<MifCandidateLifecycleState, readonly MifCandidateLifecycleState[]> = {
@@ -73,18 +147,27 @@ function mapInitialLifecycle(status: string): MifCandidateLifecycleState {
   }
 }
 
+/** Default retention: keep newest N runs in index; files retained unless prune called. */
+export const MIF_OPPORTUNITY_INDEX_RETENTION = 5000 as const;
+
 export class MifOpportunityStorage {
   readonly root: string;
   readonly runsDir: string;
   readonly candidatesDir: string;
   readonly eventsDir: string;
+  readonly outcomesDir: string;
+  readonly replaysDir: string;
   readonly indexPath: string;
+  /** Simple in-process mutex for concurrent API writes. */
+  private writeChain: Promise<void> = Promise.resolve();
 
   constructor(storageRoot = resolveStorageRoot()) {
     this.root = resolveMifOpportunityDir(storageRoot);
     this.runsDir = path.join(this.root, "runs");
     this.candidatesDir = path.join(this.root, "candidates");
     this.eventsDir = path.join(this.root, "events");
+    this.outcomesDir = path.join(this.root, "outcomes");
+    this.replaysDir = path.join(this.root, "replays");
     this.indexPath = path.join(this.root, "index.json");
   }
 
@@ -92,6 +175,24 @@ export class MifOpportunityStorage {
     await ensureDir(this.runsDir);
     await ensureDir(this.candidatesDir);
     await ensureDir(this.eventsDir);
+    await ensureDir(this.outcomesDir);
+    await ensureDir(this.replaysDir);
+  }
+
+  /** Serialize mutating operations within this process. */
+  private async withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const prev = this.writeChain;
+    this.writeChain = prev.then(() => gate);
+    await prev;
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
   }
 
   runPath(runId: string): string {
@@ -104,6 +205,14 @@ export class MifOpportunityStorage {
 
   eventsPath(candidateId: string): string {
     return path.join(this.eventsDir, `${candidateId}.json`);
+  }
+
+  outcomePath(evaluationId: string): string {
+    return path.join(this.outcomesDir, `${evaluationId.replace(/[^a-zA-Z0-9._:-]/g, "_")}.json`);
+  }
+
+  replayPath(runId: string): string {
+    return path.join(this.replaysDir, `${runId.replace(/[^a-zA-Z0-9._:-]/g, "_")}.json`);
   }
 
   /**
@@ -261,21 +370,162 @@ export class MifOpportunityStorage {
         symbol: run.providerSymbol,
         at: run.analysisCompletedAt,
       });
-      idx.runs = idx.runs.slice(0, 5000);
+      idx.runs = idx.runs.slice(0, MIF_OPPORTUNITY_INDEX_RETENTION);
       await atomicWrite(this.indexPath, `${JSON.stringify(idx, null, 2)}\n`);
     }
   }
 
+  /**
+   * Rebuild index from runs/ directory. Quarantines corrupt run files; never deletes them.
+   */
+  async rebuildIndex(): Promise<{
+    ok: boolean;
+    indexed: number;
+    corrupt: number;
+    errors: string[];
+  }> {
+    await this.ensureReady();
+    return this.withWriteLock(async () => {
+      const errors: string[] = [];
+      let indexed = 0;
+      let corrupt = 0;
+      let names: string[] = [];
+      try {
+        names = (await fs.readdir(this.runsDir)).filter((n) => n.endsWith(".json"));
+      } catch (err) {
+        return {
+          ok: false,
+          indexed: 0,
+          corrupt: 0,
+          errors: [err instanceof Error ? err.message : String(err)],
+        };
+      }
+      const runs: Array<{ runId: string; requestId: string; symbol: string; at: string }> = [];
+      for (const name of names) {
+        const detailed = await readJsonFileDetailed<MifPersistedAnalysisRun>(
+          path.join(this.runsDir, name),
+        );
+        if (detailed.corrupt) {
+          corrupt += 1;
+          errors.push(`${name}: ${detailed.error ?? "corrupt"}`);
+          continue;
+        }
+        if (!detailed.value) continue;
+        const run = detailed.value;
+        if (run.schemaVersion !== "1.0.0" || !run.runId) {
+          corrupt += 1;
+          errors.push(`${name}: schema_invalid`);
+          await quarantineCorrupt(
+            path.join(this.runsDir, name),
+            "schema_invalid",
+          );
+          continue;
+        }
+        runs.push({
+          runId: run.runId,
+          requestId: run.requestId,
+          symbol: run.providerSymbol,
+          at: run.analysisCompletedAt,
+        });
+        indexed += 1;
+      }
+      runs.sort((a, b) => b.at.localeCompare(a.at));
+      await atomicWrite(
+        this.indexPath,
+        `${JSON.stringify({ schemaVersion: "1.0.0", rebuiltAt: new Date().toISOString(), runs: runs.slice(0, MIF_OPPORTUNITY_INDEX_RETENTION) }, null, 2)}\n`,
+      );
+      return { ok: true, indexed, corrupt, errors };
+    });
+  }
+
   async getRun(runId: string): Promise<MifPersistedAnalysisRun | null> {
-    return readJsonFile(this.runPath(runId));
+    const r = await readJsonFileDetailed<MifPersistedAnalysisRun>(this.runPath(runId));
+    return r.value;
   }
 
   async getCandidate(candidateId: string): Promise<MifPersistedCandidate | null> {
-    return readJsonFile(this.candidatePath(candidateId));
+    const r = await readJsonFileDetailed<MifPersistedCandidate>(this.candidatePath(candidateId));
+    return r.value;
   }
 
   async getCandidateHistory(candidateId: string): Promise<MifPersistedLifecycleEvent[]> {
-    return (await readJsonFile<MifPersistedLifecycleEvent[]>(this.eventsPath(candidateId))) ?? [];
+    const r = await readJsonFileDetailed<MifPersistedLifecycleEvent[]>(
+      this.eventsPath(candidateId),
+    );
+    return r.value ?? [];
+  }
+
+  async persistOutcomeEvaluation(
+    record: MifOutcomeEvaluationRecord,
+  ): Promise<{ ok: boolean; path: string; created: boolean }> {
+    await this.ensureReady();
+    return this.withWriteLock(async () => {
+      const p = this.outcomePath(record.evaluationId);
+      const existing = await readJsonFile(p);
+      if (existing) return { ok: true, path: p, created: false };
+      await atomicWrite(p, `${JSON.stringify(record, null, 2)}\n`);
+      return { ok: true, path: p, created: true };
+    });
+  }
+
+  async getOutcomeEvaluation(
+    evaluationId: string,
+  ): Promise<MifOutcomeEvaluationRecord | null> {
+    return readJsonFile(this.outcomePath(evaluationId));
+  }
+
+  async listOutcomeEvaluations(filter?: {
+    candidateId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    items: MifOutcomeEvaluationRecord[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    await this.ensureReady();
+    const limit = Math.min(200, Math.max(1, filter?.limit ?? 50));
+    const offset = Math.max(0, filter?.offset ?? 0);
+    let names: string[] = [];
+    try {
+      names = (await fs.readdir(this.outcomesDir)).filter((n) => n.endsWith(".json"));
+    } catch {
+      names = [];
+    }
+    const items: MifOutcomeEvaluationRecord[] = [];
+    for (const name of names) {
+      const r = await readJsonFileDetailed<MifOutcomeEvaluationRecord>(
+        path.join(this.outcomesDir, name),
+      );
+      if (!r.value) continue;
+      if (filter?.candidateId && r.value.candidateId !== filter.candidateId) continue;
+      items.push(r.value);
+    }
+    items.sort((a, b) => b.evaluationTimestamp.localeCompare(a.evaluationTimestamp));
+    return {
+      items: items.slice(offset, offset + limit),
+      total: items.length,
+      limit,
+      offset,
+    };
+  }
+
+  async persistReplayRun(
+    run: MifHistoricalReplayRun,
+  ): Promise<{ ok: boolean; path: string; created: boolean }> {
+    await this.ensureReady();
+    return this.withWriteLock(async () => {
+      const p = this.replayPath(run.runId);
+      const existing = await readJsonFile(p);
+      if (existing) return { ok: true, path: p, created: false };
+      await atomicWrite(p, `${JSON.stringify(run, null, 2)}\n`);
+      return { ok: true, path: p, created: true };
+    });
+  }
+
+  async getReplayRun(runId: string): Promise<MifHistoricalReplayRun | null> {
+    return readJsonFile(this.replayPath(runId));
   }
 
   async listCandidates(filter: MifCandidateListFilter = {}): Promise<{
@@ -322,43 +572,97 @@ export class MifOpportunityStorage {
     outcomeKind?: MifCandidateOutcomeKind | null;
     notes?: string;
   }): Promise<{ ok: boolean; candidate: MifPersistedCandidate | null; error?: string }> {
-    const candidate = await this.getCandidate(input.candidateId);
-    if (!candidate) return { ok: false, candidate: null, error: "candidate_not_found" };
-    const allowed = ALLOWED_TRANSITIONS[candidate.lifecycleState] ?? [];
-    if (input.toState !== candidate.lifecycleState && !allowed.includes(input.toState)) {
-      return {
-        ok: false,
-        candidate,
-        error: `invalid_transition ${candidate.lifecycleState}→${input.toState}`,
+    return this.withWriteLock(async () => {
+      const candidate = await this.getCandidate(input.candidateId);
+      if (!candidate) return { ok: false, candidate: null, error: "candidate_not_found" };
+      const allowed = ALLOWED_TRANSITIONS[candidate.lifecycleState] ?? [];
+      if (input.toState !== candidate.lifecycleState && !allowed.includes(input.toState)) {
+        return {
+          ok: false,
+          candidate,
+          error: `invalid_transition ${candidate.lifecycleState}→${input.toState}`,
+        };
+      }
+      if (input.toState === candidate.lifecycleState) {
+        return { ok: true, candidate };
+      }
+      const now = new Date().toISOString();
+      const event: MifPersistedLifecycleEvent = {
+        eventId: `${input.candidateId}:${Date.now()}`,
+        runId: candidate.runId,
+        candidateId: input.candidateId,
+        fromState: candidate.lifecycleState,
+        toState: input.toState,
+        reason: input.reason,
+        observationOpenTimeSec: input.observationOpenTimeSec ?? null,
+        observedAt: now,
+        outcomeKind: input.outcomeKind ?? null,
+        notes: input.notes ?? "",
       };
-    }
-    if (input.toState === candidate.lifecycleState) {
-      return { ok: true, candidate };
-    }
-    const now = new Date().toISOString();
-    const event: MifPersistedLifecycleEvent = {
-      eventId: `${input.candidateId}:${Date.now()}`,
-      runId: candidate.runId,
-      candidateId: input.candidateId,
-      fromState: candidate.lifecycleState,
-      toState: input.toState,
-      reason: input.reason,
-      observationOpenTimeSec: input.observationOpenTimeSec ?? null,
-      observedAt: now,
-      outcomeKind: input.outcomeKind ?? null,
-      notes: input.notes ?? "",
+      const history = await this.getCandidateHistory(input.candidateId);
+      // Append-only: never rewrite prior events; push only.
+      history.push(event);
+      const updated: MifPersistedCandidate = {
+        ...candidate,
+        lifecycleState: input.toState,
+        updatedAt: now,
+        outcomeKind: input.outcomeKind ?? candidate.outcomeKind,
+      };
+      await atomicWrite(
+        this.candidatePath(input.candidateId),
+        `${JSON.stringify(updated, null, 2)}\n`,
+      );
+      await atomicWrite(
+        this.eventsPath(input.candidateId),
+        `${JSON.stringify(history, null, 2)}\n`,
+      );
+      return { ok: true, candidate: updated };
+    });
+  }
+
+  /**
+   * Integrity audit: count files, detect missing schema, report disk readiness.
+   * Does not delete or migrate.
+   */
+  async auditIntegrity(): Promise<{
+    ok: boolean;
+    runs: number;
+    candidates: number;
+    events: number;
+    outcomes: number;
+    replays: number;
+    indexEntries: number;
+    corruptQuarantinedHint: string;
+    permissionsWritable: boolean;
+  }> {
+    await this.ensureReady();
+    const count = async (dir: string) => {
+      try {
+        return (await fs.readdir(dir)).filter((n) => n.endsWith(".json")).length;
+      } catch {
+        return 0;
+      }
     };
-    const history = await this.getCandidateHistory(input.candidateId);
-    history.push(event);
-    const updated: MifPersistedCandidate = {
-      ...candidate,
-      lifecycleState: input.toState,
-      updatedAt: now,
-      outcomeKind: input.outcomeKind ?? candidate.outcomeKind,
+    let permissionsWritable = true;
+    try {
+      const probe = path.join(this.root, `.write-probe.${process.pid}`);
+      await fs.writeFile(probe, "ok", "utf8");
+      await fs.unlink(probe);
+    } catch {
+      permissionsWritable = false;
+    }
+    const idx = await readJsonFile<{ runs: unknown[] }>(this.indexPath);
+    return {
+      ok: permissionsWritable,
+      runs: await count(this.runsDir),
+      candidates: await count(this.candidatesDir),
+      events: await count(this.eventsDir),
+      outcomes: await count(this.outcomesDir),
+      replays: await count(this.replaysDir),
+      indexEntries: idx?.runs?.length ?? 0,
+      corruptQuarantinedHint: path.join(this.runsDir, "_corrupt"),
+      permissionsWritable,
     };
-    await atomicWrite(this.candidatePath(input.candidateId), `${JSON.stringify(updated, null, 2)}\n`);
-    await atomicWrite(this.eventsPath(input.candidateId), `${JSON.stringify(history, null, 2)}\n`);
-    return { ok: true, candidate: updated };
   }
 }
 

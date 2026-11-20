@@ -10,6 +10,7 @@ import type { MifHarmonicAssessment } from "../analysis/harmonics/types.js";
 import type { MifLiquidityReferenceAssessment } from "../analysis/liquidity-reference/types.js";
 import type { MifMarketStructureAssessment } from "../analysis/market-structure/types.js";
 import type { MifMomentumAssessment } from "../analysis/momentum/types.js";
+import type { MifPriceDisplacementAssessment } from "../analysis/price-displacement/types.js";
 import type { MifMtfRelationshipsAssessment } from "../analysis/mtf-relationships/types.js";
 import type { MifChartPatternAssessment } from "../analysis/patterns/types.js";
 import type { MifMarketRegimeAssessment } from "../analysis/regime/types.js";
@@ -121,6 +122,7 @@ export interface BuildProductionEvidenceInput {
   supportResistance?: MifSupportResistanceAssessment | null;
   liquidityReference?: MifLiquidityReferenceAssessment | null;
   momentum?: MifMomentumAssessment | null;
+  priceDisplacement?: MifPriceDisplacementAssessment | null;
   primaryCandles: readonly MifCanonicalCandle[];
 }
 
@@ -147,6 +149,11 @@ export function buildProductionEvidenceRefs(
   const srQ = mapAssessmentStatus(input.supportResistance?.status);
   const liqQ = mapAssessmentStatus(input.liquidityReference?.status);
   const momQ = mapAssessmentStatus(input.momentum?.status);
+  const pdQ = mapAssessmentStatus(
+    input.priceDisplacement?.status === "PROVISIONAL"
+      ? "WARNING"
+      : input.priceDisplacement?.status,
+  );
 
   const structureEnginePresent =
     !!input.marketStructure
@@ -165,6 +172,17 @@ export function buildProductionEvidenceRefs(
     && usableQuality(momQ)
     && input.momentum.direction !== "UNKNOWN"
     && input.momentum.phase !== "INSUFFICIENT_EVIDENCE";
+
+  const displacementEnginePresent =
+    !!input.priceDisplacement
+    && (
+      input.priceDisplacement.confirmed
+      || input.priceDisplacement.displacementKind === "NO_DISPLACEMENT"
+      || input.priceDisplacement.provisional
+    )
+    && input.priceDisplacement.displacementKind !== "BLOCKED_BY_QUALITY"
+    && input.priceDisplacement.displacementKind !== "INVALID"
+    && input.priceDisplacement.displacementKind !== "INSUFFICIENT_DATA";
 
   const regimePresent =
     !!input.regime
@@ -200,8 +218,10 @@ export function buildProductionEvidenceRefs(
       || input.regime!.structure === "BREAKOUT"
       || input.regime!.structure === "TRANSITION");
 
-  const displacementPresent =
-    regimePresent
+  /** Regime fallback only when dedicated engine did not produce usable evidence. */
+  const displacementRegimeFallback =
+    !displacementEnginePresent
+    && regimePresent
     && (
       (typeof input.regime!.trendEvidence?.displacementAtr === "number"
         && Number.isFinite(input.regime!.trendEvidence.displacementAtr))
@@ -406,9 +426,67 @@ export function buildProductionEvidenceRefs(
           break;
         }
         case "PRICE_DISPLACEMENT": {
-          if (displacementPresent) {
+          if (displacementEnginePresent && input.priceDisplacement) {
+            const pd = input.priceDisplacement;
+            const m = pd.metrics;
             presence = "PRESENT";
-            qualityStatus = regimeQ;
+            qualityStatus = pd.provisional
+              ? "WARNING"
+              : pd.confirmed
+                ? pdQ
+                : pd.displacementKind === "NO_DISPLACEMENT"
+                  ? pdQ
+                  : "DEGRADED";
+            sourceEngine = pd.engineId;
+            sourceContractId = pd.contractId;
+            sourceContractVersion = pd.contractVersion;
+            sourcePolicyVersion = pd.policyVersion;
+            sourceAssessmentId = pd.assessmentId;
+            sourceInputIdentity = pd.inputIdentity;
+            candleState = m?.candleState === "CLOSED" || m?.candleState === "FORMING"
+              ? m.candleState
+              : tip;
+            const dir =
+              pd.displacementKind === "BULLISH_DISPLACEMENT"
+                ? "UP"
+                : pd.displacementKind === "BEARISH_DISPLACEMENT"
+                  ? "DOWN"
+                  : m?.direction === "UP" || m?.direction === "DOWN"
+                    ? m.direction
+                    : "NONE";
+            const expanding =
+              m?.trueRangeAtr != null && m.trueRangeAtr >= 1.2;
+            const phase = pd.provisional
+              ? "FORMING"
+              : expanding
+                ? "EXPANDING"
+                : pd.confirmed
+                  ? "EXPANDING"
+                  : "STABLE";
+            notes = [
+              `kind=${pd.displacementKind}`,
+              `direction=${dir}`,
+              `phase=${phase}`,
+              `atrExpand=${expanding ? "TRUE" : "FALSE"}`,
+              `expand=${expanding || pd.confirmed ? "TRUE" : "FALSE"}`,
+              `magnitude=${m?.bodyAtr ?? "null"}`,
+              `trAtr=${m?.trueRangeAtr ?? "null"}`,
+              `closeLoc=${m?.closeLocation ?? "null"}`,
+              `closeState=${m?.candleState ?? tip ?? "UNKNOWN"}`,
+              `strongCandle=${m?.strongCandle === true ? "TRUE" : "FALSE"}`,
+              `structuralBreak=${m?.structuralBreak === true ? "TRUE" : "FALSE"}`,
+              `structuralDisplacement=${pd.structuralDisplacement ? "TRUE" : "FALSE"}`,
+              `candleOnly=${m?.strongCandle && !pd.structuralDisplacement ? "TRUE" : "FALSE"}`,
+              `confirmed=${pd.confirmed ? "TRUE" : "FALSE"}`,
+              `provisional=${pd.provisional ? "TRUE" : "FALSE"}`,
+              `openTimeSec=${m?.openTimeSec ?? "null"}`,
+              `engine=mif-price-displacement`,
+              `contract=${pd.contractId}@${pd.contractVersion}`,
+            ].join("; ");
+          } else if (displacementRegimeFallback) {
+            // Explicit PARTIAL fallback when dedicated engine unavailable.
+            presence = "PRESENT";
+            qualityStatus = "DEGRADED";
             sourceEngine = input.regime!.engineId;
             sourceContractId = input.regime!.contractId;
             sourceAssessmentId = input.regime!.assessmentId;
@@ -430,12 +508,17 @@ export function buildProductionEvidenceRefs(
               `expand=${expanding ? "TRUE" : "FALSE"}`,
               `magnitude=${atr ?? "null"}`,
               `closeState=${tip === "CLOSED" ? "CLOSED" : tip ?? "UNKNOWN"}`,
-              `PARTIAL from regime displacementAtr`,
+              `PARTIAL from regime displacementAtr — dedicated engine unavailable`,
             ].join("; ");
+          } else if (input.priceDisplacement) {
+            presence = "ABSENT";
+            qualityStatus = pdQ === "UNKNOWN" ? "MISSING" : pdQ;
+            sourceAssessmentId = input.priceDisplacement.assessmentId;
+            notes = `PRICE_DISPLACEMENT status=${input.priceDisplacement.status} kind=${input.priceDisplacement.displacementKind}`;
           } else {
             presence = "ABSENT";
             qualityStatus = "MISSING";
-            notes = "PRICE_DISPLACEMENT PARTIAL — no finite displacementAtr in regime";
+            notes = "PRICE_DISPLACEMENT — dedicated engine and regime fallback both unavailable";
           }
           break;
         }

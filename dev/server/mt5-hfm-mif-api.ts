@@ -1,5 +1,5 @@
 /**
- * Phase 5D.5/5D.6 — HFM_MT5 MIF Opportunity Detection Admin API (read-only / analytical).
+ * Phase 5D.5/5D.6/5D.7 — HFM_MT5 MIF Opportunity Detection Admin API (read-only / analytical).
  *
  * Primary surface: on-demand admin HTTP.
  * Optional worker: disabled by default; explicit enable required.
@@ -11,6 +11,13 @@
  * GET  /api/forex/providers/mt5-hfm/mif/candidates/:candidateId
  * GET  /api/forex/providers/mt5-hfm/mif/candidates/:candidateId/history
  * POST /api/forex/providers/mt5-hfm/mif/candidates/:candidateId/lifecycle
+ * POST /api/forex/providers/mt5-hfm/mif/candidates/:candidateId/observe
+ * GET  /api/forex/providers/mt5-hfm/mif/outcomes
+ * GET  /api/forex/providers/mt5-hfm/mif/outcomes/:evaluationId
+ * GET  /api/forex/providers/mt5-hfm/mif/performance
+ * POST /api/forex/providers/mt5-hfm/mif/historical-replay
+ * GET  /api/forex/providers/mt5-hfm/mif/historical-replay/:runId
+ * GET  /api/forex/providers/mt5-hfm/mif/storage/audit
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -21,18 +28,54 @@ import {
   MIF_PRODUCTION_INTEGRATION_CONTRACT_ID,
   MIF_PRODUCTION_PRIMARY_TIMEFRAME,
   MIF_PROVIDER_ID,
+  computeOpportunityPerformanceStatistics,
   disableMifOdWorker,
   enableMifOdWorker,
   getMifOdWorkerStatus,
   getMifOpportunityStorage,
+  observeCandidateAgainstCandles,
+  runMifHistoricalReplay,
   runMifHfmOpportunityPipelineLive,
   type MifCandidateLifecycleState,
+  type MifCanonicalCandle,
 } from "../../ai/market-data/mt5-hfm/mif/index.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
 const MAX_BODY = 8192;
+/** Historical replay accepts bounded injected series (resource-capped server-side). */
+const MAX_REPLAY_BODY = 512 * 1024;
 const PATH_PREFIX = "/api/forex/providers/mt5-hfm/mif";
+
+async function readJsonBodyBounded(
+  req: IncomingMessage,
+  maxBytes: number,
+): Promise<Record<string, unknown>> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of req) {
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buf.length;
+    if (total > maxBytes) {
+      throw Object.assign(new Error("Request body too large"), { code: "PAYLOAD_TOO_LARGE" });
+    }
+    chunks.push(buf);
+  }
+  const raw = Buffer.concat(chunks).toString("utf8").trim();
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("JSON body must be an object");
+    }
+    return parsed as Record<string, unknown>;
+  } catch (err) {
+    throw Object.assign(
+      new Error(err instanceof Error ? err.message : "invalid JSON"),
+      { code: "BAD_JSON" },
+    );
+  }
+}
 
 function headersRecord(req: IncomingMessage): Record<string, string | string[] | undefined> {
   return req.headers as Record<string, string | string[] | undefined>;
@@ -374,6 +417,242 @@ export async function handleMt5HfmMifApi(
       ok: result.ok,
       candidate: result.candidate,
       error: result.error ? { code: "LIFECYCLE_ERROR", message: result.error } : undefined,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  // --- Phase 5D.7: observe / outcomes / performance / replay ---
+  const observeMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/candidates\/([^/]+)\/observe$/.exec(
+    url.pathname,
+  );
+  if (observeMatch && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const candles = Array.isArray(body.closedCandles)
+      ? (body.closedCandles as MifCanonicalCandle[])
+      : [];
+    const result = await observeCandidateAgainstCandles({
+      candidateId: decodeURIComponent(observeMatch[1]!),
+      closedCandles: candles,
+      targetPrice: typeof body.targetPrice === "number" ? body.targetPrice : null,
+      targetSide: (body.targetSide as "ABOVE" | "BELOW" | null) ?? null,
+      invalidationPrice: typeof body.invalidationPrice === "number" ? body.invalidationPrice : null,
+      invalidationSide: (body.invalidationSide as "ABOVE" | "BELOW" | null) ?? null,
+      entryPrice: typeof body.entryPrice === "number" ? body.entryPrice : null,
+      maxAgeBars: typeof body.maxAgeBars === "number" ? body.maxAgeBars : undefined,
+      activationOpenTimeSec:
+        typeof body.activationOpenTimeSec === "number" ? body.activationOpenTimeSec : null,
+    });
+    const payload = {
+      ok: result.ok,
+      lifecycleState: result.lifecycleState,
+      outcomeKind: result.outcomeKind,
+      evaluation: result.evaluation,
+      error: result.error ? { code: "OBSERVE_ERROR", message: result.error } : undefined,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, result.ok ? 200 : 400, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/outcomes` && req.method === "GET") {
+    const listed = await getMifOpportunityStorage().listOutcomeEvaluations({
+      candidateId: url.searchParams.get("candidateId") ?? undefined,
+      limit: Number(url.searchParams.get("limit") ?? 50) || 50,
+      offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+    });
+    const payload = {
+      ok: true,
+      ...listed,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const outcomeMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/outcomes\/([^/]+)$/.exec(
+    url.pathname,
+  );
+  if (outcomeMatch && req.method === "GET") {
+    const evaluation = await getMifOpportunityStorage().getOutcomeEvaluation(
+      decodeURIComponent(outcomeMatch[1]!),
+    );
+    if (!evaluation) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "OUTCOME_NOT_FOUND", message: "outcome evaluation not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      evaluation,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/performance` && req.method === "GET") {
+    const store = getMifOpportunityStorage();
+    const listed = await store.listCandidates({
+      providerSymbol: url.searchParams.get("symbol") ?? undefined,
+      strategyId: url.searchParams.get("strategyId") ?? undefined,
+      fromIso: url.searchParams.get("from") ?? undefined,
+      toIso: url.searchParams.get("to") ?? undefined,
+      limit: 500,
+      offset: 0,
+    });
+    const evaluations = await store.listOutcomeEvaluations({ limit: 500, offset: 0 });
+    const report = computeOpportunityPerformanceStatistics({
+      candidates: listed.items,
+      evaluations: evaluations.items,
+      fromIso: url.searchParams.get("from"),
+      toIso: url.searchParams.get("to"),
+      groupBy: {
+        strategyId: url.searchParams.get("strategyId") ?? undefined,
+        providerSymbol: url.searchParams.get("symbol") ?? undefined,
+        timeframe: url.searchParams.get("timeframe") ?? undefined,
+        marketRegime: url.searchParams.get("regime") ?? undefined,
+      },
+    });
+    const payload = {
+      ok: true,
+      performance: report,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/historical-replay` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBodyBounded(req, MAX_REPLAY_BODY);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const symbol = String(body.symbol || body.providerSymbol || "").trim().toUpperCase();
+    const primaryTimeframe = String(body.primaryTimeframe || MIF_PRODUCTION_PRIMARY_TIMEFRAME)
+      .trim()
+      .toUpperCase();
+    const series = Array.isArray(body.series) ? body.series : [];
+    if (!symbol || !series.length) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "INVALID_INPUT",
+          message: "symbol and series[] required; replay uses injected HFM_MT5 historical bars only",
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const run = runMifHistoricalReplay({
+      providerSymbol: symbol,
+      primaryTimeframe,
+      series: series as never,
+      fromTimeSec: typeof body.fromTimeSec === "number" ? body.fromTimeSec : null,
+      toTimeSec: typeof body.toTimeSec === "number" ? body.toTimeSec : null,
+      warmupBars: typeof body.warmupBars === "number" ? body.warmupBars : undefined,
+      maxSteps: typeof body.maxSteps === "number" ? body.maxSteps : undefined,
+      stepBars: typeof body.stepBars === "number" ? body.stepBars : undefined,
+    });
+    await getMifOpportunityStorage().persistReplayRun(run);
+    const payload = {
+      ok: true,
+      replay: run,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      separatedFromLiveOutcomes: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const replayMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/historical-replay\/([^/]+)$/.exec(
+    url.pathname,
+  );
+  if (replayMatch && req.method === "GET") {
+    const replay = await getMifOpportunityStorage().getReplayRun(
+      decodeURIComponent(replayMatch[1]!),
+    );
+    if (!replay) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "REPLAY_NOT_FOUND", message: "historical replay run not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      replay,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      separatedFromLiveOutcomes: true,
+    });
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/storage/audit` && req.method === "GET") {
+    const audit = await getMifOpportunityStorage().auditIntegrity();
+    sendJson(res, 200, {
+      ok: true,
+      audit,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/storage/rebuild-index` && req.method === "POST") {
+    const rebuilt = await getMifOpportunityStorage().rebuildIndex();
+    sendJson(res, 200, {
+      ok: rebuilt.ok,
+      rebuilt,
       placesOrders: false,
       mutatesBroker: false,
       acceptsForExecution: false,
