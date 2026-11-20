@@ -405,13 +405,16 @@ export async function runResearchHistoricalExport(
   const returnedRangeStart = bars[0]?.time ?? null;
   const returnedRangeEnd = bars[bars.length - 1]?.time ?? null;
 
+  // Requested-start is satisfied when the source page crossed the bound (even if the
+  // first kept bar is the next open after the exact timestamp).
   const reachedRequestedStart =
     input.requestedStartTimeSec == null ||
+    stopReason === "REQUESTED_START_REACHED" ||
     (returnedRangeStart != null && returnedRangeStart <= input.requestedStartTimeSec);
   // Only clean source exhaustion / requested-start qualifies as COMPLETE.
   const completedCleanly =
-    stopReason === "SOURCE_EXHAUSTED" ||
-    stopReason === "REQUESTED_START_REACHED";
+    (stopReason === "SOURCE_EXHAUSTED" || stopReason === "REQUESTED_START_REACHED") &&
+    reachedRequestedStart;
   const incompleteExportRange =
     !completedCleanly ||
     (input.requestedStartTimeSec != null && !reachedRequestedStart) ||

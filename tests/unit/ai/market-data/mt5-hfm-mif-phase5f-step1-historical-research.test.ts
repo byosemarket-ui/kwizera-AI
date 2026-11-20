@@ -340,6 +340,30 @@ describe("Phase 5F STEP 1 — historical research foundation", () => {
     expect(result.job.incompleteReason).toBe("MAX_BARS_REACHED");
   });
 
+  it("marks REQUESTED_START_REACHED exports COMPLETE even when start falls between bars", async () => {
+    const page0 = Array.from({ length: 10 }, (_, i) => makeBar(10 + i));
+    const page1 = Array.from({ length: 10 }, (_, i) => makeBar(i));
+    // Requested start between bar 4 and 5 → page1 oldest is bar0 time <= start.
+    const requestedStart = T0 + 4 * STEP + Math.floor(STEP / 2);
+    const result = await runResearchHistoricalExport({
+      instrument: "EURUSD",
+      timeframe: "H1",
+      allowExport: true,
+      maxPages: 5,
+      requestedStartTimeSec: requestedStart,
+      storage: store,
+      fetchFn: mockFetchPages([
+        { bars: page0, hasMore: true },
+        { bars: page1, hasMore: true },
+      ]),
+    });
+    expect(result.job.incompleteReason).toBeNull();
+    expect(result.job.status).toBe("COMPLETED");
+    expect(result.manifest?.status).toBe("COMPLETE");
+    expect(result.manifest?.researchEligibility.suitableForCandleResearch).toBe(true);
+    expect(result.manifest?.researchEligibility.suitableForCostAdjustedBacktest).toBe(false);
+  });
+
   it("records MAX_PAGES_REACHED when page budget ends with hasMore", async () => {
     const page0 = Array.from({ length: 5 }, (_, i) => makeBar(5 + i));
     const page1 = Array.from({ length: 5 }, (_, i) => makeBar(i));
