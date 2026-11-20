@@ -24,6 +24,7 @@
  * Phase 5E Step 3 — AI market reasoning (additive, analytical interpretation only).
  * Phase 5F Step 1 — historical research foundation (additive, read-only archive).
  * Phase 5F Step 2 — historical analogue & market similarity (additive, analytical only).
+ * Phase 5F Step 3 — prediction outcome & historical performance (additive, analytical only).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";
@@ -42,3 +43,4 @@ export * from "./probability-intelligence/index.js";
 export * from "./ai-market-reasoning/index.js";
 export * from "./production-integration/index.js";
 export * from "./historical-research/index.js";
+export * from "./prediction-outcome/index.js";

@@ -44,6 +44,12 @@
  * GET  /api/forex/providers/mt5-hfm/mif/research/analogues/searches/:searchId
  * GET  /api/forex/providers/mt5-hfm/mif/research/analogues/searches/:searchId/analogues
  * GET  /api/forex/providers/mt5-hfm/mif/research/analogues/searches/:searchId/analogues/:analogueId
+ * POST /api/forex/providers/mt5-hfm/mif/prediction-outcome/snapshots
+ * POST /api/forex/providers/mt5-hfm/mif/prediction-outcome/evaluate/historical
+ * POST /api/forex/providers/mt5-hfm/mif/prediction-outcome/evaluate/live
+ * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/outcomes
+ * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/outcomes/:predictionId
+ * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/performance
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -64,11 +70,16 @@ import {
   computeOpportunityPerformanceStatistics,
   disableMifOdWorker,
   enableMifOdWorker,
+  aggregatePredictionPerformance,
   buildAnalogueReferenceState,
+  buildPredictionSnapshot,
+  evaluatePredictionAgainstHistoricalArchive,
+  evaluatePredictionAgainstLiveCopyRates,
   getMifAnalogueSearchStorage,
   getMifHistoricalResearchStorage,
   getMifOdWorkerStatus,
   getMifOpportunityStorage,
+  getMifPredictionOutcomeStorage,
   isResearchExportExplicitlyEnabled,
   observeCandidateAgainstCandles,
   rankOpportunityCandidates,
@@ -83,6 +94,17 @@ import {
   type MifOpportunityCandidate,
   type MifProbabilityTargetEvent,
 } from "../../ai/market-data/mt5-hfm/mif/index.js";
+
+const PREDICTION_OUTCOME_SAFETY = {
+  placesOrders: false as const,
+  mutatesBroker: false as const,
+  acceptsForExecution: false as const,
+  analyticalOutcomeOnly: true as const,
+  doesNotApproveAiReasoning: true as const,
+  isNotCalibratedProbability: true as const,
+  notExecutable: true as const,
+  autoWorker: false as const,
+};
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -1312,6 +1334,367 @@ export async function handleMt5HfmMifApi(
       similarityIsNotProbability: true,
       researchReadOnly: true,
     };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  // --- Phase 5F STEP 3: prediction outcome & performance (analytical only) ---
+  if (url.pathname === `${PATH_PREFIX}/prediction-outcome/snapshots` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBodyBounded(req, 64 * 1024);
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      sendJson(res, code === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
+        ok: false,
+        error: { code: code ?? "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        ...PREDICTION_OUTCOME_SAFETY,
+      });
+      return true;
+    }
+    const snapshot = buildPredictionSnapshot({
+      candidateId: String(body.candidateId || ""),
+      reasoningRunId: body.reasoningRunId != null ? String(body.reasoningRunId) : null,
+      evaluationId: body.evaluationId != null ? String(body.evaluationId) : null,
+      analysisRunId: body.analysisRunId != null ? String(body.analysisRunId) : null,
+      activationOpenTimeSec:
+        body.activationOpenTimeSec != null ? Number(body.activationOpenTimeSec) : null,
+      activationTimestamp:
+        body.activationTimestamp != null ? String(body.activationTimestamp) : null,
+      instrument: String(body.instrument || body.providerSymbol || ""),
+      timeframe: String(body.timeframe || ""),
+      direction: body.direction != null ? String(body.direction) : null,
+      entryPrice: body.entryPrice != null ? Number(body.entryPrice) : null,
+      targetPrice: body.targetPrice != null ? Number(body.targetPrice) : null,
+      targetSide:
+        body.targetSide === "ABOVE" || body.targetSide === "BELOW" ? body.targetSide : null,
+      invalidationPrice: body.invalidationPrice != null ? Number(body.invalidationPrice) : null,
+      invalidationSide:
+        body.invalidationSide === "ABOVE" || body.invalidationSide === "BELOW"
+          ? body.invalidationSide
+          : null,
+      invalidationConditions: Array.isArray(body.invalidationConditions)
+        ? body.invalidationConditions.map((x) => String(x))
+        : null,
+      requiredConfirmations: Array.isArray(body.requiredConfirmations)
+        ? body.requiredConfirmations.map((x) => String(x))
+        : null,
+      thesis: body.thesis != null ? String(body.thesis) : null,
+      rationale: body.rationale != null ? String(body.rationale) : null,
+      modelVersion: body.modelVersion != null ? String(body.modelVersion) : null,
+      strategyVersion: body.strategyVersion != null ? String(body.strategyVersion) : null,
+      strategyId: body.strategyId != null ? String(body.strategyId) : null,
+      detectorId: body.detectorId != null ? String(body.detectorId) : null,
+      sourceAnalysisIdentity:
+        body.sourceAnalysisIdentity != null ? String(body.sourceAnalysisIdentity) : null,
+    });
+    if (snapshot.status !== "FROZEN") {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: snapshot.invalidReason ?? "INVALID_SNAPSHOT", message: snapshot.invalidReason },
+        snapshot,
+        ...PREDICTION_OUTCOME_SAFETY,
+      });
+      return true;
+    }
+    const persisted = await getMifPredictionOutcomeStorage().persistSnapshot(snapshot);
+    if (!persisted.ok) {
+      sendJson(res, 409, {
+        ok: false,
+        error: { code: persisted.code, message: persisted.message },
+        snapshot,
+        ...PREDICTION_OUTCOME_SAFETY,
+      });
+      return true;
+    }
+    const payload = { ok: true, snapshot, persisted, ...PREDICTION_OUTCOME_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (
+    url.pathname === `${PATH_PREFIX}/prediction-outcome/evaluate/historical`
+    && req.method === "POST"
+  ) {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBodyBounded(req, 64 * 1024);
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      sendJson(res, code === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
+        ok: false,
+        error: { code: code ?? "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        ...PREDICTION_OUTCOME_SAFETY,
+      });
+      return true;
+    }
+    const datasetId = String(body.datasetId || "").trim();
+    if (!datasetId) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INPUT", message: "datasetId required" },
+        ...PREDICTION_OUTCOME_SAFETY,
+      });
+      return true;
+    }
+    let snapshot;
+    if (body.predictionId) {
+      snapshot = await getMifPredictionOutcomeStorage().getSnapshot(String(body.predictionId));
+      if (!snapshot) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "SNAPSHOT_NOT_FOUND", message: "prediction snapshot not found" },
+          ...PREDICTION_OUTCOME_SAFETY,
+        });
+        return true;
+      }
+    } else {
+      snapshot = buildPredictionSnapshot({
+        candidateId: String(body.candidateId || ""),
+        reasoningRunId: body.reasoningRunId != null ? String(body.reasoningRunId) : null,
+        analysisRunId: body.analysisRunId != null ? String(body.analysisRunId) : null,
+        activationOpenTimeSec:
+          body.activationOpenTimeSec != null ? Number(body.activationOpenTimeSec) : null,
+        instrument: String(body.instrument || body.providerSymbol || ""),
+        timeframe: String(body.timeframe || ""),
+        direction: body.direction != null ? String(body.direction) : null,
+        entryPrice: body.entryPrice != null ? Number(body.entryPrice) : null,
+        targetPrice: body.targetPrice != null ? Number(body.targetPrice) : null,
+        targetSide:
+          body.targetSide === "ABOVE" || body.targetSide === "BELOW" ? body.targetSide : null,
+        invalidationPrice: body.invalidationPrice != null ? Number(body.invalidationPrice) : null,
+        invalidationSide:
+          body.invalidationSide === "ABOVE" || body.invalidationSide === "BELOW"
+            ? body.invalidationSide
+            : null,
+        invalidationConditions: Array.isArray(body.invalidationConditions)
+          ? body.invalidationConditions.map((x) => String(x))
+          : null,
+        modelVersion: body.modelVersion != null ? String(body.modelVersion) : null,
+        strategyVersion: body.strategyVersion != null ? String(body.strategyVersion) : null,
+      });
+    }
+    const horizons = Array.isArray(body.horizons)
+      ? body.horizons.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0)
+      : undefined;
+    const result = await evaluatePredictionAgainstHistoricalArchive({
+      snapshot,
+      researchStorage: getMifHistoricalResearchStorage(),
+      outcomeStorage: getMifPredictionOutcomeStorage(),
+      datasetId,
+      version: body.version != null ? Number(body.version) : undefined,
+      expectedContentHash:
+        body.expectedContentHash != null ? String(body.expectedContentHash) : null,
+      horizons,
+      persist: body.persist !== false,
+    });
+    if (!result.ok) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: result.code, message: result.message },
+        ...PREDICTION_OUTCOME_SAFETY,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      outcome: result.outcome,
+      persisted: result.persisted,
+      note: "Path metrics and level outcomes are distinct. Not calibrated probability.",
+      ...PREDICTION_OUTCOME_SAFETY,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/prediction-outcome/evaluate/live` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBodyBounded(req, 512 * 1024);
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      sendJson(res, code === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
+        ok: false,
+        error: { code: code ?? "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        ...PREDICTION_OUTCOME_SAFETY,
+      });
+      return true;
+    }
+    const bars = Array.isArray(body.bars) ? body.bars : null;
+    const brokerNowSec = Number(body.brokerNowSec);
+    if (!bars || !Number.isFinite(brokerNowSec)) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "INVALID_INPUT",
+          message: "bars[] and brokerNowSec required for live CopyRates evaluation",
+        },
+        ...PREDICTION_OUTCOME_SAFETY,
+      });
+      return true;
+    }
+    let snapshot;
+    if (body.predictionId) {
+      snapshot = await getMifPredictionOutcomeStorage().getSnapshot(String(body.predictionId));
+      if (!snapshot) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "SNAPSHOT_NOT_FOUND", message: "prediction snapshot not found" },
+          ...PREDICTION_OUTCOME_SAFETY,
+        });
+        return true;
+      }
+    } else {
+      snapshot = buildPredictionSnapshot({
+        candidateId: String(body.candidateId || ""),
+        reasoningRunId: body.reasoningRunId != null ? String(body.reasoningRunId) : null,
+        activationOpenTimeSec:
+          body.activationOpenTimeSec != null ? Number(body.activationOpenTimeSec) : null,
+        instrument: String(body.instrument || body.providerSymbol || ""),
+        timeframe: String(body.timeframe || ""),
+        direction: body.direction != null ? String(body.direction) : null,
+        entryPrice: body.entryPrice != null ? Number(body.entryPrice) : null,
+        targetPrice: body.targetPrice != null ? Number(body.targetPrice) : null,
+        targetSide:
+          body.targetSide === "ABOVE" || body.targetSide === "BELOW" ? body.targetSide : null,
+        invalidationPrice: body.invalidationPrice != null ? Number(body.invalidationPrice) : null,
+        invalidationSide:
+          body.invalidationSide === "ABOVE" || body.invalidationSide === "BELOW"
+            ? body.invalidationSide
+            : null,
+      });
+    }
+    const result = await evaluatePredictionAgainstLiveCopyRates({
+      snapshot,
+      bars: bars.map((b) => {
+        const row = b as Record<string, unknown>;
+        return {
+          time: Number(row.time),
+          open: Number(row.open),
+          high: Number(row.high),
+          low: Number(row.low),
+          close: Number(row.close),
+          tickVolume: row.tickVolume != null ? Number(row.tickVolume) : null,
+          realVolume: row.realVolume != null ? Number(row.realVolume) : null,
+          spread: row.spread != null ? Number(row.spread) : null,
+          isClosed: row.isClosed !== false,
+          candleState:
+            row.candleState === "FORMING" || row.candleState === "CLOSED"
+              ? row.candleState
+              : "CLOSED",
+          validationStatus: row.validationStatus === "rejected" ? "rejected" : "ok",
+          provenance: row.provenance != null ? String(row.provenance) : undefined,
+        };
+      }),
+      brokerNowSec,
+      outcomeStorage: getMifPredictionOutcomeStorage(),
+      sourceProvenance:
+        body.sourceProvenance != null ? String(body.sourceProvenance) : "copyrates",
+      snapshotId: body.snapshotId != null ? String(body.snapshotId) : null,
+      sequenceId: body.sequenceId != null ? String(body.sequenceId) : null,
+      horizons: Array.isArray(body.horizons)
+        ? body.horizons.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0)
+        : undefined,
+      persist: body.persist !== false,
+    });
+    if (!result.ok) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: result.code, message: result.message },
+        liveMarketVerified: false,
+        note: "Contract evaluation only; live-market verification may be pending",
+        ...PREDICTION_OUTCOME_SAFETY,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      outcome: result.outcome,
+      persisted: result.persisted,
+      liveMarketVerified: false,
+      note: "Live adapter contract path. Live-market verification deferred when market closed.",
+      ...PREDICTION_OUTCOME_SAFETY,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/prediction-outcome/outcomes` && req.method === "GET") {
+    const listed = await getMifPredictionOutcomeStorage().listOutcomes({
+      predictionId: url.searchParams.get("predictionId") ?? undefined,
+      marketSourceMode: url.searchParams.get("marketSourceMode") ?? undefined,
+      offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+      limit: Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 50) || 50)),
+    });
+    const payload = { ok: true, ...listed, ...PREDICTION_OUTCOME_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const predictionOutcomeMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/prediction-outcome\/outcomes\/([^/]+)$/.exec(
+      url.pathname,
+    );
+  if (predictionOutcomeMatch && req.method === "GET") {
+    const predictionId = decodeURIComponent(predictionOutcomeMatch[1]!);
+    const latest = await getMifPredictionOutcomeStorage().getLatestOutcomeForPrediction(
+      predictionId,
+    );
+    const all = await getMifPredictionOutcomeStorage().listOutcomesForPrediction(predictionId);
+    if (!latest) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "OUTCOME_NOT_FOUND", message: "no outcomes for predictionId" },
+        ...PREDICTION_OUTCOME_SAFETY,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      predictionId,
+      latest,
+      revisions: all,
+      note: "Multiple revisions are not independent predictions",
+      ...PREDICTION_OUTCOME_SAFETY,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/prediction-outcome/performance` && req.method === "GET") {
+    const dirRaw = url.searchParams.get("direction");
+    const modeRaw = url.searchParams.get("marketSourceMode");
+    const horizonRaw = url.searchParams.get("horizon");
+    const summary = await aggregatePredictionPerformance({
+      storage: getMifPredictionOutcomeStorage(),
+      groupKey: {
+        instrument: url.searchParams.get("instrument") || undefined,
+        timeframe: url.searchParams.get("timeframe") || undefined,
+        direction:
+          dirRaw === "BUY" || dirRaw === "SELL" || dirRaw === "NEUTRAL" || dirRaw === "UNKNOWN"
+            ? dirRaw
+            : undefined,
+        horizon: horizonRaw && Number.isFinite(Number(horizonRaw)) ? Number(horizonRaw) : undefined,
+        modelVersion: url.searchParams.get("modelVersion") || undefined,
+        strategyVersion: url.searchParams.get("strategyVersion") || undefined,
+        marketSourceMode:
+          modeRaw === "HISTORICAL_ARCHIVE" || modeRaw === "LIVE_COPYRATES" ? modeRaw : undefined,
+        outcomeStatus: url.searchParams.get("outcomeStatus") || undefined,
+        dateFromIso: url.searchParams.get("from") || undefined,
+        dateToIso: url.searchParams.get("to") || undefined,
+      },
+    });
+    await getMifPredictionOutcomeStorage().persistPerformanceSummary(
+      summary,
+      summary.summaryId,
+    );
+    const payload = { ok: true, summary, ...PREDICTION_OUTCOME_SAFETY };
     assertNoSecretsInMt5HfmPayload(payload);
     sendJson(res, 200, payload);
     return true;
