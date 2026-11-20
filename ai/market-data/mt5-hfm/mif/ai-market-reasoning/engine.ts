@@ -108,11 +108,13 @@ function mapModelError(code?: string): MifAiReasoningRunStatus {
 }
 
 function extractModelContent(chat: {
+  ok?: boolean;
   data?: Record<string, unknown> | null;
   rawText?: string;
 }): string | null {
-  if (typeof chat.rawText === "string" && chat.rawText.trim()) return chat.rawText;
+  // Prefer parsed `data` — openAiChatJson only keeps a short rawText slice (e.g. 400).
   if (chat.data && typeof chat.data === "object") return JSON.stringify(chat.data);
+  if (typeof chat.rawText === "string" && chat.rawText.trim()) return chat.rawText;
   return null;
 }
 
