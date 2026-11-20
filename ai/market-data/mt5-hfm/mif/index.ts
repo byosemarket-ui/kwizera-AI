@@ -22,6 +22,7 @@
  * Phase 5E Step 1 — opportunity ranking & scoring (additive, analytical only).
  * Phase 5E Step 2 — evidence & probability intelligence (additive, statistical only).
  * Phase 5E Step 3 — AI market reasoning (additive, analytical interpretation only).
+ * Phase 5F Step 1 — historical research foundation (additive, read-only archive).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";
@@ -39,3 +40,4 @@ export * from "./opportunity-ranking/index.js";
 export * from "./probability-intelligence/index.js";
 export * from "./ai-market-reasoning/index.js";
 export * from "./production-integration/index.js";
+export * from "./historical-research/index.js";

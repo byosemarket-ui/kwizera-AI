@@ -31,6 +31,12 @@
  * POST /api/forex/providers/mt5-hfm/mif/ai-reasoning
  * GET  /api/forex/providers/mt5-hfm/mif/ai-reasoning
  * GET  /api/forex/providers/mt5-hfm/mif/ai-reasoning/:reasoningRunId
+ * GET  /api/forex/providers/mt5-hfm/mif/research/datasets
+ * GET  /api/forex/providers/mt5-hfm/mif/research/datasets/:datasetId
+ * GET  /api/forex/providers/mt5-hfm/mif/research/datasets/:datasetId/bars
+ * GET  /api/forex/providers/mt5-hfm/mif/research/export-jobs/:jobId
+ * POST /api/forex/providers/mt5-hfm/mif/research/export
+ * GET  /api/forex/providers/mt5-hfm/mif/research/timeframes
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -41,19 +47,25 @@ import {
   MIF_PRODUCTION_INTEGRATION_CONTRACT_ID,
   MIF_PRODUCTION_PRIMARY_TIMEFRAME,
   MIF_PROVIDER_ID,
+  MIF_RESEARCH_API_MAX_BAR_PAGE,
+  MIF_RESEARCH_EXPORTABLE_TIMEFRAMES,
   assessEvidenceIntelligence,
   assessProbabilityIntelligence,
   buildCalibrationRun,
+  classifyTimeframeLayer,
   computeOpportunityPerformanceStatistics,
   disableMifOdWorker,
   enableMifOdWorker,
+  getMifHistoricalResearchStorage,
   getMifOdWorkerStatus,
   getMifOpportunityStorage,
+  isResearchExportExplicitlyEnabled,
   observeCandidateAgainstCandles,
   rankOpportunityCandidates,
   runMifAiMarketReasoning,
   runMifHistoricalReplay,
   runMifHfmOpportunityPipelineLive,
+  runResearchHistoricalExport,
   type MifCandidateLifecycleState,
   type MifCanonicalCandle,
   type MifDetectionEvidenceRef,
@@ -670,6 +682,242 @@ export async function handleMt5HfmMifApi(
       mutatesBroker: false,
       acceptsForExecution: false,
     });
+    return true;
+  }
+
+  // --- Phase 5F STEP 1: historical research (read-only archive) ---
+  if (url.pathname === `${PATH_PREFIX}/research/timeframes` && req.method === "GET") {
+    const tfParam = url.searchParams.get("timeframe");
+    const payload = {
+      ok: true,
+      exportableTimeframes: [...MIF_RESEARCH_EXPORTABLE_TIMEFRAMES],
+      layers: tfParam
+        ? classifyTimeframeLayer(tfParam)
+        : MIF_RESEARCH_EXPORTABLE_TIMEFRAMES.map((tf) => classifyTimeframeLayer(tf)),
+      note: "Code-supported ≠ verified-live ≠ operationally exportable ≠ archived",
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      researchReadOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/research/datasets` && req.method === "GET") {
+    const store = getMifHistoricalResearchStorage();
+    let entries = await store.listRegistry();
+    const symbol = url.searchParams.get("symbol")?.trim().toUpperCase();
+    const timeframe = url.searchParams.get("timeframe")?.trim().toUpperCase();
+    const status = url.searchParams.get("status")?.trim().toUpperCase();
+    if (symbol) entries = entries.filter((e) => e.instrument === symbol);
+    if (timeframe) entries = entries.filter((e) => e.timeframe === timeframe);
+    if (status) entries = entries.filter((e) => e.status === status);
+    const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit") ?? 50) || 50));
+    const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0);
+    const page = entries.slice(offset, offset + limit);
+    const payload = {
+      ok: true,
+      datasets: page,
+      total: entries.length,
+      offset,
+      limit,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      researchReadOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const researchDatasetMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/research\/datasets\/([^/]+)$/.exec(url.pathname);
+  if (researchDatasetMatch && req.method === "GET") {
+    const datasetId = decodeURIComponent(researchDatasetMatch[1]!);
+    const versionRaw = url.searchParams.get("version");
+    const version = versionRaw != null ? Number(versionRaw) : undefined;
+    const manifest = await getMifHistoricalResearchStorage().getDatasetManifest(
+      datasetId,
+      Number.isFinite(version) ? version : undefined,
+    );
+    if (!manifest) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "DATASET_NOT_FOUND", message: "research dataset not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      manifest,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      researchReadOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const researchBarsMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/research\/datasets\/([^/]+)\/bars$/.exec(
+      url.pathname,
+    );
+  if (researchBarsMatch && req.method === "GET") {
+    const datasetId = decodeURIComponent(researchBarsMatch[1]!);
+    const version = Number(url.searchParams.get("version") ?? 1);
+    if (!Number.isFinite(version) || version < 1) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_VERSION", message: "version must be a positive integer" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0);
+    const limit = Math.min(
+      MIF_RESEARCH_API_MAX_BAR_PAGE,
+      Math.max(1, Number(url.searchParams.get("limit") ?? 100) || 100),
+    );
+    const page = await getMifHistoricalResearchStorage().getDatasetBars(datasetId, version, {
+      offset,
+      limit,
+    });
+    if (!page) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "DATASET_BARS_NOT_FOUND", message: "research dataset bars not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      datasetId,
+      version,
+      bars: page.bars,
+      total: page.total,
+      offset,
+      limit,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      researchReadOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const researchJobMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/research\/export-jobs\/([^/]+)$/.exec(url.pathname);
+  if (researchJobMatch && req.method === "GET") {
+    const jobId = decodeURIComponent(researchJobMatch[1]!);
+    const job = await getMifHistoricalResearchStorage().getExportJob(jobId);
+    if (!job) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "EXPORT_JOB_NOT_FOUND", message: "export job not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      job,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      researchReadOnly: true,
+      autoWorker: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/research/export` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    if (!isResearchExportExplicitlyEnabled()) {
+      sendJson(res, 403, {
+        ok: false,
+        error: {
+          code: "EXPORT_DISABLED",
+          message:
+            "research export is OFF by default; set KWIZERA_MIF_RESEARCH_EXPORT_ENABLED=1 for explicit admin export (no auto-worker)",
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+        researchReadOnly: true,
+        autoWorker: false,
+        exportEnabled: false,
+      });
+      return true;
+    }
+    const instrument = String(body.symbol || body.instrument || "").trim().toUpperCase();
+    const timeframe = String(body.timeframe || "").trim().toUpperCase();
+    if (!instrument || !timeframe) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INPUT", message: "symbol/instrument and timeframe required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const result = await runResearchHistoricalExport({
+      instrument,
+      timeframe,
+      requestedStartTimeSec:
+        typeof body.requestedStartTimeSec === "number" ? body.requestedStartTimeSec : null,
+      requestedEndTimeSec:
+        typeof body.requestedEndTimeSec === "number" ? body.requestedEndTimeSec : null,
+      maxPages: typeof body.maxPages === "number" ? body.maxPages : undefined,
+      maxBars: typeof body.maxBars === "number" ? body.maxBars : undefined,
+      resumeJobId: typeof body.resumeJobId === "string" ? body.resumeJobId : null,
+      singlePage: body.singlePage === true,
+      allowExport: true,
+    });
+    const payload = {
+      ok: result.job.status !== "FAILED",
+      job: result.job,
+      manifest: result.manifest,
+      candleCount: result.bars.length,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      researchReadOnly: true,
+      autoWorker: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, result.job.status === "FAILED" ? 400 : 200, payload);
     return true;
   }
 
