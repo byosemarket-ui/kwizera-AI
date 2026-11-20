@@ -395,6 +395,13 @@ export async function runResearchHistoricalExport(
     }
   }
 
+  if (stopReason == null && hasMore && pagesFetched >= maxPages) {
+    stopReason = "MAX_PAGES_REACHED";
+  }
+  if (stopReason == null && bars.length >= maxBars && hasMore) {
+    stopReason = "MAX_BARS_REACHED";
+  }
+
   const returnedRangeStart = bars[0]?.time ?? null;
   const returnedRangeEnd = bars[bars.length - 1]?.time ?? null;
 

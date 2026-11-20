@@ -337,6 +337,27 @@ describe("Phase 5F STEP 1 — historical research foundation", () => {
     expect(result.job.status).toBe("INCOMPLETE");
     expect(result.manifest?.status).toBe("INCOMPLETE");
     expect(result.manifest?.qualitySummary.incompleteExportRange).toBe(true);
+    expect(result.job.incompleteReason).toBe("MAX_BARS_REACHED");
+  });
+
+  it("records MAX_PAGES_REACHED when page budget ends with hasMore", async () => {
+    const page0 = Array.from({ length: 5 }, (_, i) => makeBar(5 + i));
+    const page1 = Array.from({ length: 5 }, (_, i) => makeBar(i));
+    const result = await runResearchHistoricalExport({
+      instrument: "EURUSD",
+      timeframe: "H1",
+      allowExport: true,
+      maxPages: 2,
+      maxBars: 1000,
+      storage: store,
+      fetchFn: mockFetchPages([
+        { bars: page0, hasMore: true },
+        { bars: page1, hasMore: true },
+      ]),
+    });
+    expect(result.job.status).toBe("INCOMPLETE");
+    expect(result.job.incompleteReason).toBe("MAX_PAGES_REACHED");
+    expect(result.manifest?.status).toBe("INCOMPLETE");
   });
 
   it("supports resumable single-page export", async () => {
