@@ -28,6 +28,9 @@
  * GET  /api/forex/providers/mt5-hfm/mif/probability/:assessmentId
  * POST /api/forex/providers/mt5-hfm/mif/calibration
  * GET  /api/forex/providers/mt5-hfm/mif/calibration/:calibrationRunId
+ * POST /api/forex/providers/mt5-hfm/mif/ai-reasoning
+ * GET  /api/forex/providers/mt5-hfm/mif/ai-reasoning
+ * GET  /api/forex/providers/mt5-hfm/mif/ai-reasoning/:reasoningRunId
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -48,6 +51,7 @@ import {
   getMifOpportunityStorage,
   observeCandidateAgainstCandles,
   rankOpportunityCandidates,
+  runMifAiMarketReasoning,
   runMifHistoricalReplay,
   runMifHfmOpportunityPipelineLive,
   type MifCandidateLifecycleState,
@@ -58,6 +62,10 @@ import {
 } from "../../ai/market-data/mt5-hfm/mif/index.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
+
+function hitCandidate(stored: string | null, focus: string): boolean {
+  return stored === focus;
+}
 
 const MAX_BODY = 8192;
 /** Historical replay accepts bounded injected series (resource-capped server-side). */
@@ -1141,6 +1149,186 @@ export async function handleMt5HfmMifApi(
       placesOrders: false,
       mutatesBroker: false,
       acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  // --- Phase 5E Step 3: AI market reasoning ---
+  if (url.pathname === `${PATH_PREFIX}/ai-reasoning` && req.method === "GET") {
+    const listed = await getMifOpportunityStorage().listAiMarketReasoning({
+      providerSymbol: url.searchParams.get("symbol") ?? undefined,
+      analysisRunId: url.searchParams.get("analysisRunId") ?? undefined,
+      fromIso: url.searchParams.get("from") ?? undefined,
+      toIso: url.searchParams.get("to") ?? undefined,
+      limit: Number(url.searchParams.get("limit") ?? 50) || 50,
+      offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+    });
+    const payload = {
+      ok: true,
+      ...listed,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      isWinProbability: false,
+      executionReadiness: false,
+      doesNotApproveAiReasoning: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/ai-reasoning` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const analysisRunId = String(body.analysisRunId || body.runId || "").trim();
+    if (!analysisRunId) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INPUT", message: "analysisRunId required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const store = getMifOpportunityStorage();
+    const run = await store.getRun(analysisRunId);
+    if (!run?.resultSnapshot) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "RUN_NOT_FOUND", message: "analysis run not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    if (run.providerId !== "HFM_MT5" && run.resultSnapshot.providerId !== "HFM_MT5") {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "PROVIDER_NOT_ALLOWED",
+          message: "AI market reasoning accepts HFM_MT5 only",
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+        doesNotApproveAiReasoning: true,
+      });
+      return true;
+    }
+    const focusCandidateId =
+      typeof body.candidateId === "string" ? body.candidateId.trim() : null;
+    const rankingRunId =
+      (typeof body.rankingRunId === "string" && body.rankingRunId.trim())
+      || run.resultSnapshot.ranking?.rankingRunId
+      || null;
+    const rankingRun = rankingRunId ? await store.getRankingRun(rankingRunId) : null;
+
+    let probabilityBundle = null;
+    if (focusCandidateId) {
+      const listed = await store.listProbabilityAssessments({
+        providerSymbol: run.providerSymbol,
+        limit: 50,
+      });
+      const prob = listed.items.find((p) => p.candidateId === focusCandidateId) ?? null;
+      if (prob?.evidenceAssessmentId) {
+        const evi = await store.getEvidenceIntelligence(prob.evidenceAssessmentId);
+        if (evi) probabilityBundle = { evidence: evi, probability: prob };
+      }
+    } else if (run.resultSnapshot._probabilityBundles?.[0]) {
+      probabilityBundle = run.resultSnapshot._probabilityBundles[0];
+    }
+
+    // Idempotent reuse: identical context+prompt already persisted
+    if (body.reuseExisting !== false) {
+      const prior = await store.listAiMarketReasoning({
+        analysisRunId,
+        limit: 20,
+      });
+      const hit = prior.items.find(
+        (x) =>
+          (x.status === "SUCCESS" || x.status === "PARTIAL_RESULT")
+          && (!focusCandidateId || hitCandidate(x.candidateId, focusCandidateId)),
+      );
+      if (hit) {
+        sendJson(res, 200, {
+          ok: true,
+          reasoning: hit,
+          reused: true,
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+          isWinProbability: false,
+          executionReadiness: false,
+          doesNotApproveAiReasoning: true,
+        });
+        return true;
+      }
+    }
+
+    const reasoning = await runMifAiMarketReasoning({
+      result: run.resultSnapshot,
+      rankingRun,
+      probabilityBundle,
+      focusCandidateId,
+    });
+    await store.persistAiMarketReasoning(reasoning);
+    const payload = {
+      ok: true,
+      reasoning,
+      reused: false,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      isWinProbability: false,
+      isGuaranteedOutcome: false,
+      executionReadiness: false,
+      doesNotApproveAiReasoning: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const aiMatch = /^\/api\/forex\/providers\/mt5-hfm\/mif\/ai-reasoning\/([^/]+)$/.exec(
+    url.pathname,
+  );
+  if (aiMatch && req.method === "GET") {
+    const reasoning = await getMifOpportunityStorage().getAiMarketReasoning(
+      decodeURIComponent(aiMatch[1]!),
+    );
+    if (!reasoning) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "REASONING_NOT_FOUND", message: "AI reasoning run not found" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      reasoning,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      isWinProbability: false,
+      executionReadiness: false,
+      doesNotApproveAiReasoning: true,
     });
     return true;
   }

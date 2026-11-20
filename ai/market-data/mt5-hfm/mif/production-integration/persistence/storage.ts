@@ -15,6 +15,7 @@ import type {
   MifProbabilityAssessment,
   MifProbabilityBundle,
 } from "../../probability-intelligence/types.js";
+import type { MifAiMarketReasoningRun } from "../../ai-market-reasoning/types.js";
 import type {
   MifCandidateLifecycleState,
   MifCandidateListFilter,
@@ -168,6 +169,7 @@ export class MifOpportunityStorage {
   readonly evidenceIntelDir: string;
   readonly probabilityDir: string;
   readonly calibrationDir: string;
+  readonly aiReasoningDir: string;
   readonly indexPath: string;
   /** Simple in-process mutex for concurrent API writes. */
   private writeChain: Promise<void> = Promise.resolve();
@@ -183,6 +185,7 @@ export class MifOpportunityStorage {
     this.evidenceIntelDir = path.join(this.root, "evidence-intelligence");
     this.probabilityDir = path.join(this.root, "probability-assessments");
     this.calibrationDir = path.join(this.root, "calibration-runs");
+    this.aiReasoningDir = path.join(this.root, "ai-market-reasoning");
     this.indexPath = path.join(this.root, "index.json");
   }
 
@@ -196,6 +199,7 @@ export class MifOpportunityStorage {
     await ensureDir(this.evidenceIntelDir);
     await ensureDir(this.probabilityDir);
     await ensureDir(this.calibrationDir);
+    await ensureDir(this.aiReasoningDir);
   }
 
   /** Serialize mutating operations within this process. */
@@ -260,6 +264,13 @@ export class MifOpportunityStorage {
     return path.join(
       this.calibrationDir,
       `${calibrationRunId.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`,
+    );
+  }
+
+  aiReasoningPath(reasoningRunId: string): string {
+    return path.join(
+      this.aiReasoningDir,
+      `${reasoningRunId.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`,
     );
   }
 
@@ -731,6 +742,72 @@ export class MifOpportunityStorage {
     return readJsonFile(this.calibrationPath(calibrationRunId));
   }
 
+  async persistAiMarketReasoning(
+    run: MifAiMarketReasoningRun,
+  ): Promise<{ ok: boolean; path: string; created: boolean }> {
+    await this.ensureReady();
+    return this.withWriteLock(async () => {
+      const p = this.aiReasoningPath(run.reasoningRunId);
+      const existing = await readJsonFile(p);
+      if (existing) return { ok: true, path: p, created: false };
+      await atomicWrite(p, `${JSON.stringify(run, null, 2)}\n`);
+      return { ok: true, path: p, created: true };
+    });
+  }
+
+  async getAiMarketReasoning(reasoningRunId: string): Promise<MifAiMarketReasoningRun | null> {
+    return readJsonFile(this.aiReasoningPath(reasoningRunId));
+  }
+
+  async listAiMarketReasoning(filter?: {
+    providerSymbol?: string;
+    analysisRunId?: string;
+    fromIso?: string;
+    toIso?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    items: MifAiMarketReasoningRun[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    await this.ensureReady();
+    const limit = Math.min(100, Math.max(1, filter?.limit ?? 50));
+    const offset = Math.max(0, filter?.offset ?? 0);
+    let names: string[] = [];
+    try {
+      names = (await fs.readdir(this.aiReasoningDir)).filter((n) => n.endsWith(".json"));
+    } catch {
+      names = [];
+    }
+    const items: MifAiMarketReasoningRun[] = [];
+    for (const name of names) {
+      const r = await readJsonFileDetailed<MifAiMarketReasoningRun>(
+        path.join(this.aiReasoningDir, name),
+      );
+      if (!r.ok || !r.value) continue;
+      const a = r.value;
+      if (
+        filter?.providerSymbol
+        && a.providerSymbol.toUpperCase() !== filter.providerSymbol.toUpperCase()
+      ) {
+        continue;
+      }
+      if (filter?.analysisRunId && a.analysisRunId !== filter.analysisRunId) continue;
+      if (filter?.fromIso && a.calculatedAt < filter.fromIso) continue;
+      if (filter?.toIso && a.calculatedAt > filter.toIso) continue;
+      items.push(a);
+    }
+    items.sort((a, b) => b.calculatedAt.localeCompare(a.calculatedAt));
+    return {
+      items: items.slice(offset, offset + limit),
+      total: items.length,
+      limit,
+      offset,
+    };
+  }
+
   async listRankingRuns(filter?: {
     providerSymbol?: string;
     strategyId?: string;
@@ -887,6 +964,7 @@ export class MifOpportunityStorage {
     evidenceIntelligence: number;
     probabilityAssessments: number;
     calibrationRuns: number;
+    aiMarketReasoning: number;
     indexEntries: number;
     corruptQuarantinedHint: string;
     permissionsWritable: boolean;
@@ -919,6 +997,7 @@ export class MifOpportunityStorage {
       evidenceIntelligence: await count(this.evidenceIntelDir),
       probabilityAssessments: await count(this.probabilityDir),
       calibrationRuns: await count(this.calibrationDir),
+      aiMarketReasoning: await count(this.aiReasoningDir),
       indexEntries: idx?.runs?.length ?? 0,
       corruptQuarantinedHint: path.join(this.runsDir, "_corrupt"),
       permissionsWritable,

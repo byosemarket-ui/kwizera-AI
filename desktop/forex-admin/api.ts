@@ -797,6 +797,65 @@ export const forexProvidersApi = {
     request<{ ok: boolean; calibration: unknown }>(
       `/api/forex/providers/mt5-hfm/mif/calibration/${encodeURIComponent(calibrationRunId)}`,
     ),
+  /**
+   * Phase 5E Step 3 — AI market reasoning (analytical only).
+   * Integration point: Forex Admin MT5 HFM / MIF opportunity analysis surface
+   * (`ForexAdminMt5HfmPage` + these clients). No separate dashboard; render
+   * market overview, bullish/bearish scenarios, evidence, confirmation/
+   * invalidation, ranking/probability interpretation, validation status,
+   * model/prompt versions from `mt5HfmMifAiReasoningGet` / Create responses.
+   * Never display invented probabilities or execution-ready instructions.
+   */
+  mt5HfmMifAiReasoningList: (params?: {
+    symbol?: string;
+    analysisRunId?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.symbol) q.set("symbol", params.symbol);
+    if (params?.analysisRunId) q.set("analysisRunId", params.analysisRunId);
+    if (params?.from) q.set("from", params.from);
+    if (params?.to) q.set("to", params.to);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      items: unknown[];
+      total: number;
+      isWinProbability: false;
+      executionReadiness: false;
+      doesNotApproveAiReasoning: true;
+    }>(`/api/forex/providers/mt5-hfm/mif/ai-reasoning${qs ? `?${qs}` : ""}`);
+  },
+  mt5HfmMifAiReasoningGet: (reasoningRunId: string) =>
+    request<{
+      ok: boolean;
+      reasoning: unknown;
+      isWinProbability: false;
+      executionReadiness: false;
+      doesNotApproveAiReasoning: true;
+    }>(`/api/forex/providers/mt5-hfm/mif/ai-reasoning/${encodeURIComponent(reasoningRunId)}`),
+  mt5HfmMifAiReasoningCreate: (body: {
+    analysisRunId: string;
+    candidateId?: string;
+    rankingRunId?: string;
+    reuseExisting?: boolean;
+  }) =>
+    request<{
+      ok: boolean;
+      reasoning: unknown;
+      reused?: boolean;
+      isWinProbability: false;
+      executionReadiness: false;
+      doesNotApproveAiReasoning: true;
+    }>("/api/forex/providers/mt5-hfm/mif/ai-reasoning", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   forexConnectInstruments: () =>
     request<{
       ok: boolean;
