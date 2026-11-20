@@ -13,4 +13,5 @@ export * from "./lifecycle-observe.js";
 export * from "./outcome-evaluation.js";
 export * from "./performance-statistics.js";
 export * from "./historical-replay.js";
+export * from "./mtf-visibility.js";
 export * from "./worker.js";

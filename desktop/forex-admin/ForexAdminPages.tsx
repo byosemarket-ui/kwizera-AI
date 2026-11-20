@@ -36,6 +36,7 @@ import { ForexAdminForexConnectPage } from "./ForexAdminForexConnectPage";
 import { ForexAdminMt5HfmPage } from "./ForexAdminMt5HfmPage";
 import { ForexAdminMt5HfmMifPage } from "./ForexAdminMt5HfmMifPage";
 import { ForexAdminMt5HfmAnaloguePage } from "./ForexAdminMt5HfmAnaloguePage";
+import { ForexAdminMt5HfmBacktestingPage } from "./ForexAdminMt5HfmBacktestingPage";
 import { ForexAdminAtRiskLimitsPanel } from "./ForexAdminAtRiskLimitsPanel";
 import { ForexAdminPerOrderRiskPanel } from "./ForexAdminPerOrderRiskPanel";
 import { ForexAdminDemoAdapterPanel } from "./ForexAdminDemoAdapterPanel";
@@ -947,6 +948,7 @@ export function titleForView(view: ForexAdminViewId): string {
     "mt5-hfm": "HFM MT5",
     "mt5-hfm-mif": "HFM Market Intel",
     "mt5-hfm-analogue": "Historical Analogue Research",
+    "mt5-hfm-backtesting": "Backtesting & Walk-Forward",
     instruments: "FXCM Instruments",
     "historical-data": "FXCM Historical Data",
     stream: "FXCM Real-Time Stream",
@@ -997,6 +999,8 @@ export function ForexAdminPageRouter({
         return <ForexAdminMt5HfmMifPage />;
       case "mt5-hfm-analogue":
         return <ForexAdminMt5HfmAnaloguePage />;
+      case "mt5-hfm-backtesting":
+        return <ForexAdminMt5HfmBacktestingPage />;
       case "instruments":
         return <ForexAdminInstrumentsPage onOpen={onOpen} />;
       case "historical-data":

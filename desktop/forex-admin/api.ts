@@ -1092,6 +1092,74 @@ export const forexProvidersApi = {
     }>(
       `/api/forex/providers/mt5-hfm/mif/research/analogues/searches/${encodeURIComponent(searchId)}/analogues/${encodeURIComponent(analogueId)}`,
     ),
+  /** Phase 5F STEP 4 — gross OHLC backtesting / walk-forward (analytical only). */
+  mt5HfmMifBacktestRunCreate: (body: {
+    datasetId: string;
+    version?: number;
+    expectedContentHash?: string;
+    mode?: "SINGLE_WINDOW" | "WALK_FORWARD";
+    warmupBars?: number;
+    maxSteps?: number;
+    maxFolds?: number;
+    minOosSamples?: number;
+    timeoutMs?: number;
+  }) =>
+    request<{
+      ok: boolean;
+      manifest?: Record<string, unknown>;
+      tipCount?: number;
+      persisted?: boolean;
+      note?: string;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      analyticalOutcomeOnly?: true;
+      isNotCalibratedProbability?: true;
+      costAdjusted: false;
+      executionModel?: string;
+      error?: { code?: string; message?: string };
+    }>("/api/forex/providers/mt5-hfm/mif/backtesting/runs", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  mt5HfmMifBacktestRunsList: (params?: { limit?: number; offset?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      items: Array<Record<string, unknown>>;
+      total: number;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      costAdjusted: false;
+    }>(`/api/forex/providers/mt5-hfm/mif/backtesting/runs${qs ? `?${qs}` : ""}`);
+  },
+  mt5HfmMifBacktestRunGet: (runId: string) =>
+    request<{
+      ok: boolean;
+      manifest?: Record<string, unknown>;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      costAdjusted: false;
+      error?: { code?: string; message?: string };
+    }>(`/api/forex/providers/mt5-hfm/mif/backtesting/runs/${encodeURIComponent(runId)}`),
+  mt5HfmMifBacktestFoldsGet: (runId: string) =>
+    request<{
+      ok: boolean;
+      runId?: string;
+      folds?: Array<Record<string, unknown>>;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      costAdjusted: false;
+      error?: { code?: string; message?: string };
+    }>(
+      `/api/forex/providers/mt5-hfm/mif/backtesting/runs/${encodeURIComponent(runId)}/folds`,
+    ),
   forexConnectInstruments: () =>
     request<{
       ok: boolean;

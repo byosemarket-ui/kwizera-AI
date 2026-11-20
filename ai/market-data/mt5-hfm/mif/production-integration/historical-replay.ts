@@ -10,6 +10,10 @@ import { createHash } from "node:crypto";
 import type { HfmHistoricalBar } from "../../historical-engine.js";
 import { stableSerialize } from "../quality/stable-identity.js";
 import {
+  filterBarsClosedAtDecision,
+  resolveDecisionTimeSec,
+} from "./mtf-visibility.js";
+import {
   MIF_PRODUCTION_INTEGRATION_CONTRACT_ID,
   MIF_PRODUCTION_INTEGRATION_CONTRACT_VERSION,
 } from "./contracts.js";
@@ -256,17 +260,46 @@ export function runMifHistoricalReplay(
       break;
     }
 
-    const visiblePrimary = clipped.bars.slice(0, tip + 1);
-    const tipBar = visiblePrimary[visiblePrimary.length - 1]!;
+    const tipBar = clipped.bars[tip]!;
+    // Decision time = authoritative tip close (broker-server). Never wall-clock.
+    const decision = resolveDecisionTimeSec({
+      tipOpenTimeSec: tipBar.time,
+      primaryTimeframe,
+    });
+    if (!decision.ok) {
+      steps.push({
+        stepIndex: steps.length,
+        tipOpenTimeSec: tipBar.time,
+        candleCount: 0,
+        analysisStatus: "FAILED_ASSESSMENT",
+        candidateCount: 0,
+        requestId: `${input.requestIdPrefix ?? "replay"}:${runId}:step${steps.length}`,
+        candidateIds: [],
+        failureCodes: [decision.reason],
+      });
+      continue;
+    }
 
-    // Align secondary timeframes to same tip time (no future bars).
+    // Visible only if candle closeTime <= decisionTime (MTF incomplete-bar safe).
+    // openTime <= tip alone is insufficient for higher timeframes.
+    const primaryVisible = filterBarsClosedAtDecision({
+      bars: clipped.bars.slice(0, tip + 1),
+      timeframe: primaryTimeframe,
+      decisionTimeSec: decision.decisionTimeSec,
+    });
+
     const seriesForStep = input.series.map((s) => {
       const tf = String(s.timeframe).toUpperCase();
       if (tf === primaryTimeframe) {
-        return { timeframe: tf, bars: visiblePrimary };
+        return { timeframe: tf, bars: primaryVisible.visible };
       }
+      const closedAtDecision = filterBarsClosedAtDecision({
+        bars: s.bars,
+        timeframe: tf,
+        decisionTimeSec: decision.decisionTimeSec,
+      });
       const clippedSec = clipBars(
-        s.bars.filter((b) => b.time <= tipBar.time),
+        closedAtDecision.visible,
         input.fromTimeSec,
         tipBar.time,
         MIF_REPLAY_MAX_CANDLES,
@@ -294,7 +327,7 @@ export function runMifHistoricalReplay(
       steps.push({
         stepIndex: steps.length,
         tipOpenTimeSec: tipBar.time,
-        candleCount: visiblePrimary.length,
+        candleCount: primaryVisible.visible.length,
         analysisStatus: "FAILED_ASSESSMENT",
         candidateCount: 0,
         requestId: pipeInput.requestId!,
@@ -308,7 +341,7 @@ export function runMifHistoricalReplay(
     steps.push({
       stepIndex: steps.length,
       tipOpenTimeSec: tipBar.time,
-      candleCount: visiblePrimary.length,
+      candleCount: primaryVisible.visible.length,
       analysisStatus: result.analysisStatus,
       candidateCount: candidateIds.length,
       requestId: result.requestId,

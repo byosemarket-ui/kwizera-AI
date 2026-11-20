@@ -50,6 +50,10 @@
  * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/outcomes
  * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/outcomes/:predictionId
  * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/performance
+ * POST /api/forex/providers/mt5-hfm/mif/backtesting/runs
+ * GET  /api/forex/providers/mt5-hfm/mif/backtesting/runs
+ * GET  /api/forex/providers/mt5-hfm/mif/backtesting/runs/:runId
+ * GET  /api/forex/providers/mt5-hfm/mif/backtesting/runs/:runId/folds
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -79,12 +83,14 @@ import {
   getMifHistoricalResearchStorage,
   getMifOdWorkerStatus,
   getMifOpportunityStorage,
+  getMifBacktestStorage,
   getMifPredictionOutcomeStorage,
   isResearchExportExplicitlyEnabled,
   observeCandidateAgainstCandles,
   rankOpportunityCandidates,
   runAnalogueSearch,
   runMifAiMarketReasoning,
+  runMifBacktest,
   runMifHistoricalReplay,
   runMifHfmOpportunityPipelineLive,
   runResearchHistoricalExport,
@@ -104,6 +110,19 @@ const PREDICTION_OUTCOME_SAFETY = {
   isNotCalibratedProbability: true as const,
   notExecutable: true as const,
   autoWorker: false as const,
+};
+
+const BACKTEST_SAFETY = {
+  placesOrders: false as const,
+  mutatesBroker: false as const,
+  acceptsForExecution: false as const,
+  analyticalOutcomeOnly: true as const,
+  doesNotApproveAiReasoning: true as const,
+  isNotCalibratedProbability: true as const,
+  costAdjusted: false as const,
+  notExecutable: true as const,
+  autoWorker: false as const,
+  executionModel: "GROSS_OHLC_ANALYTICAL" as const,
 };
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -1695,6 +1714,131 @@ export async function handleMt5HfmMifApi(
       summary.summaryId,
     );
     const payload = { ok: true, summary, ...PREDICTION_OUTCOME_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  // --- Phase 5F STEP 4: backtesting & walk-forward (gross OHLC analytical) ---
+  if (url.pathname === `${PATH_PREFIX}/backtesting/runs` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBodyBounded(req, 64 * 1024);
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      sendJson(res, code === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
+        ok: false,
+        error: { code: code ?? "BAD_REQUEST", message: err instanceof Error ? err.message : String(err) },
+        ...BACKTEST_SAFETY,
+      });
+      return true;
+    }
+    const datasetId = String(body.datasetId || "").trim();
+    if (!datasetId) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INPUT", message: "datasetId required" },
+        ...BACKTEST_SAFETY,
+      });
+      return true;
+    }
+    const mode =
+      body.mode === "SINGLE_WINDOW" || body.mode === "WALK_FORWARD"
+        ? body.mode
+        : "WALK_FORWARD";
+    const result = await runMifBacktest({
+      researchStorage: getMifHistoricalResearchStorage(),
+      backtestStorage: getMifBacktestStorage(),
+      datasetId,
+      version: body.version != null ? Number(body.version) : undefined,
+      expectedContentHash:
+        body.expectedContentHash != null ? String(body.expectedContentHash) : null,
+      mode,
+      warmupBars: typeof body.warmupBars === "number" ? body.warmupBars : undefined,
+      maxSteps: typeof body.maxSteps === "number" ? body.maxSteps : undefined,
+      stepBars: typeof body.stepBars === "number" ? body.stepBars : undefined,
+      maxFolds: typeof body.maxFolds === "number" ? body.maxFolds : undefined,
+      minOosSamples: typeof body.minOosSamples === "number" ? body.minOosSamples : undefined,
+      timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : 60_000,
+      persist: body.persist !== false,
+      useValidation: body.useValidation !== false,
+      horizons: Array.isArray(body.horizons)
+        ? body.horizons.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0)
+        : undefined,
+      primaryMetric:
+        body.primaryMetric === "OOS_LEVEL_TARGET_RATE"
+        || body.primaryMetric === "OOS_PATH_FORWARD_RETURN_MEAN_H8"
+        || body.primaryMetric === "OOS_GROSS_UNIT_EXPECTANCY"
+          ? body.primaryMetric
+          : undefined,
+    });
+    if (!result.ok) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: result.code, message: result.message },
+        ...BACKTEST_SAFETY,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      manifest: result.record.manifest,
+      tipCount: result.record.tips.length,
+      persisted: result.persisted,
+      note: "Gross OHLC analytical backtest. Not cost-adjusted. Not broker performance. Not calibrated probability.",
+      ...BACKTEST_SAFETY,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/backtesting/runs` && req.method === "GET") {
+    const listed = await getMifBacktestStorage().listRuns({
+      offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+      limit: Math.min(50, Math.max(1, Number(url.searchParams.get("limit") ?? 20) || 20)),
+    });
+    const payload = { ok: true, ...listed, ...BACKTEST_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const backtestRunMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/backtesting\/runs\/([^/]+)$/.exec(url.pathname);
+  if (backtestRunMatch && req.method === "GET") {
+    const runId = decodeURIComponent(backtestRunMatch[1]!);
+    const manifest = await getMifBacktestStorage().getManifest(runId);
+    if (!manifest) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "RUN_NOT_FOUND", message: "backtest run not found" },
+        ...BACKTEST_SAFETY,
+      });
+      return true;
+    }
+    const payload = { ok: true, manifest, ...BACKTEST_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const backtestFoldsMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/backtesting\/runs\/([^/]+)\/folds$/.exec(
+      url.pathname,
+    );
+  if (backtestFoldsMatch && req.method === "GET") {
+    const runId = decodeURIComponent(backtestFoldsMatch[1]!);
+    const folds = await getMifBacktestStorage().getFolds(runId);
+    if (!folds) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "RUN_NOT_FOUND", message: "backtest run not found" },
+        ...BACKTEST_SAFETY,
+      });
+      return true;
+    }
+    const payload = { ok: true, runId, folds, ...BACKTEST_SAFETY };
     assertNoSecretsInMt5HfmPayload(payload);
     sendJson(res, 200, payload);
     return true;
