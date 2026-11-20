@@ -10,6 +10,7 @@ import {
 import { buildDatasetId, computeResearchDatasetContentHash } from "./hash.js";
 import { buildPitMetadataBundle, type MifResearchCatalogInstrumentSnapshot } from "./pit-metadata.js";
 import { buildQualitySummary } from "./quality.js";
+import { assessResearchEligibility } from "./research-eligibility.js";
 import {
   sanitizeResearchStorageId,
   type MifHistoricalResearchStorage,
@@ -81,6 +82,13 @@ export function buildResearchDatasetManifest(
 
   const status = input.incompleteExportRange || sorted.length === 0 ? "INCOMPLETE" : "COMPLETE";
 
+  const researchEligibility = assessResearchEligibility({
+    status,
+    qualitySummary,
+    pitMetadata,
+    candleCount: sorted.length,
+  });
+
   const safeDatasetDir = sanitizeResearchStorageId(datasetId);
   const barsRelativePath = `datasets/${safeDatasetDir}/v${version}/bars.json`;
   const metadataRef = `metadata/${sanitizeResearchStorageId(`${datasetId}.v${version}`)}.json`;
@@ -110,6 +118,7 @@ export function buildResearchDatasetManifest(
     pitMetadata,
     exportProvenance: input.exportProvenance,
     barsRelativePath,
+    researchEligibility,
     placesOrders: false,
     mutatesBroker: false,
     acceptsForExecution: false,

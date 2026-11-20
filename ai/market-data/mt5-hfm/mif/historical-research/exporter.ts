@@ -194,8 +194,41 @@ export async function runResearchHistoricalExport(
       await storage.persistExportJob(failed);
       return { job: failed, manifest: null, bars: [] };
     }
+    if (existing.instrument !== instrument || existing.timeframe !== timeframe) {
+      // Do not overwrite the original job — return a separate failure record.
+      const failed = emptyJob({
+        jobId: `export-resume-mismatch-${randomUUID().slice(0, 8)}`,
+        instrument,
+        timeframe,
+        maxPages,
+        maxBars,
+        status: "FAILED",
+        incompleteReason: "RESUME_IDENTITY_MISMATCH",
+        errors: [
+          `resume identity mismatch: job=${existing.instrument}/${existing.timeframe} request=${instrument}/${timeframe}`,
+        ],
+        completedAt: new Date().toISOString(),
+      });
+      await storage.persistExportJob(failed);
+      return { job: failed, manifest: null, bars: [] };
+    }
+    if (existing.status === "COMPLETED" || existing.status === "FAILED") {
+      // Do not mutate terminal jobs — resume is rejected without rewriting history.
+      return {
+        job: {
+          ...existing,
+          errors: [
+            ...existing.errors,
+            `RESUME_NOT_RESUMABLE: cannot resume job in terminal status ${existing.status}`,
+          ],
+        },
+        manifest: null,
+        bars: await storage.loadJobBars(existing.jobId),
+      };
+    }
     job = { ...existing, status: "RUNNING", updatedAt: new Date().toISOString() };
     bars = await storage.loadJobBars(job.jobId);
+    rejectedCandles = job.barsRejected;
   } else {
     job = emptyJob({
       jobId: `export:${instrument}:${timeframe}:${randomUUID().slice(0, 8)}`,
@@ -211,6 +244,14 @@ export async function runResearchHistoricalExport(
 
   await storage.persistExportJob(job);
 
+  if (input.catalogRow) {
+    await storage.persistObservationSnapshot({
+      instrument,
+      timeframe,
+      catalogRow: input.catalogRow,
+    });
+  }
+
   const errors: string[] = [...job.errors];
   const freshnessNotes: string[] = [];
   let hasMore = job.hasMore;
@@ -218,7 +259,7 @@ export async function runResearchHistoricalExport(
   let pagesFetched = job.pagesFetched;
   let stopReason: string | null = null;
 
-  const pageBudget = input.singlePage ? 1 : maxPages - pagesFetched;
+  const pageBudget = input.singlePage ? 1 : Math.max(0, maxPages - pagesFetched);
 
   for (let page = 0; page < pageBudget; page++) {
     if (bars.length >= maxBars) {
@@ -256,6 +297,23 @@ export async function runResearchHistoricalExport(
       break;
     }
 
+    if (pageResult.bars.length < limit && pageResult.hasMore) {
+      errors.push(
+        `SHORT_PAGE_WITH_HAS_MORE:returned=${pageResult.bars.length}:requested=${limit}`,
+      );
+    }
+
+    // Detect out-of-order pagination: older pages must not introduce bars newer than archive tip.
+    if (bars.length > 0) {
+      const existingNewest = bars[bars.length - 1]!.time;
+      const pageNewest = pageResult.bars[pageResult.bars.length - 1]!.time;
+      if (pageNewest > existingNewest) {
+        errors.push("OUT_OF_ORDER_PAGE");
+        stopReason = "OUT_OF_ORDER_PAGE";
+        break;
+      }
+    }
+
     // Filter by requested end (newest) / start (oldest) when provided.
     let pageBars = pageResult.bars;
     if (input.requestedEndTimeSec != null) {
@@ -265,24 +323,62 @@ export async function runResearchHistoricalExport(
       pageBars = pageBars.filter((b) => b.time >= input.requestedStartTimeSec!);
     }
 
+    const beforeCount = bars.length;
     const ingested = ingestResearchBars(bars, pageBars);
     bars = ingested.accepted;
     rejectedCandles += ingested.rejectedCandles;
     duplicateOrOutOfOrderRejected += ingested.duplicateOrOutOfOrderRejected;
     invalidOhlcRejected += ingested.invalidOhlcRejected;
 
-    // CopyRates startPos advances toward older history.
+    const newlyAccepted = bars.length - beforeCount;
+    if (newlyAccepted === 0 && pageBars.length > 0) {
+      if (ingested.duplicateOrOutOfOrderRejected >= pageBars.length) {
+        errors.push("DUPLICATE_OR_OVERLAPPING_PAGE");
+        stopReason = "DUPLICATE_OR_OVERLAPPING_PAGE";
+      } else if (ingested.invalidOhlcRejected >= pageBars.length) {
+        errors.push("PAGE_ALL_INVALID_OHLC");
+        stopReason = "PAGE_ALL_INVALID_OHLC";
+      } else {
+        errors.push("PAGE_NO_NEW_BARS");
+        stopReason = "PAGE_NO_NEW_BARS";
+      }
+      // Advance by source page length so resume cannot loop forever on overlaps.
+      nextStartPos = Math.min(
+        MIF_RESEARCH_MAX_START_POS,
+        nextStartPos + pageResult.bars.length,
+      );
+      break;
+    }
+
+    // CopyRates startPos advances by source-returned count (not filtered count).
     nextStartPos = Math.min(
       MIF_RESEARCH_MAX_START_POS,
       nextStartPos + pageResult.bars.length,
     );
+
+    // Persist checkpoint after each page so interruption cannot claim COMPLETE falsely.
+    await storage.persistJobBars(job.jobId, bars);
+    await storage.persistExportJob({
+      ...job,
+      status: "RUNNING",
+      pagesFetched,
+      nextStartPos,
+      barsAccepted: bars.length,
+      barsRejected: rejectedCandles,
+      returnedRangeStart: bars[0]?.time ?? null,
+      returnedRangeEnd: bars[bars.length - 1]?.time ?? null,
+      hasMore,
+      updatedAt: new Date().toISOString(),
+      completedAt: null,
+      errors,
+      incompleteReason: null,
+    });
 
     if (
       input.requestedStartTimeSec != null &&
       pageResult.oldestTimestamp != null &&
       pageResult.oldestTimestamp <= input.requestedStartTimeSec
     ) {
-      // Reached/passed requested oldest bound on this page.
       stopReason = "REQUESTED_START_REACHED";
       hasMore = false;
       break;
@@ -305,13 +401,14 @@ export async function runResearchHistoricalExport(
   const reachedRequestedStart =
     input.requestedStartTimeSec == null ||
     (returnedRangeStart != null && returnedRangeStart <= input.requestedStartTimeSec);
+  // Only clean source exhaustion / requested-start qualifies as COMPLETE.
+  const completedCleanly =
+    stopReason === "SOURCE_EXHAUSTED" ||
+    stopReason === "REQUESTED_START_REACHED";
   const incompleteExportRange =
-    Boolean(stopReason === "MAX_BARS_REACHED" ||
-      stopReason === "START_POS_LIMIT" ||
-      stopReason === "SINGLE_PAGE_PAUSE" ||
-      stopReason === "SOURCE_UNAVAILABLE" ||
-      (input.requestedStartTimeSec != null && !reachedRequestedStart) ||
-      (hasMore && stopReason !== "REQUESTED_START_REACHED" && stopReason !== "SOURCE_EXHAUSTED"));
+    !completedCleanly ||
+    (input.requestedStartTimeSec != null && !reachedRequestedStart) ||
+    Boolean(hasMore && !completedCleanly);
 
   await storage.persistJobBars(job.jobId, bars);
 

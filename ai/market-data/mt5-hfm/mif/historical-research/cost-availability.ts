@@ -90,3 +90,34 @@ export function assertCostNotCurrentMetadataAsHistorical(
   }
   return warnings;
 }
+
+/**
+ * Enforceable completeness for future backtests.
+ * Never treat UNAVAILABLE/CURRENT_METADATA_ONLY costs as known historical values.
+ */
+export function researchCostCoverageStatus(
+  availability: MifResearchCostAvailabilityBundle,
+): {
+  costCompleteness: "COST_COMPLETE" | "COST_INCOMPLETE";
+  allowsCostAdjustedResults: false | true;
+  missingOrNonHistorical: readonly string[];
+} {
+  const missingOrNonHistorical: string[] = [];
+  for (const key of ["spread", "slippage", "commission", "swap"] as const) {
+    if (availability[key].availability !== "SOURCE_BACKED") {
+      missingOrNonHistorical.push(key);
+    } else if (
+      key === "spread" &&
+      (availability.spread.sourceBackedBarCount ?? 0) <
+        (availability.spread.totalBarCount ?? 0)
+    ) {
+      missingOrNonHistorical.push("spread_partial");
+    }
+  }
+  const complete = missingOrNonHistorical.length === 0;
+  return {
+    costCompleteness: complete ? "COST_COMPLETE" : "COST_INCOMPLETE",
+    allowsCostAdjustedResults: complete,
+    missingOrNonHistorical,
+  };
+}

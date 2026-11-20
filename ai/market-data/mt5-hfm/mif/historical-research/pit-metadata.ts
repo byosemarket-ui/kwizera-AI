@@ -101,6 +101,7 @@ export function capturePitSessionMetadata(input: {
       limitation:
         "no session schedule available at observation time; do not invent sessions/holidays/early closures",
       catalogRef: null,
+      unknownBeforeObservedAt: true,
     };
   }
 
@@ -118,6 +119,7 @@ export function capturePitSessionMetadata(input: {
     limitation:
       "session windows are current catalog observation only; must not be applied retrospectively as historical authority; holidays/DST/early closures remain uncertain",
     catalogRef: row!.catalogVersion ?? row!.catalogPath ?? null,
+    unknownBeforeObservedAt: true,
   };
 }
 
@@ -139,5 +141,11 @@ export function buildPitMetadataBundle(input: {
       observedAt: collectedAt,
     }),
     collectedAt,
+    observationCoverage: {
+      observedAt: collectedAt,
+      appliesRetrospectively: false,
+      unknownPeriodsNote:
+        "Metadata before this observation time is unknown; do not back-apply current catalog as historical truth",
+    },
   };
 }

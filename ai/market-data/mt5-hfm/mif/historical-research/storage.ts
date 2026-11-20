@@ -4,6 +4,8 @@
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { computeResearchDatasetContentHash } from "./hash.js";
+import { buildPitMetadataBundle, type MifResearchCatalogInstrumentSnapshot } from "./pit-metadata.js";
 import type {
   MifResearchDatasetManifest,
   MifResearchExportJob,
@@ -90,12 +92,107 @@ export class MifHistoricalResearchStorage {
     return path.join(this.datasetsDir(), sanitizeId(datasetId), `v${version}`);
   }
 
+  observationsDir(): string {
+    return path.join(this.metadataDir(), "observations");
+  }
+
   async ensureLayout(): Promise<void> {
     await ensureDir(this.barsDir());
     await ensureDir(this.datasetsDir());
     await ensureDir(this.manifestsDir());
     await ensureDir(this.metadataDir());
+    await ensureDir(this.observationsDir());
     await ensureDir(this.exportJobsDir());
+  }
+
+  /**
+   * Durable forward-looking PIT observation. Never claims retrospective authority.
+   */
+  async persistObservationSnapshot(input: {
+    instrument: string;
+    timeframe?: string;
+    catalogRow?: MifResearchCatalogInstrumentSnapshot | null;
+    observedAt?: string;
+  }): Promise<string> {
+    const observedAt = input.observedAt ?? new Date().toISOString();
+    const bundle = buildPitMetadataBundle({
+      instrument: input.instrument,
+      catalogRow: input.catalogRow,
+      observedAt,
+    });
+    const id = `${String(input.instrument).toUpperCase()}.${observedAt.replace(/[:.]/g, "-")}`;
+    const rel = path.join("metadata", "observations", `${sanitizeId(id)}.json`);
+    await this.ensureLayout();
+    await atomicWrite(
+      path.join(this.root, rel),
+      `${JSON.stringify(
+        {
+          ...bundle,
+          timeframe: input.timeframe ?? null,
+          appliesRetrospectively: false,
+          historicalAuthority: false,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    return rel.replace(/\\/g, "/");
+  }
+
+  /**
+   * Read-after-write consistency: manifest, bars, and content hash must agree.
+   */
+  async verifyDatasetConsistency(
+    datasetId: string,
+    version: number,
+  ): Promise<
+    | { ok: true; contentHash: string; candleCount: number }
+    | { ok: false; code: string; message: string }
+  > {
+    const manifest = await this.getDatasetManifest(datasetId, version);
+    if (!manifest) {
+      return { ok: false, code: "MANIFEST_MISSING", message: "manifest not found" };
+    }
+    const page = await this.getDatasetBars(datasetId, version);
+    if (!page) {
+      return { ok: false, code: "BARS_MISSING", message: "bars not found" };
+    }
+    if (page.total !== manifest.candleCount) {
+      return {
+        ok: false,
+        code: "COUNT_MISMATCH",
+        message: `manifest candleCount=${manifest.candleCount} bars=${page.total}`,
+      };
+    }
+    const recomputed = computeResearchDatasetContentHash({
+      provider: "HFM_MT5",
+      instrument: manifest.instrument,
+      timeframe: manifest.timeframe,
+      timebase: "BROKER_SERVER",
+      version: manifest.version,
+      bars: page.bars,
+    });
+    if (recomputed !== manifest.contentHash) {
+      return {
+        ok: false,
+        code: "HASH_MISMATCH",
+        message: "recomputed content hash does not match manifest",
+      };
+    }
+    const reg = (await this.listRegistry()).find(
+      (e) => e.datasetId === datasetId && e.version === version,
+    );
+    if (!reg) {
+      return { ok: false, code: "REGISTRY_MISSING", message: "registry entry missing" };
+    }
+    if (reg.contentHash !== manifest.contentHash) {
+      return {
+        ok: false,
+        code: "REGISTRY_HASH_MISMATCH",
+        message: "registry contentHash disagrees with manifest",
+      };
+    }
+    return { ok: true, contentHash: manifest.contentHash, candleCount: page.total };
   }
 
   async persistExportJob(job: MifResearchExportJob): Promise<void> {
@@ -187,6 +284,11 @@ export class MifHistoricalResearchStorage {
       manifestRelativePath: path
         .relative(this.root, manifestPath)
         .replace(/\\/g, "/"),
+      suitableForCandleResearch:
+        input.manifest.researchEligibility.suitableForCandleResearch,
+      suitableForCostAdjustedBacktest:
+        input.manifest.researchEligibility.suitableForCostAdjustedBacktest,
+      costCompleteness: input.manifest.researchEligibility.costCompleteness,
     });
 
     return { ok: true };

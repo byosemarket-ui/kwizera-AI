@@ -739,7 +739,8 @@ export async function handleMt5HfmMifApi(
     const datasetId = decodeURIComponent(researchDatasetMatch[1]!);
     const versionRaw = url.searchParams.get("version");
     const version = versionRaw != null ? Number(versionRaw) : undefined;
-    const manifest = await getMifHistoricalResearchStorage().getDatasetManifest(
+    const store = getMifHistoricalResearchStorage();
+    const manifest = await store.getDatasetManifest(
       datasetId,
       Number.isFinite(version) ? version : undefined,
     );
@@ -753,9 +754,15 @@ export async function handleMt5HfmMifApi(
       });
       return true;
     }
+    const verify = url.searchParams.get("verify") === "1";
+    const consistency = verify
+      ? await store.verifyDatasetConsistency(datasetId, manifest.version)
+      : null;
     const payload = {
       ok: true,
       manifest,
+      researchEligibility: manifest.researchEligibility,
+      consistency,
       placesOrders: false,
       mutatesBroker: false,
       acceptsForExecution: false,

@@ -11,7 +11,9 @@ import {
   MIF_RESEARCH_MAX_BARS_PER_PAGE,
   MIF_RESEARCH_PROVIDER_ID,
   __setMifHistoricalResearchStorageForTests,
+  assertCostAdjustedBacktestAllowed,
   assertNoFutureBarsBeyondTip,
+  assessResearchEligibility,
   buildResearchDatasetManifest,
   classifyResearchCostAvailability,
   classifyTimeframeLayer,
@@ -20,7 +22,9 @@ import {
   ingestResearchBars,
   isOperationallyExportableTimeframe,
   isResearchExportExplicitlyEnabled,
+  MIF_RESEARCH_COST_SOURCE_EVIDENCE,
   MifHistoricalResearchStorage,
+  researchCostCoverageStatus,
   runResearchHistoricalExport,
   sealResearchDataset,
   toStoredResearchBar,
@@ -147,8 +151,9 @@ describe("Phase 5F STEP 1 — historical research foundation", () => {
   });
 
   it("paginates serially with page size ≤ 300 and tracks progress", async () => {
-    const page0 = Array.from({ length: 300 }, (_, i) => makeBar(i));
-    const page1 = Array.from({ length: 50 }, (_, i) => makeBar(300 + i));
+    // CopyRates: page0 = newest window; page1 = older history (lower open times).
+    const page0 = Array.from({ length: 300 }, (_, i) => makeBar(50 + i));
+    const page1 = Array.from({ length: 50 }, (_, i) => makeBar(i));
     const result = await runResearchHistoricalExport({
       instrument: "EURUSD",
       timeframe: "H1",
@@ -335,8 +340,9 @@ describe("Phase 5F STEP 1 — historical research foundation", () => {
   });
 
   it("supports resumable single-page export", async () => {
-    const page0 = Array.from({ length: 5 }, (_, i) => makeBar(i));
-    const page1 = Array.from({ length: 5 }, (_, i) => makeBar(5 + i));
+    // Newest first, then older — matches CopyRates startPos pagination.
+    const page0 = Array.from({ length: 5 }, (_, i) => makeBar(5 + i));
+    const page1 = Array.from({ length: 5 }, (_, i) => makeBar(i));
     const fetchFn = mockFetchPages([
       { bars: page0, hasMore: true },
       { bars: page1, hasMore: false },
@@ -570,6 +576,161 @@ describe("Phase 5F STEP 1 — historical research foundation", () => {
     expect(api).toContain("isResearchExportExplicitlyEnabled");
     expect(api).toContain("MIF_RESEARCH_API_MAX_BAR_PAGE");
     expect(api).toContain("autoWorker: false");
+    expect(api).toContain("verifyDatasetConsistency");
     expect(api).not.toMatch(/research\/export[\s\S]{0,400}mutatesBroker:\s*true/);
+  });
+
+  it("exposes research eligibility and forbids cost-adjusted backtest when costs incomplete", async () => {
+    const result = await runResearchHistoricalExport({
+      instrument: "EURUSD",
+      timeframe: "H1",
+      allowExport: true,
+      storage: store,
+      fetchFn: mockFetchPages([
+        { bars: Array.from({ length: 5 }, (_, i) => makeBar(i)), hasMore: false },
+      ]),
+      catalogRow: {
+        providerSymbol: "EURUSD",
+        digits: 5,
+        tickSize: 0.00001,
+        sessions: { tradeSessionDays: 5 },
+      },
+    });
+    expect(result.manifest?.researchEligibility.costCompleteness).toBe("COST_INCOMPLETE");
+    expect(result.manifest?.researchEligibility.suitableForCostAdjustedBacktest).toBe(false);
+    expect(result.manifest?.researchEligibility.suitableForCandleResearch).toBe(true);
+    expect(result.manifest?.researchEligibility.metadataAuthority).toBe("METADATA_LIMITED");
+    expect(result.manifest?.pitMetadata.observationCoverage.appliesRetrospectively).toBe(false);
+    const guard = assertCostAdjustedBacktestAllowed(result.manifest!.researchEligibility);
+    expect(guard.ok).toBe(false);
+
+    const costs = classifyResearchCostAvailability(
+      Array.from({ length: 3 }, (_, i) => toStoredResearchBar(makeBar(i))!),
+    );
+    expect(researchCostCoverageStatus(costs).allowsCostAdjustedResults).toBe(false);
+    expect(MIF_RESEARCH_COST_SOURCE_EVIDENCE.findings.slippage.availability).toBe("UNAVAILABLE");
+    expect(MIF_RESEARCH_COST_SOURCE_EVIDENCE.nativeHstParser.implemented).toBe(false);
+  });
+
+  it("rejects stale/mismatched resume and overlapping pages without looping", async () => {
+    const page0 = Array.from({ length: 5 }, (_, i) => makeBar(10 + i));
+    const first = await runResearchHistoricalExport({
+      instrument: "EURUSD",
+      timeframe: "M30",
+      allowExport: true,
+      singlePage: true,
+      storage: store,
+      fetchFn: mockFetchPages([{ bars: page0, hasMore: true }]),
+    });
+    expect(first.job.status).toBe("INCOMPLETE");
+
+    const mismatch = await runResearchHistoricalExport({
+      instrument: "GBPUSD",
+      timeframe: "M30",
+      allowExport: true,
+      resumeJobId: first.job.jobId,
+      storage: store,
+      fetchFn: mockFetchPages([{ bars: page0, hasMore: false }]),
+    });
+    expect(mismatch.job.incompleteReason).toBe("RESUME_IDENTITY_MISMATCH");
+    // Original job must remain resumable (not overwritten).
+    const still = await store.getExportJob(first.job.jobId);
+    expect(still?.status).toBe("INCOMPLETE");
+    expect(still?.instrument).toBe("EURUSD");
+
+    const missing = await runResearchHistoricalExport({
+      instrument: "EURUSD",
+      timeframe: "M30",
+      allowExport: true,
+      resumeJobId: "export:missing:job",
+      storage: store,
+      fetchFn: mockFetchPages([{ bars: page0, hasMore: false }]),
+    });
+    expect(missing.job.incompleteReason).toBe("RESUME_JOB_NOT_FOUND");
+
+    // Overlapping duplicate page after pause (same newest window again)
+    const dup = await runResearchHistoricalExport({
+      instrument: "EURUSD",
+      timeframe: "M30",
+      allowExport: true,
+      resumeJobId: first.job.jobId,
+      storage: store,
+      fetchFn: mockFetchPages([{ bars: page0, hasMore: true }]),
+    });
+    expect(dup.job.incompleteReason).toBe("DUPLICATE_OR_OVERLAPPING_PAGE");
+    expect(dup.job.nextStartPos).toBeGreaterThan(first.job.nextStartPos - 1);
+  });
+
+  it("marks hard-cap truncation as INCOMPLETE and verifies hash after readback", async () => {
+    const page0 = Array.from({ length: 50 }, (_, i) => makeBar(i));
+    const result = await runResearchHistoricalExport({
+      instrument: "XAUUSD",
+      timeframe: "H4",
+      allowExport: true,
+      maxBars: 20,
+      maxPages: 5,
+      storage: store,
+      fetchFn: mockFetchPages([{ bars: page0, hasMore: true }]),
+    });
+    expect(result.job.status).toBe("INCOMPLETE");
+    expect(result.manifest?.status).toBe("INCOMPLETE");
+    expect(result.manifest?.researchEligibility.suitableForCandleResearch).toBe(false);
+    expect(result.bars.length).toBe(20);
+
+    const verified = await store.verifyDatasetConsistency(
+      result.manifest!.datasetId,
+      result.manifest!.version,
+    );
+    expect(verified.ok).toBe(true);
+    if (verified.ok) expect(verified.contentHash).toBe(result.manifest!.contentHash);
+
+    const eligibility = assessResearchEligibility({
+      status: result.manifest!.status,
+      qualitySummary: result.manifest!.qualitySummary,
+      pitMetadata: result.manifest!.pitMetadata,
+      candleCount: result.manifest!.candleCount,
+    });
+    expect(eligibility.exportCompleteness).toBe("INCOMPLETE");
+  });
+
+  it("persists forward-looking observation snapshots without retrospective authority", async () => {
+    const rel = await store.persistObservationSnapshot({
+      instrument: "EURUSD",
+      timeframe: "H1",
+      catalogRow: {
+        providerSymbol: "EURUSD",
+        digits: 5,
+        sessions: { tradeSessionDays: 5 },
+        catalogVersion: "obs-test",
+      },
+    });
+    expect(rel).toContain("metadata/observations/");
+    const abs = path.join(store.root, rel);
+    expect(fs.existsSync(abs)).toBe(true);
+    const doc = JSON.parse(fs.readFileSync(abs, "utf8"));
+    expect(doc.appliesRetrospectively).toBe(false);
+    expect(doc.historicalAuthority).toBe(false);
+    expect(doc.sessions.historicalAuthority).toBe(false);
+  });
+
+  it("detects out-of-order page and does not seal COMPLETE", async () => {
+    const page0 = Array.from({ length: 3 }, (_, i) => makeBar(i));
+    // Second page falsely returns newer bars than archive tip (violates CopyRates older-page rule).
+    const badPage = Array.from({ length: 3 }, (_, i) => makeBar(10 + i));
+    const result = await runResearchHistoricalExport({
+      instrument: "USDJPY",
+      timeframe: "M15",
+      allowExport: true,
+      maxPages: 5,
+      storage: store,
+      fetchFn: mockFetchPages([
+        { bars: page0, hasMore: true },
+        { bars: badPage, hasMore: true },
+      ]),
+    });
+    expect(result.job.incompleteReason).toBe("OUT_OF_ORDER_PAGE");
+    expect(result.job.status).toBe("INCOMPLETE");
+    expect(result.manifest?.status).toBe("INCOMPLETE");
+    expect(result.manifest?.researchEligibility.suitableForCandleResearch).toBe(false);
   });
 });

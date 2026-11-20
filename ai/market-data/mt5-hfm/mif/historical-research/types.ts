@@ -78,8 +78,11 @@ export interface MifResearchPitInstrumentSpec {
 export interface MifResearchPitSessionMetadata {
   providerSymbol: string;
   sessionsPresent: boolean;
-  /** Never claim historical authority from today's catalog alone. */
-  historicalAuthority: false;
+  /**
+   * Must remain false unless a verified historical session source exists.
+   * Today's catalog observation never sets this true.
+   */
+  historicalAuthority: boolean;
   observedAt: string;
   effectiveAt: string | null;
   availability: "CURRENT_METADATA_ONLY" | "UNAVAILABLE";
@@ -88,12 +91,32 @@ export interface MifResearchPitSessionMetadata {
   limitation: string;
   /** Opaque reference to catalog version / path when captured. */
   catalogRef: string | null;
+  /** Periods before first durable observation remain unknown. */
+  unknownBeforeObservedAt: true;
 }
 
 export interface MifResearchPitMetadataBundle {
   instrumentSpec: MifResearchPitInstrumentSpec;
   sessions: MifResearchPitSessionMetadata;
   collectedAt: string;
+  /** Forward-looking: observation applies from observedAt onward only. */
+  observationCoverage: {
+    observedAt: string;
+    appliesRetrospectively: false;
+    unknownPeriodsNote: string;
+  };
+}
+
+export interface MifResearchEligibility {
+  exportCompleteness: MifResearchDatasetStatus;
+  qualityValidity: "QUALITY_VALID" | "QUALITY_DEGRADED";
+  metadataAuthority: "HISTORICALLY_AUTHORITATIVE" | "METADATA_LIMITED";
+  costCompleteness: "COST_COMPLETE" | "COST_INCOMPLETE";
+  suitableForCandleResearch: boolean;
+  suitableForCostAdjustedBacktest: boolean;
+  suitableForSessionSensitiveResearch: boolean;
+  blockReasons: readonly string[];
+  notes: readonly string[];
 }
 
 export interface MifResearchExportProvenance {
@@ -134,6 +157,7 @@ export interface MifResearchDatasetManifest {
   pitMetadata: MifResearchPitMetadataBundle;
   exportProvenance: MifResearchExportProvenance;
   barsRelativePath: string;
+  researchEligibility: MifResearchEligibility;
   placesOrders: false;
   mutatesBroker: false;
   acceptsForExecution: false;
@@ -202,4 +226,7 @@ export interface MifResearchRegistryEntry {
   endTime: number | null;
   createdAt: string;
   manifestRelativePath: string;
+  suitableForCandleResearch?: boolean;
+  suitableForCostAdjustedBacktest?: boolean;
+  costCompleteness?: "COST_COMPLETE" | "COST_INCOMPLETE";
 }

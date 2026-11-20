@@ -5,11 +5,11 @@
 
 export const MIF_HISTORICAL_RESEARCH_CONTRACT_ID =
   "kwizera.mif.historical-research.v1" as const;
-export const MIF_HISTORICAL_RESEARCH_CONTRACT_VERSION = "1.0.0" as const;
+export const MIF_HISTORICAL_RESEARCH_CONTRACT_VERSION = "1.1.0" as const;
 
 export const MIF_HISTORICAL_RESEARCH_ENGINE_ID =
   "mif-historical-research-foundation" as const;
-export const MIF_HISTORICAL_RESEARCH_ENGINE_VERSION = "1.0.0" as const;
+export const MIF_HISTORICAL_RESEARCH_ENGINE_VERSION = "1.1.0" as const;
 
 export const MIF_RESEARCH_PROVIDER_ID = "HFM_MT5" as const;
 
