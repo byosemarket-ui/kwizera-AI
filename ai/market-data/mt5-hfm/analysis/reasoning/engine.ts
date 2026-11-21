@@ -150,12 +150,35 @@ export async function runHfmAiReasoning(input: {
       scenarioRaw,
     });
 
+    // Phase 7 — cache-only fundamentals join (never live HTTP; ranking unaffected).
+    let fundamentalPackage: Record<string, unknown> | null = null;
+    try {
+      const { buildHfmFundamentalsPackageForSnapshot, summarizeFundamentalsForUnifiedInput } =
+        await import("../../fundamentals/index.js");
+      const fundPkg = await buildHfmFundamentalsPackageForSnapshot({
+        snapshotId: evidence.snapshotId,
+        symbol: String(evidence.context.snapshot?.symbol ?? ""),
+        asOfUtc: evidence.context.snapshot?.capturedAt,
+        persist: true,
+      });
+      fundamentalPackage = summarizeFundamentalsForUnifiedInput(fundPkg);
+    } catch {
+      fundamentalPackage = {
+        availability: "UNAVAILABLE",
+        informationalOnly: true,
+        rankingUnaffected: true,
+        events: [],
+        qualityWarnings: ["FUNDAMENTALS_JOIN_FAILED"],
+      };
+    }
+
     const unified = buildHfmUnifiedAiAnalysisInput({
       analysisId,
       context: evidence.context,
       imageRefs: evidence.imageRefs,
       orchestration,
       scenarioPackage,
+      fundamentalPackage,
     });
 
     const lineageBase: HfmReasoningLineage = {

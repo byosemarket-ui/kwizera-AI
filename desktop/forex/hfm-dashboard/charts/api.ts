@@ -382,6 +382,9 @@ const ANALYSIS_ANALYZE_NOW = "/api/forex/providers/mt5-hfm/analysis/analyze-now"
 const ANALYSIS_AUTO = "/api/forex/providers/mt5-hfm/analysis/auto-analysis";
 const ANALYSIS_INTELLIGENCE = "/api/forex/providers/mt5-hfm/analysis/intelligence";
 const ANALYSIS_SCENARIO = "/api/forex/providers/mt5-hfm/analysis/scenario";
+const FUNDAMENTALS_STATUS = "/api/forex/providers/mt5-hfm/fundamentals/status";
+const FUNDAMENTALS_CALENDAR = "/api/forex/providers/mt5-hfm/fundamentals/calendar";
+const ANALYSIS_FUNDAMENTALS = "/api/forex/providers/mt5-hfm/analysis/fundamentals";
 
 /** Phase 2 — prepare multi-TF context + backend chart images (no OpenAI reasoning). */
 export async function prepareHfmAnalysisContextRequest(input: {
@@ -542,6 +545,47 @@ export async function fetchHfmReasonById(
 ): Promise<Record<string, unknown>> {
   const path = `${ANALYSIS_REASON}/${encodeURIComponent(analysisId)}`;
   const { status, body } = await requestJson<Record<string, unknown>>(path, { signal });
+  return { httpStatus: status, ...body };
+}
+
+/** Phase 7 — economic calendar status (gated; may be LICENSING_BLOCKED). */
+export async function fetchHfmFundamentalsStatus(
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(FUNDAMENTALS_STATUS, {
+    signal,
+  });
+  return { httpStatus: status, ...body };
+}
+
+/** Phase 7 — read-only calendar query (admin-auth; gated). */
+export async function fetchHfmEconomicCalendar(input: {
+  currency?: string;
+  impact?: string;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const q = new URLSearchParams();
+  if (input.currency) q.set("currency", input.currency);
+  if (input.impact) q.set("impact", input.impact ?? "high,medium");
+  if (input.limit != null) q.set("limit", String(input.limit));
+  const qs = q.toString();
+  const path = `${FUNDAMENTALS_CALENDAR}${qs ? `?${qs}` : ""}`;
+  const { status, body } = await requestJson<Record<string, unknown>>(path, { signal: input.signal });
+  return { httpStatus: status, ...body };
+}
+
+/** Phase 7 — snapshot-joined fundamentals package. */
+export async function fetchHfmFundamentalsSnapshot(input: {
+  snapshotId: string;
+  symbol?: string;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const q = new URLSearchParams();
+  if (input.symbol) q.set("symbol", input.symbol);
+  const qs = q.toString();
+  const path = `${ANALYSIS_FUNDAMENTALS}/${encodeURIComponent(input.snapshotId)}${qs ? `?${qs}` : ""}`;
+  const { status, body } = await requestJson<Record<string, unknown>>(path, { signal: input.signal });
   return { httpStatus: status, ...body };
 }
 

@@ -214,6 +214,11 @@ export interface BuildHfmUnifiedAiAnalysisInputArgs {
   orchestration: MifOrchestrationResult | null;
   /** Phase 4 scenario package for this snapshot (may be null). */
   scenarioPackage: MifScenarioPackage | null;
+  /**
+   * Phase 7 — optional economic calendar package summary (cache-only join).
+   * Informational only; must never alter Phase 4 ranking.
+   */
+  fundamentalPackage?: Record<string, unknown> | null;
   maxEvidence?: number;
   maxCandidates?: number;
 }
@@ -549,6 +554,14 @@ export function buildHfmUnifiedAiAnalysisInput(
           },
         }
       : null,
+    /** Phase 7 economic calendar — informational; never modifies Phase 4 ranking. */
+    fundamentalPackage: args.fundamentalPackage ?? {
+      availability: "NOT_CONFIGURED",
+      informationalOnly: true,
+      rankingUnaffected: true,
+      events: [],
+      note: "No fundamentalPackage supplied for this analysis.",
+    },
     analysisMetadata: {
       analysisId: args.analysisId,
       snapshotId: snap.snapshotId,
@@ -581,6 +594,8 @@ export function buildHfmUnifiedAiAnalysisInput(
       "exactly_four_chart_images_H1_M30_M15_M5",
       "AI_must_not_invent_prices_or_evidence_ids",
       "FORMING_candles_alone_cannot_confirm",
+      "fundamentalPackage_is_informational_only_does_not_alter_phase4_ranking",
+      "do_not_invent_economic_releases_forecasts_or_actuals",
       ...(completeness === "PARTIAL" ? ["input_package_PARTIAL_do_not_describe_as_complete"] : []),
       ...(formingOnlyBlocked ? ["formingOnlyConfirmationBlocked=true"] : []),
     ],

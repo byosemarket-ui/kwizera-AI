@@ -8,6 +8,8 @@ import {
   disableHfmAutoAnalysisRequest,
   enableHfmAutoAnalysisRequest,
   fetchHfmAutoAnalysisStatus,
+  fetchHfmEconomicCalendar,
+  fetchHfmFundamentalsStatus,
   fetchHfmIntelligenceSummary,
   fetchHfmScenarioSummary,
   prepareHfmAnalysisContextRequest,
@@ -16,9 +18,15 @@ import {
 import { HfmAiDecisionPanel } from "./analysis/HfmAiDecisionPanel";
 import { HfmAnalyticalLevels } from "./analysis/HfmAnalyticalLevels";
 import { HfmAnalysisHistory } from "./analysis/HfmAnalysisHistory";
+import { HfmEconomicCalendarPanel } from "./analysis/HfmEconomicCalendarPanel";
 import { HfmEvidenceExplorer } from "./analysis/HfmEvidenceExplorer";
 import { HfmOrchestrationStatus } from "./analysis/HfmOrchestrationStatus";
 import { HfmScenarioCompare } from "./analysis/HfmScenarioCompare";
+import {
+  emptyCalendarView,
+  parseHfmEconomicCalendarResponse,
+  type HfmEconomicCalendarView,
+} from "./analysis/parse-hfm-fundamentals";
 import {
   buildAnalyticalOverlays,
   type HfmAnalyticalOverlay,
@@ -131,6 +139,9 @@ export function HfmAnalysisPanel(props: {
     returnToLive,
     emptyPackages,
   } = session;
+  const [calendarView, setCalendarView] = useState<HfmEconomicCalendarView>(() =>
+    emptyCalendarView({ loading: true }),
+  );
   const [scheduler, setScheduler] = useState<SchedulerView>({
     enabled: false,
     selectedSymbol: symbol,
@@ -246,6 +257,55 @@ export function HfmAnalysisPanel(props: {
       cancelled = true;
     };
   }, [symbol, timeframe, applyScheduler, clearForSymbolChange]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCalendarView(emptyCalendarView({ loading: true }));
+    void (async () => {
+      try {
+        const statusBody = await fetchHfmFundamentalsStatus();
+        const availability = str(statusBody.availability) ?? "NOT_CONFIGURED";
+        if (availability === "LICENSING_BLOCKED" || availability === "NOT_CONFIGURED") {
+          if (!cancelled) {
+            setCalendarView(
+              emptyCalendarView({
+                loading: false,
+                availability,
+                attribution: null,
+                message: str(statusBody.enableInstructions),
+              }),
+            );
+          }
+          return;
+        }
+        const ccy =
+          symbol.length >= 6
+            ? `${symbol.slice(0, 3)},${symbol.slice(3, 6)}`
+            : symbol.startsWith("XAU")
+              ? "USD"
+              : "";
+        const calBody = await fetchHfmEconomicCalendar({
+          currency: ccy || undefined,
+          impact: "high,medium",
+          limit: 40,
+        });
+        if (!cancelled) setCalendarView(parseHfmEconomicCalendarResponse(calBody));
+      } catch {
+        if (!cancelled) {
+          setCalendarView(
+            emptyCalendarView({
+              loading: false,
+              availability: "UNAVAILABLE",
+              message: "Calendar request failed",
+            }),
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol]);
 
   const scenarioLevels = useMemo(() => {
     const pkg = sessionState.packages.scenarioPackage;
@@ -571,6 +631,8 @@ export function HfmAnalysisPanel(props: {
       />
 
       <HfmEvidenceExplorer intelligence={sessionState.packages.intelligence} />
+
+      <HfmEconomicCalendarPanel view={calendarView} />
 
       <HfmAnalysisHistory
         symbol={symbol}
