@@ -34,6 +34,8 @@ export class HfmAnalysisStorage {
   readonly diagnosticsDir: string;
   readonly retentionDir: string;
 
+  readonly intelligenceDir: string;
+
   constructor(storageRoot = resolveStorageRoot()) {
     this.root = resolveHfmAnalysisDir(storageRoot);
     this.contextsDir = path.join(this.root, "contexts");
@@ -41,6 +43,7 @@ export class HfmAnalysisStorage {
     this.metadataDir = path.join(this.root, "metadata");
     this.diagnosticsDir = path.join(this.root, "diagnostics");
     this.retentionDir = path.join(this.root, "retention");
+    this.intelligenceDir = path.join(this.root, "intelligence");
   }
 
   async ensureReady(): Promise<void> {
@@ -49,6 +52,7 @@ export class HfmAnalysisStorage {
     await ensureDir(this.metadataDir);
     await ensureDir(this.diagnosticsDir);
     await ensureDir(this.retentionDir);
+    await ensureDir(this.intelligenceDir);
   }
 
   contextPath(snapshotId: string): string {
@@ -61,6 +65,10 @@ export class HfmAnalysisStorage {
 
   imageMetaPath(imageId: string): string {
     return path.join(this.metadataDir, `${imageId}.json`);
+  }
+
+  intelligencePath(snapshotId: string): string {
+    return path.join(this.intelligenceDir, `${snapshotId}.json`);
   }
 
   async saveContext(result: HfmAnalysisContextResult): Promise<void> {
@@ -92,6 +100,33 @@ export class HfmAnalysisStorage {
       const meta = JSON.parse(metaRaw) as HfmAnalysisChartImageMeta;
       const png = await fs.readFile(this.imagePath(imageId));
       return { meta, png };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Phase 3 — persist MIF intelligence orchestration result keyed by Charts snapshotId.
+   * Failed persistence is thrown to the caller (visible); never silently swallows.
+   */
+  async saveIntelligenceOrchestration(
+    snapshotId: string,
+    orchestration: unknown,
+  ): Promise<void> {
+    await this.ensureReady();
+    const id = String(snapshotId ?? "").trim();
+    if (!id) throw new Error("saveIntelligenceOrchestration: snapshotId required");
+    await atomicWrite(
+      this.intelligencePath(id),
+      `${JSON.stringify({ snapshotId: id, savedAtMs: Date.now(), orchestration }, null, 2)}\n`,
+    );
+  }
+
+  async loadIntelligenceOrchestration(snapshotId: string): Promise<unknown | null> {
+    try {
+      const raw = await fs.readFile(this.intelligencePath(snapshotId), "utf8");
+      const parsed = JSON.parse(raw) as { orchestration?: unknown };
+      return parsed.orchestration ?? parsed;
     } catch {
       return null;
     }

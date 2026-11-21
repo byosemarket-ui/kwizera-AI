@@ -301,6 +301,16 @@ function deriveDataQualityStatus(
 export interface MifProductionPipelineRunOpts {
   includeDebugContext?: boolean;
   persist?: boolean;
+  /**
+   * Phase 3 Analyze Now path: skip probability batch (ranking only).
+   * Probability remains available on admin/research paths when unset/false.
+   */
+  skipProbability?: boolean;
+  /**
+   * Absolute deadline (Date.now() ms). When exceeded between stages, pipeline
+   * returns partial/failed analysis with TIMEOUT warning rather than hanging.
+   */
+  deadlineAtMs?: number | null;
   /** Optional historical peers for Step 2 probability (never required; empty → insufficient). */
   historicalCandidates?: import("./persistence/types.js").MifPersistedCandidate[];
   historicalEvaluations?: import("./outcome-evaluation.js").MifOutcomeEvaluationRecord[];
@@ -318,6 +328,12 @@ export function runMifHfmOpportunityPipelineFromSeries(
   const warnings: string[] = [];
   const errors: string[] = [];
   const failureCodes: MifProductionFailureCode[] = [];
+  const pipelineDeadlineAtMs =
+    typeof opts?.deadlineAtMs === "number" && Number.isFinite(opts.deadlineAtMs)
+      ? opts.deadlineAtMs
+      : null;
+  const isPastPipelineDeadline = (): boolean =>
+    pipelineDeadlineAtMs != null && Date.now() >= pipelineDeadlineAtMs;
 
   const providerId = String(input.providerId ?? MIF_PROVIDER_ID).trim().toUpperCase();
   if (providerId !== MIF_PROVIDER_ID) {
@@ -500,6 +516,11 @@ export function runMifHfmOpportunityPipelineFromSeries(
           warnings: [],
           errors: ["empty bars"],
         });
+        continue;
+      }
+
+      if (isPastPipelineDeadline()) {
+        warnings.push(`TIMEOUT:skipped_tf_assessment:${tf}`);
         continue;
       }
 
@@ -1012,48 +1033,63 @@ export function runMifHfmOpportunityPipelineFromSeries(
     });
   }
 
+  const deadlineAtMs =
+    typeof opts?.deadlineAtMs === "number" && Number.isFinite(opts.deadlineAtMs)
+      ? opts.deadlineAtMs
+      : null;
+  const pastDeadline = (): boolean =>
+    deadlineAtMs != null && Date.now() >= deadlineAtMs;
+
   // Phase 5E Step 1 — analytical ranking (never mutates candidates)
   let rankingSummary: MifProductionIntegrationResult["ranking"] = null;
   let rankingRunFull: ReturnType<typeof rankOpportunityCandidates> | null = null;
-  try {
-    rankingRunFull = rankOpportunityCandidates({
-      candidates: detection.candidates,
-      evidence,
-      dataQualityStatus,
-      mtfRelation: mtf.directional.relation,
-      regimeStructure: primaryBundle.regime.structure,
-      regimeDirection: primaryBundle.regime.direction,
-      analysisRunId: requestId,
-      providerSymbol: symbol,
-      primaryTimeframe,
-      rankedAt: processingTimestamp,
-    });
-    rankingSummary = {
-      rankingRunId: rankingRunFull.rankingRunId,
-      rankedCount: rankingRunFull.rankedCount,
-      blockedCount: rankingRunFull.blockedCount,
-      insufficientCount: rankingRunFull.insufficientCount,
-      top: rankingRunFull.rankings.slice(0, 20).map((r) => ({
-        candidateId: r.candidateId,
-        strategyId: String(r.strategyId),
-        rankPosition: r.rankPosition,
-        overallScore: r.overallScore,
-        scoreBand: r.scoreBand,
-        rankingEligibility: r.rankingEligibility,
-      })),
-      isWinProbability: false,
-      executionReadiness: false,
-    };
-  } catch (err) {
-    warnings.push(
-      `ranking_failed:${err instanceof Error ? err.message : String(err)}`,
-    );
+  if (pastDeadline()) {
+    warnings.push("TIMEOUT:skipped_ranking");
+  } else {
+    try {
+      rankingRunFull = rankOpportunityCandidates({
+        candidates: detection.candidates,
+        evidence,
+        dataQualityStatus,
+        mtfRelation: mtf.directional.relation,
+        regimeStructure: primaryBundle.regime.structure,
+        regimeDirection: primaryBundle.regime.direction,
+        analysisRunId: requestId,
+        providerSymbol: symbol,
+        primaryTimeframe,
+        rankedAt: processingTimestamp,
+      });
+      rankingSummary = {
+        rankingRunId: rankingRunFull.rankingRunId,
+        rankedCount: rankingRunFull.rankedCount,
+        blockedCount: rankingRunFull.blockedCount,
+        insufficientCount: rankingRunFull.insufficientCount,
+        top: rankingRunFull.rankings.slice(0, 20).map((r) => ({
+          candidateId: r.candidateId,
+          strategyId: String(r.strategyId),
+          rankPosition: r.rankPosition,
+          overallScore: r.overallScore,
+          scoreBand: r.scoreBand,
+          rankingEligibility: r.rankingEligibility,
+        })),
+        isWinProbability: false,
+        executionReadiness: false,
+      };
+    } catch (err) {
+      warnings.push(
+        `ranking_failed:${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
-  // Phase 5E Step 2 — evidence + probability (historical peers optional; never fabricate)
+  // Phase 5E Step 2 — evidence + probability (skipped on Phase 3 Analyze Now path)
   let probabilitySummary: MifProductionIntegrationResult["probabilityIntelligence"] = null;
   let probabilityBundles: ReturnType<typeof assessProbabilityIntelligenceBatch> | null = null;
-  try {
+  if (opts?.skipProbability === true) {
+    warnings.push("probability_batch_skipped:phase3_ranking_only");
+  } else if (pastDeadline()) {
+    warnings.push("TIMEOUT:skipped_probability");
+  } else try {
     probabilityBundles = assessProbabilityIntelligenceBatch({
       candidates: detection.candidates,
       evidence,

@@ -1,6 +1,7 @@
 /**
  * HFM Analysis context orchestrator — multi-TF collect → quality → sync → render → persist.
- * Phase 2 only: no OpenAI reasoning, no scheduler, no execution.
+ * Phase 3: fail-open MIF intelligence orchestration on the same snapshot (no OpenAI evidence yet).
+ * Does not submit broker orders. OD worker remains disabled.
  */
 import {
   HFM_ANALYSIS_DEFAULT_TF_PACK,
@@ -30,6 +31,8 @@ import type {
   HfmAnalysisMultiTfSnapshot,
   HfmAnalysisPrepState,
 } from "./types.js";
+import { HFM_REASONING_REQUIRED_TFS } from "./reasoning/constants.js";
+import { runChartsIntelligenceOrchestration } from "../mif/orchestration/charts-bridge.js";
 
 export interface PrepareHfmAnalysisContextInput {
   symbol: string;
@@ -199,11 +202,33 @@ export async function prepareHfmAnalysisContext(
       diagnostics.push("render skipped: data quality INVALID/INCOMPLETE");
     }
 
-    const aiReady = dataQuality.approvedForAiReasoning && Object.keys(chartImages).length === job.analysisTimeframes.length;
+    // OpenAI still requires H1/M30/M15/M5 images; H4 is supplemental intelligence only.
+    const requiredImagesOk = HFM_REASONING_REQUIRED_TFS.every((tf) => Boolean(chartImages[tf]));
+    const aiReady = dataQuality.approvedForAiReasoning && requiredImagesOk;
     const failedHard = dataQuality.status === "INVALID" || dataQuality.status === "INCOMPLETE";
     state = failedHard ? "FAILED" : aiReady ? "COMPLETED" : "DEGRADED";
     job = finalizeJob(job, failedHard ? "FAILED" : aiReady ? "COMPLETED" : "DEGRADED");
     setActiveAnalysisJob(job);
+
+    // Phase 3 — fail-open intelligence orchestration on the same snapshot series.
+    let intelligenceOrchestration: unknown | null = null;
+    if (!failedHard && snapshot) {
+      try {
+        const orch = runChartsIntelligenceOrchestration({
+          snapshot,
+          correlationId: snapshot.snapshotId,
+        });
+        intelligenceOrchestration = orch;
+        diagnostics.push(
+          `intelligence:${orch.orchestrationStatus}:trusted=${orch.completeness.evidenceTrustedComplete}:warnings=${orch.warnings.length}`,
+        );
+      } catch (err) {
+        diagnostics.push(
+          `intelligence:FAILED:${err instanceof Error ? err.message : String(err)}`,
+        );
+        intelligenceOrchestration = null;
+      }
+    }
 
     const result: HfmAnalysisContextResult = {
       ok: !failedHard,
@@ -211,6 +236,7 @@ export async function prepareHfmAnalysisContext(
       job,
       snapshot,
       chartImages,
+      intelligenceOrchestration,
       timings: { ...timings, totalMs: Date.now() - totalStart },
       diagnostics,
       placesOrders: false,
@@ -224,6 +250,17 @@ export async function prepareHfmAnalysisContext(
       for (const [tf, meta] of Object.entries(chartImages)) {
         const png = pngByTf[tf];
         if (png) await storage.saveImage(meta, png);
+      }
+      if (
+        intelligenceOrchestration
+        && typeof intelligenceOrchestration === "object"
+        && intelligenceOrchestration != null
+        && "evidencePackage" in intelligenceOrchestration
+      ) {
+        await storage.saveIntelligenceOrchestration(
+          snapshot.snapshotId,
+          intelligenceOrchestration,
+        );
       }
     }
 

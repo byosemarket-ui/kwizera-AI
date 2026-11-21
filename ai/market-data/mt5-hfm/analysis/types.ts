@@ -159,6 +159,11 @@ export interface HfmAnalysisContextResult {
   job: HfmAnalysisImmutableJob;
   snapshot: HfmAnalysisMultiTfSnapshot | null;
   chartImages: Record<string, HfmAnalysisChartImageMeta>;
+  /**
+   * Phase 3 — optional intelligence orchestration outcome.
+   * Opaque JSON-serializable shape; typed at Charts bridge boundary.
+   */
+  intelligenceOrchestration?: unknown | null;
   timings: {
     collectMs: number;
     normalizeMs: number;

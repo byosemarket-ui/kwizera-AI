@@ -4,13 +4,16 @@
 
 export const HFM_ANALYSIS_PROVIDER = "HFM_MT5" as const;
 
-/** Default Analysis timeframe pack (owner-approved). */
-export const HFM_ANALYSIS_DEFAULT_TF_PACK = ["H1", "M30", "M15", "M5"] as const;
+/**
+ * Default Analysis collection pack (Phase 3 owner-approved).
+ * H4 is supplemental intelligence evidence; OpenAI image requirements stay on H1–M5.
+ */
+export const HFM_ANALYSIS_DEFAULT_TF_PACK = ["H4", "H1", "M30", "M15", "M5"] as const;
 
 export type HfmAnalysisDefaultTf = (typeof HFM_ANALYSIS_DEFAULT_TF_PACK)[number];
 
-/** Future Analysis candidates (Charts live-verified; not required in Phase 2 pack). */
-export const HFM_ANALYSIS_FUTURE_TF_CANDIDATES = ["M1", "H4", "D1"] as const;
+/** Future Analysis candidates (Charts live-verified; not required in default pack). */
+export const HFM_ANALYSIS_FUTURE_TF_CANDIDATES = ["M1", "D1"] as const;
 
 /** Candles fetched per timeframe for Analysis context (bounded for VPS/MT5). */
 export const HFM_ANALYSIS_CANDLE_LIMIT = 120;
@@ -44,6 +47,7 @@ export const HFM_ANALYSIS_QUALITY_POLICY = {
     M15: 2,
     M30: 2,
     H1: 2,
+    H4: 2,
   } as Record<string, number>,
   minCandlesPerTf: 30,
   maxMissingBarRatio: 0.15,
