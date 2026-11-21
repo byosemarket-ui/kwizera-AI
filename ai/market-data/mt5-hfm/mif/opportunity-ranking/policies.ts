@@ -12,13 +12,14 @@ import {
 import type { MifRankingPolicy, MifRankingPolicyWeights } from "./types.js";
 
 export const MIF_DEFAULT_RANKING_WEIGHTS: MifRankingPolicyWeights = {
-  dataQuality: 0.15,
-  evidenceCompleteness: 0.15,
-  analyticalEvidence: 0.2,
-  marketStructureAlignment: 0.12,
-  momentumDisplacement: 0.13,
+  dataQuality: 0.14,
+  evidenceCompleteness: 0.14,
+  analyticalEvidence: 0.18,
+  marketStructureAlignment: 0.11,
+  marketRegimeAlignment: 0.05,
+  momentumDisplacement: 0.12,
   multiTimeframeAgreement: 0.15,
-  strategySetupQuality: 0.1,
+  strategySetupQuality: 0.11,
 };
 
 export const MIF_POLICY_HFM_OPPORTUNITY_RANKING: MifRankingPolicy = {
@@ -28,19 +29,21 @@ export const MIF_POLICY_HFM_OPPORTUNITY_RANKING: MifRankingPolicy = {
   weights: { ...MIF_DEFAULT_RANKING_WEIGHTS },
   weightRationale: {
     dataQuality:
-      "0.15 — invalid/stale HFM data undermines all other components; foundational gate.",
+      "0.14 — invalid/stale HFM data undermines all other components; foundational gate.",
     evidenceCompleteness:
-      "0.15 — strategy-required evidence coverage; missing required evidence is not treated as negative proof.",
+      "0.14 — strategy-required evidence coverage; missing required evidence is not treated as negative proof.",
     analyticalEvidence:
-      "0.20 — largest positive weight: net supporting vs conflicting detector evidence after provenance dedupe.",
+      "0.18 — net supporting vs conflicting detector evidence after provenance dedupe.",
     marketStructureAlignment:
-      "0.12 — structure bias vs candidate direction; correlated with displacement (deduped).",
+      "0.11 — structure bias vs candidate direction; correlated with displacement (deduped).",
+    marketRegimeAlignment:
+      "0.05 — Phase 4: HTF regime direction/structure vs candidate BUY/SELL; symmetric; unused regime inputs now scored.",
     momentumDisplacement:
-      "0.13 — ROC/RSI + dedicated CLOSED displacement; FORMING provisional never scored as confirmed.",
+      "0.12 — ROC/RSI + dedicated CLOSED displacement; FORMING provisional never scored as confirmed.",
     multiTimeframeAgreement:
-      "0.15 — HTF/ITF agreement is a strong prioritization signal; conflicts get conflict penalty separately.",
+      "0.15 — HTF/ITF agreement is a strong prioritization signal; MTF CONFLICT is scored here (not double-penalized).",
     strategySetupQuality:
-      "0.10 — candidate status, confirmations outstanding, known limitations; secondary to evidence.",
+      "0.11 — candidate status, confirmations outstanding, known limitations; secondary to evidence.",
   },
   maxConflictPenalty: 25,
   bandThresholds: {
@@ -73,6 +76,7 @@ export function validateMifRankingPolicy(
     + w.evidenceCompleteness
     + w.analyticalEvidence
     + w.marketStructureAlignment
+    + w.marketRegimeAlignment
     + w.momentumDisplacement
     + w.multiTimeframeAgreement
     + w.strategySetupQuality;

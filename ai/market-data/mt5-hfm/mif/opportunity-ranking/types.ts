@@ -31,6 +31,7 @@ export type MifScoreComponentId =
   | "EVIDENCE_COMPLETENESS"
   | "ANALYTICAL_EVIDENCE"
   | "MARKET_STRUCTURE_ALIGNMENT"
+  | "MARKET_REGIME_ALIGNMENT"
   | "MOMENTUM_DISPLACEMENT"
   | "MULTI_TIMEFRAME_AGREEMENT"
   | "STRATEGY_SETUP_QUALITY"
@@ -52,6 +53,8 @@ export interface MifRankingPolicyWeights {
   evidenceCompleteness: number;
   analyticalEvidence: number;
   marketStructureAlignment: number;
+  /** Phase 4 — HTF regime vs candidate direction (symmetric BUY/SELL). */
+  marketRegimeAlignment: number;
   momentumDisplacement: number;
   multiTimeframeAgreement: number;
   strategySetupQuality: number;

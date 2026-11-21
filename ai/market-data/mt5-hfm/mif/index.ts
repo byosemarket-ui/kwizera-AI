@@ -29,6 +29,7 @@
  * Phase 5F Step 5 Phase B — probability freeze + research results foundation (additive).
  * Master Plan Phase 2 — Unified Market Evidence Foundation (additive adapters + contract).
  * Master Plan Phase 3 — HFM data synchronization & intelligence orchestration (additive).
+ * Master Plan Phase 4 — Opportunity Discovery & Scenario Intelligence (deterministic, non-LLM).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";
@@ -54,3 +55,4 @@ export * from "./wf-calibration/index.js";
 export * from "./evidence-linkage/index.js";
 export * from "./market-evidence/index.js";
 export * from "./orchestration/index.js";
+export * from "./scenario-intelligence/index.js";

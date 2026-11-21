@@ -261,6 +261,12 @@ export async function prepareHfmAnalysisContext(
           snapshot.snapshotId,
           intelligenceOrchestration,
         );
+        const orch = intelligenceOrchestration as {
+          scenarioPackage?: unknown;
+        };
+        if (orch.scenarioPackage) {
+          await storage.saveScenarioPackage(snapshot.snapshotId, orch.scenarioPackage);
+        }
       }
     }
 

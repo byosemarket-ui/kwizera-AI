@@ -106,7 +106,7 @@ export class HfmAnalysisStorage {
   }
 
   /**
-   * Phase 3 — persist MIF intelligence orchestration result keyed by Charts snapshotId.
+   * Phase 3/4 — persist MIF intelligence orchestration (+ scenario package) keyed by Charts snapshotId.
    * Failed persistence is thrown to the caller (visible); never silently swallows.
    */
   async saveIntelligenceOrchestration(
@@ -127,6 +127,31 @@ export class HfmAnalysisStorage {
       const raw = await fs.readFile(this.intelligencePath(snapshotId), "utf8");
       const parsed = JSON.parse(raw) as { orchestration?: unknown };
       return parsed.orchestration ?? parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  scenarioPath(snapshotId: string): string {
+    return path.join(this.intelligenceDir, `${snapshotId}.scenario.json`);
+  }
+
+  /** Phase 4 — persist deterministic scenario package by Charts snapshotId. */
+  async saveScenarioPackage(snapshotId: string, scenarioPackage: unknown): Promise<void> {
+    await this.ensureReady();
+    const id = String(snapshotId ?? "").trim();
+    if (!id) throw new Error("saveScenarioPackage: snapshotId required");
+    await atomicWrite(
+      this.scenarioPath(id),
+      `${JSON.stringify({ snapshotId: id, savedAtMs: Date.now(), scenarioPackage }, null, 2)}\n`,
+    );
+  }
+
+  async loadScenarioPackage(snapshotId: string): Promise<unknown | null> {
+    try {
+      const raw = await fs.readFile(this.scenarioPath(snapshotId), "utf8");
+      const parsed = JSON.parse(raw) as { scenarioPackage?: unknown };
+      return parsed.scenarioPackage ?? parsed;
     } catch {
       return null;
     }

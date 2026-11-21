@@ -1,5 +1,6 @@
 import type { MifSafetyFlags } from "../canonical/types.js";
 import type { MifMarketEvidencePackage } from "../market-evidence/types.js";
+import type { MifScenarioPackage } from "../scenario-intelligence/types.js";
 import type {
   MIF_ORCHESTRATION_CONTRACT_ID,
   MIF_ORCHESTRATION_CONTRACT_VERSION,
@@ -25,6 +26,7 @@ export interface MifOrchestrationCompleteness {
   enginesSkipped: readonly string[];
   rankingIncluded: boolean;
   probabilityIncluded: false;
+  scenarioIncluded: boolean;
   evidenceItemCount: number;
   evidenceTrustedComplete: boolean;
   notes: readonly string[];
@@ -56,6 +58,9 @@ export interface MifOrchestrationResult extends MifSafetyFlags {
   mifRunId: string | null;
   evidencePackageId: string | null;
   evidencePackage: MifMarketEvidencePackage | null;
+  /** Phase 4 — deterministic dual-direction scenario package (non-LLM). */
+  scenarioPackage: MifScenarioPackage | null;
+  scenarioPackageId: string | null;
   orchestrationStatus: MifOrchestrationStatus;
   completeness: MifOrchestrationCompleteness;
   warnings: readonly string[];

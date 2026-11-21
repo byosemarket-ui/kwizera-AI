@@ -10,6 +10,8 @@ import { assembleEvidenceFromProduction } from "../market-evidence/assemble-from
 import { validateMarketEvidencePackage } from "../market-evidence/validate.js";
 import { runMifHfmOpportunityPipelineFromSeries } from "../production-integration/run-pipeline.js";
 import { getMifOdWorkerStatus } from "../production-integration/worker.js";
+import { buildScenarioIntelligence } from "../scenario-intelligence/build-scenarios.js";
+import type { MifScenarioPackage } from "../scenario-intelligence/types.js";
 import {
   MIF_ORCHESTRATION_CONTRACT_ID,
   MIF_ORCHESTRATION_CONTRACT_VERSION,
@@ -74,6 +76,8 @@ function baseResult(partial: Partial<MifOrchestrationResult> & {
     mifRunId: partial.mifRunId ?? null,
     evidencePackageId: partial.evidencePackageId ?? null,
     evidencePackage: partial.evidencePackage ?? null,
+    scenarioPackage: partial.scenarioPackage ?? null,
+    scenarioPackageId: partial.scenarioPackageId ?? null,
     orchestrationStatus: partial.orchestrationStatus,
     completeness: partial.completeness,
     warnings: partial.warnings ?? [],
@@ -123,6 +127,7 @@ export function runHfmIntelligenceOrchestration(
     enginesSkipped: [],
     rankingIncluded: false,
     probabilityIncluded: false,
+    scenarioIncluded: false,
     evidenceItemCount: 0,
     evidenceTrustedComplete: false,
     notes,
@@ -249,9 +254,10 @@ export function runHfmIntelligenceOrchestration(
           presentTimeframes: converted.presentTimeframes,
           missingTimeframes: converted.missingTimeframes,
           enginesCompleted: [],
-          enginesSkipped: ["pipeline", "ranking", "evidence_assembly"],
+          enginesSkipped: ["pipeline", "ranking", "evidence_assembly", "scenario_intelligence"],
           rankingIncluded: false,
           probabilityIncluded: false,
+          scenarioIncluded: false,
           evidenceItemCount: 0,
           evidenceTrustedComplete: false,
           notes: ["TIMEOUT_BEFORE_PIPELINE"],
@@ -298,9 +304,10 @@ export function runHfmIntelligenceOrchestration(
           presentTimeframes: converted.presentTimeframes,
           missingTimeframes: converted.missingTimeframes,
           enginesCompleted: [],
-          enginesSkipped: ["pipeline"],
+          enginesSkipped: ["pipeline", "scenario_intelligence"],
           rankingIncluded: false,
           probabilityIncluded: false,
+          scenarioIncluded: false,
           evidenceItemCount: 0,
           evidenceTrustedComplete: false,
           notes: ["PIPELINE_EXCEPTION"],
@@ -352,6 +359,7 @@ export function runHfmIntelligenceOrchestration(
         result: pipeline,
         rankingRun: rankingRun ?? undefined,
         probabilityBundles: null,
+        eligibility: pipeline.eligibility ?? null,
         analysisId: snap.snapshotId,
         snapshotId: snap.snapshotId,
         snapshotIdSourceVerified: true,
@@ -383,6 +391,39 @@ export function runHfmIntelligenceOrchestration(
       warnings.push(`assemble_failed:${err instanceof Error ? err.message : String(err)}`);
     }
     timings.assembleMs = Date.now() - t2;
+
+    // Phase 4 — deterministic scenario synthesis on already-available pipeline outputs.
+    let scenarioPackage: MifScenarioPackage | null = null;
+    let scenarioPackageId: string | null = null;
+    if (Date.now() >= deadlineAtMs) {
+      warnings.push("TIMEOUT:skipped_scenario_intelligence");
+      enginesSkipped.push("scenario_intelligence");
+    } else {
+      try {
+        const scenarioResult = buildScenarioIntelligence({
+          pipeline,
+          rankingRun: rankingRun ?? undefined,
+          snapshotId: snap.snapshotId,
+          snapshotHash: snap.snapshotHash,
+          snapshotIdSourceVerified: true,
+          tipStates: converted.tipStates,
+          presentTimeframes: converted.presentTimeframes,
+          missingTimeframes: converted.missingTimeframes,
+          expectedTimeframes: pack,
+          deadlineAtMs,
+        });
+        scenarioPackage = scenarioResult.package;
+        scenarioPackageId = scenarioResult.package.packageId;
+        enginesCompleted.push("scenario_intelligence");
+        warnings.push(...scenarioResult.package.warnings);
+        warnings.push(`scenario_outcome=${scenarioResult.package.outcome}`);
+      } catch (err) {
+        warnings.push(
+          `scenario_intelligence_failed:${err instanceof Error ? err.message : String(err)}`,
+        );
+        enginesSkipped.push("scenario_intelligence");
+      }
+    }
 
     const timedOut = pipeline.warnings.some((w) => String(w).startsWith("TIMEOUT:"))
       || Date.now() >= deadlineAtMs;
@@ -420,6 +461,8 @@ export function runHfmIntelligenceOrchestration(
       mifRunId: pipeline.persistence?.runId ?? pipeline.requestId,
       evidencePackageId: evidencePackage?.packageId ?? evidencePackageId,
       evidencePackage,
+      scenarioPackage,
+      scenarioPackageId,
       orchestrationStatus,
       completeness: {
         expectedTimeframes: [...pack],
@@ -429,6 +472,7 @@ export function runHfmIntelligenceOrchestration(
         enginesSkipped,
         rankingIncluded,
         probabilityIncluded: false,
+        scenarioIncluded: scenarioPackage != null,
         evidenceItemCount: evidencePackage?.items.length ?? 0,
         evidenceTrustedComplete,
         notes: timedOut ? ["TIMEOUT"] : [],

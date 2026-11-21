@@ -364,7 +364,63 @@ export function scoreOpportunityCandidate(input: ScoreCandidateInput): MifRanked
       "CLOSED confirmed displacement + momentum alignment; FORMING provisional cannot inflate as confirmed.",
   });
 
-  // 6. MTF Agreement
+  // 6. Market Regime Alignment (Phase 4 — previously unused inputs)
+  const regimeEv = findFamily(input.evidence, "MARKET_REGIME");
+  const regimeDir = String(input.regimeDirection || "").toUpperCase();
+  const regimeStruct = String(input.regimeStructure || "").toUpperCase();
+  let regimeScore: number | null = null;
+  let regimeAvail: MifScoreComponentResult["availability"] = "INSUFFICIENT";
+  const regimeInputs: string[] = [
+    `regimeDirection=${input.regimeDirection ?? "null"}`,
+    `regimeStructure=${input.regimeStructure ?? "null"}`,
+  ];
+  if (!regimeDir && !regimeStruct && !regimeEv) {
+    regimeAvail = "INSUFFICIENT";
+  } else {
+    regimeAvail = "AVAILABLE";
+    const bullishRegime =
+      /UP|BULL|TRENDING_UP/.test(regimeDir)
+      || /TRENDING_UP|BULLISH/.test(regimeStruct)
+      || noteHas(regimeEv?.notes, /direction=UP|structure=TRENDING_UP|BIAS=BULLISH/i);
+    const bearishRegime =
+      /DOWN|BEAR|TRENDING_DOWN/.test(regimeDir)
+      || /TRENDING_DOWN|BEARISH/.test(regimeStruct)
+      || noteHas(regimeEv?.notes, /direction=DOWN|structure=TRENDING_DOWN|BIAS=BEARISH/i);
+    const ranging =
+      /RANG|SIDEWAYS|CHOP/.test(regimeDir)
+      || /RANGING|SIDEWAYS/.test(regimeStruct)
+      || noteHas(regimeEv?.notes, /structure=RANGING|direction=FLAT/i);
+    const dir = cand.direction;
+    if ((dir === "BUY" && bullishRegime) || (dir === "SELL" && bearishRegime)) {
+      regimeScore = 90;
+    } else if ((dir === "BUY" && bearishRegime) || (dir === "SELL" && bullishRegime)) {
+      regimeScore = 25;
+    } else if (ranging) {
+      regimeScore = 50;
+    } else {
+      regimeScore = 55;
+    }
+    if (regimeEv) {
+      regimeScore = clampScore(regimeScore * (qualityToScore(regimeEv.qualityStatus) / 100));
+    }
+    regimeInputs.push(`alignBull=${bullishRegime}`, `alignBear=${bearishRegime}`, `ranging=${ranging}`);
+  }
+  components.push({
+    componentId: "MARKET_REGIME_ALIGNMENT",
+    score: regimeScore,
+    weight: policy.weights.marketRegimeAlignment,
+    weightedContribution:
+      regimeScore == null ? null : regimeScore * policy.weights.marketRegimeAlignment,
+    availability: regimeAvail,
+    inputs: regimeInputs,
+    missing: regimeAvail === "INSUFFICIENT" ? ["MARKET_REGIME"] : [],
+    partial: regimeEv && regimeEv.qualityStatus !== "VALID" ? [regimeEv.evidenceId] : [],
+    provenanceKeys: regimeEv ? [regimeEv.sourceAssessmentId ?? regimeEv.evidenceId] : [],
+    explanation:
+      "HTF regime direction/structure vs candidate BUY/SELL; symmetric; not a win probability.",
+  });
+
+  // 7. MTF Agreement
   const mtf = findFamily(input.evidence, "MULTI_TIMEFRAME_RELATIONSHIP");
   const relFromNotes = mtf?.notes?.match(/relation=([A-Z_]+)/i)?.[1] ?? null;
   const rel = input.mtfRelation ?? relFromNotes;
@@ -405,10 +461,11 @@ export function scoreOpportunityCandidate(input: ScoreCandidateInput): MifRanked
     missing: mtfAvail === "INSUFFICIENT" ? ["MULTI_TIMEFRAME_RELATIONSHIP"] : [],
     partial: rel === "PARTIAL_ALIGNMENT" ? ["mtf"] : [],
     provenanceKeys: mtf?.sourceAssessmentId ? [mtf.sourceAssessmentId] : [],
-    explanation: "MTF directional relation mapped to 0–100; conflicts also feed conflict penalty.",
+    explanation:
+      "MTF directional relation mapped to 0–100; CONFLICT already discounted here (not re-added to CONFLICT_PENALTY).",
   });
 
-  // 7. Strategy Setup Quality
+  // 8. Strategy Setup Quality
   let setup = 60;
   if (cand.status === "DETECTED") setup = 80;
   if (cand.status === "NEEDS_CONFIRMATION") setup = 55;
@@ -438,10 +495,10 @@ export function scoreOpportunityCandidate(input: ScoreCandidateInput): MifRanked
       "Candidate status, outstanding confirmations, known limitations; optional detector quality blend (not win probability).",
   });
 
-  // 8. Conflict penalty
-  const conflictCount =
-    prov.contradictions.length
-    + (rel === "CONFLICT" || rel === "POTENTIAL_REVERSAL" ? 1 : 0);
+  // 9. Conflict penalty — provenance contradictions only.
+  // MTF CONFLICT/POTENTIAL_REVERSAL already reduce MULTI_TIMEFRAME_AGREEMENT score;
+  // do not double-penalize them here. Analytical evidence already nets activeNeg.
+  const conflictCount = prov.contradictions.length;
   const conflictPenalty = Math.min(
     policy.maxConflictPenalty,
     conflictCount * 8,
@@ -452,12 +509,12 @@ export function scoreOpportunityCandidate(input: ScoreCandidateInput): MifRanked
     weight: 0,
     weightedContribution: -conflictPenalty,
     availability: conflictCount > 0 ? "AVAILABLE" : "NOT_APPLICABLE",
-    inputs: [`conflictCount=${conflictCount}`],
+    inputs: [`conflictCount=${conflictCount}`, `mtfAlreadyInComponent=${rel ?? "null"}`],
     missing: [],
     partial: [],
     provenanceKeys: [],
     explanation:
-      `Subtracts up to ${policy.maxConflictPenalty} points for contradictions; contradictions are preserved, not averaged away.`,
+      `Subtracts up to ${policy.maxConflictPenalty} for provenance contradictions only; MTF conflict is scored in MULTI_TIMEFRAME_AGREEMENT (no double count).`,
   });
 
   // Aggregate: renormalize positive weights over AVAILABLE/INSUFFICIENT components with scores

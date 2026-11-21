@@ -8,4 +8,5 @@ export const MIF_OPPORTUNITY_RANKING_CONTRACT_VERSION = "1.0.0" as const;
 export const MIF_OPPORTUNITY_RANKING_ENGINE_ID = "mif-opportunity-ranking" as const;
 export const MIF_OPPORTUNITY_RANKING_ENGINE_VERSION = "1.0.0" as const;
 export const MIF_OPPORTUNITY_RANKING_POLICY_ID = "mif-hfm-opportunity-ranking" as const;
-export const MIF_OPPORTUNITY_RANKING_POLICY_VERSION = "1.0.0" as const;
+/** Phase 4 — adds MARKET_REGIME_ALIGNMENT component (still not win probability). */
+export const MIF_OPPORTUNITY_RANKING_POLICY_VERSION = "1.1.0" as const;
