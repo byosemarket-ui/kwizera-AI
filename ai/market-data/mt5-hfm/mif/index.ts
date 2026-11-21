@@ -26,6 +26,7 @@
  * Phase 5F Step 2 — historical analogue & market similarity (additive, analytical only).
  * Phase 5F Step 3 — prediction outcome & historical performance (additive, analytical only).
  * Phase 5F Step 4 — professional backtesting & walk-forward (additive, gross OHLC analytical).
+ * Phase 5F Step 5 Phase B — probability freeze + research results foundation (additive).
  */
 export * from "./canonical/types.js";
 export * from "./canonical/instrument.js";
@@ -46,3 +47,6 @@ export * from "./production-integration/index.js";
 export * from "./historical-research/index.js";
 export * from "./prediction-outcome/index.js";
 export * from "./backtesting/index.js";
+export * from "./research-results/index.js";
+export * from "./wf-calibration/index.js";
+export * from "./evidence-linkage/index.js";

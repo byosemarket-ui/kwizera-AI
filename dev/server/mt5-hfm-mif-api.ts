@@ -54,6 +54,18 @@
  * GET  /api/forex/providers/mt5-hfm/mif/backtesting/runs
  * GET  /api/forex/providers/mt5-hfm/mif/backtesting/runs/:runId
  * GET  /api/forex/providers/mt5-hfm/mif/backtesting/runs/:runId/folds
+ * GET  /api/forex/providers/mt5-hfm/mif/research-results
+ * GET  /api/forex/providers/mt5-hfm/mif/research-results/:summaryId
+ * GET  /api/forex/providers/mt5-hfm/mif/calibration/status
+ * POST /api/forex/providers/mt5-hfm/mif/probability-freeze
+ * GET  /api/forex/providers/mt5-hfm/mif/probability-freeze
+ * GET  /api/forex/providers/mt5-hfm/mif/probability-freeze/:freezeId
+ * POST /api/forex/providers/mt5-hfm/mif/calibration/walk-forward
+ * GET  /api/forex/providers/mt5-hfm/mif/calibration/walk-forward
+ * GET  /api/forex/providers/mt5-hfm/mif/calibration/walk-forward/:runId
+ * GET  /api/forex/providers/mt5-hfm/mif/calibration/walk-forward/:runId/evidence
+ * POST /api/forex/providers/mt5-hfm/mif/evidence-linkage
+ * GET  /api/forex/providers/mt5-hfm/mif/evidence-linkage
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -68,7 +80,10 @@ import {
   MIF_RESEARCH_EXPORTABLE_TIMEFRAMES,
   assessEvidenceIntelligence,
   assessProbabilityIntelligence,
+  aggregateResearchResults,
   buildCalibrationRun,
+  buildProbabilityFreeze,
+  buildProbabilityFreezeRevision,
   buildResearchCoverageMatrix,
   classifyTimeframeLayer,
   computeOpportunityPerformanceStatistics,
@@ -85,6 +100,12 @@ import {
   getMifOpportunityStorage,
   getMifBacktestStorage,
   getMifPredictionOutcomeStorage,
+  getMifProbabilityFreezeStorage,
+  getMifResearchResultsStorage,
+  getMifWfCalibrationStorage,
+  getMifEvidenceLinkageStorage,
+  runWalkForwardCalibration,
+  buildEvidenceLinkage,
   isResearchExportExplicitlyEnabled,
   observeCandidateAgainstCandles,
   rankOpportunityCandidates,
@@ -123,6 +144,30 @@ const BACKTEST_SAFETY = {
   notExecutable: true as const,
   autoWorker: false as const,
   executionModel: "GROSS_OHLC_ANALYTICAL" as const,
+};
+
+const RESEARCH_RESULTS_SAFETY = {
+  placesOrders: false as const,
+  mutatesBroker: false as const,
+  acceptsForExecution: false as const,
+  doesNotApproveAiReasoning: true as const,
+  isNotCalibratedProbability: true as const,
+  descriptiveResearchOnly: true as const,
+  costAdjusted: false as const,
+  notExecutable: true as const,
+  autoWorker: false as const,
+  walkForwardCalibrated: false as const,
+};
+
+const PROBABILITY_FREEZE_SAFETY = {
+  placesOrders: false as const,
+  mutatesBroker: false as const,
+  acceptsForExecution: false as const,
+  doesNotApproveAiReasoning: true as const,
+  isCalibratedProbability: false as const,
+  isWalkForwardCalibrated: false as const,
+  analyticalFreezeOnly: true as const,
+  notExecutable: true as const,
 };
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -1844,6 +1889,439 @@ export async function handleMt5HfmMifApi(
     return true;
   }
 
+  // --- Phase 5F STEP 5 Phase B: research results (bounded descriptive aggregation) ---
+  if (url.pathname === `${PATH_PREFIX}/research-results` && req.method === "GET") {
+    const generate = url.searchParams.get("generate") === "1";
+    const filters = {
+      symbol: url.searchParams.get("symbol"),
+      timeframe: url.searchParams.get("timeframe"),
+      datasetId: url.searchParams.get("datasetId"),
+      backtestRunId: url.searchParams.get("backtestRunId"),
+    };
+    const store = getMifResearchResultsStorage();
+    if (generate) {
+      const summary = await aggregateResearchResults({ filters });
+      const persisted = await store.persistSummary(summary);
+      const payload = {
+        ok: true,
+        summary,
+        persisted: persisted.ok ? { created: persisted.created } : { error: persisted },
+        items: [summary],
+        total: 1,
+        ...RESEARCH_RESULTS_SAFETY,
+        note: "DESCRIPTIVE — NOT A PROBABILITY. UNCALIBRATED. COST-ADJUSTED BACKTEST NOT AVAILABLE when cost incomplete.",
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+    const listed = await store.listSummaries({
+      limit: Math.min(50, Math.max(1, Number(url.searchParams.get("limit") ?? 20) || 20)),
+      offset: Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0),
+    });
+    const payload = {
+      ok: true,
+      ...listed,
+      ...RESEARCH_RESULTS_SAFETY,
+      note: "Pass generate=1 for a bounded on-demand summary. Descriptive only; not calibrated probability.",
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const researchResultMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/research-results\/([^/]+)$/.exec(url.pathname);
+  if (researchResultMatch && req.method === "GET") {
+    const summaryId = decodeURIComponent(researchResultMatch[1]!);
+    const summary = await getMifResearchResultsStorage().getSummary(summaryId);
+    if (!summary) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "SUMMARY_NOT_FOUND", message: "research result summary not found" },
+        ...RESEARCH_RESULTS_SAFETY,
+      });
+      return true;
+    }
+    const payload = { ok: true, summary, ...RESEARCH_RESULTS_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  // --- Phase 5F STEP 5 Phase B: immutable probability freeze ---
+  if (url.pathname === `${PATH_PREFIX}/probability-freeze` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBodyBounded(req, MAX_BODY);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: (err as { code?: string })?.code ?? "BAD_REQUEST",
+          message: err instanceof Error ? err.message : "invalid body",
+        },
+        ...PROBABILITY_FREEZE_SAFETY,
+      });
+      return true;
+    }
+    const assessmentId = String(body.assessmentId ?? "").trim();
+    if (!assessmentId) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "ASSESSMENT_ID_REQUIRED", message: "assessmentId is required" },
+        ...PROBABILITY_FREEZE_SAFETY,
+      });
+      return true;
+    }
+    const assessment = await getMifOpportunityStorage().getProbabilityAssessment(assessmentId);
+    if (!assessment) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "ASSESSMENT_NOT_FOUND", message: "probability assessment not found" },
+        ...PROBABILITY_FREEZE_SAFETY,
+      });
+      return true;
+    }
+    const predictionId =
+      body.predictionId != null && String(body.predictionId).trim()
+        ? String(body.predictionId).trim()
+        : null;
+    let outcomeResolvedAt: string | null =
+      body.outcomeResolvedAt != null && String(body.outcomeResolvedAt).trim()
+        ? String(body.outcomeResolvedAt).trim()
+        : null;
+    if (predictionId && !outcomeResolvedAt) {
+      const latest = await getMifPredictionOutcomeStorage().getLatestOutcomeForPrediction(
+        predictionId,
+      );
+      if (latest?.levelOutcome?.evaluationTimestamp) {
+        outcomeResolvedAt = latest.levelOutcome.evaluationTimestamp;
+      } else if (latest?.computationTimestamp) {
+        outcomeResolvedAt = latest.computationTimestamp;
+      }
+    }
+    const supersedesFreezeId =
+      body.supersedesFreezeId != null && String(body.supersedesFreezeId).trim()
+        ? String(body.supersedesFreezeId).trim()
+        : null;
+    let built;
+    if (supersedesFreezeId) {
+      const prior = await getMifProbabilityFreezeStorage().getFreeze(supersedesFreezeId);
+      if (!prior) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "PRIOR_FREEZE_NOT_FOUND", message: "supersedesFreezeId not found" },
+          ...PROBABILITY_FREEZE_SAFETY,
+        });
+        return true;
+      }
+      built = buildProbabilityFreezeRevision({
+        prior,
+        assessment,
+        revisionReason: String(body.revisionReason ?? "correction"),
+        outcomeResolvedAt,
+        sourceDatasetId:
+          body.sourceDatasetId != null ? String(body.sourceDatasetId) : prior.sourceDatasetId,
+        sourceDatasetVersion:
+          body.sourceDatasetVersion != null
+            ? Number(body.sourceDatasetVersion)
+            : prior.sourceDatasetVersion,
+        sourceContentHash:
+          body.sourceContentHash != null
+            ? String(body.sourceContentHash)
+            : prior.sourceContentHash,
+      });
+    } else {
+      built = buildProbabilityFreeze({
+        assessment,
+        predictionId,
+        predictionAvailableAt:
+          body.predictionAvailableAt != null
+            ? String(body.predictionAvailableAt)
+            : null,
+        snapshotActivationAt:
+          body.snapshotActivationAt != null
+            ? String(body.snapshotActivationAt)
+            : null,
+        outcomeResolvedAt,
+        sourceDatasetId:
+          body.sourceDatasetId != null ? String(body.sourceDatasetId) : null,
+        sourceDatasetVersion:
+          body.sourceDatasetVersion != null ? Number(body.sourceDatasetVersion) : null,
+        sourceContentHash:
+          body.sourceContentHash != null ? String(body.sourceContentHash) : null,
+      });
+    }
+    if (!built.ok) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: built.code, message: built.message },
+        ...PROBABILITY_FREEZE_SAFETY,
+      });
+      return true;
+    }
+    const persisted = await getMifProbabilityFreezeStorage().persistFreeze(built.freeze);
+    if (!persisted.ok) {
+      sendJson(res, 409, {
+        ok: false,
+        error: { code: persisted.code, message: persisted.message },
+        freeze: built.freeze,
+        ...PROBABILITY_FREEZE_SAFETY,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      freeze: built.freeze,
+      created: persisted.created,
+      calibrationClaim: "NOT_CALIBRATED" as const,
+      ...PROBABILITY_FREEZE_SAFETY,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/probability-freeze` && req.method === "GET") {
+    const listed = await getMifProbabilityFreezeStorage().listFreezes({
+      assessmentId: url.searchParams.get("assessmentId") ?? undefined,
+      predictionId: url.searchParams.get("predictionId") ?? undefined,
+      providerSymbol: url.searchParams.get("symbol") ?? undefined,
+      limit: Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 50) || 50)),
+      offset: Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0),
+    });
+    const payload = {
+      ok: true,
+      ...listed,
+      ...PROBABILITY_FREEZE_SAFETY,
+      note: "Frozen prediction-time probabilities are NOT calibrated probabilities.",
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const freezeMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/probability-freeze\/([^/]+)$/.exec(url.pathname);
+  if (freezeMatch && req.method === "GET") {
+    const freezeId = decodeURIComponent(freezeMatch[1]!);
+    const freeze = await getMifProbabilityFreezeStorage().getFreeze(freezeId);
+    if (!freeze) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "FREEZE_NOT_FOUND", message: "probability freeze not found" },
+        ...PROBABILITY_FREEZE_SAFETY,
+      });
+      return true;
+    }
+    const payload = { ok: true, freeze, ...PROBABILITY_FREEZE_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  // --- Phase 5F STEP 5 Phase C: walk-forward-aware calibration (metrics-only) ---
+  if (url.pathname === `${PATH_PREFIX}/calibration/walk-forward` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBodyBounded(req, MAX_BODY);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: (err as { code?: string })?.code ?? "BAD_REQUEST",
+          message: err instanceof Error ? err.message : "invalid body",
+        },
+        ...RESEARCH_RESULTS_SAFETY,
+      });
+      return true;
+    }
+    const backtestRunId = String(body.backtestRunId ?? "").trim();
+    if (!backtestRunId) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "BACKTEST_RUN_ID_REQUIRED", message: "backtestRunId is required" },
+        ...RESEARCH_RESULTS_SAFETY,
+      });
+      return true;
+    }
+    const bt = getMifBacktestStorage();
+    const manifest = await bt.getManifest(backtestRunId);
+    if (!manifest) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "BACKTEST_NOT_FOUND", message: "backtest run not found" },
+        ...RESEARCH_RESULTS_SAFETY,
+      });
+      return true;
+    }
+    const tips = await bt.getTips(backtestRunId);
+    const freezes = await getMifProbabilityFreezeStorage().listFreezes({ limit: 100 });
+    const outcomes = await getMifPredictionOutcomeStorage().listOutcomes({ limit: 100 });
+    const result = runWalkForwardCalibration({
+      backtestManifest: manifest,
+      tips,
+      freezes: freezes.items,
+      outcomes: outcomes.items,
+    });
+    const persisted = await getMifWfCalibrationStorage().persistRun(result.run, {
+      runId: result.run.runId,
+      included: result.included,
+      excluded: result.excluded,
+    });
+    const payload = {
+      ok: true,
+      run: result.run,
+      persisted: persisted.ok ? { created: persisted.created } : { error: persisted },
+      includedCount: result.included.length,
+      excludedCount: result.excluded.length,
+      walkForwardCalibrated: false,
+      modelFitPerformed: false,
+      note: "Metrics-only WF evaluation. NOT_CALIBRATED / INSUFFICIENT_DATA / PROVISIONAL_EVALUATION / CALIBRATION_EVALUATED as evidence supports. Never mid-split 5E.",
+      ...RESEARCH_RESULTS_SAFETY,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/calibration/walk-forward` && req.method === "GET") {
+    const listed = await getMifWfCalibrationStorage().listRuns({
+      limit: Math.min(50, Math.max(1, Number(url.searchParams.get("limit") ?? 20) || 20)),
+      offset: Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0),
+    });
+    const payload = {
+      ok: true,
+      ...listed,
+      walkForwardCalibrated: false,
+      ...RESEARCH_RESULTS_SAFETY,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const wfEvidenceMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/calibration\/walk-forward\/([^/]+)\/evidence$/.exec(
+      url.pathname,
+    );
+  if (wfEvidenceMatch && req.method === "GET") {
+    const runId = decodeURIComponent(wfEvidenceMatch[1]!);
+    const evidence = await getMifWfCalibrationStorage().getEvidence(runId);
+    if (!evidence) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "EVIDENCE_NOT_FOUND", message: "WF calibration evidence not found" },
+        ...RESEARCH_RESULTS_SAFETY,
+      });
+      return true;
+    }
+    const bounded = {
+      runId: evidence.runId,
+      included: evidence.included.slice(0, 500),
+      excluded: evidence.excluded.slice(0, 500),
+      includedTotal: evidence.included.length,
+      excludedTotal: evidence.excluded.length,
+    };
+    const payload = { ok: true, evidence: bounded, ...RESEARCH_RESULTS_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const wfRunMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/calibration\/walk-forward\/([^/]+)$/.exec(
+      url.pathname,
+    );
+  if (wfRunMatch && req.method === "GET") {
+    const runId = decodeURIComponent(wfRunMatch[1]!);
+    const run = await getMifWfCalibrationStorage().getRun(runId);
+    if (!run) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "WF_CALIBRATION_NOT_FOUND", message: "WF calibration run not found" },
+        ...RESEARCH_RESULTS_SAFETY,
+      });
+      return true;
+    }
+    const payload = { ok: true, run, ...RESEARCH_RESULTS_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/evidence-linkage` && req.method === "POST") {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBodyBounded(req, MAX_BODY);
+    } catch (err) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: (err as { code?: string })?.code ?? "BAD_REQUEST",
+          message: err instanceof Error ? err.message : "invalid body",
+        },
+        ...RESEARCH_RESULTS_SAFETY,
+      });
+      return true;
+    }
+    const built = buildEvidenceLinkage({
+      searchId: body.searchId != null ? String(body.searchId) : null,
+      analogueId: body.analogueId != null ? String(body.analogueId) : null,
+      predictionId: body.predictionId != null ? String(body.predictionId) : null,
+      assessmentId: body.assessmentId != null ? String(body.assessmentId) : null,
+      freezeId: body.freezeId != null ? String(body.freezeId) : null,
+      searchHash: body.searchHash != null ? String(body.searchHash) : null,
+      snapshotHash: body.snapshotHash != null ? String(body.snapshotHash) : null,
+      freezeHash: body.freezeHash != null ? String(body.freezeHash) : null,
+      markUnavailable: body.markUnavailable === true,
+      unavailableReason:
+        body.unavailableReason != null ? String(body.unavailableReason) : null,
+      createdAt: new Date().toISOString(),
+    });
+    if (!built.ok) {
+      sendJson(res, built.code === "CONFLICT" ? 409 : 400, {
+        ok: false,
+        error: { code: built.code, message: built.message },
+        ...RESEARCH_RESULTS_SAFETY,
+      });
+      return true;
+    }
+    const persisted = await getMifEvidenceLinkageStorage().persist(built.linkage);
+    if (!persisted.ok) {
+      sendJson(res, 409, {
+        ok: false,
+        error: { code: persisted.code, message: persisted.message },
+        ...RESEARCH_RESULTS_SAFETY,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      linkage: built.linkage,
+      created: persisted.created,
+      neverInferredFromProximity: true,
+      ...RESEARCH_RESULTS_SAFETY,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/evidence-linkage` && req.method === "GET") {
+    const listed = await getMifEvidenceLinkageStorage().list({
+      predictionId: url.searchParams.get("predictionId") ?? undefined,
+      searchId: url.searchParams.get("searchId") ?? undefined,
+      limit: Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 50) || 50)),
+      offset: Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0),
+    });
+    const payload = { ok: true, ...listed, ...RESEARCH_RESULTS_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
   if (url.pathname === `${PATH_PREFIX}/storage/rebuild-index` && req.method === "POST") {
     const rebuilt = await getMifOpportunityStorage().rebuildIndex();
     sendJson(res, 200, {
@@ -2264,6 +2742,29 @@ export async function handleMt5HfmMifApi(
     return true;
   }
 
+  // Phase 5F STEP 5 Phase B — calibration readiness (NOT a calibrated model claim).
+  if (url.pathname === `${PATH_PREFIX}/calibration/status` && req.method === "GET") {
+    const summary = await aggregateResearchResults({
+      filters: {
+        symbol: url.searchParams.get("symbol"),
+        timeframe: url.searchParams.get("timeframe"),
+        datasetId: url.searchParams.get("datasetId"),
+        backtestRunId: url.searchParams.get("backtestRunId"),
+      },
+    });
+    const payload = {
+      ok: true,
+      status: summary.calibration.status,
+      calibration: summary.calibration,
+      claimLabels: summary.calibration.claimLabels,
+      note: "NOT_CALIBRATED / INSUFFICIENT_DATA only in Phase B. Mid-split 5E scaffolding is not walk-forward calibrated. No OOS fitting.",
+      ...RESEARCH_RESULTS_SAFETY,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
   if (url.pathname === `${PATH_PREFIX}/calibration` && req.method === "POST") {
     const store = getMifOpportunityStorage();
     const listed = await store.listProbabilityAssessments({ limit: 200 });
@@ -2293,6 +2794,11 @@ export async function handleMt5HfmMifApi(
       placesOrders: false,
       mutatesBroker: false,
       acceptsForExecution: false,
+      // Phase B clarification: preserved 5E scaffolding is not WF-calibrated.
+      walkForwardCalibrated: false,
+      midSplitScaffoldingNotWfCalibrated: true,
+      researchResultsClaim: "NOT_CALIBRATED",
+      note: "Metrics-only / mid-split scaffolding. Not walk-forward calibrated. See GET /calibration/status.",
     });
     return true;
   }

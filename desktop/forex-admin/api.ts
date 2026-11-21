@@ -1160,6 +1160,160 @@ export const forexProvidersApi = {
     }>(
       `/api/forex/providers/mt5-hfm/mif/backtesting/runs/${encodeURIComponent(runId)}/folds`,
     ),
+  /** Phase 5F STEP 5 Phase B — Research Results (descriptive; not calibrated probability). */
+  mt5HfmMifResearchResultsList: (params?: {
+    symbol?: string;
+    timeframe?: string;
+    datasetId?: string;
+    backtestRunId?: string;
+    generate?: boolean;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.symbol) q.set("symbol", params.symbol);
+    if (params?.timeframe) q.set("timeframe", params.timeframe);
+    if (params?.datasetId) q.set("datasetId", params.datasetId);
+    if (params?.backtestRunId) q.set("backtestRunId", params.backtestRunId);
+    if (params?.generate) q.set("generate", "1");
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      summary?: Record<string, unknown>;
+      items?: Array<Record<string, unknown>>;
+      total?: number;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      isNotCalibratedProbability?: true;
+      costAdjusted: false;
+      walkForwardCalibrated?: false;
+      note?: string;
+    }>(`/api/forex/providers/mt5-hfm/mif/research-results${qs ? `?${qs}` : ""}`);
+  },
+  mt5HfmMifResearchResultsGet: (summaryId: string) =>
+    request<{
+      ok: boolean;
+      summary?: Record<string, unknown>;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      costAdjusted: false;
+      error?: { code?: string; message?: string };
+    }>(
+      `/api/forex/providers/mt5-hfm/mif/research-results/${encodeURIComponent(summaryId)}`,
+    ),
+  mt5HfmMifCalibrationStatus: (params?: {
+    symbol?: string;
+    timeframe?: string;
+    datasetId?: string;
+    backtestRunId?: string;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.symbol) q.set("symbol", params.symbol);
+    if (params?.timeframe) q.set("timeframe", params.timeframe);
+    if (params?.datasetId) q.set("datasetId", params.datasetId);
+    if (params?.backtestRunId) q.set("backtestRunId", params.backtestRunId);
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      status: string;
+      calibration?: Record<string, unknown>;
+      claimLabels?: string[];
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      walkForwardCalibrated?: false;
+      note?: string;
+    }>(`/api/forex/providers/mt5-hfm/mif/calibration/status${qs ? `?${qs}` : ""}`);
+  },
+  mt5HfmMifProbabilityFreezeCreate: (body: {
+    assessmentId: string;
+    predictionId?: string | null;
+    outcomeResolvedAt?: string | null;
+    sourceDatasetId?: string | null;
+    sourceDatasetVersion?: number | null;
+    sourceContentHash?: string | null;
+    supersedesFreezeId?: string | null;
+    revisionReason?: string;
+  }) =>
+    request<{
+      ok: boolean;
+      freeze?: Record<string, unknown>;
+      created?: boolean;
+      calibrationClaim?: "NOT_CALIBRATED";
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      isCalibratedProbability?: false;
+      error?: { code?: string; message?: string };
+    }>("/api/forex/providers/mt5-hfm/mif/probability-freeze", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  mt5HfmMifWfCalibrationCreate: (body: { backtestRunId: string }) =>
+    request<{
+      ok: boolean;
+      run?: Record<string, unknown>;
+      includedCount?: number;
+      excludedCount?: number;
+      walkForwardCalibrated?: false;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      error?: { code?: string; message?: string };
+    }>("/api/forex/providers/mt5-hfm/mif/calibration/walk-forward", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  mt5HfmMifWfCalibrationList: (params?: { limit?: number; offset?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      items: Array<Record<string, unknown>>;
+      total: number;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+    }>(`/api/forex/providers/mt5-hfm/mif/calibration/walk-forward${qs ? `?${qs}` : ""}`);
+  },
+  mt5HfmMifWfCalibrationGet: (runId: string) =>
+    request<{
+      ok: boolean;
+      run?: Record<string, unknown>;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      error?: { code?: string; message?: string };
+    }>(
+      `/api/forex/providers/mt5-hfm/mif/calibration/walk-forward/${encodeURIComponent(runId)}`,
+    ),
+  mt5HfmMifProbabilityFreezeList: (params?: {
+    assessmentId?: string;
+    predictionId?: string;
+    symbol?: string;
+    limit?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.assessmentId) q.set("assessmentId", params.assessmentId);
+    if (params?.predictionId) q.set("predictionId", params.predictionId);
+    if (params?.symbol) q.set("symbol", params.symbol);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      items: Array<Record<string, unknown>>;
+      total: number;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+    }>(`/api/forex/providers/mt5-hfm/mif/probability-freeze${qs ? `?${qs}` : ""}`);
+  },
   forexConnectInstruments: () =>
     request<{
       ok: boolean;

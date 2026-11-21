@@ -138,6 +138,42 @@ export class MifBacktestStorage {
     return m?.folds ?? null;
   }
 
+  /** Compact tip summaries persisted with the run (for WF calibration fold assignment). */
+  async getTips(runId: string): Promise<
+    Array<{
+      tipOpenTimeSec: number;
+      decisionTimeSec?: number;
+      candidateId: string;
+      predictionId: string;
+      skippedDuplicate?: boolean;
+      skippedOverlap?: boolean;
+      outcomeId?: string | null;
+      levelResult?: string | null;
+      completeness?: string | null;
+      outcomeError?: string | null;
+      snapshotHash?: string;
+    }>
+  > {
+    const doc = await readJsonFile<{ tips: Array<Record<string, unknown>> }>(
+      path.join(this.runDir(runId), "tips.json"),
+    );
+    if (!doc?.tips) return [];
+    return doc.tips.map((t) => ({
+      tipOpenTimeSec: Number(t.tipOpenTimeSec),
+      decisionTimeSec:
+        t.decisionTimeSec != null ? Number(t.decisionTimeSec) : undefined,
+      candidateId: String(t.candidateId ?? ""),
+      predictionId: String(t.predictionId ?? ""),
+      skippedDuplicate: Boolean(t.skippedDuplicate),
+      skippedOverlap: Boolean(t.skippedOverlap),
+      outcomeId: (t.outcomeId as string | null | undefined) ?? null,
+      levelResult: (t.levelResult as string | null | undefined) ?? null,
+      completeness: (t.completeness as string | null | undefined) ?? null,
+      outcomeError: (t.outcomeError as string | null | undefined) ?? null,
+      snapshotHash: t.snapshotHash != null ? String(t.snapshotHash) : undefined,
+    }));
+  }
+
   async listRuns(filter?: {
     offset?: number;
     limit?: number;
