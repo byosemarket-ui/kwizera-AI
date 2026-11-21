@@ -1,9 +1,11 @@
 /**
- * Phase 3.1 — strict validation of HFM AI reasoning model output.
+ * Phase 5 — strict validation of HFM AI reasoning model output (schema v1.2).
  * Missing sections are marked NOT_PROVIDED (never synthetic NEUTRAL/MODERATE conclusions).
+ * Evidence IDs and price levels are grounded against the unified input allow-list.
  */
 import { normalizeHfmReasoningConfidence } from "./confidence.js";
 import {
+  HFM_REASONING_CONFIDENCE_DEFINITION,
   HFM_REASONING_DISCLAIMER,
   HFM_REASONING_NOT_PROVIDED,
   HFM_REASONING_PROMPT_VERSION,
@@ -11,12 +13,18 @@ import {
   HFM_REASONING_SCHEMA_VERSION,
 } from "./constants.js";
 import {
+  collectGroundingErrors,
+  type HfmReasoningGroundingContext,
+} from "./grounding.js";
+import {
   buildUnavailablePricePrecision,
   validateTradePlanPricesAgainstInstrument,
   type HfmReasoningInstrumentMeta,
 } from "./price-precision.js";
 import type {
   HfmReasoningDecisionAction,
+  HfmReasoningDecisionStatus,
+  HfmReasoningDirectionalAssessment,
   HfmReasoningValidatedResult,
   HfmSectionProvision,
 } from "./types.js";
@@ -504,6 +512,142 @@ export function normalizeHfmReasoningRawPayload(
     cur = { ...cur, nextConfirmation: nc };
   }
 
+  // Phase 5 v1.2 — directional assessments, disagreement, confidence semantics
+  {
+    const parseAssessment = (
+      raw: unknown,
+      side: "BULLISH" | "BEARISH",
+      fallbackScenario: Record<string, unknown> | null,
+    ): Record<string, unknown> => {
+      let block = maybeParseSection(raw);
+      if (!isObj(block)) block = {};
+      const b = { ...(block as Record<string, unknown>) };
+      b.side = side;
+      if (b.status == null && fallbackScenario) b.status = fallbackScenario.status;
+      const st = enumToken(b.status);
+      b.status = st && SCENARIO.has(st) ? st : (asString(b.status) ?? "NOT_SUPPORTED");
+      if (b.summary != null && typeof b.summary !== "string") b.summary = String(b.summary);
+      if (!b.summary) {
+        b.summary = side === "BULLISH" ? "Bullish assessment not detailed." : "Bearish assessment not detailed.";
+      }
+      b.supportingEvidenceIds = coerceStringArray(
+        b.supportingEvidenceIds ?? b.supportingEvidenceRefs ?? b.supportingEvidence,
+      );
+      b.conflictingEvidenceIds = coerceStringArray(
+        b.conflictingEvidenceIds ?? b.contradictingEvidenceRefs ?? b.conflictingEvidence,
+      );
+      b.missingConfirmations = coerceStringArray(b.missingConfirmations ?? b.missingEvidence);
+      b.invalidationConditions = coerceStringArray(b.invalidationConditions ?? b.invalidation);
+      return b;
+    };
+
+    const sc = isObj(cur.scenarios) ? (cur.scenarios as Record<string, unknown>) : {};
+    cur = {
+      ...cur,
+      bullishAssessment: parseAssessment(
+        cur.bullishAssessment ?? cur.bullishScenarioAssessment,
+        "BULLISH",
+        isObj(sc.bullish) ? (sc.bullish as Record<string, unknown>) : null,
+      ),
+      bearishAssessment: parseAssessment(
+        cur.bearishAssessment ?? cur.bearishScenarioAssessment,
+        "BEARISH",
+        isObj(sc.bearish) ? (sc.bearish as Record<string, unknown>) : null,
+      ),
+    };
+
+    cur.supportingEvidenceIds = coerceStringArray(
+      cur.supportingEvidenceIds
+        ?? (cur.bullishAssessment as Record<string, unknown>)?.supportingEvidenceIds,
+    );
+    cur.conflictingEvidenceIds = coerceStringArray(
+      cur.conflictingEvidenceIds
+        ?? (cur.bearishAssessment as Record<string, unknown>)?.conflictingEvidenceIds,
+    );
+    cur.missingConfirmations = coerceStringArray(cur.missingConfirmations);
+    cur.invalidationConditions = coerceStringArray(cur.invalidationConditions);
+
+    let dd = maybeParseSection(cur.deterministicDisagreement ?? cur.disagreement);
+    if (!isObj(dd)) dd = {};
+    const disagreement: Record<string, unknown> = { ...(dd as Record<string, unknown>) };
+    const asBoolOrNull = (v: unknown): boolean | null => {
+      if (v === null || v === undefined || v === "") return null;
+      if (typeof v === "boolean") return v;
+      const s = String(v).trim().toLowerCase();
+      if (s === "true" || s === "agree" || s === "agrees" || s === "yes") return true;
+      if (s === "false" || s === "disagree" || s === "disagrees" || s === "no") return false;
+      return null;
+    };
+    disagreement.agreesWithRanking = asBoolOrNull(disagreement.agreesWithRanking);
+    disagreement.agreesWithScenarioOutcome = asBoolOrNull(
+      disagreement.agreesWithScenarioOutcome ?? disagreement.agreesWithOutcome,
+    );
+    if (disagreement.disagreementReason != null && typeof disagreement.disagreementReason !== "string") {
+      disagreement.disagreementReason = String(disagreement.disagreementReason);
+    }
+    // Do not invent a disagreement reason — validator rejects empty reason on disagree.
+    if (
+      disagreement.disagreementReason == null
+      || (typeof disagreement.disagreementReason === "string" && !disagreement.disagreementReason.trim())
+    ) {
+      disagreement.disagreementReason = null;
+    }
+    disagreement.alternativeEvidenceIds = coerceStringArray(
+      disagreement.alternativeEvidenceIds ?? disagreement.supportingAlternativeEvidenceIds,
+    );
+    cur = { ...cur, deterministicDisagreement: disagreement };
+
+    let cs = maybeParseSection(cur.confidenceSemantics);
+    if (!isObj(cs)) cs = {};
+    cur = {
+      ...cur,
+      confidenceSemantics: {
+        decisionConfidenceIsWinProbability: false,
+        definition: asString((cs as Record<string, unknown>).definition) || HFM_REASONING_CONFIDENCE_DEFINITION,
+      },
+    };
+
+    if (cur.selectedScenarioId === undefined) cur.selectedScenarioId = null;
+    if (cur.selectedScenarioId != null && typeof cur.selectedScenarioId !== "string") {
+      cur.selectedScenarioId = String(cur.selectedScenarioId);
+    }
+    if (typeof cur.selectedScenarioId === "string" && !cur.selectedScenarioId.trim()) {
+      cur.selectedScenarioId = null;
+    }
+
+    const ds = enumToken(cur.decisionStatus ?? cur.status);
+    const DECISION_STATUSES = new Set([
+      "OBSERVING",
+      "DEVELOPING",
+      "WAITING_FOR_CONFIRMATION",
+      "CONFIRMED",
+      "INVALIDATED",
+      "EXPIRED",
+      "INSUFFICIENT",
+      "NO_TRADE",
+      "NOT_PROVIDED",
+    ]);
+    if (ds && DECISION_STATUSES.has(ds)) {
+      cur.decisionStatus = ds;
+    } else if (isObj(cur.decision)) {
+      const act = String((cur.decision as Record<string, unknown>).action ?? "");
+      if (act === "WAITING_FOR_CONFIRMATION") cur.decisionStatus = "WAITING_FOR_CONFIRMATION";
+      else if (act === "NO_TRADE") cur.decisionStatus = "NO_TRADE";
+      else if (act === "BUY" || act === "SELL") cur.decisionStatus = "CONFIRMED";
+      else cur.decisionStatus = "NOT_PROVIDED";
+    } else {
+      cur.decisionStatus = "NOT_PROVIDED";
+    }
+
+    if (cur.marketRegime != null && typeof cur.marketRegime !== "string") {
+      cur.marketRegime = String(cur.marketRegime);
+    }
+    if (!cur.marketRegime) {
+      const mo = isObj(cur.marketOverview) ? (cur.marketOverview as Record<string, unknown>) : null;
+      cur.marketRegime = asString(mo?.marketCondition) || HFM_REASONING_NOT_PROVIDED;
+    }
+  }
+
   if (expected) {
     cur = {
       ...cur,
@@ -516,6 +660,9 @@ export function normalizeHfmReasoningRawPayload(
       snapshotHash: expected.snapshotHash,
       promptVersion: HFM_REASONING_PROMPT_VERSION,
       model: typeof cur.model === "string" ? cur.model : expected.model,
+      analysisId: typeof cur.analysisId === "string" && cur.analysisId
+        ? cur.analysisId
+        : (expected as { analysisId?: string }).analysisId ?? expected.contextId,
       disclaimer: HFM_REASONING_DISCLAIMER,
       placesOrders: false,
       mutatesBroker: false,
@@ -533,10 +680,16 @@ export function validateHfmReasoningModelResponse(input: {
     snapshotId: string;
     snapshotHash: string;
     model: string;
+    analysisId?: string;
   };
   instrument?: HfmReasoningInstrumentMeta | null;
+  grounding?: HfmReasoningGroundingContext | null;
 }): { ok: true; result: HfmReasoningValidatedResult } | { ok: false; code: string; error: string } {
-  const { payload, meta } = normalizeHfmReasoningRawPayload(input.raw, input.expected);
+  const expectedWithAnalysis = {
+    ...input.expected,
+    analysisId: input.expected.analysisId ?? input.grounding?.analysisId ?? input.expected.contextId,
+  };
+  const { payload, meta } = normalizeHfmReasoningRawPayload(input.raw, expectedWithAnalysis);
   const raw = payload;
   if (!isObj(raw)) {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "Response is not an object" };
@@ -778,7 +931,156 @@ export function validateHfmReasoningModelResponse(input: {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "disclaimer mismatch" };
   }
 
-  const incomplete = missingSections.length > 0;
+  const toAssessment = (
+    side: "BULLISH" | "BEARISH",
+    block: unknown,
+    fallback: HfmReasoningValidatedResult["scenarios"]["bullish"],
+  ): HfmReasoningDirectionalAssessment => {
+    const o = isObj(block) ? block : {};
+    return {
+      side,
+      status: asString(o.status) ?? fallback.status,
+      summary: asString(o.summary) ?? `${side} assessment`,
+      supportingEvidenceIds: coerceStringArray(o.supportingEvidenceIds),
+      conflictingEvidenceIds: coerceStringArray(o.conflictingEvidenceIds),
+      missingConfirmations: coerceStringArray(o.missingConfirmations),
+      invalidationConditions: coerceStringArray(o.invalidationConditions),
+    };
+  };
+
+  const bullishAssessment = toAssessment("BULLISH", raw.bullishAssessment, bullish.value);
+  const bearishAssessment = toAssessment("BEARISH", raw.bearishAssessment, bearish.value);
+
+  let supportingEvidenceIds = coerceStringArray(raw.supportingEvidenceIds);
+  let conflictingEvidenceIds = coerceStringArray(raw.conflictingEvidenceIds);
+  if (!supportingEvidenceIds.length) {
+    supportingEvidenceIds = [
+      ...bullishAssessment.supportingEvidenceIds,
+      ...bearishAssessment.supportingEvidenceIds,
+    ];
+  }
+  if (!conflictingEvidenceIds.length) {
+    conflictingEvidenceIds = [
+      ...bullishAssessment.conflictingEvidenceIds,
+      ...bearishAssessment.conflictingEvidenceIds,
+    ];
+  }
+  const missingConfirmations = coerceStringArray(raw.missingConfirmations).length
+    ? coerceStringArray(raw.missingConfirmations)
+    : [
+        ...bullishAssessment.missingConfirmations,
+        ...bearishAssessment.missingConfirmations,
+      ];
+  const invalidationConditions = coerceStringArray(raw.invalidationConditions).length
+    ? coerceStringArray(raw.invalidationConditions)
+    : [
+        ...bullishAssessment.invalidationConditions,
+        ...bearishAssessment.invalidationConditions,
+      ];
+
+  const ddRaw = isObj(raw.deterministicDisagreement) ? raw.deterministicDisagreement : {};
+  const agreesWithRanking =
+    typeof ddRaw.agreesWithRanking === "boolean" ? ddRaw.agreesWithRanking : null;
+  const agreesWithScenarioOutcome =
+    typeof ddRaw.agreesWithScenarioOutcome === "boolean" ? ddRaw.agreesWithScenarioOutcome : null;
+  let disagreementReason =
+    ddRaw.disagreementReason === null || ddRaw.disagreementReason === undefined
+      ? null
+      : asString(ddRaw.disagreementReason);
+  const alternativeEvidenceIds = coerceStringArray(ddRaw.alternativeEvidenceIds);
+
+  if (
+    (agreesWithRanking === false || agreesWithScenarioOutcome === false)
+    && (!disagreementReason || !disagreementReason.trim())
+  ) {
+    return {
+      ok: false,
+      code: "INVALID_MODEL_RESPONSE",
+      error: "deterministic disagreement requires disagreementReason",
+    };
+  }
+
+  // Reject win-probability claims in summary / disagreement text
+  const winProbRe = /\b(win\s*probability|probability\s+of\s+(profit|success)|calibrated\s+success\s+rate)\b/i;
+  if (winProbRe.test(summary) || (disagreementReason && winProbRe.test(disagreementReason))) {
+    return {
+      ok: false,
+      code: "INVALID_MODEL_RESPONSE",
+      error: "win-probability claims are not permitted; decision.confidence is analytical only",
+    };
+  }
+
+  const selectedScenarioId =
+    raw.selectedScenarioId === null || raw.selectedScenarioId === undefined || raw.selectedScenarioId === ""
+      ? null
+      : asString(raw.selectedScenarioId);
+
+  const decisionStatus = (asString(raw.decisionStatus) ?? "NOT_PROVIDED") as HfmReasoningDecisionStatus;
+  const marketRegime = asString(raw.marketRegime) || HFM_REASONING_NOT_PROVIDED;
+  const analysisId =
+    asString(raw.analysisId)
+    ?? input.expected.analysisId
+    ?? input.grounding?.analysisId
+    ?? input.expected.contextId;
+
+  if (input.grounding) {
+    const g = collectGroundingErrors({
+      supportingEvidenceIds,
+      conflictingEvidenceIds,
+      alternativeEvidenceIds,
+      selectedScenarioId,
+      entryLow,
+      entryHigh,
+      stopLoss,
+      takeProfitTargets,
+      invalidationPrice,
+      riskRewardEstimate,
+      decisionAction,
+      decisionStatus,
+      ctx: {
+        ...input.grounding,
+        tickSize: input.grounding.tickSize ?? input.instrument?.tickSize ?? null,
+      },
+    });
+    if (g.errors.length) {
+      return {
+        ok: false,
+        code: g.code ?? "EVIDENCE_GROUNDING_FAILED",
+        error: g.errors.slice(0, 8).join("; "),
+      };
+    }
+    // Strip unknown optional citations already filtered — keep only allow-listed
+    supportingEvidenceIds = supportingEvidenceIds.filter((id) =>
+      input.grounding!.allowedEvidenceIds.has(id)
+    );
+    conflictingEvidenceIds = conflictingEvidenceIds.filter((id) =>
+      input.grounding!.allowedEvidenceIds.has(id)
+    );
+  }
+
+  // When disagreement claims alternative evidence, require at least one ID when disagreeing
+  if (
+    (agreesWithRanking === false || agreesWithScenarioOutcome === false)
+    && alternativeEvidenceIds.length === 0
+    && input.grounding
+    && input.grounding.allowedEvidenceIds.size > 0
+  ) {
+    return {
+      ok: false,
+      code: "INVALID_MODEL_RESPONSE",
+      error: "disagreement requires alternativeEvidenceIds from availableEvidenceIds",
+    };
+  }
+
+  const incomplete = missingSections.length > 0
+    || (input.grounding?.inputCompleteness === "PARTIAL");
+  if (input.grounding?.inputCompleteness === "PARTIAL") {
+    completenessNotes.push("Unified AI input marked PARTIAL — not fully evaluated");
+    if (!missingData.includes("Unified AI input marked PARTIAL")) {
+      missingData = [...missingData, "Unified AI input marked PARTIAL"];
+    }
+  }
+
   const result: HfmReasoningValidatedResult = {
     schemaVersion: HFM_REASONING_SCHEMA_VERSION,
     analysisStatus: incomplete ? "COMPLETED_WITH_GAPS" : "COMPLETED",
@@ -789,12 +1091,38 @@ export function validateHfmReasoningModelResponse(input: {
     snapshotHash: input.expected.snapshotHash,
     promptVersion: HFM_REASONING_PROMPT_VERSION,
     model,
+    analysisId,
+    marketRegime,
     decision: {
       action: decisionAction,
       confidence,
       confidenceLabel: confidenceLabel as HfmReasoningValidatedResult["decision"]["confidenceLabel"],
       summary,
     },
+    decisionStatus,
+    selectedScenarioId,
+    bullishAssessment,
+    bearishAssessment,
+    supportingEvidenceIds,
+    conflictingEvidenceIds,
+    missingConfirmations,
+    invalidationConditions,
+    deterministicDisagreement: {
+      agreesWithRanking,
+      agreesWithScenarioOutcome,
+      disagreementReason,
+      alternativeEvidenceIds: alternativeEvidenceIds.filter((id) =>
+        !input.grounding || input.grounding.allowedEvidenceIds.has(id)
+      ),
+    },
+    confidenceSemantics: {
+      decisionConfidenceIsWinProbability: false,
+      definition: HFM_REASONING_CONFIDENCE_DEFINITION,
+    },
+    unifiedInputIdentity: input.grounding?.unifiedInputIdentity ?? null,
+    evidencePackageId: input.grounding?.evidencePackageId ?? null,
+    scenarioPackageId: input.grounding?.scenarioPackageId ?? null,
+    inputCompleteness: input.grounding?.inputCompleteness ?? "UNKNOWN",
     marketOverview: {
       sectionStatus: meta.marketOverviewProvided ? "PROVIDED" : "NOT_PROVIDED",
       marketCondition: marketCondition as HfmReasoningValidatedResult["marketOverview"]["marketCondition"],
@@ -816,7 +1144,11 @@ export function validateHfmReasoningModelResponse(input: {
       stopLoss,
       takeProfitTargets,
       invalidationPrice,
-      riskRewardEstimate,
+      // Null RR on non-trade or when incomplete (never fabricate)
+      riskRewardEstimate:
+        decisionAction === "BUY" || decisionAction === "SELL"
+          ? riskRewardEstimate
+          : null,
       explanation,
     },
     evidence: {
@@ -852,7 +1184,7 @@ export function validateHfmReasoningModelResponse(input: {
   return { ok: true, result };
 }
 
-/** Build a minimal valid fixture for unit tests. */
+/** Build a minimal valid fixture for unit tests (schema v1.2). */
 export function buildMockValidReasoningPayload(expected: {
   symbol: string;
   contextId: string;
@@ -860,6 +1192,13 @@ export function buildMockValidReasoningPayload(expected: {
   snapshotHash: string;
   model: string;
   action?: HfmReasoningDecisionAction;
+  analysisId?: string;
+  supportingEvidenceIds?: string[];
+  selectedScenarioId?: string | null;
+  agreesWithRanking?: boolean | null;
+  agreesWithScenarioOutcome?: boolean | null;
+  disagreementReason?: string | null;
+  alternativeEvidenceIds?: string[];
 }): Record<string, unknown> {
   const action = expected.action ?? "NO_TRADE";
   const tf = {
@@ -877,6 +1216,15 @@ export function buildMockValidReasoningPayload(expected: {
     invalidation: [],
   };
   const isTrade = action === "BUY" || action === "SELL";
+  const assessment = (side: "BULLISH" | "BEARISH") => ({
+    side,
+    status: "NOT_SUPPORTED",
+    summary: `${side} not supported in mock`,
+    supportingEvidenceIds: expected.supportingEvidenceIds ?? [],
+    conflictingEvidenceIds: [],
+    missingConfirmations: isTrade ? [] : ["await confirmation"],
+    invalidationConditions: [],
+  });
   return {
     schemaVersion: HFM_REASONING_SCHEMA_VERSION,
     analysisStatus: "COMPLETED",
@@ -887,11 +1235,35 @@ export function buildMockValidReasoningPayload(expected: {
     snapshotHash: expected.snapshotHash,
     promptVersion: HFM_REASONING_PROMPT_VERSION,
     model: expected.model,
+    analysisId: expected.analysisId ?? expected.contextId,
+    marketRegime: "UNCLEAR",
     decision: {
       action,
       confidence: isTrade ? 62 : 40,
       confidenceLabel: isTrade ? "MODERATE" : "LOW",
       summary: "Mock summary",
+    },
+    decisionStatus: isTrade
+      ? "CONFIRMED"
+      : action === "WAITING_FOR_CONFIRMATION"
+      ? "WAITING_FOR_CONFIRMATION"
+      : "NO_TRADE",
+    selectedScenarioId: expected.selectedScenarioId ?? null,
+    bullishAssessment: assessment("BULLISH"),
+    bearishAssessment: assessment("BEARISH"),
+    supportingEvidenceIds: expected.supportingEvidenceIds ?? [],
+    conflictingEvidenceIds: [],
+    missingConfirmations: isTrade ? [] : ["await confirmation"],
+    invalidationConditions: [],
+    deterministicDisagreement: {
+      agreesWithRanking: expected.agreesWithRanking ?? true,
+      agreesWithScenarioOutcome: expected.agreesWithScenarioOutcome ?? true,
+      disagreementReason: expected.disagreementReason ?? null,
+      alternativeEvidenceIds: expected.alternativeEvidenceIds ?? [],
+    },
+    confidenceSemantics: {
+      decisionConfidenceIsWinProbability: false,
+      definition: HFM_REASONING_CONFIDENCE_DEFINITION,
     },
     marketOverview: {
       sectionStatus: "PROVIDED",

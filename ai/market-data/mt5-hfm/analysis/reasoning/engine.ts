@@ -1,5 +1,6 @@
 /**
- * Phase 3 — HFM AI Reasoning Engine (Chat Completions + vision; analysis-only).
+ * Phase 5 — HFM AI Reasoning Engine (Chat Completions + vision; analysis-only).
+ * Unified input: Phase 2 evidence + Phase 4 scenarios for the exact Charts snapshotId.
  */
 import { randomUUID } from "node:crypto";
 import { getOpenAiInferenceGate } from "../../../../forex-ai/snapshot-openai/concurrency.js";
@@ -10,13 +11,14 @@ import {
 } from "../../../../forex-ai/snapshot-openai/openai-client.js";
 import { isOpenAiVisionEligibleModel } from "../../../../forex-ai/multi-image-openai/vision-policy.js";
 import { getHfmCatalogService } from "../../catalog-service.js";
+import { getHfmAnalysisStorage } from "../storage.js";
 import {
   HFM_REASONING_OPENAI_TIMEOUT_MS,
   HFM_REASONING_PROMPT_VERSION,
   HFM_REASONING_SCHEMA_VERSION,
 } from "./constants.js";
 import { loadAndValidateHfmReasoningContext } from "./context-gate.js";
-import { buildHfmReasoningEvidencePackage } from "./evidence.js";
+import { groundingFromUnifiedAllowlist } from "./grounding.js";
 import {
   getActiveReasoningRecord,
   isReasoningLocked,
@@ -28,10 +30,16 @@ import {
 import type { HfmReasoningInstrumentMeta } from "./price-precision.js";
 import { buildHfmReasoningSystemPrompt, buildHfmReasoningUserPrompt } from "./prompts.js";
 import { getHfmReasoningStorage } from "./storage.js";
-import type { HfmReasoningErrorCode, HfmReasoningRecord } from "./types.js";
+import type { HfmReasoningErrorCode, HfmReasoningLineage, HfmReasoningRecord } from "./types.js";
+import {
+  buildHfmUnifiedAiAnalysisInput,
+  extractPackagesFromLoadedArtifacts,
+} from "./unified-input.js";
 import { validateHfmReasoningModelResponse } from "./validate-response.js";
 
-function emptyRecord(partial: Partial<HfmReasoningRecord> & Pick<HfmReasoningRecord, "analysisId" | "contextId" | "symbol">): HfmReasoningRecord {
+function emptyRecord(
+  partial: Partial<HfmReasoningRecord> & Pick<HfmReasoningRecord, "analysisId" | "contextId" | "symbol">,
+): HfmReasoningRecord {
   return {
     analysisId: partial.analysisId,
     contextId: partial.contextId,
@@ -51,6 +59,7 @@ function emptyRecord(partial: Partial<HfmReasoningRecord> & Pick<HfmReasoningRec
     synchronizationStatus: partial.synchronizationStatus ?? null,
     candleCounts: partial.candleCounts ?? {},
     imageRefs: partial.imageRefs ?? [],
+    lineage: partial.lineage ?? null,
     usage: partial.usage ?? null,
     result: partial.result ?? null,
     placesOrders: false,
@@ -130,11 +139,41 @@ export async function runHfmAiReasoning(input: {
     };
     setActiveReasoningRecord(record);
 
-    const packed = buildHfmReasoningEvidencePackage({
+    // Phase 5 — load Phase 2/3 intelligence + Phase 4 scenario for exact snapshotId
+    const analysisStorage = getHfmAnalysisStorage();
+    const [orchRaw, scenarioRaw] = await Promise.all([
+      analysisStorage.loadIntelligenceOrchestration(evidence.snapshotId),
+      analysisStorage.loadScenarioPackage(evidence.snapshotId),
+    ]);
+    const { orchestration, scenarioPackage } = extractPackagesFromLoadedArtifacts({
+      orchestrationRaw: orchRaw,
+      scenarioRaw,
+    });
+
+    const unified = buildHfmUnifiedAiAnalysisInput({
+      analysisId,
       context: evidence.context,
       imageRefs: evidence.imageRefs,
+      orchestration,
+      scenarioPackage,
     });
-    record = { ...record, candleCounts: packed.candleCounts };
+
+    const lineageBase: HfmReasoningLineage = {
+      unifiedInputIdentity: unified.unifiedInputIdentity,
+      evidencePackageId: unified.evidencePackageId,
+      scenarioPackageId: unified.scenarioPackageId,
+      scenarioIds: unified.scenarioIds,
+      selectedScenarioId: null,
+      inputCompleteness: unified.completeness,
+      groundingStatus: "NOT_APPLICABLE",
+      rankingReference: unified.grounding.scenarioOutcome,
+    };
+
+    record = {
+      ...record,
+      candleCounts: unified.candleCounts,
+      lineage: lineageBase,
+    };
     setActiveReasoningRecord(record);
 
     const config = getForexOpenAiConfigStore();
@@ -146,6 +185,7 @@ export async function runHfmAiReasoning(input: {
         errorCode: "OPENAI_VAULT_LOCKED",
         errorMessage: "OpenAI secret vault is locked",
         completedAt: new Date().toISOString(),
+        lineage: { ...lineageBase, groundingStatus: "SKIPPED" },
       };
       setActiveReasoningRecord(record);
       await storage.save(record);
@@ -158,6 +198,7 @@ export async function runHfmAiReasoning(input: {
         errorCode: "OPENAI_NOT_CONFIGURED",
         errorMessage: "OpenAI API key is not configured",
         completedAt: new Date().toISOString(),
+        lineage: { ...lineageBase, groundingStatus: "SKIPPED" },
       };
       setActiveReasoningRecord(record);
       await storage.save(record);
@@ -172,6 +213,7 @@ export async function runHfmAiReasoning(input: {
         errorCode: "OPENAI_MODEL_UNSUPPORTED",
         errorMessage: `Configured model "${model}" is not vision-eligible for chart image analysis`,
         completedAt: new Date().toISOString(),
+        lineage: { ...lineageBase, groundingStatus: "SKIPPED" },
       };
       setActiveReasoningRecord(record);
       await storage.save(record);
@@ -187,6 +229,7 @@ export async function runHfmAiReasoning(input: {
         errorCode: "OPENAI_NOT_CONFIGURED",
         errorMessage: "OpenAI API key unavailable",
         completedAt: new Date().toISOString(),
+        lineage: { ...lineageBase, groundingStatus: "SKIPPED" },
       };
       setActiveReasoningRecord(record);
       await storage.save(record);
@@ -197,8 +240,8 @@ export async function runHfmAiReasoning(input: {
     patchActiveStatus("WAITING_FOR_OPENAI");
 
     const system = buildHfmReasoningSystemPrompt();
-    const userText = buildHfmReasoningUserPrompt(packed.json);
-    // Images in TF order H1→M5; do not log base64.
+    const userText = buildHfmReasoningUserPrompt(unified.json);
+    // Images in TF order H1→M5; do not log base64. Exactly four images (H4 text-only).
     const images = evidence.images.map((img) => ({
       mimeType: img.mimeType,
       base64: img.base64,
@@ -235,6 +278,7 @@ export async function runHfmAiReasoning(input: {
           latencyMs: chat.latencyMs,
         },
         completedAt: new Date().toISOString(),
+        lineage: { ...lineageBase, groundingStatus: "SKIPPED" },
       };
       setActiveReasoningRecord(record);
       await storage.save(record);
@@ -251,6 +295,7 @@ export async function runHfmAiReasoning(input: {
       snapshotId: evidence.snapshotId,
       snapshotHash: evidence.snapshotHash,
       model,
+      analysisId,
     };
     let instrument: HfmReasoningInstrumentMeta | null = null;
     try {
@@ -267,16 +312,29 @@ export async function runHfmAiReasoning(input: {
     } catch {
       instrument = null;
     }
+
+    const grounding = groundingFromUnifiedAllowlist({
+      analysisId,
+      grounding: unified.grounding,
+      inputCompleteness: unified.completeness,
+      evidencePackageId: unified.evidencePackageId,
+      scenarioPackageId: unified.scenarioPackageId,
+      unifiedInputIdentity: unified.unifiedInputIdentity,
+      tickSize: instrument?.tickSize ?? null,
+    });
+
     let validated = validateHfmReasoningModelResponse({
       raw: chat.data,
       expected: expectedIds,
       instrument,
+      grounding,
     });
     if (!validated.ok && typeof chat.rawText === "string") {
       validated = validateHfmReasoningModelResponse({
         raw: chat.rawText,
         expected: expectedIds,
         instrument,
+        grounding,
       });
     }
     if (!validated.ok) {
@@ -290,11 +348,16 @@ export async function runHfmAiReasoning(input: {
           model,
           system: buildHfmReasoningSystemPrompt(),
           user: [
-            "Your previous JSON did not match the required schema.",
+            "Your previous JSON did not match the required schema v1.2.",
             `Validation error: ${validated.error}`,
             `Observed top-level keys: ${keys}`,
-            "Return ONLY a corrected JSON object with the required top-level keys, including decision{action,confidence,confidenceLabel,summary}.",
-            "Reuse the same market conclusions; do not invent new OHLC.",
+            "Return ONLY a corrected JSON object with the required top-level keys,",
+            "including decision{action,confidence,confidenceLabel,summary},",
+            "bullishAssessment, bearishAssessment, deterministicDisagreement, confidenceSemantics,",
+            "selectedScenarioId, supportingEvidenceIds, conflictingEvidenceIds.",
+            "Cite only availableEvidenceIds / availableScenarioIds from the unified input.",
+            "Reuse the same market conclusions; do not invent new OHLC or prices.",
+            `analysisId=${analysisId}`,
             `contextId=${evidence.contextId}`,
             `snapshotId=${evidence.snapshotId}`,
             `snapshotHash=${evidence.snapshotHash}`,
@@ -311,6 +374,7 @@ export async function runHfmAiReasoning(input: {
           raw: repair.data,
           expected: expectedIds,
           instrument,
+          grounding,
         });
       }
       if (!validated.ok) {
@@ -327,6 +391,9 @@ export async function runHfmAiReasoning(input: {
           };
           const parts = [
             typeOf("decision"),
+            typeOf("bullishAssessment"),
+            typeOf("bearishAssessment"),
+            typeOf("deterministicDisagreement"),
             typeOf("marketOverview"),
             typeOf("timeframeAnalysis"),
             typeOf("scenarios"),
@@ -354,6 +421,7 @@ export async function runHfmAiReasoning(input: {
             latencyMs: (chat.latencyMs ?? 0) + (repair.latencyMs ?? 0),
           },
           completedAt: new Date().toISOString(),
+          lineage: { ...lineageBase, groundingStatus: "FAILED" },
         };
         setActiveReasoningRecord(record);
         await storage.save(record);
@@ -369,7 +437,12 @@ export async function runHfmAiReasoning(input: {
       contextId: evidence.contextId,
       snapshotId: evidence.snapshotId,
       snapshotHash: evidence.snapshotHash,
+      analysisId,
       model,
+      unifiedInputIdentity: unified.unifiedInputIdentity,
+      evidencePackageId: unified.evidencePackageId,
+      scenarioPackageId: unified.scenarioPackageId,
+      inputCompleteness: unified.completeness,
       placesOrders: false as const,
       mutatesBroker: false as const,
       acceptsForExecution: false as const,
@@ -388,6 +461,11 @@ export async function runHfmAiReasoning(input: {
         latencyMs: chat.latencyMs,
       },
       completedAt: new Date().toISOString(),
+      lineage: {
+        ...lineageBase,
+        selectedScenarioId: result.selectedScenarioId,
+        groundingStatus: "PASSED",
+      },
     };
     setActiveReasoningRecord(record);
     await storage.save(record);
@@ -397,6 +475,8 @@ export async function runHfmAiReasoning(input: {
     const code =
       /queue is full/i.test(message)
         ? "REASONING_JOB_ALREADY_RUNNING"
+        : /snapshot_mismatch|symbol_mismatch|package_identity/i.test(message)
+        ? "PACKAGE_IDENTITY_MISMATCH"
         : ("OPENAI_REQUEST_FAILED" as HfmReasoningErrorCode);
     record = {
       ...record,
@@ -422,14 +502,6 @@ export async function runHfmAiReasoning(input: {
 
 function numOrNull(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
-}
-
-function safeJson(text: string): unknown {
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return null;
-  }
 }
 
 export function getHfmReasoningStatus(): {

@@ -1,11 +1,14 @@
 /**
- * Phase 3 / 3.1 — HFM AI Reasoning types (no execution authority).
+ * Phase 5 — HFM AI Reasoning types (no execution authority).
+ * Schema v1.2 extends v1.1 with unified evidence/scenario grounding fields.
  */
 import type {
   HFM_REASONING_PROMPT_VERSION,
   HFM_REASONING_SCHEMA_VERSION,
 } from "./constants.js";
 import type { HfmReasoningPricePrecisionResult } from "./price-precision.js";
+
+export type HfmUnifiedInputCompleteness = "COMPLETE" | "PARTIAL";
 
 export type HfmReasoningJobStatus =
   | "QUEUED"
@@ -103,6 +106,42 @@ export interface HfmReasoningCompleteness {
   notes: string[];
 }
 
+/** Lifecycle-mapped decision status for Charts AI output. */
+export type HfmReasoningDecisionStatus =
+  | "OBSERVING"
+  | "DEVELOPING"
+  | "WAITING_FOR_CONFIRMATION"
+  | "CONFIRMED"
+  | "INVALIDATED"
+  | "EXPIRED"
+  | "INSUFFICIENT"
+  | "NO_TRADE"
+  | "NOT_PROVIDED";
+
+export interface HfmReasoningDirectionalAssessment {
+  side: "BULLISH" | "BEARISH";
+  status: HfmScenarioStatus | string;
+  summary: string;
+  supportingEvidenceIds: string[];
+  conflictingEvidenceIds: string[];
+  missingConfirmations: string[];
+  invalidationConditions: string[];
+}
+
+export interface HfmReasoningDeterministicDisagreement {
+  /** Whether AI agrees with deterministic ranking guidance (null when ranking unavailable). */
+  agreesWithRanking: boolean | null;
+  /** Whether AI agrees with deterministic scenario package outcome. */
+  agreesWithScenarioOutcome: boolean | null;
+  disagreementReason: string | null;
+  alternativeEvidenceIds: string[];
+}
+
+export interface HfmReasoningConfidenceSemantics {
+  decisionConfidenceIsWinProbability: false;
+  definition: string;
+}
+
 export interface HfmReasoningValidatedResult {
   schemaVersion: typeof HFM_REASONING_SCHEMA_VERSION | string;
   analysisStatus: "COMPLETED" | "COMPLETED_WITH_GAPS";
@@ -113,12 +152,29 @@ export interface HfmReasoningValidatedResult {
   snapshotHash: string;
   promptVersion: typeof HFM_REASONING_PROMPT_VERSION | string;
   model: string;
+  analysisId: string;
+  marketRegime: string;
   decision: {
     action: HfmReasoningDecisionAction;
+    /** Model-reported analytical confidence — NOT win probability. */
     confidence: number;
     confidenceLabel: HfmReasoningConfidenceLabel;
     summary: string;
   };
+  decisionStatus: HfmReasoningDecisionStatus;
+  selectedScenarioId: string | null;
+  bullishAssessment: HfmReasoningDirectionalAssessment;
+  bearishAssessment: HfmReasoningDirectionalAssessment;
+  supportingEvidenceIds: string[];
+  conflictingEvidenceIds: string[];
+  missingConfirmations: string[];
+  invalidationConditions: string[];
+  deterministicDisagreement: HfmReasoningDeterministicDisagreement;
+  confidenceSemantics: HfmReasoningConfidenceSemantics;
+  unifiedInputIdentity: string | null;
+  evidencePackageId: string | null;
+  scenarioPackageId: string | null;
+  inputCompleteness: HfmUnifiedInputCompleteness | "UNKNOWN";
   marketOverview: {
     sectionStatus: HfmSectionProvision;
     marketCondition: HfmReasoningMarketCondition;
@@ -172,6 +228,18 @@ export interface HfmReasoningImageRef {
   validationStatus: string;
 }
 
+/** Phase 5 lineage for audit / reproduction (hashes + ids; no OHLC/image payloads). */
+export interface HfmReasoningLineage {
+  unifiedInputIdentity: string | null;
+  evidencePackageId: string | null;
+  scenarioPackageId: string | null;
+  scenarioIds: string[];
+  selectedScenarioId: string | null;
+  inputCompleteness: HfmUnifiedInputCompleteness | "UNKNOWN";
+  groundingStatus: "PASSED" | "FAILED" | "SKIPPED" | "NOT_APPLICABLE";
+  rankingReference: string | null;
+}
+
 export interface HfmReasoningRecord {
   analysisId: string;
   contextId: string;
@@ -191,6 +259,7 @@ export interface HfmReasoningRecord {
   synchronizationStatus: string | null;
   candleCounts: Record<string, number>;
   imageRefs: HfmReasoningImageRef[];
+  lineage: HfmReasoningLineage | null;
   usage: {
     promptTokens: number | null;
     completionTokens: number | null;
@@ -228,4 +297,9 @@ export type HfmReasoningErrorCode =
   | "AI_NOT_APPROVED"
   | "INVALID_CONFIDENCE"
   | "INVALID_PRICE_PRECISION"
-  | "INSTRUMENT_METADATA_UNAVAILABLE";
+  | "INSTRUMENT_METADATA_UNAVAILABLE"
+  | "UNIFIED_INPUT_INCOMPLETE"
+  | "EVIDENCE_GROUNDING_FAILED"
+  | "SCENARIO_GROUNDING_FAILED"
+  | "INVENTED_PRICE_REJECTED"
+  | "PACKAGE_IDENTITY_MISMATCH";

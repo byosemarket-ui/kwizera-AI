@@ -492,6 +492,7 @@ describe("HFM Analysis Phase 3 — storage", () => {
       synchronizationStatus: "VALID",
       candleCounts: { H1: 40 },
       imageRefs: [],
+      lineage: null,
       usage: null,
       result: null,
       placesOrders: false,
