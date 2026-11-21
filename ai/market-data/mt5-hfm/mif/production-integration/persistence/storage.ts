@@ -24,6 +24,10 @@ import type {
   MifPersistedCandidate,
   MifPersistedLifecycleEvent,
 } from "./types.js";
+import {
+  legacyOutcomeFileStem,
+  portablePersistenceFileStem,
+} from "../../market-evidence/portable-filename.js";
 
 function resolveStorageRoot(): string {
   const fromEnv = String(process.env.KWIZERA_STORAGE_ROOT ?? "").trim();
@@ -230,8 +234,23 @@ export class MifOpportunityStorage {
     return path.join(this.eventsDir, `${candidateId}.json`);
   }
 
+  /**
+   * Portable outcome path (Windows + Linux). Logical evaluationId (may contain ':')
+   * is preserved inside the JSON record; only the filename is sanitized.
+   */
   outcomePath(evaluationId: string): string {
-    return path.join(this.outcomesDir, `${evaluationId.replace(/[^a-zA-Z0-9._:-]/g, "_")}.json`);
+    return path.join(
+      this.outcomesDir,
+      `${portablePersistenceFileStem(evaluationId)}.json`,
+    );
+  }
+
+  /** Pre-Phase-2 stem that permitted ':' — Linux-writable, Windows-unsafe. Read-only fallback. */
+  legacyOutcomePath(evaluationId: string): string {
+    return path.join(
+      this.outcomesDir,
+      `${legacyOutcomeFileStem(evaluationId)}.json`,
+    );
   }
 
   replayPath(runId: string): string {
@@ -553,18 +572,28 @@ export class MifOpportunityStorage {
   ): Promise<{ ok: boolean; path: string; created: boolean }> {
     await this.ensureReady();
     return this.withWriteLock(async () => {
-      const p = this.outcomePath(record.evaluationId);
-      const existing = await readJsonFile(p);
-      if (existing) return { ok: true, path: p, created: false };
-      await atomicWrite(p, `${JSON.stringify(record, null, 2)}\n`);
-      return { ok: true, path: p, created: true };
+      const portable = this.outcomePath(record.evaluationId);
+      const legacy = this.legacyOutcomePath(record.evaluationId);
+      const existingPortable = await readJsonFile(portable);
+      if (existingPortable) return { ok: true, path: portable, created: false };
+      const existingLegacy = await readJsonFile(legacy);
+      if (existingLegacy) {
+        // Do not orphan or rewrite historical Linux records; treat as already persisted.
+        return { ok: true, path: legacy, created: false };
+      }
+      await atomicWrite(portable, `${JSON.stringify(record, null, 2)}\n`);
+      return { ok: true, path: portable, created: true };
     });
   }
 
   async getOutcomeEvaluation(
     evaluationId: string,
   ): Promise<MifOutcomeEvaluationRecord | null> {
-    return readJsonFile(this.outcomePath(evaluationId));
+    const portable = await readJsonFile<MifOutcomeEvaluationRecord>(
+      this.outcomePath(evaluationId),
+    );
+    if (portable) return portable;
+    return readJsonFile<MifOutcomeEvaluationRecord>(this.legacyOutcomePath(evaluationId));
   }
 
   async listOutcomeEvaluations(filter?: {
@@ -586,15 +615,24 @@ export class MifOpportunityStorage {
     } catch {
       names = [];
     }
-    const items: MifOutcomeEvaluationRecord[] = [];
+    const byId = new Map<string, MifOutcomeEvaluationRecord>();
     for (const name of names) {
       const r = await readJsonFileDetailed<MifOutcomeEvaluationRecord>(
         path.join(this.outcomesDir, name),
       );
       if (!r.value) continue;
       if (filter?.candidateId && r.value.candidateId !== filter.candidateId) continue;
-      items.push(r.value);
+      const id = r.value.evaluationId;
+      const prior = byId.get(id);
+      if (!prior) {
+        byId.set(id, r.value);
+        continue;
+      }
+      // Prefer portable-stem file when both legacy and portable exist for same logical ID.
+      const portableStem = `${portablePersistenceFileStem(id)}.json`;
+      if (name === portableStem) byId.set(id, r.value);
     }
+    const items = [...byId.values()];
     items.sort((a, b) => b.evaluationTimestamp.localeCompare(a.evaluationTimestamp));
     return {
       items: items.slice(offset, offset + limit),

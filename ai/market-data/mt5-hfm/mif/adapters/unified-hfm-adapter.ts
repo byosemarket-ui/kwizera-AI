@@ -105,6 +105,8 @@ export function adaptUnifiedHfmHistoricalCandle(
     high: candle.high,
     low: candle.low,
     close: candle.close,
+    // B10: unified dialect never invents tick vs real volume or broker timebase.
+    // Prefer hfm.historical-bar / hfm.forming-candle for volume/timebase-critical paths.
     tickVolume: null,
     realVolume: null,
     collapsedVolume: collapsed,
