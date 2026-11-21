@@ -17,6 +17,8 @@ import {
   noteSelectedChartSymbol,
   prepareHfmAnalysisContext,
   runHfmAnalysisRetentionCleanup,
+  buildPublicIntelligenceSummary,
+  buildPublicScenarioSummary,
   HFM_ANALYSIS_DEFAULT_TF_PACK,
   HFM_ANALYSIS_PROVIDER,
 } from "../../ai/market-data/mt5-hfm/analysis/index.js";
@@ -683,6 +685,101 @@ export async function handleMt5HfmAnalysisApi(
     };
     assertNoSecretsInMt5HfmPayload(payload);
     sendJson(res, 200, payload);
+    return true;
+  }
+
+  // --- Phase 6 — read-only intelligence / scenario summaries by snapshotId ---
+  const intelligenceMatch = url.pathname.match(
+    /^\/api\/forex\/providers\/mt5-hfm\/analysis\/intelligence\/([^/]+)$/,
+  );
+  if (intelligenceMatch && req.method === "GET") {
+    const snapshotId = decodeURIComponent(intelligenceMatch[1] ?? "").trim();
+    if (!snapshotId) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "SNAPSHOT_REQUIRED", message: "snapshotId required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const expectedSymbol = url.searchParams.get("symbol")?.trim() || null;
+    const storage = getHfmAnalysisStorage();
+    const orch = await storage.loadIntelligenceOrchestration(snapshotId);
+    const built = buildPublicIntelligenceSummary({
+      snapshotId,
+      expectedSymbol,
+      orchestration: orch,
+    });
+    const payload = {
+      ok: built.ok,
+      found: built.found,
+      status: built.status,
+      provider: HFM_ANALYSIS_PROVIDER,
+      snapshotId,
+      expectedSymbol,
+      error: built.ok
+        ? null
+        : { code: built.code ?? "INTELLIGENCE_UNAVAILABLE", message: built.message ?? "Unavailable" },
+      intelligence: built.summary,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    const http = built.ok ? 200 : built.status === "NOT_FOUND" ? 404 : built.status === "MISMATCH" ? 409 : 422;
+    sendJson(res, http, payload);
+    return true;
+  }
+
+  const scenarioMatch = url.pathname.match(
+    /^\/api\/forex\/providers\/mt5-hfm\/analysis\/scenario\/([^/]+)$/,
+  );
+  if (scenarioMatch && req.method === "GET") {
+    const snapshotId = decodeURIComponent(scenarioMatch[1] ?? "").trim();
+    if (!snapshotId) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "SNAPSHOT_REQUIRED", message: "snapshotId required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const expectedSymbol = url.searchParams.get("symbol")?.trim() || null;
+    const storage = getHfmAnalysisStorage();
+    let scenarioRaw = await storage.loadScenarioPackage(snapshotId);
+    if (scenarioRaw == null) {
+      const orch = await storage.loadIntelligenceOrchestration(snapshotId);
+      if (orch && typeof orch === "object" && (orch as { scenarioPackage?: unknown }).scenarioPackage) {
+        scenarioRaw = (orch as { scenarioPackage: unknown }).scenarioPackage;
+      }
+    }
+    const built = buildPublicScenarioSummary({
+      snapshotId,
+      expectedSymbol,
+      scenarioPackage: scenarioRaw,
+    });
+    const payload = {
+      ok: built.ok,
+      found: built.found,
+      status: built.status,
+      provider: HFM_ANALYSIS_PROVIDER,
+      snapshotId,
+      expectedSymbol,
+      error: built.ok
+        ? null
+        : { code: built.code ?? "SCENARIO_UNAVAILABLE", message: built.message ?? "Unavailable" },
+      scenarioPackage: built.summary,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    const http = built.ok ? 200 : built.status === "NOT_FOUND" ? 404 : built.status === "MISMATCH" ? 409 : 422;
+    sendJson(res, http, payload);
     return true;
   }
 

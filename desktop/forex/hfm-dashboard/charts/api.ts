@@ -380,6 +380,8 @@ const ANALYSIS_STATUS = "/api/forex/providers/mt5-hfm/analysis/status";
 const ANALYSIS_REASON = "/api/forex/providers/mt5-hfm/analysis/reason";
 const ANALYSIS_ANALYZE_NOW = "/api/forex/providers/mt5-hfm/analysis/analyze-now";
 const ANALYSIS_AUTO = "/api/forex/providers/mt5-hfm/analysis/auto-analysis";
+const ANALYSIS_INTELLIGENCE = "/api/forex/providers/mt5-hfm/analysis/intelligence";
+const ANALYSIS_SCENARIO = "/api/forex/providers/mt5-hfm/analysis/scenario";
 
 /** Phase 2 — prepare multi-TF context + backend chart images (no OpenAI reasoning). */
 export async function prepareHfmAnalysisContextRequest(input: {
@@ -487,6 +489,59 @@ export async function updateHfmAutoAnalysisSymbolRequest(input: {
       chartTimeframe: input.chartTimeframe,
     },
   });
+  return { httpStatus: status, ...body };
+}
+
+/** Phase 6 — read-only intelligence summary by exact snapshotId. */
+export async function fetchHfmIntelligenceSummary(input: {
+  snapshotId: string;
+  symbol?: string;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const q = new URLSearchParams();
+  if (input.symbol) q.set("symbol", input.symbol);
+  const qs = q.toString();
+  const path = `${ANALYSIS_INTELLIGENCE}/${encodeURIComponent(input.snapshotId)}${qs ? `?${qs}` : ""}`;
+  const { status, body } = await requestJson<Record<string, unknown>>(path, { signal: input.signal });
+  return { httpStatus: status, ...body };
+}
+
+/** Phase 6 — read-only scenario package summary by exact snapshotId. */
+export async function fetchHfmScenarioSummary(input: {
+  snapshotId: string;
+  symbol?: string;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const q = new URLSearchParams();
+  if (input.symbol) q.set("symbol", input.symbol);
+  const qs = q.toString();
+  const path = `${ANALYSIS_SCENARIO}/${encodeURIComponent(input.snapshotId)}${qs ? `?${qs}` : ""}`;
+  const { status, body } = await requestJson<Record<string, unknown>>(path, { signal: input.signal });
+  return { httpStatus: status, ...body };
+}
+
+export async function fetchHfmReasonHistory(input: {
+  symbol?: string;
+  limit?: number;
+  offset?: number;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const q = new URLSearchParams();
+  if (input.symbol) q.set("symbol", input.symbol);
+  if (input.limit != null) q.set("limit", String(input.limit));
+  if (input.offset != null) q.set("offset", String(input.offset));
+  const qs = q.toString();
+  const path = `${ANALYSIS_REASON}/history${qs ? `?${qs}` : ""}`;
+  const { status, body } = await requestJson<Record<string, unknown>>(path, { signal: input.signal });
+  return { httpStatus: status, ...body };
+}
+
+export async function fetchHfmReasonById(
+  analysisId: string,
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const path = `${ANALYSIS_REASON}/${encodeURIComponent(analysisId)}`;
+  const { status, body } = await requestJson<Record<string, unknown>>(path, { signal });
   return { httpStatus: status, ...body };
 }
 

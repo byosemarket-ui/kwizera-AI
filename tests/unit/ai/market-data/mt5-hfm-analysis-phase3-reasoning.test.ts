@@ -538,9 +538,14 @@ describe("HFM Analysis Phase 3 — safety markers", () => {
     expect(panel).toContain("AI ANALYSIS ONLY — NO BROKER ORDERS ARE PLACED");
     expect(panel).toContain("data-phase3-reason");
     expect(panel).toContain("placesOrders=false");
-    expect(panel).toContain("Not provided by AI");
-    expect(panel).toContain("data-phase3-completeness");
     expect(panel).not.toMatch(/Place Order|Execute Trade|Auto Trade/i);
+
+    const decision = await fs.readFile(
+      path.join(process.cwd(), "desktop/forex/hfm-dashboard/charts/analysis/HfmAiDecisionPanel.tsx"),
+      "utf8",
+    );
+    expect(decision).toContain("Not provided by AI");
+    expect(decision).toContain("data-phase3-completeness");
   });
 
   it("api routes exist for reason endpoints", async () => {

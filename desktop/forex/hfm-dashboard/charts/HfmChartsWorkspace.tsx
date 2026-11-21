@@ -33,6 +33,7 @@ import {
 } from "./types";
 import { buildHfmChartsAnalysisSnapshot } from "../../../../ai/market-data/mt5-hfm/charts-analysis-contract";
 import { HfmAnalysisPanel } from "./HfmAnalysisPanel";
+import type { HfmAnalyticalOverlay } from "./analysis/analytical-overlays";
 import "./hfm-analysis-panel.css";
 
 const DRAW_TOOLS: Array<{ id: HfmDrawingToolId; label: string }> = [
@@ -83,6 +84,7 @@ export function HfmChartsWorkspace() {
   const [templates, setTemplates] = useState<HfmChartTemplate[]>([]);
   const [defaultTemplateId, setDefaultTemplateId] = useState<string | null>(null);
   const [persistNote, setPersistNote] = useState<string | null>(null);
+  const [analyticalOverlays, setAnalyticalOverlays] = useState<HfmAnalyticalOverlay[]>([]);
   const chartRef = useRef<HfmChartEngineHandle>(null);
   const persistTimer = useRef<number | null>(null);
   const prefsTimer = useRef<number | null>(null);
@@ -583,6 +585,7 @@ export function HfmChartsWorkspace() {
               digits={digits}
               indicators={indicators}
               drawings={visibleDrawings}
+              analyticalOverlays={analyticalOverlays}
               activeTool={activeTool}
               showGrid={showGrid}
               selectedDrawingId={selectedDrawingId}
@@ -760,7 +763,15 @@ export function HfmChartsWorkspace() {
         </aside>
       </div>
 
-      <HfmAnalysisPanel symbol={symbol} timeframe={timeframe} />
+      <HfmAnalysisPanel
+        symbol={symbol}
+        timeframe={timeframe}
+        onAnalyticalOverlaysChange={setAnalyticalOverlays}
+        onRequestLoadSymbol={(sym) => {
+          setSymbol(sym.toUpperCase());
+          setPersistNote(`Loaded symbol ${sym.toUpperCase()} on chart`);
+        }}
+      />
       <pre className="hfm-charts-contract-preview" hidden>
         {JSON.stringify({
           provider: analysisBoundary.provider,

@@ -39,6 +39,7 @@ import type {
   HfmDrawingToolId,
   HfmIndicatorConfig,
 } from "./types";
+import type { HfmAnalyticalOverlay } from "./analysis/analytical-overlays";
 
 const BG = "#0b0e14";
 const GRID = "rgba(148,163,184,0.12)";
@@ -73,6 +74,7 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
   digits: number;
   indicators: HfmIndicatorConfig[];
   drawings: HfmDrawing[];
+  analyticalOverlays?: HfmAnalyticalOverlay[];
   activeTool: HfmDrawingToolId;
   showGrid: boolean;
   onCrosshair: (info: HfmCrosshairInfo | null) => void;
@@ -89,6 +91,7 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | ISeriesApi<"Bar"> | ISeriesApi<"Line"> | ISeriesApi<"Area"> | null>(null);
   const overlayRefs = useRef<ISeriesApi<"Line">[]>([]);
   const priceLinesRef = useRef<IPriceLine[]>([]);
+  const analyticalLinesRef = useRef<IPriceLine[]>([]);
   const draftRef = useRef<HfmPriceDraft | null>(null);
   const [draftPreview, setDraftPreview] = useState<HfmDrawing | null>(null);
   const barsFingerprintRef = useRef<string>("");
@@ -475,6 +478,36 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
       }
     }
   }, [props.drawings, props.symbol, props.timeframe, props.bars, props.chartType]);
+
+  // Phase 6 — source-backed analytical overlays (opt-in; never mutates user drawings)
+  useEffect(() => {
+    const series = seriesRef.current;
+    if (!series) return;
+    for (const pl of analyticalLinesRef.current) {
+      try {
+        series.removePriceLine(pl);
+      } catch { /* */ }
+    }
+    analyticalLinesRef.current = [];
+    const overlays = props.analyticalOverlays ?? [];
+    for (const ov of overlays) {
+      if (!Number.isFinite(ov.price)) continue;
+      const pl = series.createPriceLine({
+        price: ov.price,
+        color: ov.color,
+        lineWidth: 1,
+        lineStyle:
+          ov.lineStyle === "dashed"
+            ? LineStyle.Dashed
+            : ov.lineStyle === "dotted"
+              ? LineStyle.Dotted
+              : LineStyle.Solid,
+        axisLabelVisible: true,
+        title: ov.title.slice(0, 16),
+      });
+      analyticalLinesRef.current.push(pl);
+    }
+  }, [props.analyticalOverlays, props.bars, props.chartType, props.symbol, props.timeframe]);
 
   // Crosshair + drawing clicks
   useEffect(() => {
