@@ -194,8 +194,9 @@ describe("HFM Analysis Phase 2 — normalization & quality", () => {
 });
 
 describe("HFM Analysis Phase 2 — sync & hash", () => {
-  it("synchronizes four TFs for one symbol", () => {
+  it("synchronizes five TFs for one symbol (H4 supplemental + H1–M5)", () => {
     const datasets: Record<string, HfmAnalysisTfDataset> = {
+      H4: dataset("EURUSD", "H4", 14400),
       H1: dataset("EURUSD", "H1", 3600),
       M30: dataset("EURUSD", "M30", 1800),
       M15: dataset("EURUSD", "M15", 900),
@@ -212,11 +213,12 @@ describe("HFM Analysis Phase 2 — sync & hash", () => {
     });
     const sync = synchronizeAnalysisTimeframes({ symbol: "EURUSD", datasets, quote });
     expect(sync.timeframesMissing).toHaveLength(0);
-    expect(sync.timeframesPresent).toEqual(["H1", "M30", "M15", "M5"]);
+    expect(sync.timeframesPresent).toEqual(["H4", "H1", "M30", "M15", "M5"]);
   });
 
   it("rejects mixed symbols", () => {
     const datasets = {
+      H4: dataset("EURUSD", "H4", 14400),
       H1: dataset("EURUSD", "H1", 3600),
       M30: dataset("XAUUSD", "M30", 1800),
       M15: dataset("EURUSD", "M15", 900),
@@ -551,7 +553,7 @@ describe("HFM Analysis Phase 2 — Charts regression markers", () => {
     expect(job.acceptsForExecution).toBe(false);
   });
 
-  it("default TF pack is H1 M30 M15 M5", () => {
-    expect([...HFM_ANALYSIS_DEFAULT_TF_PACK]).toEqual(["H1", "M30", "M15", "M5"]);
+  it("default TF pack includes supplemental H4 plus H1 M30 M15 M5", () => {
+    expect([...HFM_ANALYSIS_DEFAULT_TF_PACK]).toEqual(["H4", "H1", "M30", "M15", "M5"]);
   });
 });
