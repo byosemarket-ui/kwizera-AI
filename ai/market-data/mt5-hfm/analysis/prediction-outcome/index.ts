@@ -10,3 +10,6 @@ export * from "./identity.js";
 export * from "./persistence.js";
 export * from "./evaluate-charts-prediction.js";
 export * from "./performance-summary.js";
+export * from "./analytics-types.js";
+export * from "./analytics-engine.js";
+export * from "./reasoning-counts.js";

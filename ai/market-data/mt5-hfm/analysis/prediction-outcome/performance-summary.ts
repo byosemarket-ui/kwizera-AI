@@ -169,3 +169,7 @@ export async function aggregateChartsPredictionPerformanceFromStorage(input: {
     waitingSkipped: input.waitingSkipped,
   });
 }
+
+/** @deprecated Prefer buildChartsPerformanceAnalyticsFromStorage for P8.D. Kept for P8.C callers. */
+export { buildChartsPerformanceAnalyticsFromStorage } from "./analytics-engine.js";
+

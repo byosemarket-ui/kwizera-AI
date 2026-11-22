@@ -549,6 +549,16 @@ export function HfmAnalysisPanel(props: {
       <p className="hap-safety" data-analysis-safety="true">
         AI ANALYSIS ONLY — NO BROKER ORDERS ARE PLACED. No BUY/SELL signals authorize execution
         (placesOrders=false). Chart symbol now: {symbol}. {HFM_ANALYTICAL_CONFIDENCE_DISCLAIMER}
+        {" "}
+        <a
+          className="hap-perf-analytics-link"
+          href="/admin/forex/mt5-hfm/performance-analytics"
+          data-perf-analytics-nav="true"
+        >
+          Performance Analytics
+        </a>
+        {" "}
+        (read-only historical outcomes).
       </p>
 
       <div className="hap-meta-row" data-analysis-meta="true">

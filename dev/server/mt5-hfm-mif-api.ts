@@ -126,9 +126,11 @@ import {
   type MifProbabilityTargetEvent,
 } from "../../ai/market-data/mt5-hfm/mif/index.js";
 import {
-  aggregateChartsPredictionPerformanceFromStorage,
+  buildChartsPerformanceAnalyticsFromStorage,
   evaluateChartsPredictionHistorical,
   getHfmChartsPredictionOutcomeStorage,
+  scanReasoningPopulationCounts,
+  validateAnalyticsFilters,
 } from "../../ai/market-data/mt5-hfm/analysis/prediction-outcome/index.js";
 
 const PREDICTION_OUTCOME_SAFETY = {
@@ -1956,24 +1958,65 @@ export async function handleMt5HfmMifApi(
     url.pathname === `${PATH_PREFIX}/prediction-outcome/charts/performance`
     && req.method === "GET"
   ) {
-    const summary = await aggregateChartsPredictionPerformanceFromStorage({
-      storage: getHfmChartsPredictionOutcomeStorage(),
-      totalCompletedAnalyses:
-        url.searchParams.get("totalCompletedAnalyses") != null
-          ? Number(url.searchParams.get("totalCompletedAnalyses"))
-          : null,
-      noTradeSkipped:
-        url.searchParams.get("noTradeSkipped") != null
-          ? Number(url.searchParams.get("noTradeSkipped"))
-          : null,
-      waitingSkipped:
-        url.searchParams.get("waitingSkipped") != null
-          ? Number(url.searchParams.get("waitingSkipped"))
-          : null,
+    const validated = validateAnalyticsFilters({
+      timeBasis: url.searchParams.get("timeBasis") ?? undefined,
+      populationMode: url.searchParams.get("populationMode") ?? undefined,
+      startUtc: url.searchParams.get("startUtc") ?? url.searchParams.get("from") ?? undefined,
+      endUtc: url.searchParams.get("endUtc") ?? url.searchParams.get("to") ?? undefined,
+      symbol: url.searchParams.get("symbol") ?? url.searchParams.get("instrument") ?? undefined,
+      timeframe: url.searchParams.get("timeframe") ?? undefined,
+      direction: url.searchParams.get("direction") ?? undefined,
+      evaluatorVersion: url.searchParams.get("evaluatorVersion") ?? undefined,
+      signedRPolicyVersion: url.searchParams.get("signedRPolicyVersion") ?? undefined,
+      confidenceBucket: url.searchParams.get("confidenceBucket") ?? undefined,
     });
+    if (!validated.ok) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: validated.code, message: validated.message },
+        ...PREDICTION_OUTCOME_SAFETY,
+        notBrokerAccountPnl: true,
+        scheduledWorker: false,
+      });
+      return true;
+    }
+    const includeReasoning = url.searchParams.get("includeReasoningCounts") !== "0";
+    const reasoningCounts = includeReasoning
+      ? await scanReasoningPopulationCounts({
+          startUtc: validated.filters.startUtc,
+          endUtc: validated.filters.endUtc,
+        })
+      : null;
+    const summary = await buildChartsPerformanceAnalyticsFromStorage({
+      storage: getHfmChartsPredictionOutcomeStorage(),
+      filters: validated.filters,
+      reasoningCounts,
+    });
+    // Preserve P8.C caller-injected overrides only when reasoning authority is unavailable
+    // and the client explicitly supplies them (never label as authoritative).
+    if (summary.reasoningCounts.authority !== "REASONING_STORE") {
+      if (url.searchParams.get("totalCompletedAnalyses") != null) {
+        (summary as { totalCompletedAnalyses: number | null }).totalCompletedAnalyses =
+          Number(url.searchParams.get("totalCompletedAnalyses"));
+        summary.warnings.push("CALLER_INJECTED_COMPLETED_ANALYSES_NOT_AUTHORITATIVE");
+      }
+      if (url.searchParams.get("noTradeSkipped") != null) {
+        (summary as { noTradeSkipped: number | null }).noTradeSkipped =
+          Number(url.searchParams.get("noTradeSkipped"));
+        summary.warnings.push("CALLER_INJECTED_NO_TRADE_NOT_AUTHORITATIVE");
+      }
+      if (url.searchParams.get("waitingSkipped") != null) {
+        (summary as { waitingSkipped: number | null }).waitingSkipped =
+          Number(url.searchParams.get("waitingSkipped"));
+        summary.warnings.push("CALLER_INJECTED_WAITING_NOT_AUTHORITATIVE");
+      }
+    }
     const payload = {
       ok: true,
       summary,
+      schemaVersion: summary.schemaVersion,
+      populationMode: summary.populationMode,
+      timeBasis: summary.timeBasis,
       ...PREDICTION_OUTCOME_SAFETY,
       notBrokerAccountPnl: true,
       scheduledWorker: false,

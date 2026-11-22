@@ -1205,6 +1205,49 @@ export const forexProvidersApi = {
     }>(
       `/api/forex/providers/mt5-hfm/mif/research-results/${encodeURIComponent(summaryId)}`,
     ),
+  /** P8.D — Charts Performance Analytics (read-only; immutable P8.C evaluations). */
+  mt5HfmMifChartsPerformance: (params?: {
+    symbol?: string;
+    timeframe?: string;
+    direction?: "BUY" | "SELL";
+    timeBasis?: "activationOpenTimeSec" | "computationTimestamp";
+    populationMode?: "LATEST_PER_PREDICTION" | "PER_PIT_MANIFEST";
+    startUtc?: string;
+    endUtc?: string;
+    evaluatorVersion?: string;
+    signedRPolicyVersion?: string;
+    confidenceBucket?: string;
+    includeReasoningCounts?: boolean;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.symbol) q.set("symbol", params.symbol);
+    if (params?.timeframe) q.set("timeframe", params.timeframe);
+    if (params?.direction) q.set("direction", params.direction);
+    if (params?.timeBasis) q.set("timeBasis", params.timeBasis);
+    if (params?.populationMode) q.set("populationMode", params.populationMode);
+    if (params?.startUtc) q.set("startUtc", params.startUtc);
+    if (params?.endUtc) q.set("endUtc", params.endUtc);
+    if (params?.evaluatorVersion) q.set("evaluatorVersion", params.evaluatorVersion);
+    if (params?.signedRPolicyVersion) q.set("signedRPolicyVersion", params.signedRPolicyVersion);
+    if (params?.confidenceBucket) q.set("confidenceBucket", params.confidenceBucket);
+    if (params?.includeReasoningCounts === false) q.set("includeReasoningCounts", "0");
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      summary?: Record<string, unknown>;
+      schemaVersion?: string;
+      populationMode?: string;
+      timeBasis?: string;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      notBrokerAccountPnl?: true;
+      scheduledWorker?: false;
+      error?: { code?: string; message?: string };
+    }>(
+      `/api/forex/providers/mt5-hfm/mif/prediction-outcome/charts/performance${qs ? `?${qs}` : ""}`,
+    );
+  },
   mt5HfmMifCalibrationStatus: (params?: {
     symbol?: string;
     timeframe?: string;
