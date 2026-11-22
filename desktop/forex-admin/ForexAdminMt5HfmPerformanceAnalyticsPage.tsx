@@ -293,10 +293,10 @@ export function ForexAdminMt5HfmPerformanceAnalyticsPage() {
               data-perf-confidence
             >
               <option value="">All</option>
-              <option value="UNKNOWN">UNKNOWN</option>
-              <option value="<0.5">&lt;0.5</option>
-              <option value="0.5–0.75">0.5–0.75</option>
-              <option value="≥0.75">≥0.75</option>
+              <option value="UNKNOWN">Unknown</option>
+              <option value="<50">Below 50</option>
+              <option value="50–<75">50 to below 75</option>
+              <option value=">=75">75 and above</option>
             </select>
           </label>
         </div>

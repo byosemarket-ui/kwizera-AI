@@ -126,15 +126,16 @@ function evalRec(overrides: Record<string, unknown> = {}): any {
 }
 
 describe("P8.D confidence buckets", () => {
-  it("classifies UNKNOWN / <0.5 / 0.5–0.75 / ≥0.75 including 0–100 scale", () => {
+  it("classifies UNKNOWN / <50 / 50–<75 / >=75 on canonical 0–100 (F2)", () => {
     expect(classifyAnalyticalConfidenceBucket(null)).toBe("UNKNOWN");
     expect(classifyAnalyticalConfidenceBucket(undefined)).toBe("UNKNOWN");
-    expect(classifyAnalyticalConfidenceBucket(0.4)).toBe("<0.5");
-    expect(classifyAnalyticalConfidenceBucket(0.5)).toBe("0.5–0.75");
-    expect(classifyAnalyticalConfidenceBucket(0.749)).toBe("0.5–0.75");
-    expect(classifyAnalyticalConfidenceBucket(0.75)).toBe("≥0.75");
-    expect(classifyAnalyticalConfidenceBucket(80)).toBe("≥0.75");
-    expect(classifyAnalyticalConfidenceBucket(40)).toBe("<0.5");
+    expect(classifyAnalyticalConfidenceBucket(0.4)).toBe("<50"); // fraction → 40
+    expect(classifyAnalyticalConfidenceBucket(0.5)).toBe("50–<75"); // fraction → 50
+    expect(classifyAnalyticalConfidenceBucket(0.74)).toBe("50–<75"); // → 74
+    expect(classifyAnalyticalConfidenceBucket(0.749)).toBe(">=75"); // Math.round(74.9)=75
+    expect(classifyAnalyticalConfidenceBucket(0.75)).toBe(">=75"); // → 75
+    expect(classifyAnalyticalConfidenceBucket(80)).toBe(">=75");
+    expect(classifyAnalyticalConfidenceBucket(40)).toBe("<50");
   });
 });
 
@@ -148,7 +149,7 @@ describe("P8.D filter validation", () => {
       populationMode: "PER_PIT_MANIFEST",
       symbol: "eurusd",
       direction: "buy",
-      confidenceBucket: "0.5–0.75",
+      confidenceBucket: "50–<75",
       startUtc: "2026-01-01T00:00:00.000Z",
       endUtc: "2026-02-01T00:00:00.000Z",
     });
@@ -156,7 +157,7 @@ describe("P8.D filter validation", () => {
     if (!ok.ok) return;
     expect(ok.filters.symbol).toBe("EURUSD");
     expect(ok.filters.direction).toBe("BUY");
-    expect(ok.filters.confidenceBucket).toBe("0.5–0.75");
+    expect(ok.filters.confidenceBucket).toBe("50–<75");
   });
 
   it("rejects invalid inputs", () => {
@@ -402,7 +403,7 @@ describe("P8.D version separation and filters", () => {
     expect(byTime.selected[0]!.predictionId).toBe("f1");
 
     const byConf = filterEvaluations(rows, {
-      ...defaultAnalyticsFilters({ confidenceBucket: "≥0.75" }),
+      ...defaultAnalyticsFilters({ confidenceBucket: ">=75" }),
     });
     expect(byConf.selected).toHaveLength(1);
     expect(byConf.selected[0]!.predictionId).toBe("f2");
@@ -449,7 +450,7 @@ describe("P8.D breakdowns and sparse warnings", () => {
     expect(report.breakdowns.direction.some((r) => r.key === "SELL")).toBe(true);
     expect(report.breakdowns.setupFingerprint.some((r) => r.key === "UNKNOWN")).toBe(true);
     expect(report.breakdowns.analyticalConfidence.some((r) => r.key === "UNKNOWN")).toBe(true);
-    expect(report.breakdowns.analyticalConfidence.some((r) => r.key === "<0.5")).toBe(true);
+    expect(report.breakdowns.analyticalConfidence.some((r) => r.key === "<50")).toBe(true);
     expect(report.warnings).toContain("INSUFFICIENT_SAMPLE");
     expect(
       report.breakdowns.symbol.every(

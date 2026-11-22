@@ -63,6 +63,12 @@ describe("P8.D ForexAdmin Performance Analytics UI", () => {
     expect(page).toContain("INSUFFICIENT_SAMPLE");
     expect(page).toContain("unavailable");
     expect(page).toContain("Empty population");
+    expect(page).toContain("Below 50");
+    expect(page).toContain("50 to below 75");
+    expect(page).toContain("75 and above");
+    expect(page).toContain('value="<50"');
+    expect(page).toContain('value=">=75"');
+    expect(page).not.toContain('value="<0.5"');
     expect(page).not.toContain("Place Order");
     expect(page).not.toContain("Activate Worker");
 

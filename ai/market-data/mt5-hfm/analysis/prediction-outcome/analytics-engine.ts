@@ -17,6 +17,10 @@ import {
 } from "./contracts.js";
 import type { HfmChartsPredictionOutcomeStorage } from "./persistence.js";
 import { computeDecisiveWinRate } from "./performance-summary.js";
+import {
+  classifyConfidenceBucketFromProvenance,
+  coerceConfidenceBucketFilter,
+} from "./confidence-provenance.js";
 import type {
   HfmChartsPredictionEvaluationRecord,
 } from "./types.js";
@@ -59,18 +63,6 @@ export function defaultAnalyticsFilters(
     confidenceBucket: null,
     ...overrides,
   };
-}
-
-export function classifyAnalyticalConfidenceBucket(
-  confidence: number | null | undefined,
-): HfmChartsConfidenceBucket {
-  if (confidence == null || !Number.isFinite(confidence)) return "UNKNOWN";
-  // Accept both 0–1 and 0–100 scales from historical reasoning records.
-  const c = confidence > 1 ? confidence / 100 : confidence;
-  if (!(c >= 0)) return "UNKNOWN";
-  if (c < 0.5) return "<0.5";
-  if (c < 0.75) return "0.5–0.75";
-  return "≥0.75";
 }
 
 export function computeRate(numerator: number, denominator: number): HfmChartsRateMetric {
@@ -254,16 +246,14 @@ export function validateAnalyticsFilters(
   const confidenceBucket =
     raw.confidenceBucket == null || raw.confidenceBucket === ""
       ? null
-      : (["UNKNOWN", "<0.5", "0.5–0.75", "≥0.75"] as const).includes(
-            raw.confidenceBucket as HfmChartsConfidenceBucket,
-          )
-        ? (raw.confidenceBucket as HfmChartsConfidenceBucket)
-        : null;
+      : coerceConfidenceBucketFilter(String(raw.confidenceBucket));
   if (raw.confidenceBucket && !confidenceBucket) {
     return {
       ok: false,
       code: "INVALID_CONFIDENCE_BUCKET",
-      message: "confidenceBucket must be UNKNOWN | <0.5 | 0.5–0.75 | ≥0.75",
+      message:
+        "confidenceBucket must be UNKNOWN | <50 | 50–<75 | >=75 "
+        + "(legacy <0.5 | 0.5–0.75 | ≥0.75 also accepted)",
     };
   }
 
@@ -379,9 +369,7 @@ export function filterEvaluations(
       excludedByFilter += 1;
       continue;
     }
-    const bucket = classifyAnalyticalConfidenceBucket(
-      e.provenance.analyticalConfidence,
-    );
+    const bucket = classifyConfidenceBucketFromProvenance(e.provenance);
     if (filters.confidenceBucket && bucket !== filters.confidenceBucket) {
       excludedByFilter += 1;
       continue;
@@ -675,7 +663,7 @@ export function buildChartsPerformanceAnalytics(input: {
       (e) => e.provenance.setupFingerprint?.trim() || "UNKNOWN",
     ),
     analyticalConfidence: groupBy(selected, (e) =>
-      classifyAnalyticalConfidenceBucket(e.provenance.analyticalConfidence),
+      classifyConfidenceBucketFromProvenance(e.provenance),
     ),
     ...(filters.populationMode === "PER_PIT_MANIFEST"
       ? {

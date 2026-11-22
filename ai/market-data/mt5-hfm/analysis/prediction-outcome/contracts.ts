@@ -34,12 +34,27 @@ export const HFM_CHARTS_ANALYTICAL_CONFIDENCE_LABEL =
 
 export const HFM_CHARTS_INSUFFICIENT_SAMPLE_THRESHOLD = 100 as const;
 
+/**
+ * P8.E F2 — canonical 0–100 analytical-confidence buckets (shared by P8.D + F1 census).
+ * Boundaries: UNKNOWN | [0,50) | [50,75) | [75,100].
+ */
 export const HFM_CHARTS_CONFIDENCE_BUCKETS = [
   "UNKNOWN",
-  "<0.5",
-  "0.5–0.75",
-  "≥0.75",
+  "<50",
+  "50–<75",
+  ">=75",
 ] as const;
+
+/** Human-readable labels for Admin UI (non-probability score). */
+export const HFM_CHARTS_CONFIDENCE_BUCKET_LABELS: Record<
+  (typeof HFM_CHARTS_CONFIDENCE_BUCKETS)[number],
+  string
+> = {
+  UNKNOWN: "Unknown",
+  "<50": "Below 50",
+  "50–<75": "50 to below 75",
+  ">=75": "75 and above",
+};
 
 export const HFM_CHARTS_TIME_BASIS = [
   "activationOpenTimeSec",
