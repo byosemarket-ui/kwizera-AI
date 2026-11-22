@@ -5,6 +5,10 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { sanitizeResearchStorageId, type MifHistoricalResearchStorage } from "../storage.js";
+import {
+  computePitReplayManifestContentIdentityHash,
+  computePitReplayManifestId,
+} from "./replay-input-manifest.js";
 import type { MifPitReplayInputManifest } from "./types.js";
 
 async function ensureDir(dir: string): Promise<void> {
@@ -102,6 +106,7 @@ export class MifPitReplayManifestStorage {
 
   /**
    * Verify loaded manifest identity still matches recomputed content hash fields.
+   * createdAt is excluded from identity (by design).
    */
   verifyManifestIntegrity(manifest: MifPitReplayInputManifest): {
     ok: boolean;
@@ -118,6 +123,20 @@ export class MifPitReplayManifestStorage {
     }
     if (!manifest.manifestId.startsWith("pitrm:")) {
       return { ok: false, code: "BAD_MANIFEST_ID" };
+    }
+    const expectedHash = computePitReplayManifestContentIdentityHash({
+      instrument: manifest.instrument,
+      primaryTimeframe: manifest.primaryTimeframe,
+      decisionCutoffSec: manifest.decisionCutoffSec,
+      requestedStartTimeSec: manifest.requestedStartTimeSec,
+      requestedEndTimeSec: manifest.requestedEndTimeSec,
+      bindings: manifest.timeframes,
+    });
+    if (expectedHash !== manifest.contentIdentityHash) {
+      return { ok: false, code: "CONTENT_HASH_MISMATCH" };
+    }
+    if (computePitReplayManifestId(expectedHash) !== manifest.manifestId) {
+      return { ok: false, code: "MANIFEST_ID_MISMATCH" };
     }
     return { ok: true, code: null };
   }

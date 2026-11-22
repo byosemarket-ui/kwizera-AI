@@ -9,6 +9,8 @@ import path from "node:path";
 import {
   applyEmbargo,
   applyPurge,
+  buildPitDatasetIntegrityInventory,
+  buildPitPriorityCoverageReport,
   buildPitReplayInputManifest,
   clipResearchBarsClosedAtDecision,
   clipResearchBarsToTip,
@@ -24,6 +26,7 @@ import {
   resolveDecisionTimeSec,
   runMifHistoricalReplay,
   sealResearchDataset,
+  selectAuthoritativePitDatasets,
   toStoredResearchBar,
   __setMifHistoricalResearchStorageForTests,
   type MifResearchStoredBar,
@@ -483,5 +486,49 @@ describe("P8.B inventory / manifest / incomplete exclusion", () => {
     const h2 = computePitReplayManifestContentIdentityHash(material);
     expect(h1).toBe(h2);
     expect(computePitReplayManifestId(h1)).toBe(`pitrm:${h1.slice(0, 32)}`);
+  });
+
+  it("inventory selects only COMPLETE hash-verified suitable datasets", async () => {
+    const sealed = await sealComplete("GBPUSD", "H1", 40, T0);
+    expect(sealed.ok).toBe(true);
+    if (!sealed.ok) return;
+    const inv = await buildPitDatasetIntegrityInventory(store, {
+      instruments: ["GBPUSD"],
+      timeframes: ["H1"],
+      verifyHashes: true,
+      generatedAt: "2024-01-01T00:00:00.000Z",
+    });
+    expect(inv.registryEntryCount).toBeGreaterThanOrEqual(1);
+    expect(inv.authoritativeCount).toBeGreaterThanOrEqual(1);
+    const auth = selectAuthoritativePitDatasets(inv, { instrument: "GBPUSD", timeframe: "H1" });
+    expect(auth.every((e) => e.authoritativeForPitReplay && e.status === "COMPLETE")).toBe(true);
+
+    const ms = MifPitReplayManifestStorage.fromResearchStorage(store);
+    const built = await buildPitReplayInputManifest(store, {
+      instrument: "GBPUSD",
+      primaryTimeframe: "H1",
+      datasets: [{ datasetId: sealed.manifest.datasetId, version: sealed.manifest.version }],
+      decisionCutoffSec: T0 + 3600 * 20,
+      createdAt: "2024-01-01T00:00:00.000Z",
+    });
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+    expect(ms.verifyManifestIntegrity(built.manifest).ok).toBe(true);
+  });
+
+  it("priority coverage discloses MTF overlap is not long-term performance evidence", async () => {
+    // Minimal packs so overlap math runs; real VPS report uses sealed archives.
+    for (const tf of ["H4", "H1", "M30", "M15", "M5"] as const) {
+      const sealed = await sealComplete("EURUSD", tf, 45, T0);
+      expect(sealed.ok).toBe(true);
+    }
+    const report = await buildPitPriorityCoverageReport(store, {
+      verifyHashes: true,
+      generatedAt: "2024-01-01T00:00:00.000Z",
+    });
+    expect(report.mtfOverlap.sufficientForLongTermPerformanceClaims).toBe(false);
+    expect(report.disclaimer.toLowerCase()).toContain("not sufficient");
+    const eurusd = report.cells.filter((c) => c.instrument === "EURUSD");
+    expect(eurusd.length).toBe(5);
   });
 });
