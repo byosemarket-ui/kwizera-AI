@@ -36,6 +36,12 @@ import {
   extractPackagesFromLoadedArtifacts,
 } from "./unified-input.js";
 import { validateHfmReasoningModelResponse } from "./validate-response.js";
+import {
+  HFM_CHARTS_PREDICTION_BRIDGE_CONTRACT_ID,
+  HFM_CHARTS_PREDICTION_BRIDGE_CONTRACT_VERSION,
+  HFM_CHARTS_PREDICTION_BRIDGE_ID,
+  HFM_CHARTS_PREDICTION_BRIDGE_VERSION,
+} from "../prediction-bridge/contracts.js";
 
 function emptyRecord(
   partial: Partial<HfmReasoningRecord> & Pick<HfmReasoningRecord, "analysisId" | "contextId" | "symbol">,
@@ -62,6 +68,7 @@ function emptyRecord(
     lineage: partial.lineage ?? null,
     usage: partial.usage ?? null,
     result: partial.result ?? null,
+    predictionLinkage: partial.predictionLinkage ?? null,
     placesOrders: false,
     mutatesBroker: false,
     acceptsForExecution: false,
@@ -490,6 +497,47 @@ export async function runHfmAiReasoning(input: {
         groundingStatus: "PASSED",
       },
     };
+
+    // P8.A — bridge completed BUY/SELL into immutable MIF prediction snapshot.
+    // Failures never drop the analysis; NO_TRADE/WAITING skip without fake predictions.
+    try {
+      const {
+        applyPredictionLinkage,
+        bridgeChartsReasoningToPrediction,
+      } = await import("../prediction-bridge/index.js");
+      const bridgeResult = await bridgeChartsReasoningToPrediction({
+        record,
+        context: evidence.context,
+        scenarioPackage,
+      });
+      record = applyPredictionLinkage(record, bridgeResult);
+    } catch (bridgeErr) {
+      const message =
+        bridgeErr instanceof Error ? bridgeErr.message : String(bridgeErr);
+      record = {
+        ...record,
+        predictionLinkage: {
+          bridgeContractId: HFM_CHARTS_PREDICTION_BRIDGE_CONTRACT_ID,
+          bridgeContractVersion: HFM_CHARTS_PREDICTION_BRIDGE_CONTRACT_VERSION,
+          bridgeId: HFM_CHARTS_PREDICTION_BRIDGE_ID,
+          bridgeVersion: HFM_CHARTS_PREDICTION_BRIDGE_VERSION,
+          status: "FAILED",
+          predictionId: null,
+          snapshotHash: null,
+          decisionAction: result.decision?.action ?? null,
+          scenarioId: result.selectedScenarioId ?? null,
+          setupFingerprint: null,
+          evidencePackageId: result.evidencePackageId ?? null,
+          scenarioPackageId: result.scenarioPackageId ?? null,
+          reason: `BRIDGE_EXCEPTION:${message}`.slice(0, 200),
+          bridgedAt: new Date().toISOString(),
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        },
+      };
+    }
+
     setActiveReasoningRecord(record);
     await storage.save(record);
     return record;

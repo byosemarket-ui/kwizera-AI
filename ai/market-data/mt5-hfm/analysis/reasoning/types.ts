@@ -7,6 +7,7 @@ import type {
   HFM_REASONING_SCHEMA_VERSION,
 } from "./constants.js";
 import type { HfmReasoningPricePrecisionResult } from "./price-precision.js";
+import type { HfmChartsPredictionLinkage } from "../prediction-bridge/types.js";
 
 export type HfmUnifiedInputCompleteness = "COMPLETE" | "PARTIAL";
 
@@ -267,6 +268,11 @@ export interface HfmReasoningRecord {
     latencyMs: number | null;
   } | null;
   result: HfmReasoningValidatedResult | null;
+  /**
+   * P8.A — optional linkage to MIF Prediction Outcome snapshot.
+   * Present after bridge attempt on COMPLETED analyses; null/absent on older records.
+   */
+  predictionLinkage?: HfmChartsPredictionLinkage | null;
   placesOrders: false;
   mutatesBroker: false;
   acceptsForExecution: false;

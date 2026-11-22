@@ -17,3 +17,4 @@ export * from "./retention.js";
 export * from "./orchestrator.js";
 export * from "./intelligence-public.js";
 export * as hfmReasoning from "./reasoning/index.js";
+export * as hfmPredictionBridge from "./prediction-bridge/index.js";
