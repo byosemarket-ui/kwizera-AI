@@ -4,7 +4,7 @@
  */
 import { createHash } from "node:crypto";
 import { stableSerialize } from "../../quality/stable-identity.js";
-import { clipResearchBarsToTip } from "../replay-bridge.js";
+import { clipResearchBarsClosedAtDecision, clipResearchBarsToTip } from "../replay-bridge.js";
 import type { MifHistoricalResearchStorage } from "../storage.js";
 import type { MifResearchDatasetManifest, MifResearchStoredBar } from "../types.js";
 import {
@@ -244,13 +244,24 @@ export async function runAnalogueSearch(
       }
 
       const throughTip = bars.slice(0, tipIdx + 1);
-      const clipped = clipResearchBarsToTip(throughTip, tip);
-      if (!clipped.noFutureLeakage || clipped.bars.length < need) {
+      // P8.B — close-time visibility first; open-time clip is defense-in-depth only.
+      const closedClip = clipResearchBarsClosedAtDecision({
+        bars: throughTip,
+        timeframe: manifest.timeframe,
+        tipOpenTimeSec: tip,
+      });
+      if (!closedClip.ok) {
+        candidatesExcluded += 1;
+        bump(exclusionCounts, closedClip.code || "OTHER");
+        continue;
+      }
+      const clipped = clipResearchBarsToTip(closedClip.bars, tip);
+      if (!clipped.noFutureLeakage || closedClip.bars.length < need) {
         candidatesExcluded += 1;
         bump(exclusionCounts, clipped.noFutureLeakage ? "INSUFFICIENT_HISTORY" : "FUTURE_BARS_IN_WINDOW");
         continue;
       }
-      const windowBars = clipped.bars.slice(clipped.bars.length - need);
+      const windowBars = closedClip.bars.slice(closedClip.bars.length - need);
       const features = extractAnalogueFeatures({
         barsThroughTip: windowBars,
         lookbackBars: params.lookbackBars,

@@ -3,7 +3,11 @@
  */
 import { createHash } from "node:crypto";
 import { stableSerialize } from "../../quality/stable-identity.js";
-import { assertNoFutureBarsBeyondTip, clipResearchBarsToTip } from "../replay-bridge.js";
+import {
+  assertNoFutureBarsBeyondTip,
+  clipResearchBarsClosedAtDecision,
+  clipResearchBarsToTip,
+} from "../replay-bridge.js";
 import type { MifResearchDatasetManifest, MifResearchStoredBar } from "../types.js";
 import {
   MIF_ANALOGUE_CONTRACT_ID,
@@ -63,10 +67,25 @@ export function buildAnalogueReferenceState(input: {
     return { ok: false, code: "TIP_NOT_FOUND", message: "tip candle not present in dataset bars" };
   }
 
-  const clipped = clipResearchBarsToTip(input.bars, tip);
-  if (!clipped.noFutureLeakage) {
+  // P8.B — close-time visibility is the authoritative PIT gate (open-time alone is insufficient).
+  const closedClip = clipResearchBarsClosedAtDecision({
+    bars: input.bars,
+    timeframe: input.manifest.timeframe,
+    tipOpenTimeSec: tip,
+  });
+  if (!closedClip.ok) {
+    return {
+      ok: false,
+      code: closedClip.code,
+      message: closedClip.message,
+    };
+  }
+  // Keep open-time assert as defense-in-depth on the already close-time-filtered set.
+  const openClip = clipResearchBarsToTip(closedClip.bars, tip);
+  if (!openClip.noFutureLeakage) {
     return { ok: false, code: "FUTURE_BARS_IN_WINDOW", message: "future bars leaked into reference clip" };
   }
+  const clipped = { bars: closedClip.bars, noFutureLeakage: true as const };
   const assert = assertNoFutureBarsBeyondTip(clipped.bars, tip);
   if (!assert.ok) {
     return { ok: false, code: "FUTURE_BARS_IN_WINDOW", message: `leakCount=${assert.leakCount}` };

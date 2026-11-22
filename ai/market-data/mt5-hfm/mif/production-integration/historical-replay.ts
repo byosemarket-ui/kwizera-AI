@@ -13,6 +13,8 @@ import {
   filterBarsClosedAtDecision,
   resolveDecisionTimeSec,
 } from "./mtf-visibility.js";
+// P8.B: close-time visibility (filterBarsClosedAtDecision) is mandatory for every tip.
+// Open-time-only clipping must never be the sole MTF Point-in-Time gate.
 import {
   MIF_PRODUCTION_INTEGRATION_CONTRACT_ID,
   MIF_PRODUCTION_INTEGRATION_CONTRACT_VERSION,
