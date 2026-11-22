@@ -50,6 +50,10 @@
  * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/outcomes
  * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/outcomes/:predictionId
  * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/performance
+ * POST /api/forex/providers/mt5-hfm/mif/prediction-outcome/charts/evaluate
+ * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/charts/evaluations
+ * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/charts/evaluations/:evaluationId
+ * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/charts/performance
  * POST /api/forex/providers/mt5-hfm/mif/backtesting/runs
  * GET  /api/forex/providers/mt5-hfm/mif/backtesting/runs
  * GET  /api/forex/providers/mt5-hfm/mif/backtesting/runs/:runId
@@ -121,6 +125,11 @@ import {
   type MifOpportunityCandidate,
   type MifProbabilityTargetEvent,
 } from "../../ai/market-data/mt5-hfm/mif/index.js";
+import {
+  aggregateChartsPredictionPerformanceFromStorage,
+  evaluateChartsPredictionHistorical,
+  getHfmChartsPredictionOutcomeStorage,
+} from "../../ai/market-data/mt5-hfm/analysis/prediction-outcome/index.js";
 
 const PREDICTION_OUTCOME_SAFETY = {
   placesOrders: false as const,
@@ -1759,6 +1768,216 @@ export async function handleMt5HfmMifApi(
       summary.summaryId,
     );
     const payload = { ok: true, summary, ...PREDICTION_OUTCOME_SAFETY };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  // --- P8.C: Charts prediction outcome evaluation (on-demand, historical PIT only) ---
+  if (
+    url.pathname === `${PATH_PREFIX}/prediction-outcome/charts/evaluate`
+    && req.method === "POST"
+  ) {
+    let body: Record<string, unknown>;
+    try {
+      body = await readJsonBodyBounded(req, 64 * 1024);
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      sendJson(res, code === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
+        ok: false,
+        error: {
+          code: code ?? "BAD_REQUEST",
+          message: err instanceof Error ? err.message : String(err),
+        },
+        ...PREDICTION_OUTCOME_SAFETY,
+        notBrokerAccountPnl: true,
+        scheduledWorker: false,
+      });
+      return true;
+    }
+    const predictionId = String(body.predictionId || "").trim();
+    const datasetId = String(body.datasetId || "").trim();
+    if (!predictionId || !datasetId) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "INVALID_INPUT",
+          message: "predictionId and datasetId required",
+        },
+        ...PREDICTION_OUTCOME_SAFETY,
+        notBrokerAccountPnl: true,
+        scheduledWorker: false,
+      });
+      return true;
+    }
+    let entryZone: { low: number; high: number } | null = null;
+    if (body.entryZone && typeof body.entryZone === "object") {
+      const ez = body.entryZone as Record<string, unknown>;
+      const low = ez.low != null ? Number(ez.low) : NaN;
+      const high = ez.high != null ? Number(ez.high) : NaN;
+      if (Number.isFinite(low) && Number.isFinite(high)) {
+        entryZone = { low, high };
+      }
+    }
+    const horizons = Array.isArray(body.horizons)
+      ? body.horizons.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0)
+      : undefined;
+    const result = await evaluateChartsPredictionHistorical({
+      researchStorage: getMifHistoricalResearchStorage(),
+      predictionStorage: getMifPredictionOutcomeStorage(),
+      chartsStorage: getHfmChartsPredictionOutcomeStorage(),
+      request: {
+        predictionId,
+        datasetId,
+        datasetVersion: body.datasetVersion != null ? Number(body.datasetVersion) : undefined,
+        expectedContentHash:
+          body.expectedContentHash != null ? String(body.expectedContentHash) : null,
+        entryZone,
+        scenarioId: body.scenarioId != null ? String(body.scenarioId) : null,
+        setupFingerprint:
+          body.setupFingerprint != null ? String(body.setupFingerprint) : null,
+        evidencePackageId:
+          body.evidencePackageId != null ? String(body.evidencePackageId) : null,
+        scenarioPackageId:
+          body.scenarioPackageId != null ? String(body.scenarioPackageId) : null,
+        analyticalConfidence:
+          body.analyticalConfidence != null ? Number(body.analyticalConfidence) : null,
+        horizons,
+        maxAgeBars: body.maxAgeBars != null ? Number(body.maxAgeBars) : undefined,
+        persist: body.persist !== false,
+      },
+    });
+    if (!result.ok) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: result.code, message: result.message },
+        ...PREDICTION_OUTCOME_SAFETY,
+        notBrokerAccountPnl: true,
+        scheduledWorker: false,
+      });
+      return true;
+    }
+    const ev = result.evaluation;
+    const payload = {
+      ok: true,
+      evaluationId: ev.evaluationId,
+      predictionId: ev.predictionId,
+      resultKind: ev.resultKind,
+      entryTriggerStatus: ev.entryTrigger.status,
+      realizedSignedRMultiple: ev.realizedSignedRMultiple,
+      mae: ev.mae,
+      mfe: ev.mfe,
+      pitManifestId: ev.provenance.pitManifestId,
+      datasetContentHash: ev.provenance.datasetContentHash,
+      persisted: result.persisted,
+      created: result.created,
+      evaluation: ev,
+      note:
+        "P8.C Charts historical evaluation. Analytical OHLC only — not broker account P&L. "
+        + "Decisive win-rate excludes UNTRIGGERED/AMBIGUOUS/EXPIRED. No scheduled worker.",
+      ...PREDICTION_OUTCOME_SAFETY,
+      notBrokerAccountPnl: true,
+      scheduledWorker: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (
+    url.pathname === `${PATH_PREFIX}/prediction-outcome/charts/evaluations`
+    && req.method === "GET"
+  ) {
+    const predictionId = url.searchParams.get("predictionId");
+    const store = getHfmChartsPredictionOutcomeStorage();
+    if (predictionId) {
+      const items = await store.listEvaluationsForPrediction(predictionId);
+      const payload = {
+        ok: true,
+        predictionId,
+        items,
+        total: items.length,
+        ...PREDICTION_OUTCOME_SAFETY,
+        notBrokerAccountPnl: true,
+        scheduledWorker: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, 200, payload);
+      return true;
+    }
+    const listed = await store.listAllEvaluations({
+      offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+      limit: Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 50) || 50)),
+    });
+    const payload = {
+      ok: true,
+      ...listed,
+      ...PREDICTION_OUTCOME_SAFETY,
+      notBrokerAccountPnl: true,
+      scheduledWorker: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  const chartsEvalMatch =
+    /^\/api\/forex\/providers\/mt5-hfm\/mif\/prediction-outcome\/charts\/evaluations\/([^/]+)$/.exec(
+      url.pathname,
+    );
+  if (chartsEvalMatch && req.method === "GET") {
+    const evaluationId = decodeURIComponent(chartsEvalMatch[1]!);
+    const evaluation = await getHfmChartsPredictionOutcomeStorage().getEvaluation(
+      evaluationId,
+    );
+    if (!evaluation) {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "EVALUATION_NOT_FOUND", message: "charts evaluation not found" },
+        ...PREDICTION_OUTCOME_SAFETY,
+        notBrokerAccountPnl: true,
+        scheduledWorker: false,
+      });
+      return true;
+    }
+    const payload = {
+      ok: true,
+      evaluation,
+      ...PREDICTION_OUTCOME_SAFETY,
+      notBrokerAccountPnl: true,
+      scheduledWorker: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (
+    url.pathname === `${PATH_PREFIX}/prediction-outcome/charts/performance`
+    && req.method === "GET"
+  ) {
+    const summary = await aggregateChartsPredictionPerformanceFromStorage({
+      storage: getHfmChartsPredictionOutcomeStorage(),
+      totalCompletedAnalyses:
+        url.searchParams.get("totalCompletedAnalyses") != null
+          ? Number(url.searchParams.get("totalCompletedAnalyses"))
+          : null,
+      noTradeSkipped:
+        url.searchParams.get("noTradeSkipped") != null
+          ? Number(url.searchParams.get("noTradeSkipped"))
+          : null,
+      waitingSkipped:
+        url.searchParams.get("waitingSkipped") != null
+          ? Number(url.searchParams.get("waitingSkipped"))
+          : null,
+    });
+    const payload = {
+      ok: true,
+      summary,
+      ...PREDICTION_OUTCOME_SAFETY,
+      notBrokerAccountPnl: true,
+      scheduledWorker: false,
+    };
     assertNoSecretsInMt5HfmPayload(payload);
     sendJson(res, 200, payload);
     return true;
