@@ -64,7 +64,29 @@ export interface HfmChartsPredictionEvaluationProvenance {
   symbol: string;
   timeframe: string;
   direction: string;
+  /** Canonical 0–100 analytical confidence, or null when unavailable. */
   analyticalConfidence: number | null;
+  /** P8.E F1 — original reasoning confidence value before normalization. */
+  rawAnalyticalConfidence?: number | string | null;
+  /** P8.E F1 — scale classification from normalizer. */
+  confidenceScale?: "zero" | "fraction" | "percent" | "invalid" | null;
+  /** P8.E F1 — production uses REASONING_STORE | UNAVAILABLE only. */
+  confidenceSource?: "REASONING_STORE" | "UNAVAILABLE" | "TEST_OVERRIDE" | null;
+  /** P8.E F1 — analysisId used for reasoning join. */
+  confidenceAnalysisId?: string | null;
+  /** P8.E F1 — operational normalize timestamp (not part of immutable equality). */
+  confidenceNormalizedAt?: string | null;
+  /** P8.E F1 — non-probability semantics stamp. */
+  confidenceSemantics?: "NON_PROBABILITY_ANALYTICAL_SCORE";
+  /** P8.E F1 — why confidence is unavailable / excluded from calibration. */
+  confidenceUnavailableReason?:
+    | "MISSING_ANALYSIS_RUN_ID"
+    | "REASONING_RECORD_NOT_FOUND"
+    | "REASONING_ANALYSIS_ID_MISMATCH"
+    | "CONFIDENCE_MISSING"
+    | "CONFIDENCE_INVALID"
+    | "TEST_OVERRIDE_INVALID"
+    | null;
   pitManifestId: string;
   pitManifestContentIdentityHash: string;
   datasetId: string;
@@ -168,11 +190,23 @@ export interface HfmChartsEvaluatePredictionInput {
   setupFingerprint?: string | null;
   evidencePackageId?: string | null;
   scenarioPackageId?: string | null;
+  /**
+   * @deprecated Production API ignores this. Use testOnly* fields in unit tests only.
+   */
   analyticalConfidence?: number | null;
+  /**
+   * Test-only. When true, uses testOnlyAnalyticalConfidenceOverride instead of
+   * reasoning-store resolution. Production API must never set this.
+   */
+  testOnlyAllowConfidenceOverride?: boolean;
+  /** Test-only override value; ignored unless testOnlyAllowConfidenceOverride is true. */
+  testOnlyAnalyticalConfidenceOverride?: number | null;
   horizons?: readonly number[];
   maxAgeBars?: number;
   persist?: boolean;
   /** Injected snapshot for tests. */
   snapshot?: MifPredictionSnapshot | null;
+  /** Injected reasoning storage for tests. */
+  reasoningStorage?: unknown;
   evaluationTimestamp?: string;
 }

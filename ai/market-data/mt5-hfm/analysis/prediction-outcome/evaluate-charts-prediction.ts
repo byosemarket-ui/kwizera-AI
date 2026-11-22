@@ -33,12 +33,14 @@ import {
   resolveChartsEntryZone,
   selectPostTriggerClosedCandles,
 } from "./entry-trigger.js";
+import { resolveChartsConfidenceProvenance } from "./confidence-provenance.js";
 import { computeChartsEvaluationId } from "./identity.js";
 import {
   getHfmChartsPredictionOutcomeStorage,
   type HfmChartsPredictionOutcomeStorage,
 } from "./persistence.js";
 import { computeSignedRealizedR } from "./signed-r.js";
+import type { HfmReasoningStorage } from "../reasoning/storage.js";
 import type {
   HfmChartsEvaluatePredictionInput,
   HfmChartsPredictionEvaluationRecord,
@@ -235,6 +237,19 @@ export async function evaluateChartsPredictionHistorical(input: {
   const entryPrice = snapshot.levels.entry.price;
   const targetPrice = snapshot.levels.target.price;
 
+  // P8.E F1 — production resolves confidence from reasoning store via analysisRunId.
+  // Client-supplied analyticalConfidence is ignored unless test-only override is enabled.
+  const confidenceProvenance = await resolveChartsConfidenceProvenance({
+    analysisRunId: snapshot.analysisRunId,
+    reasoningStorage: req.reasoningStorage as HfmReasoningStorage | undefined,
+    testOnlyAllowConfidenceOverride: req.testOnlyAllowConfidenceOverride === true,
+    testOnlyAnalyticalConfidenceOverride:
+      req.testOnlyAllowConfidenceOverride === true
+        ? (req.testOnlyAnalyticalConfidenceOverride ?? req.analyticalConfidence)
+        : undefined,
+    normalizedAt: computationTimestamp,
+  });
+
   const lineage = {
     analysisRunId: snapshot.analysisRunId,
     sourceAnalysisIdentity: snapshot.sourceAnalysisIdentity,
@@ -242,10 +257,14 @@ export async function evaluateChartsPredictionHistorical(input: {
     setupFingerprint: req.setupFingerprint ?? snapshot.detectorId ?? null,
     evidencePackageId: req.evidencePackageId ?? null,
     scenarioPackageId: req.scenarioPackageId ?? null,
-    analyticalConfidence:
-      req.analyticalConfidence != null && Number.isFinite(req.analyticalConfidence)
-        ? req.analyticalConfidence
-        : null,
+    analyticalConfidence: confidenceProvenance.analyticalConfidence,
+    rawAnalyticalConfidence: confidenceProvenance.rawAnalyticalConfidence,
+    confidenceScale: confidenceProvenance.confidenceScale,
+    confidenceSource: confidenceProvenance.confidenceSource,
+    confidenceAnalysisId: confidenceProvenance.confidenceAnalysisId,
+    confidenceNormalizedAt: confidenceProvenance.confidenceNormalizedAt,
+    confidenceSemantics: confidenceProvenance.confidenceSemantics,
+    confidenceUnavailableReason: confidenceProvenance.confidenceUnavailableReason,
   };
 
   // ——— UNTRIGGERED path ———

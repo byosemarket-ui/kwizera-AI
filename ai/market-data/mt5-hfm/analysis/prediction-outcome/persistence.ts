@@ -4,7 +4,36 @@
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { stableConfidenceProvenanceEquality } from "./confidence-provenance.js";
 import type { HfmChartsPredictionEvaluationRecord } from "./types.js";
+
+function confidenceEqualityKey(
+  provenance: HfmChartsPredictionEvaluationRecord["provenance"],
+): string {
+  return stableConfidenceProvenanceEquality({
+    analyticalConfidence: provenance.analyticalConfidence ?? null,
+    rawAnalyticalConfidence:
+      provenance.rawAnalyticalConfidence === undefined
+        ? null
+        : provenance.rawAnalyticalConfidence,
+    confidenceScale:
+      provenance.confidenceScale === undefined ? null : provenance.confidenceScale,
+    confidenceSource:
+      provenance.confidenceSource === undefined
+        ? null
+        : provenance.confidenceSource,
+    confidenceAnalysisId:
+      provenance.confidenceAnalysisId === undefined
+        ? null
+        : provenance.confidenceAnalysisId,
+    confidenceSemantics:
+      provenance.confidenceSemantics ?? "NON_PROBABILITY_ANALYTICAL_SCORE",
+    confidenceUnavailableReason:
+      provenance.confidenceUnavailableReason === undefined
+        ? null
+        : provenance.confidenceUnavailableReason,
+  });
+}
 
 function resolveStorageRoot(): string {
   const fromEnv = String(process.env.KWIZERA_STORAGE_ROOT ?? "").trim();
@@ -118,6 +147,8 @@ export class HfmChartsPredictionOutcomeStorage {
           && existing.evaluatorVersion === record.evaluatorVersion
           && existing.resultKind === record.resultKind
           && existing.realizedSignedRMultiple === record.realizedSignedRMultiple
+          && confidenceEqualityKey(existing.provenance)
+            === confidenceEqualityKey(record.provenance)
         ) {
           return { ok: true, created: false };
         }

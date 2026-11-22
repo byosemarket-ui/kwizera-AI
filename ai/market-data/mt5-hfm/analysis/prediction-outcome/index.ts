@@ -13,3 +13,5 @@ export * from "./performance-summary.js";
 export * from "./analytics-types.js";
 export * from "./analytics-engine.js";
 export * from "./reasoning-counts.js";
+export * from "./confidence-provenance.js";
+export * from "./calibration-census.js";

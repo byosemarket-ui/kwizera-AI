@@ -54,6 +54,7 @@
  * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/charts/evaluations
  * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/charts/evaluations/:evaluationId
  * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/charts/performance
+ * GET  /api/forex/providers/mt5-hfm/mif/prediction-outcome/charts/calibration-census
  * POST /api/forex/providers/mt5-hfm/mif/backtesting/runs
  * GET  /api/forex/providers/mt5-hfm/mif/backtesting/runs
  * GET  /api/forex/providers/mt5-hfm/mif/backtesting/runs/:runId
@@ -126,6 +127,7 @@ import {
   type MifProbabilityTargetEvent,
 } from "../../ai/market-data/mt5-hfm/mif/index.js";
 import {
+  buildChartsCalibrationCensusFromStorage,
   buildChartsPerformanceAnalyticsFromStorage,
   evaluateChartsPredictionHistorical,
   getHfmChartsPredictionOutcomeStorage,
@@ -1842,8 +1844,8 @@ export async function handleMt5HfmMifApi(
           body.evidencePackageId != null ? String(body.evidencePackageId) : null,
         scenarioPackageId:
           body.scenarioPackageId != null ? String(body.scenarioPackageId) : null,
-        analyticalConfidence:
-          body.analyticalConfidence != null ? Number(body.analyticalConfidence) : null,
+        // P8.E F1: production never accepts client analyticalConfidence override.
+        // Confidence is resolved server-side from reasoning store via analysisRunId.
         horizons,
         maxAgeBars: body.maxAgeBars != null ? Number(body.maxAgeBars) : undefined,
         persist: body.persist !== false,
@@ -1867,6 +1869,9 @@ export async function handleMt5HfmMifApi(
       resultKind: ev.resultKind,
       entryTriggerStatus: ev.entryTrigger.status,
       realizedSignedRMultiple: ev.realizedSignedRMultiple,
+      analyticalConfidence: ev.provenance.analyticalConfidence,
+      confidenceSource: ev.provenance.confidenceSource ?? null,
+      confidenceUnavailableReason: ev.provenance.confidenceUnavailableReason ?? null,
       mae: ev.mae,
       mfe: ev.mfe,
       pitManifestId: ev.provenance.pitManifestId,
@@ -1948,6 +1953,29 @@ export async function handleMt5HfmMifApi(
       ...PREDICTION_OUTCOME_SAFETY,
       notBrokerAccountPnl: true,
       scheduledWorker: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  if (
+    url.pathname === `${PATH_PREFIX}/prediction-outcome/charts/calibration-census`
+    && req.method === "GET"
+  ) {
+    const census = await buildChartsCalibrationCensusFromStorage({
+      storage: getHfmChartsPredictionOutcomeStorage(),
+    });
+    const payload = {
+      ok: true,
+      census,
+      schemaVersion: census.schemaVersion,
+      ...PREDICTION_OUTCOME_SAFETY,
+      notBrokerAccountPnl: true,
+      scheduledWorker: false,
+      censusOnly: true,
+      calibrated: false,
+      note: census.note,
     };
     assertNoSecretsInMt5HfmPayload(payload);
     sendJson(res, 200, payload);
