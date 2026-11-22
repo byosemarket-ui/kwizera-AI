@@ -226,7 +226,6 @@ function baseRecord(
       rankingReference: null,
     },
     usage: null,
-    result,
     predictionLinkage: null,
     placesOrders: false,
     mutatesBroker: false,
