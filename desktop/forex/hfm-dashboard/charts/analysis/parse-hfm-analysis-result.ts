@@ -1,8 +1,15 @@
 /**
  * Phase 6 — pure parsers for Phase 5 v1.2 reasoning + package summaries.
+ * Phase 03 — surfaces prediction linkage + explicit score-kind availability.
  */
 export const HFM_ANALYTICAL_CONFIDENCE_DISCLAIMER =
   "Analytical confidence — not win probability.";
+
+export const HFM_ESTIMATED_PROBABILITY_UNAVAILABLE_LABEL = "NOT AVAILABLE";
+export const HFM_ESTIMATED_PROBABILITY_UNAVAILABLE_REASON =
+  "Charts path ranking-only; statistical probability not computed (skipProbability).";
+export const HFM_HISTORICAL_WIN_RATE_SEE_ADMIN =
+  "See Admin Performance Analytics for completed decisive evaluations.";
 
 export type DecisionAction =
   | "BUY"
@@ -11,6 +18,19 @@ export type DecisionAction =
   | "WAITING_FOR_CONFIRMATION"
   | "NONE";
 
+export type ParsedPredictionLinkageStatus =
+  | "CREATED"
+  | "REUSED"
+  | "SKIPPED"
+  | "FAILED"
+  | null;
+
+export interface ParsedPredictionLinkage {
+  status: ParsedPredictionLinkageStatus;
+  predictionId: string | null;
+  reason: string | null;
+  bridgedAt: string | null;
+}
 export interface ParsedDisagreement {
   agreesWithRanking: boolean | null;
   agreesWithScenarioOutcome: boolean | null;
@@ -67,6 +87,11 @@ export interface ParsedAnalysisView {
   scenarioPackageId: string | null;
   dataQualityWarnings: string[];
   schemaVersion: string | null;
+  /** Phase 03 — P8.A bridge linkage (immutable prediction record when CREATED/REUSED). */
+  predictionLinkage: ParsedPredictionLinkage;
+  /** Phase 03 — Charts path does not emit statistical probability. */
+  estimatedProbabilityStatus: "NOT_AVAILABLE";
+  estimatedProbabilityUnavailableReason: string;
 }
 
 function asRecord(v: unknown): Record<string, unknown> | null {
@@ -174,6 +199,20 @@ export function parseHfmAnalysisRecord(analysis: unknown): ParsedAnalysisView | 
   const lineage = asRecord(root.lineage);
   const evidence = asRecord(result?.evidence);
   const cs = asRecord(result?.confidenceSemantics);
+  const linkageRaw = asRecord(root.predictionLinkage);
+  const linkageStatusRaw = str(linkageRaw?.status)?.toUpperCase() ?? "";
+  const predictionLinkage: ParsedPredictionLinkage = {
+    status:
+      linkageStatusRaw === "CREATED"
+      || linkageStatusRaw === "REUSED"
+      || linkageStatusRaw === "SKIPPED"
+      || linkageStatusRaw === "FAILED"
+        ? linkageStatusRaw
+        : null,
+    predictionId: str(linkageRaw?.predictionId),
+    reason: str(linkageRaw?.reason),
+    bridgedAt: str(linkageRaw?.bridgedAt),
+  };
 
   return {
     action,
@@ -214,6 +253,9 @@ export function parseHfmAnalysisRecord(analysis: unknown): ParsedAnalysisView | 
     scenarioPackageId: str(result?.scenarioPackageId) ?? str(lineage?.scenarioPackageId),
     dataQualityWarnings: strArr(evidence?.dataQualityWarnings),
     schemaVersion: str(result?.schemaVersion) ?? str(root.schemaVersion),
+    predictionLinkage,
+    estimatedProbabilityStatus: "NOT_AVAILABLE",
+    estimatedProbabilityUnavailableReason: HFM_ESTIMATED_PROBABILITY_UNAVAILABLE_REASON,
   };
 }
 

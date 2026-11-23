@@ -341,8 +341,9 @@ export function ForexAdminMt5HfmPerformanceAnalyticsPage() {
             {fmtInt(trigger?.numerator)}/{fmtInt(trigger?.denominator)})
           </li>
           <li>
-            Decisive win rate: <strong>{fmtRate(win?.winRate)}</strong> (
+            Historical win rate (decisive): <strong>{fmtRate(win?.winRate)}</strong> (
             {fmtInt(win?.numerator)}/{fmtInt(win?.denominator)})
+            <span className="fxa-muted"> — observed outcomes, not estimated probability or analytical confidence</span>
           </li>
           <li>Mean signed R: <strong>{fmtNum(signedR?.mean)}</strong> (n={fmtInt(signedR?.count)})</li>
           <li>MAE mean: <strong>{fmtNum(mae?.mean ?? summary?.maeMean)}</strong> (n={fmtInt(mae?.count ?? summary?.maeSampleCount)})</li>

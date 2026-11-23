@@ -1,5 +1,9 @@
 import type { ParsedAnalysisView } from "./parse-hfm-analysis-result";
-import { HFM_ANALYTICAL_CONFIDENCE_DISCLAIMER } from "./parse-hfm-analysis-result";
+import {
+  HFM_ANALYTICAL_CONFIDENCE_DISCLAIMER,
+  HFM_ESTIMATED_PROBABILITY_UNAVAILABLE_LABEL,
+  HFM_HISTORICAL_WIN_RATE_SEE_ADMIN,
+} from "./parse-hfm-analysis-result";
 
 function formatDecision(action: ParsedAnalysisView["action"]): string {
   switch (action) {
@@ -46,7 +50,7 @@ export function HfmAiDecisionPanel(props: {
           <dd>{view?.marketRegime ?? "—"}</dd>
         </div>
       </dl>
-      <div className="hap-confidence-label">
+      <div className="hap-confidence-label" data-score-kind="analytical-confidence">
         <span>Analytical confidence</span>
         <strong>
           {confidencePct != null ? `${confidencePct}%` : "Not provided by AI"}
@@ -63,6 +67,35 @@ export function HfmAiDecisionPanel(props: {
           style={{ width: `${confidencePct ?? 0}%` }}
         />
       </div>
+      <dl className="hap-kv" data-score-kinds="phase03">
+        <div data-score-kind="estimated-probability">
+          <dt>Estimated probability</dt>
+          <dd>
+            {HFM_ESTIMATED_PROBABILITY_UNAVAILABLE_LABEL}
+            {view?.estimatedProbabilityUnavailableReason
+              ? ` — ${view.estimatedProbabilityUnavailableReason}`
+              : ""}
+          </dd>
+        </div>
+        <div data-score-kind="historical-win-rate">
+          <dt>Historical win rate</dt>
+          <dd>{HFM_HISTORICAL_WIN_RATE_SEE_ADMIN}</dd>
+        </div>
+        <div data-score-kind="prediction-linkage">
+          <dt>Prediction record</dt>
+          <dd>
+            {view?.predictionLinkage?.status
+              ? `${view.predictionLinkage.status}${
+                  view.predictionLinkage.predictionId
+                    ? ` · ${view.predictionLinkage.predictionId}`
+                    : view.predictionLinkage.reason
+                      ? ` · ${view.predictionLinkage.reason}`
+                      : ""
+                }`
+              : "—"}
+          </dd>
+        </div>
+      </dl>
       <p className="hap-insight" data-phase3-summary="true">
         {view?.summary || "Run Analyze Now to generate an insight from live HFM context."}
       </p>

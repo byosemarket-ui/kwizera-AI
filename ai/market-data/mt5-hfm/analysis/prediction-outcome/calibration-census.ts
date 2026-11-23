@@ -1,6 +1,8 @@
 /**
- * P8.E F1 — read-only bounded calibration census over Charts evaluations.
- * Not calibrated performance. Confidence is a non-probability analytical score.
+ * P8.E F1 / Phase 03 — read-only bounded calibration census over Charts evaluations.
+ * Not calibrated win-probability. Confidence is a non-probability analytical score.
+ * When paired observations exist, Brier/log-loss diagnostics reuse WF metrics helpers
+ * and remain explicitly non-probability.
  */
 import {
   classifyCalibrationCensusBucket,
@@ -14,6 +16,14 @@ import {
   type HfmChartsPredictionOutcomeStorage,
 } from "./persistence.js";
 import type { HfmChartsPredictionEvaluationRecord } from "./types.js";
+import { computeWfCalibrationMetrics } from "../../mif/wf-calibration/metrics.js";
+import {
+  classifyConfidenceOutcomeDiagnosticStatus,
+  HFM_CHARTS_CONFIDENCE_OUTCOME_DIAGNOSTIC_MIN,
+  HFM_CHARTS_CONFIDENCE_OUTCOME_PROVISIONAL_MIN,
+  HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE,
+  type HfmChartsConfidenceOutcomeDiagnosticStatus,
+} from "../prediction-semantics.js";
 
 const SAFETY = {
   placesOrders: false as const,
@@ -48,6 +58,23 @@ export interface HfmChartsCalibrationCensusReport {
     Exclude<HfmChartsCalibrationCensusBucket, "UNKNOWN">,
     "INSUFFICIENT_SAMPLE" | "COUNT_MET_NOT_CALIBRATED"
   >;
+  /**
+   * Phase 03 — confidence↔outcome diagnostics (NOT estimated win probability).
+   * Reuses WF Brier/log-loss helpers; never sets calibrated=true.
+   */
+  confidenceOutcomeDiagnostics: {
+    scoreKind: typeof HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE;
+    status: HfmChartsConfidenceOutcomeDiagnosticStatus;
+    pairCount: number;
+    provisionalMin: typeof HFM_CHARTS_CONFIDENCE_OUTCOME_PROVISIONAL_MIN;
+    diagnosticMin: typeof HFM_CHARTS_CONFIDENCE_OUTCOME_DIAGNOSTIC_MIN;
+    brierScore: number | null;
+    logLoss: number | null;
+    expectedCalibrationError: number | null;
+    positiveCount: number;
+    negativeCount: number;
+    note: string;
+  };
   evaluatorVersions: Record<string, number>;
   signedRPolicyVersions: Record<string, number>;
   symbols: Record<string, number>;
@@ -92,6 +119,7 @@ export function buildChartsCalibrationCensus(
   const directions: Record<string, number> = {};
   let withValidConfidence = 0;
   let withoutValidConfidence = 0;
+  const confidenceOutcomePairs: Array<{ probability: number; outcome: 0 | 1 }> = [];
 
   for (const e of evaluations) {
     const prov = e.provenance;
@@ -130,6 +158,11 @@ export function buildChartsCalibrationCensus(
       && conf != null
     ) {
       strictEligibleByBucket[bucket] += 1;
+      // Phase 03 — pair analytical confidence (scaled 0–1) with decisive outcome.
+      // This is a diagnostic of confidence vs outcomes — not estimated win probability.
+      const p = Math.min(1, Math.max(0, Number(conf) / 100));
+      const y: 0 | 1 = e.resultKind === "TARGET_REACHED" ? 1 : 0;
+      confidenceOutcomePairs.push({ probability: p, outcome: y });
     }
   }
 
@@ -148,21 +181,51 @@ export function buildChartsCalibrationCensus(
         : ("INSUFFICIENT_SAMPLE" as const),
   };
 
+  const diagStatus = classifyConfidenceOutcomeDiagnosticStatus(
+    confidenceOutcomePairs.length,
+  );
+  const metrics = computeWfCalibrationMetrics(confidenceOutcomePairs);
+  const confidenceOutcomeDiagnostics = {
+    scoreKind: HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE,
+    status: diagStatus,
+    pairCount: confidenceOutcomePairs.length,
+    provisionalMin: HFM_CHARTS_CONFIDENCE_OUTCOME_PROVISIONAL_MIN,
+    diagnosticMin: HFM_CHARTS_CONFIDENCE_OUTCOME_DIAGNOSTIC_MIN,
+    brierScore: metrics.brierScore,
+    logLoss: metrics.logLoss,
+    expectedCalibrationError: metrics.expectedCalibrationError,
+    positiveCount: metrics.positiveCount,
+    negativeCount: metrics.negativeCount,
+    note:
+      "Confidence↔outcome diagnostics only. Does not produce estimated win probability. "
+      + "Charts path remains skipProbability / NOT_AVAILABLE for statistical probability.",
+  };
+
   const warnings = [
     "CENSUS_ONLY_NOT_CALIBRATED",
     "ANALYTICAL_CONFIDENCE_NOT_WIN_PROBABILITY",
-    "CALIBRATION_MATH_NOT_IMPLEMENTED",
     "UNKNOWN_BUCKET_EXCLUDED_FROM_CALIBRATION",
+    `CONFIDENCE_OUTCOME_DIAGNOSTIC_STATUS=${diagStatus}`,
   ];
+  if (diagStatus === "INSUFFICIENT_DATA" || diagStatus === "NO_PAIRS") {
+    warnings.push("CONFIDENCE_OUTCOME_DIAGNOSTIC_INSUFFICIENT_SAMPLE");
+  }
+  if (diagStatus === "PROVISIONAL_DIAGNOSTIC") {
+    warnings.push("CONFIDENCE_OUTCOME_DIAGNOSTIC_PROVISIONAL");
+  }
+  if (diagStatus === "DIAGNOSTIC_READY_NOT_PROBABILITY_CALIBRATION") {
+    warnings.push("CONFIDENCE_OUTCOME_DIAGNOSTIC_READY_STILL_NOT_PROBABILITY");
+  }
   if (evaluations.length === 0) warnings.push("NO_EVALUATION_RECORDS");
 
   return {
     schemaVersion: "1",
     generatedAt,
     note:
-      "P8.E F1 calibration census. Counts only. Not calibrated performance. "
+      "P8.E / Phase 03 calibration census. Not calibrated win-probability performance. "
       + "Analytical confidence is a non-probability score. "
-      + "Minimum 100 eligible observations per bucket required before any future calibration.",
+      + "Brier/log-loss when present diagnose confidence↔outcome alignment only. "
+      + "Minimum 100 eligible observations per bucket before COUNT_MET_NOT_CALIBRATED.",
     confidenceSemantics: HFM_CHARTS_CONFIDENCE_SEMANTICS,
     totalEvaluations: evaluations.length,
     withValidConfidence,
@@ -173,6 +236,7 @@ export function buildChartsCalibrationCensus(
     strictEligibleByBucket,
     minSamplePerBucket: 100,
     bucketReadiness,
+    confidenceOutcomeDiagnostics,
     evaluatorVersions,
     signedRPolicyVersions,
     symbols,
