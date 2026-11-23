@@ -13,6 +13,10 @@ import {
   MIF_UNIFIED_MARKET_EVIDENCE_CONTRACT_ID,
   MIF_UNIFIED_MARKET_EVIDENCE_CONTRACT_VERSION,
 } from "./contracts.js";
+import {
+  isParseableIsoTimestamp,
+  normalizeProviderSymbol,
+} from "./integrity.js";
 import type {
   MifEvidenceConfidenceType,
   MifEvidenceDirection,
@@ -32,10 +36,6 @@ const CONFIDENCE = new Set<MifEvidenceConfidenceType>([
   "ENGINE_SPECIFIC",
   "NONE",
 ]);
-
-function isIsoLike(s: unknown): boolean {
-  return typeof s === "string" && s.length >= 10;
-}
 
 export function validateUnifiedMarketEvidence(
   item: unknown,
@@ -63,7 +63,10 @@ export function validateUnifiedMarketEvidence(
   }
   if (typeof e.evidenceType !== "string" || !e.evidenceType) errors.push("MISSING_EVIDENCE_TYPE");
   if (!DIRECTIONS.has(e.direction as MifEvidenceDirection)) errors.push("INVALID_DIRECTION");
-  if (!isIsoLike(e.observedAt)) errors.push("INVALID_OBSERVED_AT");
+  if (!isParseableIsoTimestamp(e.observedAt)) errors.push("INVALID_OBSERVED_AT");
+  if (e.eventTime != null && !isParseableIsoTimestamp(e.eventTime)) {
+    warnings.push("INVALID_EVENT_TIME");
+  }
   if (!e.score || typeof e.score !== "object") {
     errors.push("MISSING_SCORE");
   } else {
@@ -151,12 +154,35 @@ export function validateMarketEvidencePackage(
     errors.push("ITEMS_NOT_ARRAY");
   } else {
     if (p.items.length > MIF_MARKET_EVIDENCE_MAX_ITEMS) errors.push("ITEMS_OVERFLOW");
+    const pkgSym = normalizeProviderSymbol(p.providerSymbol);
+    const pkgSnap = p.snapshotId ?? null;
+    const keptIds = new Set(
+      p.items
+        .map((it) => (it && typeof it === "object" ? (it as MifUnifiedMarketEvidence).evidenceId : null))
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    );
     for (let i = 0; i < p.items.length; i++) {
       const vr = validateUnifiedMarketEvidence(p.items[i]);
       if (!vr.ok) {
         errors.push(`ITEM_${i}:${vr.errors.join(",")}`);
       }
       warnings.push(...vr.warnings.map((w) => `ITEM_${i}:${w}`));
+      const item = p.items[i] as MifUnifiedMarketEvidence | undefined;
+      if (!item || typeof item !== "object") continue;
+      const itemSym = normalizeProviderSymbol(item.providerSymbol);
+      if (pkgSym && itemSym && itemSym !== pkgSym) {
+        warnings.push(`ITEM_${i}:SYMBOL_MISMATCH expected=${pkgSym} got=${itemSym}`);
+      }
+      const itemSnap = item.provenance?.snapshotId ?? null;
+      if (pkgSnap && itemSnap && String(itemSnap) !== String(pkgSnap)) {
+        warnings.push(`ITEM_${i}:SNAPSHOT_MISMATCH`);
+      }
+      for (const id of item.supportingEvidenceIds ?? []) {
+        if (!keptIds.has(id)) warnings.push(`ITEM_${i}:DANGLING_SUPPORT_REF=${id}`);
+      }
+      for (const id of item.conflictingEvidenceIds ?? []) {
+        if (!keptIds.has(id)) warnings.push(`ITEM_${i}:DANGLING_CONFLICT_REF=${id}`);
+      }
     }
   }
   if (p.placesOrders !== false || p.mutatesBroker !== false || p.acceptsForExecution !== false) {

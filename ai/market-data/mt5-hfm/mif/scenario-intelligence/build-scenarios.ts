@@ -42,14 +42,15 @@ function uniqueIds(ids: readonly string[]): string[] {
 function uniqueByAssessment(
   evidenceIds: readonly string[],
   evidence: readonly { evidenceId: string; sourceAssessmentId: string | null }[],
-): { ids: string[]; assessmentKeys: string[] } {
+): { ids: string[]; assessmentKeys: string[]; noAssessmentCount: number } {
   const byAssessment = new Map<string, string>();
   const noAssessment: string[] = [];
   for (const id of evidenceIds) {
     const ref = evidence.find((e) => e.evidenceId === id);
     const key = ref?.sourceAssessmentId?.trim() || "";
     if (!key) {
-      noAssessment.push(id);
+      // Phase 02 — still include once per id, but do not invent assessment keys.
+      if (!noAssessment.includes(id)) noAssessment.push(id);
       continue;
     }
     // Prefer first id per assessment — prevents double-counting overlapping detectors
@@ -57,7 +58,9 @@ function uniqueByAssessment(
   }
   return {
     ids: uniqueIds([...byAssessment.values(), ...noAssessment]),
-    assessmentKeys: [...byAssessment.keys()].sort(),
+    // Align count with what actually contributes to unique ids.
+    assessmentKeys: [...byAssessment.keys(), ...noAssessment.map((id) => `noAssessment:${id}`)].sort(),
+    noAssessmentCount: noAssessment.length,
   };
 }
 
@@ -267,6 +270,11 @@ function buildOneSide(input: {
   if (input.incompleteEvidence) warnings.push("INCOMPLETE_EVIDENCE");
   if (hasConflict) warnings.push("DIRECTIONAL_OR_MTF_CONFLICT");
   if (levels.status !== "AVAILABLE_FROM_SOURCE") warnings.push(levels.status);
+  if (support.noAssessmentCount > 0 || conflict.noAssessmentCount > 0) {
+    warnings.push(
+      `NO_ASSESSMENT_EVIDENCE_IDS support=${support.noAssessmentCount};conflict=${conflict.noAssessmentCount}`,
+    );
+  }
 
   const trustedConfirmed =
     status === "CONFIRMED"

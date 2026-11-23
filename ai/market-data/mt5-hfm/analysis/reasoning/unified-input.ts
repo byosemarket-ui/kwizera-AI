@@ -22,6 +22,8 @@ import {
 import type { HfmAnalysisContextResult } from "../types.js";
 import type { HfmReasoningImageRef, HfmUnifiedInputCompleteness } from "./types.js";
 import { stableSerialize } from "../../mif/quality/stable-identity.js";
+import { filterIdsToAllowlist } from "../../mif/market-evidence/integrity.js";
+import { prioritizeEvidenceItemsForCap } from "../../mif/market-evidence/package.js";
 import type { MifMarketEvidencePackage, MifUnifiedMarketEvidence } from "../../mif/market-evidence/types.js";
 import type { MifOrchestrationResult } from "../../mif/orchestration/types.js";
 import type {
@@ -129,7 +131,16 @@ function summarizeEvidenceItem(e: MifUnifiedMarketEvidence): Record<string, unkn
   };
 }
 
-function summarizeScenario(s: MifDirectionalScenario): Record<string, unknown> {
+function summarizeScenario(
+  s: MifDirectionalScenario,
+  allowEvidenceIds?: ReadonlySet<string>,
+): Record<string, unknown> {
+  const support = allowEvidenceIds
+    ? filterIdsToAllowlist(s.supportingEvidenceIds, allowEvidenceIds)
+    : { ids: [...(s.supportingEvidenceIds ?? [])], dropped: [] as string[] };
+  const conflict = allowEvidenceIds
+    ? filterIdsToAllowlist(s.conflictingEvidenceIds, allowEvidenceIds)
+    : { ids: [...(s.conflictingEvidenceIds ?? [])], dropped: [] as string[] };
   return {
     scenarioId: s.scenarioId,
     setupFingerprint: s.setupFingerprint,
@@ -138,8 +149,15 @@ function summarizeScenario(s: MifDirectionalScenario): Record<string, unknown> {
     lifecycleState: s.lifecycleState,
     thesis: clipNote(s.thesis, 400),
     rationale: clipNote(s.rationale, 400),
-    supportingEvidenceIds: [...(s.supportingEvidenceIds ?? [])],
-    conflictingEvidenceIds: [...(s.conflictingEvidenceIds ?? [])],
+    supportingEvidenceIds: support.ids,
+    conflictingEvidenceIds: conflict.ids,
+    evidenceIdsScrubbedFromPackage:
+      support.dropped.length + conflict.dropped.length > 0
+        ? {
+            droppedSupportSample: support.dropped.slice(0, 8),
+            droppedConflictSample: conflict.dropped.slice(0, 8),
+          }
+        : null,
     missingConfirmations: (s.missingConfirmations ?? []).map((x) => clipNote(x)),
     invalidationConditions: (s.invalidationConditions ?? []).map((x) => clipNote(x)),
     contributingCandidateIds: [...(s.contributingCandidateIds ?? [])].slice(
@@ -286,7 +304,11 @@ export function verifyUnifiedPackageIdentity(input: {
       }
       if (orch.evidencePackage && isEvidencePackage(orch.evidencePackage)) {
         const ep = orch.evidencePackage;
-        if (ep.snapshotId != null && ep.snapshotId !== snapId) {
+        // Phase 02 — Charts path requires package snapshotId when analysis snapshot is known.
+        if (ep.snapshotId == null || String(ep.snapshotId).trim() === "") {
+          warnings.push("evidence_package_snapshot_missing");
+          rejected.push("evidence_package_snapshot_missing");
+        } else if (ep.snapshotId !== snapId) {
           warnings.push("evidence_package_snapshot_mismatch");
           rejected.push("evidence_package_snapshot_mismatch");
         } else if (
@@ -418,11 +440,16 @@ export function buildHfmUnifiedAiAnalysisInput(
   let evidenceTruncated = false;
   const evidencePkg = verified.evidencePackage;
   if (evidencePkg) {
-    if (evidencePkg.items.length > maxEvidence) {
+    // Phase 02 — reuse Phase 01 priority cap (do not head-slice blindly).
+    const capped = prioritizeEvidenceItemsForCap(evidencePkg.items, maxEvidence);
+    if (capped.droppedIds.length > 0) {
       evidenceTruncated = true;
       warnings.push(`evidence_truncated_to_${maxEvidence}_of_${evidencePkg.items.length}`);
+      warnings.push(
+        `evidence_dropped_ids_sample=${capped.droppedIds.slice(0, 12).join(",")}`,
+      );
     }
-    evidenceItems = evidencePkg.items.slice(0, maxEvidence);
+    evidenceItems = capped.kept;
   }
 
   const scenarioPkg = verified.scenarioPackage;
@@ -466,9 +493,10 @@ export function buildHfmUnifiedAiAnalysisInput(
     collectScenarioPrices(scenarioPkg.bearishScenario, allowedPrices);
   }
 
-  const allowedEvidenceIds = evidenceItems.map((e) => e.evidenceId).sort();
+  let allowedEvidenceIds = evidenceItems.map((e) => e.evidenceId).sort();
+  const allowEvidenceSet = new Set(allowedEvidenceIds);
   // Compact presence matrix so AI can distinguish ABSENT (missing) from opposing evidence.
-  const productionEvidencePresence = evidenceItems
+  let productionEvidencePresence = evidenceItems
     .map((e) => {
       const presence = e.measurements?.find((m) => m.id === "presence")?.value ?? null;
       const family = e.measurements?.find((m) => m.id === "family")?.value ?? null;
@@ -488,6 +516,12 @@ export function buildHfmUnifiedAiAnalysisInput(
   const scenarioIds = scenarioPkg
     ? [scenarioPkg.bullishScenario.scenarioId, scenarioPkg.bearishScenario.scenarioId]
     : [];
+  const staleEvidenceCount = evidenceItems.filter(
+    (e) => String(e.candleStatus ?? "").toUpperCase() === "STALE",
+  ).length;
+  if (staleEvidenceCount > 0) {
+    warnings.push(`stale_evidence_items=${staleEvidenceCount}`);
+  }
 
   const rankingSummary = verified.orchestration
     ? {
@@ -576,8 +610,14 @@ export function buildHfmUnifiedAiAnalysisInput(
           completenessTrusted: scenarioPkg.completenessTrusted,
           warnings: (scenarioPkg.warnings ?? []).map((w) => clipNote(w)),
           timeframeContext: scenarioPkg.timeframeContext,
-          bullishScenario: summarizeScenario(scenarioPkg.bullishScenario),
-          bearishScenario: summarizeScenario(scenarioPkg.bearishScenario),
+          bullishScenario: summarizeScenario(
+            scenarioPkg.bullishScenario,
+            allowEvidenceSet,
+          ),
+          bearishScenario: summarizeScenario(
+            scenarioPkg.bearishScenario,
+            allowEvidenceSet,
+          ),
           crossSnapshotContinuity: {
             snapshotId: scenarioPkg.snapshotId,
             snapshotHash: scenarioPkg.snapshotHash,
@@ -629,6 +669,10 @@ export function buildHfmUnifiedAiAnalysisInput(
       "fundamentalPackage_is_informational_only_does_not_alter_phase4_ranking",
       "do_not_invent_economic_releases_forecasts_or_actuals",
       "Charts_path_skipProbability_ranking_only_not_calibrated_probability",
+      "scenario_evidence_ids_scrubbed_to_availableEvidenceIds",
+      ...(staleEvidenceCount > 0
+        ? ["stale_evidence_present_do_not_confirm_from_stale_only"]
+        : []),
       ...(completeness === "PARTIAL" ? ["input_package_PARTIAL_do_not_describe_as_complete"] : []),
       ...(formingOnlyBlocked ? ["formingOnlyConfirmationBlocked=true"] : []),
     ],
@@ -690,6 +734,25 @@ export function buildHfmUnifiedAiAnalysisInput(
         det.items = (det.items as unknown[]).slice(0, Math.min(40, (det.items as unknown[]).length));
         det.truncated = true;
         det.itemCount = (det.items as unknown[]).length;
+        // Phase 02 — keep allowlist / scenario citations aligned with emitted bodies.
+        const keptIds = new Set(
+          (det.items as Array<{ evidenceId?: string }>)
+            .map((x) => x.evidenceId)
+            .filter((id): id is string => typeof id === "string" && id.length > 0),
+        );
+        allowedEvidenceIds = [...keptIds].sort();
+        packageObject.availableEvidenceIds = allowedEvidenceIds;
+        if (Array.isArray(det.productionEvidencePresence)) {
+          det.productionEvidencePresence = (
+            det.productionEvidencePresence as Array<{ evidenceId: string }>
+          ).filter((row) => keptIds.has(row.evidenceId));
+          productionEvidencePresence = det.productionEvidencePresence as typeof productionEvidencePresence;
+        }
+        if (scenarioPkg && packageObject.scenarioPackage) {
+          const sp = packageObject.scenarioPackage as Record<string, unknown>;
+          sp.bullishScenario = summarizeScenario(scenarioPkg.bullishScenario, keptIds);
+          sp.bearishScenario = summarizeScenario(scenarioPkg.bearishScenario, keptIds);
+        }
       }
       (packageObject.inputWarnings as string[]).push("json_size_evidence_shrunk");
       warnings.push("json_size_evidence_shrunk");

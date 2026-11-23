@@ -24,4 +24,12 @@ export {
   assembleEvidenceFromProduction,
   type AssembleFromProductionInput,
 } from "./assemble-from-production.js";
+export {
+  scrubEvidenceRefsToKeptSet,
+  filterIdsToAllowlist,
+  isParseableIsoTimestamp,
+  normalizeProviderSymbol,
+  collectEvidencePackageIntegrityDiagnostics,
+  integrityDiagnosticsToWarnings,
+} from "./integrity.js";
 export * from "./adapters/index.js";

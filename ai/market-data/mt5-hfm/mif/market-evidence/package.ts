@@ -7,6 +7,11 @@ import {
 } from "./contracts.js";
 import { dedupeAndRelateEvidence } from "./dedupe.js";
 import { buildPackageId } from "./identity.js";
+import {
+  collectEvidencePackageIntegrityDiagnostics,
+  integrityDiagnosticsToWarnings,
+  scrubEvidenceRefsToKeptSet,
+} from "./integrity.js";
 import type { MifMarketEvidencePackage, MifUnifiedMarketEvidence } from "./types.js";
 import { validateMarketEvidencePackage } from "./validate.js";
 
@@ -56,6 +61,7 @@ export function assembleMarketEvidencePackage(input: {
   limitations?: readonly string[];
 }): MifMarketEvidencePackage {
   const warnings: string[] = [];
+  const limitations: string[] = [...(input.limitations ?? [])];
   const prioritized = prioritizeEvidenceItemsForCap(
     input.items,
     MIF_MARKET_EVIDENCE_MAX_ITEMS,
@@ -68,11 +74,37 @@ export function assembleMarketEvidencePackage(input: {
       `items_dropped_ids_sample=${prioritized.droppedIds.slice(0, 12).join(",")}`,
     );
   }
-  const cappedInput = prioritized.kept;
-  const { items, relations, droppedDuplicateCount } = dedupeAndRelateEvidence(cappedInput);
+  const { items: deduped, relations, droppedDuplicateCount } = dedupeAndRelateEvidence(
+    prioritized.kept,
+  );
+  // Phase 02 — scrub dangling refs after cap+dedupe so package citations resolve.
+  const scrubbed = scrubEvidenceRefsToKeptSet(deduped);
+  if (scrubbed.danglingRefCount > 0) {
+    warnings.push(`dangling_refs_scrubbed=${scrubbed.danglingRefCount}`);
+    warnings.push(
+      `dangling_refs_sample=${scrubbed.danglingRefSample.join(",")}`,
+    );
+  }
+  const items = scrubbed.items;
   const snapshotId = input.snapshotId ?? null;
   const snapshotIdSourceVerified =
     snapshotId == null ? false : input.snapshotIdSourceVerified === true;
+
+  const integrity = collectEvidencePackageIntegrityDiagnostics(
+    items,
+    input.providerSymbol,
+    snapshotId,
+  );
+  warnings.push(...integrityDiagnosticsToWarnings(integrity));
+  if (integrity.staleItemCount > 0) {
+    limitations.push(
+      "stale_evidence_present_do_not_treat_as_fresh_current_market_confirmation",
+    );
+  }
+  if (integrity.symbolMismatchCount > 0) {
+    limitations.push("symbol_mismatch_detected_in_package_items");
+  }
+
   const assembledAt = new Date().toISOString();
   const packageId = buildPackageId({
     providerSymbol: input.providerSymbol,
@@ -97,7 +129,7 @@ export function assembleMarketEvidencePackage(input: {
     relations,
     droppedDuplicateCount,
     warnings: warnings.slice(0, MIF_MARKET_EVIDENCE_MAX_WARNINGS),
-    limitations: (input.limitations ?? []).slice(0, MIF_MARKET_EVIDENCE_MAX_WARNINGS),
+    limitations: limitations.slice(0, MIF_MARKET_EVIDENCE_MAX_WARNINGS),
     placesOrders: false,
     mutatesBroker: false,
     acceptsForExecution: false,
@@ -109,6 +141,13 @@ export function assembleMarketEvidencePackage(input: {
   const vr = validateMarketEvidencePackage(pkg);
   if (!vr.ok) {
     throw new Error(`Invalid market evidence package: ${vr.errors.join("; ")}`);
+  }
+  // Phase 02 — surface validator warnings (previously discarded).
+  if (vr.warnings.length) {
+    pkg.warnings = [...pkg.warnings, ...vr.warnings].slice(
+      0,
+      MIF_MARKET_EVIDENCE_MAX_WARNINGS,
+    );
   }
 
   return pkg;
