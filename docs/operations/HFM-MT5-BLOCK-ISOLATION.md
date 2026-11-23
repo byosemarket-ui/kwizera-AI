@@ -14,10 +14,13 @@
 
 | Field | Value |
 |---|---|
-| Isolation planned | 2026-11-23 (UTC) |
-| Baseline Phase 03 SHA | `43c974846cf324d0cbd66caf062ea1c669c9eaa6` |
+| Isolation executed | `2026-11-23T14:28:26Z` |
+| Semantics label deploy SHA | `c6782b0c074410660b0194343efddfa66c786ebd` |
+| Prior Phase 03 SHA | `43c974846cf324d0cbd66caf062ea1c669c9eaa6` |
 | VPS host | Ubuntu VPS via `ssh kwizera-vps` |
-| Pre-isolation MT5 PID | `17878` (record live PID at pause time) |
+| MT5 PID (pre/post pause) | `17878` / `17878` (unchanged) |
+| ForexConnect RSS before pause | ~23648 KB |
+| Mem available before/after pause | ~2563 MB / ~2559 MB (release small; cache masks RSS) |
 
 ---
 
@@ -66,6 +69,7 @@ In-process OTHER blocks (Binance routes, forex-monitor, creative managers) share
 | Restore procedure | `systemctl enable --now kwizera-forexconnect.service` then verify `ss -lntp \| grep 5179` and ForexConnect admin health |
 | Verification after pause | `systemctl is-active kwizera-ai.service` = active; MT5 `terminal64` still running; `curl` HFM quote OK |
 | Notes | Do **not** `docker compose down` (no Docker). Do **not** kill Node broadly. |
+| Pause result | `inactive` + `disabled`; `127.0.0.1:5179` not listening |
 
 ---
 
