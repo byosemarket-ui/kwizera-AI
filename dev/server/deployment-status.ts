@@ -32,6 +32,10 @@ export interface DeploymentRecord {
   message: string;
   lastFailure: DeploymentFailure | null;
   source: "deployment-file" | "git-head" | "local";
+  /** Current `git rev-parse HEAD` at read time (observability). */
+  runtimeGitHead: string | null;
+  /** True when deployment-file SHA differs from runtime git HEAD (selective-deploy drift). */
+  commitMismatch: boolean;
 }
 
 export const DEPLOYMENT_STATUS_RELATIVE = path.join("deployment", "status.json");
@@ -112,16 +116,25 @@ export function loadDeploymentRecord(
   const stored = readJsonFile(deploymentStatusPath(storageRoot));
   const head = gitHead(projectRoot);
   if (stored?.status) {
+    const deployed = stored.deployedCommit ?? head;
+    const commitMismatch = Boolean(
+      head && deployed && head.toLowerCase() !== String(deployed).toLowerCase(),
+    );
+    const baseMessage = stored.message ?? "";
     return {
       status: stored.status,
       requestedCommit: stored.requestedCommit ?? head,
-      deployedCommit: stored.deployedCommit ?? head,
+      deployedCommit: deployed,
       previousCommit: stored.previousCommit ?? null,
       timestamp: stored.timestamp ?? new Date().toISOString(),
       result: stored.result ?? null,
-      message: stored.message ?? "",
+      message: commitMismatch
+        ? `${baseMessage}${baseMessage ? " " : ""}[WARN: runtime git HEAD ${head} differs from deployment record ${deployed}]`.trim()
+        : baseMessage,
       lastFailure: stored.lastFailure ?? null,
       source: "deployment-file",
+      runtimeGitHead: head,
+      commitMismatch,
     };
   }
   if (!production) {
@@ -135,6 +148,8 @@ export function loadDeploymentRecord(
       message: "No CI/CD deployment record. This process is not a verified production deploy.",
       lastFailure: null,
       source: "local",
+      runtimeGitHead: head,
+      commitMismatch: false,
     };
   }
   return {
@@ -149,6 +164,8 @@ export function loadDeploymentRecord(
       : "Production git HEAD could not be read.",
     lastFailure: null,
     source: "git-head",
+    runtimeGitHead: head,
+    commitMismatch: false,
   };
 }
 
@@ -163,7 +180,11 @@ export const DEPLOYMENT_PHASE_LABELS: Record<DeploymentPhase, string> = {
 };
 
 export function isVerifiedLive(record: DeploymentRecord): boolean {
-  return record.status === "live" && record.result === "success";
+  return (
+    record.status === "live"
+    && record.result === "success"
+    && record.commitMismatch !== true
+  );
 }
 
 export function deploymentPhaseLabel(record: DeploymentRecord): string {

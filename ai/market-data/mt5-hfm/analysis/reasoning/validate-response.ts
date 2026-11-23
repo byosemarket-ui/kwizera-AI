@@ -37,6 +37,38 @@ function asString(v: unknown): string | null {
   return typeof v === "string" ? v : null;
 }
 
+/**
+ * Coerce model marketRegime to a usable label.
+ * Never use String(object) — that yields the useless "[object Object]".
+ */
+function coerceMarketRegimeLabel(v: unknown): string | null {
+  if (typeof v === "string") {
+    const t = v.trim();
+    if (!t || t === "[object Object]") return null;
+    return t;
+  }
+  if (isObj(v)) {
+    for (const key of [
+      "regime",
+      "label",
+      "name",
+      "marketCondition",
+      "condition",
+      "value",
+      "summary",
+      "type",
+    ] as const) {
+      const s = asString(v[key]);
+      if (s) {
+        const t = s.trim();
+        if (t && t !== "[object Object]") return t;
+      }
+    }
+    return null;
+  }
+  return null;
+}
+
 function asStringArray(v: unknown): string[] | null {
   if (!Array.isArray(v)) return null;
   if (!v.every((x) => typeof x === "string")) return null;
@@ -639,12 +671,17 @@ export function normalizeHfmReasoningRawPayload(
       cur.decisionStatus = "NOT_PROVIDED";
     }
 
-    if (cur.marketRegime != null && typeof cur.marketRegime !== "string") {
-      cur.marketRegime = String(cur.marketRegime);
-    }
-    if (!cur.marketRegime) {
-      const mo = isObj(cur.marketOverview) ? (cur.marketOverview as Record<string, unknown>) : null;
-      cur.marketRegime = asString(mo?.marketCondition) || HFM_REASONING_NOT_PROVIDED;
+    {
+      const coerced = coerceMarketRegimeLabel(cur.marketRegime);
+      if (coerced) {
+        cur.marketRegime = coerced;
+      } else {
+        const mo = isObj(cur.marketOverview) ? (cur.marketOverview as Record<string, unknown>) : null;
+        cur.marketRegime =
+          coerceMarketRegimeLabel(mo?.marketCondition)
+          || coerceMarketRegimeLabel(mo?.regime)
+          || HFM_REASONING_NOT_PROVIDED;
+      }
     }
   }
 
@@ -1016,7 +1053,7 @@ export function validateHfmReasoningModelResponse(input: {
       : asString(raw.selectedScenarioId);
 
   const decisionStatus = (asString(raw.decisionStatus) ?? "NOT_PROVIDED") as HfmReasoningDecisionStatus;
-  const marketRegime = asString(raw.marketRegime) || HFM_REASONING_NOT_PROVIDED;
+  const marketRegime = coerceMarketRegimeLabel(raw.marketRegime) || HFM_REASONING_NOT_PROVIDED;
   const analysisId =
     asString(raw.analysisId)
     ?? input.expected.analysisId

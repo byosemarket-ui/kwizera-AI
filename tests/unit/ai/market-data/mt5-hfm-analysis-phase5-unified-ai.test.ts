@@ -731,6 +731,52 @@ describe("Phase 5 — schema v1.2 grounding", () => {
     expect(v.ok).toBe(false);
   });
 
+  it("coerces object marketRegime to label without [object Object]", () => {
+    const raw = buildMockValidReasoningPayload({
+      ...expected,
+      action: "WAITING_FOR_CONFIRMATION",
+      supportingEvidenceIds: ["ev-1"],
+      selectedScenarioId: "sc-bullish",
+      agreesWithRanking: true,
+      agreesWithScenarioOutcome: true,
+    });
+    (raw as Record<string, unknown>).marketRegime = {
+      regime: "TRENDING_BEARISH",
+      summary: "should not stringify whole object",
+    };
+    const v = validateHfmReasoningModelResponse({
+      raw,
+      expected,
+      grounding: grounding(),
+    });
+    expect(v.ok).toBe(true);
+    if (v.ok) {
+      expect(v.result.marketRegime).toBe("TRENDING_BEARISH");
+      expect(v.result.marketRegime).not.toContain("[object Object]");
+    }
+  });
+
+  it("falls back when marketRegime object has no usable label", () => {
+    const raw = buildMockValidReasoningPayload({
+      ...expected,
+      action: "WAITING_FOR_CONFIRMATION",
+      supportingEvidenceIds: ["ev-1"],
+      selectedScenarioId: "sc-bullish",
+      agreesWithRanking: true,
+      agreesWithScenarioOutcome: true,
+    });
+    (raw as Record<string, unknown>).marketRegime = { nested: { x: 1 } };
+    const v = validateHfmReasoningModelResponse({
+      raw,
+      expected,
+      grounding: grounding(),
+    });
+    expect(v.ok).toBe(true);
+    if (v.ok) {
+      expect(v.result.marketRegime).not.toContain("[object Object]");
+    }
+  });
+
   it("isPriceGrounded matches tick-sized sources", () => {
     expect(isPriceGrounded(2000.0, new Set([2000]), 0.01)).toBe(true);
     expect(isPriceGrounded(1999.5, new Set([2000]), 0.01)).toBe(false);
