@@ -16,6 +16,7 @@ import {
   updateHfmAutoAnalysisSymbolRequest,
 } from "./api";
 import { HfmAiDecisionPanel } from "./analysis/HfmAiDecisionPanel";
+import { HfmOpportunityLifecyclePanel } from "./analysis/HfmOpportunityLifecyclePanel";
 import { HfmAnalyticalLevels } from "./analysis/HfmAnalyticalLevels";
 import { HfmAnalysisHistory } from "./analysis/HfmAnalysisHistory";
 import { HfmEconomicCalendarPanel } from "./analysis/HfmEconomicCalendarPanel";
@@ -639,6 +640,8 @@ export function HfmAnalysisPanel(props: {
         selectedScenarioId={highlightScenarioId ?? view?.selectedScenarioId}
         onSelectScenario={setHighlightScenarioId}
       />
+
+      <HfmOpportunityLifecyclePanel symbol={symbol} />
 
       <HfmEvidenceExplorer intelligence={sessionState.packages.intelligence} />
 

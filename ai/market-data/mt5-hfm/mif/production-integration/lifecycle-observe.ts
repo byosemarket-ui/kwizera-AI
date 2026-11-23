@@ -12,6 +12,7 @@ import {
 } from "./outcome-evaluation.js";
 import { getMifOpportunityStorage } from "./persistence/storage.js";
 import type { MifCandidateLifecycleState, MifCandidateOutcomeKind } from "./persistence/types.js";
+import { HFM_LIFECYCLE_TRANSITION_RULE_VERSION } from "./lifecycle-semantics.js";
 
 export interface ObserveCandidateInput {
   candidateId: string;
@@ -32,6 +33,9 @@ export interface ObserveCandidateInput {
   /** Override activation time; default = tip openTimeSec from candidate snapshot if present. */
   activationOpenTimeSec?: number | null;
   persistEvaluation?: boolean;
+  /** Phase 04 — correlation / audit. */
+  correlationId?: string | null;
+  snapshotId?: string | null;
 }
 
 function mapLifecycle(
@@ -140,7 +144,7 @@ export async function observeCandidateAgainstCandles(
     await store.persistOutcomeEvaluation(evaluation);
   }
 
-  const mapped = mapLifecycle(evaluation.resultKind);
+  let mapped = mapLifecycle(evaluation.resultKind);
   if (!mapped) {
     return {
       ok: true,
@@ -150,18 +154,26 @@ export async function observeCandidateAgainstCandles(
     };
   }
 
-  // Soft STILL_ACTIVE only advances DETECTED/NEEDS_CONFIRMATION → ACTIVE
-  if (
-    evaluation.resultKind === "STILL_ACTIVE"
-    && candidate.lifecycleState !== "DETECTED"
-    && candidate.lifecycleState !== "NEEDS_CONFIRMATION"
-  ) {
-    return {
-      ok: true,
-      lifecycleState: candidate.lifecycleState,
-      outcomeKind: candidate.outcomeKind,
-      evaluation,
-    };
+  /**
+   * Phase 04 confirmation rule (deterministic, closed candles only):
+   * - DETECTED + STILL_ACTIVE → ACTIVE (FORMING)
+   * - NEEDS_CONFIRMATION + STILL_ACTIVE → CONFIRMED
+   *   (thesis still valid after closed-bar observation; not AI narrative; not confidence)
+   * Soft ACTIVE promotion is never treated as broker confirmation.
+   */
+  if (evaluation.resultKind === "STILL_ACTIVE") {
+    if (candidate.lifecycleState === "NEEDS_CONFIRMATION") {
+      mapped = { toState: "CONFIRMED", outcomeKind: "NONE" };
+    } else if (candidate.lifecycleState === "DETECTED") {
+      mapped = { toState: "ACTIVE", outcomeKind: "NONE" };
+    } else {
+      return {
+        ok: true,
+        lifecycleState: candidate.lifecycleState,
+        outcomeKind: candidate.outcomeKind,
+        evaluation,
+      };
+    }
   }
 
   const reason =
@@ -173,7 +185,26 @@ export async function observeCandidateAgainstCandles(
           ? "target_price_observed"
           : evaluation.resultKind === "EXPIRED_UNRESOLVED"
             ? "max_observation_age"
-            : "observation_window_active";
+            : mapped.toState === "CONFIRMED"
+              ? "closed_candle_confirmation_observed"
+              : "observation_window_active";
+
+  const closedOnly = input.closedCandles.filter((c) => c.candleState === "CLOSED");
+  const formingCount = input.closedCandles.filter((c) => c.candleState === "FORMING").length;
+  const candleStatusUsed =
+    closedOnly.length === 0
+      ? "NONE"
+      : formingCount > 0
+        ? "MIXED"
+        : "CLOSED";
+  const candleTimeframe = closedOnly[0]?.timeframe ?? input.closedCandles[0]?.timeframe ?? null;
+  const tipOpen = evaluation.resolvedOpenTimeSec
+    ?? closedOnly[closedOnly.length - 1]?.openTimeSec
+    ?? null;
+  const idempotencyKey =
+    tipOpen != null
+      ? `${evaluation.resultKind}:${tipOpen}:${mapped.toState}`
+      : `${evaluation.resultKind}:${evaluation.evaluationId}:${mapped.toState}`;
 
   const tr = await store.transitionLifecycle({
     candidateId: input.candidateId,
@@ -182,6 +213,13 @@ export async function observeCandidateAgainstCandles(
     observationOpenTimeSec: evaluation.resolvedOpenTimeSec,
     outcomeKind: mapped.outcomeKind,
     notes: evaluation.ambiguityReason ?? evaluation.exclusionReason ?? evaluation.evaluationId,
+    snapshotId: input.snapshotId ?? null,
+    evidenceRefs: candidate.supportingEvidenceIds,
+    correlationId: input.correlationId ?? evaluation.evaluationId,
+    idempotencyKey,
+    transitionRuleVersion: HFM_LIFECYCLE_TRANSITION_RULE_VERSION,
+    candleTimeframe,
+    candleStatusUsed,
   });
 
   return {

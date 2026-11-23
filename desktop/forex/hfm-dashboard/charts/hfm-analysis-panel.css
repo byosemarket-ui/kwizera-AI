@@ -663,3 +663,108 @@
   color: #e8c27a;
   font-size: 12px;
 }
+
+/* Phase 04 — opportunity lifecycle (analytical only) */
+[data-hfm-dashboard] .hap-lifecycle {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-hfm-dashboard] .hap-lifecycle-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-note,
+[data-hfm-dashboard] .hap-lifecycle-disclaimer {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-filters button.is-active {
+  outline: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+[data-hfm-dashboard] .hap-lifecycle-monitor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  opacity: 0.8;
+  margin-bottom: 0.5rem;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-body {
+  display: grid;
+  grid-template-columns: minmax(10rem, 14rem) 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 720px) {
+  [data-hfm-dashboard] .hap-lifecycle-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+[data-hfm-dashboard] .hap-lifecycle-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-list button {
+  width: 100%;
+  text-align: left;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.4rem;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-list button.is-selected {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-hfm-dashboard] .hap-lifecycle-detail dl {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-detail dt {
+  opacity: 0.65;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-detail dd {
+  margin: 0;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-history {
+  font-size: 0.72rem;
+  max-height: 8rem;
+  overflow: auto;
+  padding-left: 1.1rem;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-error {
+  color: #e8a0a0;
+  font-size: 0.8rem;
+}

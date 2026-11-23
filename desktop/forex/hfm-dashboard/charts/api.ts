@@ -589,4 +589,46 @@ export async function fetchHfmFundamentalsSnapshot(input: {
   return { httpStatus: status, ...body };
 }
 
+/** Phase 04 — list HFM MT5 opportunity lifecycle records (analytical). */
+const MIF_CANDIDATES = "/api/forex/providers/mt5-hfm/mif/candidates";
+const MIF_LIFECYCLE_MONITOR = "/api/forex/providers/mt5-hfm/mif/lifecycle-monitor";
+
+export async function fetchHfmOpportunityLifecycleList(input: {
+  symbol: string;
+  lifecycleState?: string;
+  monitorable?: boolean;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const q = new URLSearchParams();
+  q.set("symbol", input.symbol);
+  if (input.lifecycleState) q.set("lifecycleState", input.lifecycleState);
+  if (input.monitorable) q.set("monitorable", "1");
+  if (input.limit != null) q.set("limit", String(input.limit));
+  const { status, body } = await requestJson<Record<string, unknown>>(
+    `${MIF_CANDIDATES}?${q.toString()}`,
+    { signal: input.signal },
+  );
+  return { httpStatus: status, ...body };
+}
+
+export async function fetchHfmOpportunityLifecycleHistory(
+  candidateId: string,
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const path = `${MIF_CANDIDATES}/${encodeURIComponent(candidateId)}/history`;
+  const { status, body } = await requestJson<Record<string, unknown>>(path, { signal });
+  return { httpStatus: status, ...body };
+}
+
+export async function fetchHfmOpportunityLifecycleMonitorStatus(
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(
+    `${MIF_LIFECYCLE_MONITOR}/status`,
+    { signal },
+  );
+  return { httpStatus: status, ...body };
+}
+
 export { TICKS };

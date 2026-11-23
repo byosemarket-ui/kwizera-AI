@@ -81,6 +81,7 @@ In-process OTHER blocks (Binance routes, forex-monitor, creative managers) share
 | HFM Auto Analysis | Persisted scheduler + disable API | OFF |
 | Economic calendar live | Policy gates / unset env | Disabled by policy |
 | Charts probability | Orchestration `skipProbability: true` | NOT_AVAILABLE |
+| Phase 04 lifecycle monitor | `…/mif/lifecycle-monitor/*`; default off | Disabled — use `run-once` for verification; continuous enable needs explicit approval |
 
 ---
 

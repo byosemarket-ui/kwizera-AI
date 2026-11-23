@@ -144,6 +144,14 @@ const ALLOWED_TRANSITIONS: Record<MifCandidateLifecycleState, readonly MifCandid
   INVALID: ["OUTCOME_UNKNOWN"],
 };
 
+/** Phase 04 — inspectable transition table (authoritative FSM). */
+export function getAllowedLifecycleTransitions(): Record<
+  MifCandidateLifecycleState,
+  readonly MifCandidateLifecycleState[]
+> {
+  return ALLOWED_TRANSITIONS;
+}
+
 function mapInitialLifecycle(status: string): MifCandidateLifecycleState {
   switch (status) {
     case "DETECTED":
@@ -918,6 +926,14 @@ export class MifOpportunityStorage {
       if (filter.strategyId && c.strategyId !== filter.strategyId) continue;
       if (filter.direction && c.direction !== filter.direction) continue;
       if (filter.lifecycleState && c.lifecycleState !== filter.lifecycleState) continue;
+      if (
+        !filter.lifecycleState
+        && filter.lifecycleStates
+        && filter.lifecycleStates.length > 0
+        && !filter.lifecycleStates.includes(c.lifecycleState)
+      ) {
+        continue;
+      }
       if (filter.fromIso && c.createdAt < filter.fromIso) continue;
       if (filter.toIso && c.createdAt > filter.toIso) continue;
       items.push(c);
@@ -931,6 +947,28 @@ export class MifOpportunityStorage {
     };
   }
 
+  /**
+   * Phase 04 — candidates eligible for continuous monitoring (non-terminal).
+   */
+  async listMonitorableCandidates(filter: {
+    providerSymbol?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<{
+    items: MifPersistedCandidate[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    const { HFM_LIFECYCLE_MONITORABLE_STATES } = await import("../lifecycle-semantics.js");
+    return this.listCandidates({
+      providerSymbol: filter.providerSymbol,
+      lifecycleStates: HFM_LIFECYCLE_MONITORABLE_STATES,
+      limit: filter.limit ?? 50,
+      offset: filter.offset ?? 0,
+    });
+  }
+
   async transitionLifecycle(input: {
     candidateId: string;
     toState: MifCandidateLifecycleState;
@@ -938,10 +976,28 @@ export class MifOpportunityStorage {
     observationOpenTimeSec?: number | null;
     outcomeKind?: MifCandidateOutcomeKind | null;
     notes?: string;
-  }): Promise<{ ok: boolean; candidate: MifPersistedCandidate | null; error?: string }> {
+    snapshotId?: string | null;
+    evidenceRefs?: readonly string[];
+    correlationId?: string | null;
+    idempotencyKey?: string | null;
+    transitionRuleVersion?: string;
+    candleTimeframe?: string | null;
+    candleStatusUsed?: "CLOSED" | "FORMING" | "MIXED" | "NONE" | null;
+  }): Promise<{ ok: boolean; candidate: MifPersistedCandidate | null; error?: string; duplicate?: boolean }> {
     return this.withWriteLock(async () => {
       const candidate = await this.getCandidate(input.candidateId);
       if (!candidate) return { ok: false, candidate: null, error: "candidate_not_found" };
+      const reason = String(input.reason || "").trim();
+      if (!reason) {
+        return { ok: false, candidate, error: "missing_reason_code" };
+      }
+      const history = await this.getCandidateHistory(input.candidateId);
+      if (input.idempotencyKey) {
+        const prior = history.find((e) => e.idempotencyKey === input.idempotencyKey);
+        if (prior) {
+          return { ok: true, candidate, duplicate: true };
+        }
+      }
       const allowed = ALLOWED_TRANSITIONS[candidate.lifecycleState] ?? [];
       if (input.toState !== candidate.lifecycleState && !allowed.includes(input.toState)) {
         return {
@@ -951,22 +1007,32 @@ export class MifOpportunityStorage {
         };
       }
       if (input.toState === candidate.lifecycleState) {
-        return { ok: true, candidate };
+        return { ok: true, candidate, duplicate: true };
       }
       const now = new Date().toISOString();
       const event: MifPersistedLifecycleEvent = {
-        eventId: `${input.candidateId}:${Date.now()}`,
+        eventId: input.idempotencyKey
+          ? `${input.candidateId}:${input.idempotencyKey}`
+          : `${input.candidateId}:${Date.now()}`,
         runId: candidate.runId,
         candidateId: input.candidateId,
         fromState: candidate.lifecycleState,
         toState: input.toState,
-        reason: input.reason,
+        reason,
         observationOpenTimeSec: input.observationOpenTimeSec ?? null,
         observedAt: now,
         outcomeKind: input.outcomeKind ?? null,
         notes: input.notes ?? "",
+        providerId: "HFM_MT5",
+        providerSymbol: candidate.providerSymbol,
+        snapshotId: input.snapshotId ?? null,
+        evidenceRefs: input.evidenceRefs ?? candidate.supportingEvidenceIds,
+        correlationId: input.correlationId ?? null,
+        idempotencyKey: input.idempotencyKey ?? null,
+        transitionRuleVersion: input.transitionRuleVersion ?? "phase04-lifecycle-v1",
+        candleTimeframe: input.candleTimeframe ?? null,
+        candleStatusUsed: input.candleStatusUsed ?? null,
       };
-      const history = await this.getCandidateHistory(input.candidateId);
       // Append-only: never rewrite prior events; push only.
       history.push(event);
       const updated: MifPersistedCandidate = {

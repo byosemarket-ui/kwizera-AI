@@ -77,6 +77,16 @@ export interface MifPersistedLifecycleEvent {
   observedAt: string;
   outcomeKind: MifCandidateOutcomeKind | null;
   notes: string;
+  /** Phase 04 — optional transition audit fields (backward compatible). */
+  providerId?: "HFM_MT5";
+  providerSymbol?: string;
+  snapshotId?: string | null;
+  evidenceRefs?: readonly string[];
+  correlationId?: string | null;
+  idempotencyKey?: string | null;
+  transitionRuleVersion?: string;
+  candleTimeframe?: string | null;
+  candleStatusUsed?: "CLOSED" | "FORMING" | "MIXED" | "NONE" | null;
 }
 
 export interface MifPersistedCandidate {
@@ -116,6 +126,8 @@ export interface MifCandidateListFilter {
   strategyId?: string;
   direction?: string;
   lifecycleState?: MifCandidateLifecycleState;
+  /** Phase 04 — match any of these states (OR). Ignored when lifecycleState is set. */
+  lifecycleStates?: readonly MifCandidateLifecycleState[];
   fromIso?: string;
   toIso?: string;
   limit?: number;

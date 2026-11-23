@@ -72,6 +72,11 @@
  * POST /api/forex/providers/mt5-hfm/mif/evidence-linkage
  * GET  /api/forex/providers/mt5-hfm/mif/evidence-linkage
  * GET/POST /api/forex/providers/mt5-hfm/mif/worker/*
+ * GET  /api/forex/providers/mt5-hfm/mif/lifecycle-monitor/status
+ * POST /api/forex/providers/mt5-hfm/mif/lifecycle-monitor/run-once
+ * POST /api/forex/providers/mt5-hfm/mif/lifecycle-monitor/enable
+ * POST /api/forex/providers/mt5-hfm/mif/lifecycle-monitor/disable
+ * GET  /api/forex/providers/mt5-hfm/mif/lifecycle/transitions
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { assertAdminAccess, rolesFromHeaders, adminTokenFromHeaders } from "../../ai/admin-control-plane/admin-auth-boundary.js";
@@ -101,8 +106,15 @@ import {
   evaluatePredictionAgainstLiveCopyRates,
   getMifAnalogueSearchStorage,
   getMifHistoricalResearchStorage,
+  disableHfmLifecycleMonitorWorker,
+  enableHfmLifecycleMonitorWorker,
+  getAllowedLifecycleTransitions,
+  getHfmLifecycleMonitorWorkerStatus,
   getMifOdWorkerStatus,
   getMifOpportunityStorage,
+  isManualForceConfirmForbidden,
+  runHfmLifecycleMonitorOnce,
+  toSemanticLifecycleStage,
   getMifBacktestStorage,
   getMifPredictionOutcomeStorage,
   getMifProbabilityFreezeStorage,
@@ -481,19 +493,34 @@ export async function handleMt5HfmMifApi(
   }
 
   if (url.pathname === `${PATH_PREFIX}/candidates` && req.method === "GET") {
-    const listed = await getMifOpportunityStorage().listCandidates({
-      providerSymbol: url.searchParams.get("symbol") ?? undefined,
-      strategyId: url.searchParams.get("strategyId") ?? undefined,
-      direction: url.searchParams.get("direction") ?? undefined,
-      lifecycleState: (url.searchParams.get("lifecycleState") as MifCandidateLifecycleState | null) ?? undefined,
-      fromIso: url.searchParams.get("from") ?? undefined,
-      toIso: url.searchParams.get("to") ?? undefined,
-      limit: Number(url.searchParams.get("limit") ?? 50) || 50,
-      offset: Number(url.searchParams.get("offset") ?? 0) || 0,
-    });
+    const monitorableOnly = url.searchParams.get("monitorable") === "1"
+      || url.searchParams.get("monitorable") === "true";
+    const store = getMifOpportunityStorage();
+    const listed = monitorableOnly
+      ? await store.listMonitorableCandidates({
+        providerSymbol: url.searchParams.get("symbol") ?? undefined,
+        limit: Number(url.searchParams.get("limit") ?? 50) || 50,
+        offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+      })
+      : await store.listCandidates({
+        providerSymbol: url.searchParams.get("symbol") ?? undefined,
+        strategyId: url.searchParams.get("strategyId") ?? undefined,
+        direction: url.searchParams.get("direction") ?? undefined,
+        lifecycleState: (url.searchParams.get("lifecycleState") as MifCandidateLifecycleState | null) ?? undefined,
+        fromIso: url.searchParams.get("from") ?? undefined,
+        toIso: url.searchParams.get("to") ?? undefined,
+        limit: Number(url.searchParams.get("limit") ?? 50) || 50,
+        offset: Number(url.searchParams.get("offset") ?? 0) || 0,
+      });
+    const items = listed.items.map((c) => ({
+      ...c,
+      semanticLifecycleStage: toSemanticLifecycleStage(c.lifecycleState, c.outcomeKind),
+      notABrokerOrder: true as const,
+    }));
     const payload = {
       ok: true,
       ...listed,
+      items,
       placesOrders: false,
       mutatesBroker: false,
       acceptsForExecution: false,
@@ -552,7 +579,31 @@ export async function handleMt5HfmMifApi(
       return true;
     }
     const toState = String(body.toState || "").trim() as MifCandidateLifecycleState;
-    const reason = String(body.reason || "manual_transition").trim();
+    const reason = String(body.reason || "").trim();
+    // Phase 04 — never allow public/manual force into CONFIRMED.
+    if (isManualForceConfirmForbidden(toState)) {
+      sendJson(res, 403, {
+        ok: false,
+        error: {
+          code: "FORCE_CONFIRM_FORBIDDEN",
+          message: "CONFIRMED requires observe/monitor evidence — manual force confirm is forbidden",
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    if (!reason) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "MISSING_REASON", message: "reason code required for lifecycle transition" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
     const result = await getMifOpportunityStorage().transitionLifecycle({
       candidateId: decodeURIComponent(lifeMatch[1]!),
       toState,
@@ -3300,7 +3351,114 @@ export async function handleMt5HfmMifApi(
     return true;
   }
 
-  // --- Optional worker (disabled by default) ---
+  // --- Phase 04 lifecycle monitor (disabled by default) ---
+  if (url.pathname === `${PATH_PREFIX}/lifecycle/transitions` && req.method === "GET") {
+    sendJson(res, 200, {
+      ok: true,
+      allowedTransitions: getAllowedLifecycleTransitions(),
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+  if (url.pathname === `${PATH_PREFIX}/lifecycle-monitor/status` && req.method === "GET") {
+    sendJson(res, 200, {
+      ok: true,
+      monitor: getHfmLifecycleMonitorWorkerStatus(),
+      odWorker: getMifOdWorkerStatus(),
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+  if (url.pathname === `${PATH_PREFIX}/lifecycle-monitor/run-once` && req.method === "POST") {
+    let body: Record<string, unknown> = {};
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      body = {};
+    }
+    const symbol = String(body.symbol || "").trim().toUpperCase();
+    if (!symbol) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INSTRUMENT", message: "symbol required for lifecycle monitor run-once" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const once = await runHfmLifecycleMonitorOnce({
+      symbol,
+      timeframe: typeof body.timeframe === "string" ? body.timeframe : undefined,
+      intervalMs: typeof body.intervalMs === "number" ? body.intervalMs : undefined,
+      candleLimit: typeof body.candleLimit === "number" ? body.candleLimit : undefined,
+      batchLimit: typeof body.batchLimit === "number" ? body.batchLimit : undefined,
+      maxAgeBars: typeof body.maxAgeBars === "number" ? body.maxAgeBars : undefined,
+    });
+    const payload = {
+      ok: true,
+      ...once,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+  if (url.pathname === `${PATH_PREFIX}/lifecycle-monitor/enable` && req.method === "POST") {
+    let body: Record<string, unknown> = {};
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      body = {};
+    }
+    const symbol = String(body.symbol || "").trim().toUpperCase();
+    if (!symbol) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INSTRUMENT", message: "symbol required to enable lifecycle monitor" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    // Continuous worker remains opt-in; callers must understand VPS cost.
+    const monitor = enableHfmLifecycleMonitorWorker({
+      symbol,
+      intervalMs: typeof body.intervalMs === "number" ? body.intervalMs : undefined,
+      timeframe: typeof body.timeframe === "string" ? body.timeframe : undefined,
+      candleLimit: typeof body.candleLimit === "number" ? body.candleLimit : undefined,
+      batchLimit: typeof body.batchLimit === "number" ? body.batchLimit : undefined,
+      maxAgeBars: typeof body.maxAgeBars === "number" ? body.maxAgeBars : undefined,
+    });
+    sendJson(res, 200, {
+      ok: true,
+      monitor,
+      warning: "continuous_lifecycle_monitor_enabled_resource_cost_applies",
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+  if (url.pathname === `${PATH_PREFIX}/lifecycle-monitor/disable` && req.method === "POST") {
+    sendJson(res, 200, {
+      ok: true,
+      monitor: disableHfmLifecycleMonitorWorker(),
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  // --- Optional OD worker (disabled by default) ---
   if (url.pathname === `${PATH_PREFIX}/worker/status` && req.method === "GET") {
     sendJson(res, 200, {
       ok: true,
