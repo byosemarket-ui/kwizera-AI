@@ -18,8 +18,12 @@ import {
 import type { HfmChartsPredictionEvaluationRecord } from "./types.js";
 import { computeWfCalibrationMetrics } from "../../mif/wf-calibration/metrics.js";
 import {
+  assertScoreKindAllowedForConfidenceOutcomeDiagnostic,
+  assertScoreKindAllowedForProbabilityCalibration,
   classifyConfidenceOutcomeDiagnosticStatus,
   HFM_CHARTS_CONFIDENCE_OUTCOME_DIAGNOSTIC_MIN,
+  HFM_CHARTS_CONFIDENCE_OUTCOME_EVENT,
+  HFM_CHARTS_CONFIDENCE_OUTCOME_METRIC_BASIS,
   HFM_CHARTS_CONFIDENCE_OUTCOME_PROVISIONAL_MIN,
   HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE,
   type HfmChartsConfidenceOutcomeDiagnosticStatus,
@@ -61,14 +65,21 @@ export interface HfmChartsCalibrationCensusReport {
   /**
    * Phase 03 — confidence↔outcome diagnostics (NOT estimated win probability).
    * Reuses WF Brier/log-loss helpers; never sets calibrated=true.
+   * metricBasis makes clear the numeric channel is confidence/100, not event probability.
    */
   confidenceOutcomeDiagnostics: {
     scoreKind: typeof HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE;
+    metricBasis: typeof HFM_CHARTS_CONFIDENCE_OUTCOME_METRIC_BASIS;
+    eventDefinition: typeof HFM_CHARTS_CONFIDENCE_OUTCOME_EVENT;
+    isProbabilityCalibration: false;
+    probabilityCalibrationRejectedReason: string;
     status: HfmChartsConfidenceOutcomeDiagnosticStatus;
     pairCount: number;
     provisionalMin: typeof HFM_CHARTS_CONFIDENCE_OUTCOME_PROVISIONAL_MIN;
     diagnosticMin: typeof HFM_CHARTS_CONFIDENCE_OUTCOME_DIAGNOSTIC_MIN;
+    /** Diagnostic Brier on confidence/100 vs decisive outcome — not probability calibration. */
     brierScore: number | null;
+    /** Diagnostic log loss on confidence/100 vs decisive outcome — not probability calibration. */
     logLoss: number | null;
     expectedCalibrationError: number | null;
     positiveCount: number;
@@ -181,12 +192,28 @@ export function buildChartsCalibrationCensus(
         : ("INSUFFICIENT_SAMPLE" as const),
   };
 
+  const diagAllowed = assertScoreKindAllowedForConfidenceOutcomeDiagnostic(
+    HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE,
+  );
+  if (!diagAllowed.ok) {
+    throw new Error(diagAllowed.reason);
+  }
+  const probCalibGate = assertScoreKindAllowedForProbabilityCalibration(
+    HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE,
+  );
   const diagStatus = classifyConfidenceOutcomeDiagnosticStatus(
     confidenceOutcomePairs.length,
   );
+  // WF helper input field is named `probability` for math reuse only; basis is confidence.
   const metrics = computeWfCalibrationMetrics(confidenceOutcomePairs);
   const confidenceOutcomeDiagnostics = {
     scoreKind: HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE,
+    metricBasis: HFM_CHARTS_CONFIDENCE_OUTCOME_METRIC_BASIS,
+    eventDefinition: HFM_CHARTS_CONFIDENCE_OUTCOME_EVENT,
+    isProbabilityCalibration: false as const,
+    probabilityCalibrationRejectedReason: probCalibGate.ok
+      ? "unexpected_gate_pass"
+      : probCalibGate.reason,
     status: diagStatus,
     pairCount: confidenceOutcomePairs.length,
     provisionalMin: HFM_CHARTS_CONFIDENCE_OUTCOME_PROVISIONAL_MIN,
@@ -198,12 +225,14 @@ export function buildChartsCalibrationCensus(
     negativeCount: metrics.negativeCount,
     note:
       "Confidence↔outcome diagnostics only. Does not produce estimated win probability. "
+      + "Brier/log-loss here measure analytical-confidence alignment, not probability calibration. "
       + "Charts path remains skipProbability / NOT_AVAILABLE for statistical probability.",
   };
 
   const warnings = [
     "CENSUS_ONLY_NOT_CALIBRATED",
     "ANALYTICAL_CONFIDENCE_NOT_WIN_PROBABILITY",
+    "DIAGNOSTIC_USES_CONFIDENCE_NOT_EVENT_PROBABILITY",
     "UNKNOWN_BUCKET_EXCLUDED_FROM_CALIBRATION",
     `CONFIDENCE_OUTCOME_DIAGNOSTIC_STATUS=${diagStatus}`,
   ];

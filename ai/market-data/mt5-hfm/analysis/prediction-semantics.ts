@@ -85,3 +85,45 @@ export function classifyConfidenceOutcomeDiagnosticStatus(
   }
   return "DIAGNOSTIC_READY_NOT_PROBABILITY_CALIBRATION";
 }
+
+/**
+ * Charts census feeds WF Brier/log-loss helpers with confidence/100.
+ * That numeric channel is NOT an event probability forecast.
+ */
+export const HFM_CHARTS_CONFIDENCE_OUTCOME_METRIC_BASIS =
+  "ANALYTICAL_CONFIDENCE_SCALED_0_1_NOT_EVENT_PROBABILITY" as const;
+
+export const HFM_CHARTS_CONFIDENCE_OUTCOME_EVENT =
+  "DECISIVE_TRIGGERED_TARGET_REACHED_VS_INVALIDATION_REACHED" as const;
+
+/**
+ * Refuse to treat non-probability score kinds as calibrated probability inputs.
+ * Confidence diagnostics are allowed only as explicitly non-calibrating diagnostics.
+ */
+export function assertScoreKindAllowedForProbabilityCalibration(
+  scoreKind: HfmScoreKind,
+): { ok: true } | { ok: false; reason: string } {
+  if (scoreKind === HFM_SCORE_KIND_ESTIMATED_PROBABILITY) {
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    reason:
+      `scoreKind=${scoreKind}_cannot_be_used_as_probability_calibration_input;`
+      + "use_ESTIMATED_PROBABILITY_with_defined_event_only",
+  };
+}
+
+export function assertScoreKindAllowedForConfidenceOutcomeDiagnostic(
+  scoreKind: HfmScoreKind,
+): { ok: true } | { ok: false; reason: string } {
+  if (scoreKind === HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE) {
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    reason:
+      `scoreKind=${scoreKind}_rejected_for_confidence_outcome_diagnostic;`
+      + "only_ANALYTICAL_CONFIDENCE_allowed",
+  };
+}

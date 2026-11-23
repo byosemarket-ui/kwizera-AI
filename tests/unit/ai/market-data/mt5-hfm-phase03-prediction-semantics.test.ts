@@ -3,11 +3,17 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  assertScoreKindAllowedForConfidenceOutcomeDiagnostic,
+  assertScoreKindAllowedForProbabilityCalibration,
   classifyConfidenceOutcomeDiagnosticStatus,
   HFM_CHARTS_PROBABILITY_AVAILABILITY_DEFAULT,
+  HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE,
+  HFM_SCORE_KIND_ESTIMATED_PROBABILITY,
+  HFM_SCORE_KIND_OPPORTUNITY_RANKING,
   HFM_SCORE_KIND_LABELS,
   HFM_CHARTS_CONFIDENCE_OUTCOME_PROVISIONAL_MIN,
   HFM_CHARTS_CONFIDENCE_OUTCOME_DIAGNOSTIC_MIN,
+  HFM_CHARTS_CONFIDENCE_OUTCOME_METRIC_BASIS,
 } from "../../../../ai/market-data/mt5-hfm/analysis/prediction-semantics";
 import { buildChartsCalibrationCensus } from "../../../../ai/market-data/mt5-hfm/analysis/prediction-outcome/calibration-census";
 import { clippedLogLoss } from "../../../../ai/market-data/mt5-hfm/mif/wf-calibration/metrics";
@@ -39,6 +45,34 @@ describe("Phase 03 score semantics", () => {
         HFM_CHARTS_CONFIDENCE_OUTCOME_DIAGNOSTIC_MIN,
       ),
     ).toBe("DIAGNOSTIC_READY_NOT_PROBABILITY_CALIBRATION");
+  });
+
+  it("rejects analytical confidence and ranking as probability-calibration inputs", () => {
+    expect(
+      assertScoreKindAllowedForProbabilityCalibration(
+        HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE,
+      ).ok,
+    ).toBe(false);
+    expect(
+      assertScoreKindAllowedForProbabilityCalibration(
+        HFM_SCORE_KIND_OPPORTUNITY_RANKING,
+      ).ok,
+    ).toBe(false);
+    expect(
+      assertScoreKindAllowedForProbabilityCalibration(
+        HFM_SCORE_KIND_ESTIMATED_PROBABILITY,
+      ).ok,
+    ).toBe(true);
+    expect(
+      assertScoreKindAllowedForConfidenceOutcomeDiagnostic(
+        HFM_SCORE_KIND_ANALYTICAL_CONFIDENCE,
+      ).ok,
+    ).toBe(true);
+    expect(
+      assertScoreKindAllowedForConfidenceOutcomeDiagnostic(
+        HFM_SCORE_KIND_ESTIMATED_PROBABILITY,
+      ).ok,
+    ).toBe(false);
   });
 });
 
@@ -89,6 +123,15 @@ describe("Phase 03 census diagnostics", () => {
     );
     expect(report.confidenceOutcomeDiagnostics.scoreKind).toBe(
       "ANALYTICAL_CONFIDENCE",
+    );
+    expect(report.confidenceOutcomeDiagnostics.isProbabilityCalibration).toBe(
+      false,
+    );
+    expect(report.confidenceOutcomeDiagnostics.metricBasis).toBe(
+      HFM_CHARTS_CONFIDENCE_OUTCOME_METRIC_BASIS,
+    );
+    expect(report.warnings).toContain(
+      "DIAGNOSTIC_USES_CONFIDENCE_NOT_EVENT_PROBABILITY",
     );
   });
 });
