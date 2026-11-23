@@ -37,6 +37,10 @@ const required = [
   "adaptRankingRunToEvidence",
   "adaptProbabilityBundleToEvidence",
   "adaptStrategyEligibilityToEvidence",
+  // Phase 05 / 06 structure adapters — selective rebuilds must refresh from-structure.js
+  "adaptBuyerSellerPressureToEvidence",
+  "adaptDeepTechnicalIntelligenceToEvidence",
+  "adaptCandlestickPatternsToEvidence",
 ];
 
 const mod = await import(pathToFileURL(barrel).href);

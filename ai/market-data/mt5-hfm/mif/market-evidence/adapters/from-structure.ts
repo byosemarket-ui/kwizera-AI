@@ -10,6 +10,8 @@ import type {
   MifPriceDisplacementKind,
 } from "../../analysis/price-displacement/types.js";
 import type { MifBuyerSellerPressureAssessment } from "../../analysis/buyer-seller-pressure/types.js";
+import type { MifDeepTechnicalIntelligenceAssessment } from "../../analysis/deep-technical-intelligence/types.js";
+import type { MifCandlestickPatternsAssessment } from "../../analysis/candlestick-patterns/assess-candlestick-patterns.js";
 import type { MifSupportResistanceAssessment } from "../../analysis/support-resistance/types.js";
 import type { MifEvidenceDirection, MifEvidenceLevel, MifUnifiedMarketEvidence } from "../types.js";
 import { buildUnifiedEvidence, mapBuySellToDirection } from "./common.js";
@@ -634,6 +636,173 @@ export function adaptBuyerSellerPressureToEvidence(
       inputIdentity: assessment.inputIdentity,
       dominantSide: assessment.dominantSide,
       modelVersion: assessment.modelVersion,
+    },
+  });
+}
+
+function mapDeepTechnicalDirection(
+  d: MifDeepTechnicalIntelligenceAssessment["overallTrendDirection"],
+): MifEvidenceDirection {
+  if (d === "BULLISH") return "BULLISH";
+  if (d === "BEARISH") return "BEARISH";
+  return "NEUTRAL";
+}
+
+/** Phase 06 — adapt deep technical orchestrator into UMEP (analytical; not probability). */
+export function adaptDeepTechnicalIntelligenceToEvidence(
+  assessment: MifDeepTechnicalIntelligenceAssessment,
+  opts?: { analysisId?: string | null; runId?: string | null; snapshotId?: string | null },
+): MifUnifiedMarketEvidence {
+  return buildUnifiedEvidence({
+    sourceEngine: assessment.engineId,
+    engineVersion: assessment.engineVersion,
+    evidenceType: "DEEP_TECHNICAL_INTELLIGENCE",
+    providerSymbol: assessment.providerSymbol,
+    timeframe: assessment.primaryTimeframe,
+    instrument: assessment.instrument,
+    direction: mapDeepTechnicalDirection(assessment.overallTrendDirection),
+    eventTime: assessment.assessmentTimestamp,
+    observedAt: assessment.assessmentTimestamp,
+    candleStatus: assessment.provisional ? "FORMING" : "CLOSED",
+    warnings: assessment.provisional ? ["provisional_tip"] : [],
+    limitations: assessment.limitations,
+    measurements: [
+      { id: "status", name: "status", value: assessment.status, unit: null, note: null },
+      {
+        id: "overallRegimeLabel",
+        name: "overallRegimeLabel",
+        value: assessment.overallRegimeLabel,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "mtfAlignment",
+        name: "mtfAlignment",
+        value: assessment.mtf.alignment,
+        unit: null,
+        note: "does_not_average_conflicts",
+      },
+      {
+        id: "confluenceGrade",
+        name: "confluenceGrade",
+        value: assessment.confluence.grade,
+        unit: null,
+        note: "not_probability",
+      },
+      {
+        id: "confluenceDirectionalScore",
+        name: "confluenceDirectionalScore",
+        value: assessment.confluence.directionalScore,
+        unit: "-1_to_1_analytical_not_probability",
+        note: null,
+      },
+      {
+        id: "evidenceQuality",
+        name: "evidenceQuality",
+        value: assessment.evidenceQuality,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "elliottWaveStatus",
+        name: "elliottWaveStatus",
+        value: assessment.elliottWaveStatus,
+        unit: null,
+        note: null,
+      },
+    ],
+    score: {
+      confidenceType: "ENGINE_SPECIFIC",
+      value: assessment.confluence.directionalScore,
+      scale: "-1_to_1_confluence_not_probability",
+      isWinProbability: false,
+      isCalibratedPrediction: false,
+      calibrationStatus: null,
+      reliabilityStatus: null,
+      definition:
+        "Phase 06 technical confluence directional score — analytical grade only, not win probability",
+    },
+    analysisId: opts?.analysisId ?? null,
+    runId: opts?.runId ?? null,
+    snapshotId: opts?.snapshotId ?? null,
+    snapshotIdSourceVerified: opts?.snapshotId != null,
+    sourceAssessmentId: assessment.assessmentId,
+    sourceInputIdentity: assessment.inputIdentity,
+    sourceContractId: assessment.contractId,
+    sourceContractVersion: assessment.contractVersion,
+    fingerprintSource: {
+      kind: "deep-technical-intelligence",
+      assessmentId: assessment.assessmentId,
+      inputIdentity: assessment.inputIdentity,
+      mtfAlignment: assessment.mtf.alignment,
+      confluenceGrade: assessment.confluence.grade,
+      modelVersion: assessment.modelVersion,
+    },
+  });
+}
+
+/** Phase 06 — adapt candlestick wrapper into UMEP. */
+export function adaptCandlestickPatternsToEvidence(
+  assessment: MifCandlestickPatternsAssessment,
+  opts?: { analysisId?: string | null; runId?: string | null; snapshotId?: string | null },
+): MifUnifiedMarketEvidence {
+  const first = assessment.detections[0];
+  const direction: MifEvidenceDirection =
+    first?.direction === "BULLISH" || first?.direction === "BEARISH"
+      ? first.direction
+      : "NEUTRAL";
+  return buildUnifiedEvidence({
+    sourceEngine: assessment.engineId,
+    engineVersion: assessment.engineVersion,
+    evidenceType: "CANDLESTICK_PATTERN",
+    providerSymbol: assessment.providerSymbol,
+    timeframe: assessment.timeframe,
+    instrument: assessment.instrument,
+    direction,
+    eventTime: assessment.assessmentTimestamp,
+    observedAt: assessment.assessmentTimestamp,
+    candleStatus: "CLOSED",
+    limitations: assessment.limitations,
+    measurements: [
+      { id: "status", name: "status", value: assessment.status, unit: null, note: null },
+      {
+        id: "detectionCount",
+        name: "detectionCount",
+        value: assessment.detections.length,
+        unit: "count",
+        note: null,
+      },
+      {
+        id: "patternIds",
+        name: "patternIds",
+        value: assessment.patternIds.join(","),
+        unit: null,
+        note: "detected_not_trade_signal",
+      },
+    ],
+    score: {
+      confidenceType: "ENGINE_SPECIFIC",
+      value: null,
+      scale: null,
+      isWinProbability: false,
+      isCalibratedPrediction: false,
+      calibrationStatus: null,
+      reliabilityStatus: null,
+      definition: "Candlestick pattern detection — not a trade signal or probability",
+    },
+    analysisId: opts?.analysisId ?? null,
+    runId: opts?.runId ?? null,
+    snapshotId: opts?.snapshotId ?? null,
+    snapshotIdSourceVerified: opts?.snapshotId != null,
+    sourceAssessmentId: assessment.assessmentId,
+    sourceInputIdentity: assessment.inputIdentity,
+    sourceContractId: assessment.contractId,
+    sourceContractVersion: assessment.contractVersion,
+    fingerprintSource: {
+      kind: "candlestick-patterns",
+      assessmentId: assessment.assessmentId,
+      inputIdentity: assessment.inputIdentity,
+      patternIds: assessment.patternIds,
     },
   });
 }

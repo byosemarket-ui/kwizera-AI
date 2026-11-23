@@ -18,6 +18,8 @@ export {
   adaptMomentumToEvidence,
   adaptPriceDisplacementToEvidence,
   adaptBuyerSellerPressureToEvidence,
+  adaptDeepTechnicalIntelligenceToEvidence,
+  adaptCandlestickPatternsToEvidence,
 } from "./from-structure.js";
 
 export {

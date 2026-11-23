@@ -18,6 +18,7 @@ import {
 import { HfmAiDecisionPanel } from "./analysis/HfmAiDecisionPanel";
 import { HfmOpportunityLifecyclePanel } from "./analysis/HfmOpportunityLifecyclePanel";
 import { HfmBuyerSellerPressurePanel } from "./analysis/HfmBuyerSellerPressurePanel";
+import { HfmDeepTechnicalIntelligencePanel } from "./analysis/HfmDeepTechnicalIntelligencePanel";
 
 import { HfmAnalyticalLevels } from "./analysis/HfmAnalyticalLevels";
 import { HfmAnalysisHistory } from "./analysis/HfmAnalysisHistory";
@@ -646,6 +647,8 @@ export function HfmAnalysisPanel(props: {
       <HfmOpportunityLifecyclePanel symbol={symbol} />
 
       <HfmBuyerSellerPressurePanel symbol={symbol} />
+
+      <HfmDeepTechnicalIntelligencePanel symbol={symbol} />
 
       <HfmEvidenceExplorer intelligence={sessionState.packages.intelligence} />
 

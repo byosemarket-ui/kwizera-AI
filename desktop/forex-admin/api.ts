@@ -769,6 +769,32 @@ export const forexProvidersApi = {
       orderBookAvailable: false;
       placesOrders: false;
     }>("/api/forex/providers/mt5-hfm/mif/buyer-seller-pressure/capability"),
+  /** Phase 06 — deep technical intelligence (analytical; not probability). */
+  mt5HfmMifDeepTechnicalIntelligence: (body: {
+    symbol: string;
+    timeframes?: string[];
+    primaryTimeframe?: string;
+    candleLimit?: number;
+  }) =>
+    request<{
+      ok: boolean;
+      assessment?: unknown;
+      mtfRelationships?: unknown;
+      isWinProbability: false;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+    }>("/api/forex/providers/mt5-hfm/mif/deep-technical-intelligence", {
+      method: "POST",
+      body: JSON.stringify({ providerId: "HFM_MT5", ...body }),
+    }),
+  mt5HfmMifDeepTechnicalIntelligenceCapability: () =>
+    request<{
+      ok: boolean;
+      elliottWave: string;
+      macdAdxBollinger: string;
+      placesOrders: false;
+    }>("/api/forex/providers/mt5-hfm/mif/deep-technical-intelligence/capability"),
   /** Phase 5E Step 1 — analytical ranking (not win probability). */
   mt5HfmMifRankingList: (params?: {
     symbol?: string;

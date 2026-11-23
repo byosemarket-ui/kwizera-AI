@@ -666,4 +666,41 @@ export async function fetchHfmBuyerSellerPressureCapability(
   return { httpStatus: status, ...body };
 }
 
+/** Phase 06 — deep technical intelligence (analytical; not probability). */
+const MIF_DEEP_TECHNICAL = "/api/forex/providers/mt5-hfm/mif/deep-technical-intelligence";
+
+export async function fetchHfmDeepTechnicalIntelligence(input: {
+  symbol: string;
+  timeframes?: string[];
+  primaryTimeframe?: string;
+  candleLimit?: number;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(
+    MIF_DEEP_TECHNICAL,
+    {
+      method: "POST",
+      body: {
+        symbol: input.symbol,
+        providerId: "HFM_MT5",
+        timeframes: input.timeframes ?? ["H4", "H1", "M15"],
+        primaryTimeframe: input.primaryTimeframe ?? "H1",
+        candleLimit: input.candleLimit ?? 120,
+      },
+      signal: input.signal,
+    },
+  );
+  return { httpStatus: status, ...body };
+}
+
+export async function fetchHfmDeepTechnicalIntelligenceCapability(
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(
+    `${MIF_DEEP_TECHNICAL}/capability`,
+    { signal },
+  );
+  return { httpStatus: status, ...body };
+}
+
 export { TICKS };

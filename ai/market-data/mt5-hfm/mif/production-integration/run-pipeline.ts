@@ -14,6 +14,8 @@ import { assessMifMarketStructure } from "../analysis/market-structure/assess-ma
 import { assessMifMomentum } from "../analysis/momentum/assess-momentum.js";
 import { assessMifPriceDisplacement } from "../analysis/price-displacement/assess-price-displacement.js";
 import { assessMifBuyerSellerPressure } from "../analysis/buyer-seller-pressure/assess-buyer-seller-pressure.js";
+import { assessMifCandlestickPatterns } from "../analysis/candlestick-patterns/assess-candlestick-patterns.js";
+import { assessMifDeepTechnicalIntelligence } from "../analysis/deep-technical-intelligence/assess-deep-technical-intelligence.js";
 import { assessMifMultiTimeframeRelationships } from "../analysis/mtf-relationships/assess-mtf-relationships.js";
 import type { MifMtfTimeframeSources } from "../analysis/mtf-relationships/types.js";
 import { assessMifChartPatterns } from "../analysis/patterns/detect-chart-patterns.js";
@@ -153,6 +155,7 @@ function assessOneTf(input: {
   momentum: ReturnType<typeof assessMifMomentum>;
   priceDisplacement: ReturnType<typeof assessMifPriceDisplacement>;
   buyerSellerPressure: ReturnType<typeof assessMifBuyerSellerPressure>;
+  candlestickPatterns: ReturnType<typeof assessMifCandlestickPatterns>;
 } {
   const integrity = assessMifDataIntegrity({
     candles: [...input.candles],
@@ -210,6 +213,13 @@ function assessOneTf(input: {
     quality,
     assessmentTimestamp: input.assessmentTimestamp,
   });
+  const candlestickPatterns = assessMifCandlestickPatterns({
+    candles: [...input.candles],
+    providerSymbol: input.symbol,
+    timeframe: input.timeframe,
+    quality,
+    assessmentTimestamp: input.assessmentTimestamp,
+  });
   const regime = assessMifMarketRegime({
     candles: [...input.candles],
     providerSymbol: input.symbol,
@@ -257,6 +267,7 @@ function assessOneTf(input: {
     momentum,
     priceDisplacement,
     buyerSellerPressure,
+    candlestickPatterns,
   };
 }
 
@@ -468,6 +479,14 @@ export function runMifHfmOpportunityPipelineFromSeries(
   const snapshots: MifProductionTfAssessmentSnapshot[] = [];
   const mtfSources: MifMtfTimeframeSources[] = [];
   const integrityStatuses: string[] = [];
+  /** Per-TF assessment bundles for Phase 06 deep-technical orchestration. */
+  const bundlesByTf = new Map<
+    string,
+    ReturnType<typeof assessOneTf> & {
+      candles: MifCanonicalCandle[];
+      tipCandleState: MifCanonicalCandle["candleState"] | null;
+    }
+  >();
   let primaryBundle: ReturnType<typeof assessOneTf> | null = null;
   let primaryCandles: MifCanonicalCandle[] = [];
   let newestTipSec: number | null = null;
@@ -595,6 +614,11 @@ export function runMifHfmOpportunityPipelineFromSeries(
 
       integrityStatuses.push(bundle.integrity.status);
       resolvedTimeframes.push(tf);
+      bundlesByTf.set(tf, {
+        ...bundle,
+        candles: adapted.candles,
+        tipCandleState: tip.candleState,
+      });
       if (tf === primaryTimeframe) {
         primaryBundle = bundle;
         primaryCandles = adapted.candles;
@@ -733,6 +757,12 @@ export function runMifHfmOpportunityPipelineFromSeries(
         assessmentTimestamp,
         expectedIntervalAuthority: sessionAuthority,
       });
+      const tipFb = adapted.candles[adapted.candles.length - 1]?.candleState ?? null;
+      bundlesByTf.set(fallbackTf, {
+        ...primaryBundle,
+        candles: adapted.candles,
+        tipCandleState: tipFb,
+      });
       warnings.push(`primary timeframe ${primaryTimeframe} unavailable; using ${fallbackTf}`);
     }
   }
@@ -841,6 +871,37 @@ export function runMifHfmOpportunityPipelineFromSeries(
     ? primaryTimeframe
     : (resolvedTimeframes[0] ?? primaryTimeframe);
 
+  // Phase 06 — compose deep technical intelligence from per-TF bundles + MTF.
+  const deepTechnicalIntelligence = assessMifDeepTechnicalIntelligence({
+    providerSymbol: symbol,
+    primaryTimeframe: evidencePrimaryTf,
+    instrument: input.instrument ?? null,
+    assessmentTimestamp,
+    mtfRelationships: mtf,
+    timeframeBundles: resolvedTimeframes
+      .filter((tf) => bundlesByTf.has(tf))
+      .map((tf) => {
+        const b = bundlesByTf.get(tf)!;
+        return {
+          timeframe: tf,
+          tipCandleState: b.tipCandleState,
+          integrity: b.integrity,
+          marketStructure: b.marketStructure,
+          supportResistance: b.supportResistance,
+          liquidityReference: b.liquidityReference,
+          momentum: b.momentum,
+          priceDisplacement: b.priceDisplacement,
+          buyerSellerPressure: b.buyerSellerPressure,
+          regime: b.regime,
+          fibonacci: b.fibonacci,
+          chartPatterns: b.chartPatterns,
+          harmonic: b.harmonic,
+          unified: b.unified,
+          candlestickPatternIds: b.candlestickPatterns.patternIds,
+        };
+      }),
+  });
+
   const evidence = buildProductionEvidenceRefs({
     primaryTimeframe: evidencePrimaryTf,
     assessmentTimestamp,
@@ -857,6 +918,9 @@ export function runMifHfmOpportunityPipelineFromSeries(
     liquidityReference: primaryBundle.liquidityReference,
     momentum: primaryBundle.momentum,
     priceDisplacement: primaryBundle.priceDisplacement,
+    buyerSellerPressure: primaryBundle.buyerSellerPressure,
+    deepTechnicalIntelligence,
+    candlestickPatterns: primaryBundle.candlestickPatterns,
     primaryCandles,
   });
 

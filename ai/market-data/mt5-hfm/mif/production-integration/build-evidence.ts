@@ -11,6 +11,9 @@ import type { MifLiquidityReferenceAssessment } from "../analysis/liquidity-refe
 import type { MifMarketStructureAssessment } from "../analysis/market-structure/types.js";
 import type { MifMomentumAssessment } from "../analysis/momentum/types.js";
 import type { MifPriceDisplacementAssessment } from "../analysis/price-displacement/types.js";
+import type { MifBuyerSellerPressureAssessment } from "../analysis/buyer-seller-pressure/types.js";
+import type { MifDeepTechnicalIntelligenceAssessment } from "../analysis/deep-technical-intelligence/types.js";
+import type { MifCandlestickPatternsAssessment } from "../analysis/candlestick-patterns/assess-candlestick-patterns.js";
 import type { MifMtfRelationshipsAssessment } from "../analysis/mtf-relationships/types.js";
 import type { MifChartPatternAssessment } from "../analysis/patterns/types.js";
 import type { MifMarketRegimeAssessment } from "../analysis/regime/types.js";
@@ -123,6 +126,9 @@ export interface BuildProductionEvidenceInput {
   liquidityReference?: MifLiquidityReferenceAssessment | null;
   momentum?: MifMomentumAssessment | null;
   priceDisplacement?: MifPriceDisplacementAssessment | null;
+  buyerSellerPressure?: MifBuyerSellerPressureAssessment | null;
+  deepTechnicalIntelligence?: MifDeepTechnicalIntelligenceAssessment | null;
+  candlestickPatterns?: MifCandlestickPatternsAssessment | null;
   primaryCandles: readonly MifCanonicalCandle[];
 }
 
@@ -681,6 +687,101 @@ export function buildProductionEvidenceRefs(
             presence = "ABSENT";
             qualityStatus = "MISSING";
             notes = "MOMENTUM — dedicated engine insufficient or absent; not fabricated";
+          }
+          break;
+        }
+        case "BUYER_SELLER_PRESSURE": {
+          const bsp = input.buyerSellerPressure;
+          if (
+            bsp
+            && (bsp.status === "VALID" || bsp.status === "WARNING" || bsp.status === "PROVISIONAL")
+            && bsp.dominantSide !== "INSUFFICIENT_EVIDENCE"
+          ) {
+            presence = "PRESENT";
+            qualityStatus = mapAssessmentStatus(bsp.status);
+            sourceEngine = bsp.engineId;
+            sourceContractId = bsp.contractId;
+            sourceContractVersion = bsp.contractVersion;
+            sourcePolicyVersion = bsp.policyVersion;
+            sourceAssessmentId = bsp.assessmentId;
+            sourceInputIdentity = bsp.inputIdentity;
+            candleState = bsp.provisional ? "FORMING" : tip;
+            notes = [
+              `dominantSide=${bsp.dominantSide}`,
+              `dataClassification=${bsp.dataClassification}`,
+              `notAggressorVolume=TRUE`,
+              `notWinProbability=TRUE`,
+              `doesNotConfirmLifecycleAlone=TRUE`,
+            ].join("; ");
+          } else if (bsp) {
+            presence = "ABSENT";
+            qualityStatus = mapAssessmentStatus(bsp.status);
+            sourceAssessmentId = bsp.assessmentId;
+            notes = `BUYER_SELLER_PRESSURE status=${bsp.status} side=${bsp.dominantSide}`;
+          } else {
+            presence = "ABSENT";
+            qualityStatus = "MISSING";
+            notes = "BUYER_SELLER_PRESSURE — Phase 05 assessment absent";
+          }
+          break;
+        }
+        case "DEEP_TECHNICAL_INTELLIGENCE": {
+          const dti = input.deepTechnicalIntelligence;
+          if (
+            dti
+            && (dti.status === "VALID" || dti.status === "WARNING" || dti.status === "PROVISIONAL" || dti.status === "DEGRADED")
+          ) {
+            presence = "PRESENT";
+            qualityStatus = mapAssessmentStatus(dti.status);
+            sourceEngine = dti.engineId;
+            sourceContractId = dti.contractId;
+            sourceContractVersion = dti.contractVersion;
+            sourcePolicyVersion = dti.policyVersion;
+            sourceAssessmentId = dti.assessmentId;
+            sourceInputIdentity = dti.inputIdentity;
+            notes = [
+              `mtf=${dti.mtf.alignment}`,
+              `regime=${dti.overallRegimeLabel}`,
+              `confluence=${dti.confluence.grade}`,
+              `notWinProbability=TRUE`,
+              `doesNotConfirmLifecycleAlone=TRUE`,
+            ].join("; ");
+          } else if (dti) {
+            presence = "ABSENT";
+            qualityStatus = mapAssessmentStatus(dti.status);
+            sourceAssessmentId = dti.assessmentId;
+            notes = `DEEP_TECHNICAL_INTELLIGENCE status=${dti.status}`;
+          } else {
+            presence = "ABSENT";
+            qualityStatus = "MISSING";
+            notes = "DEEP_TECHNICAL_INTELLIGENCE — Phase 06 assessment absent";
+          }
+          break;
+        }
+        case "CANDLESTICK_PATTERN": {
+          const csp = input.candlestickPatterns;
+          if (csp && (csp.detections?.length ?? 0) > 0) {
+            presence = "PRESENT";
+            qualityStatus = mapAssessmentStatus(csp.status);
+            sourceEngine = csp.engineId;
+            sourceContractId = csp.contractId;
+            sourceContractVersion = csp.contractVersion;
+            sourceAssessmentId = csp.assessmentId;
+            sourceInputIdentity = csp.inputIdentity;
+            notes = [
+              `count=${csp.detections.length}`,
+              `patternIds=${csp.patternIds.join(",")}`,
+              `notTradeSignal=TRUE`,
+            ].join("; ");
+          } else if (csp) {
+            presence = "ABSENT";
+            qualityStatus = mapAssessmentStatus(csp.status);
+            sourceAssessmentId = csp.assessmentId;
+            notes = `CANDLESTICK_PATTERN status=${csp.status}; detections=0`;
+          } else {
+            presence = "ABSENT";
+            qualityStatus = "MISSING";
+            notes = "CANDLESTICK_PATTERN — wrapper assessment absent";
           }
           break;
         }

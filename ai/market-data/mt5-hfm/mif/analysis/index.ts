@@ -22,4 +22,6 @@ export * from "./liquidity-reference/index.js";
 export * from "./momentum/index.js";
 export * from "./price-displacement/index.js";
 export * from "./buyer-seller-pressure/index.js";
+export * from "./candlestick-patterns/index.js";
+export * from "./deep-technical-intelligence/index.js";
 

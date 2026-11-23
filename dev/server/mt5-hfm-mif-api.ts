@@ -79,6 +79,8 @@
  * GET  /api/forex/providers/mt5-hfm/mif/lifecycle/transitions
  * POST /api/forex/providers/mt5-hfm/mif/buyer-seller-pressure
  * GET  /api/forex/providers/mt5-hfm/mif/buyer-seller-pressure/capability
+ * POST /api/forex/providers/mt5-hfm/mif/deep-technical-intelligence
+ * GET  /api/forex/providers/mt5-hfm/mif/deep-technical-intelligence/capability
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { assertAdminAccess, rolesFromHeaders, adminTokenFromHeaders } from "../../ai/admin-control-plane/admin-auth-boundary.js";
@@ -92,9 +94,23 @@ import {
   MIF_RESEARCH_API_MAX_BAR_PAGE,
   MIF_RESEARCH_EXPORTABLE_TIMEFRAMES,
   adaptBuyerSellerPressureToEvidence,
+  adaptDeepTechnicalIntelligenceToEvidence,
   adaptHfmHistoricalBars,
   assessMifBuyerSellerPressure,
+  assessMifCandlestickPatterns,
+  assessMifChartPatterns,
   assessMifDataIntegrity,
+  assessMifDeepTechnicalIntelligence,
+  assessMifFibonacci,
+  assessMifHarmonicPatterns,
+  assessMifLiquidityReference,
+  assessMifMarketRegime,
+  assessMifMarketStructure,
+  assessMifMomentum,
+  assessMifMultiTimeframeRelationships,
+  assessMifPriceDisplacement,
+  assessMifSupportResistance,
+  assessMifUnifiedChartAnalysis,
   buildMultiTimeframePressureContext,
   assessEvidenceIntelligence,
   assessProbabilityIntelligence,
@@ -3601,6 +3617,213 @@ export async function handleMt5HfmMifApi(
     };
     assertNoSecretsInMt5HfmPayload(payload);
     sendJson(res, assessments.length ? 200 : 422, payload);
+    return true;
+  }
+
+  // --- Phase 06 deep technical intelligence (read-only; HFM_MT5 only) ---
+  if (url.pathname === `${PATH_PREFIX}/deep-technical-intelligence/capability` && req.method === "GET") {
+    sendJson(res, 200, {
+      ok: true,
+      providerId: MIF_PROVIDER_ID,
+      orchestrator: true,
+      reusesExistingEngines: true,
+      elliottWave: "NOT_IMPLEMENTED",
+      macdAdxBollinger: "NOT_IMPLEMENTED",
+      supplyDemandZones: "PARTIALLY_IMPLEMENTED",
+      candlestickPatterns: "IMPLEMENTED",
+      confluenceIsWinProbability: false,
+      doesNotConfirmOrInvalidateLifecycleAlone: true,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/deep-technical-intelligence` && req.method === "POST") {
+    let body: Record<string, unknown> = {};
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      body = {};
+    }
+    const symbol = String(body.symbol ?? body.providerSymbol ?? "").trim().toUpperCase();
+    if (!symbol) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INSTRUMENT", message: "symbol required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const providerRaw = String(body.providerId ?? body.provider ?? MIF_PROVIDER_ID).trim().toUpperCase();
+    if (providerRaw !== MIF_PROVIDER_ID) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "WRONG_PROVIDER",
+          message: `provider ${providerRaw} rejected; only HFM_MT5 permitted`,
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const timeframes = Array.isArray(body.timeframes)
+      ? body.timeframes.map((t) => String(t).trim().toUpperCase()).filter(Boolean)
+      : ["H4", "H1", "M15"];
+    const primaryTimeframe = String(body.primaryTimeframe || timeframes[0] || "H1").trim().toUpperCase();
+    const candleLimit =
+      typeof body.candleLimit === "number" && Number.isFinite(body.candleLimit)
+        ? Math.min(500, Math.max(20, Math.floor(body.candleLimit)))
+        : 120;
+    const assessmentTimestamp = new Date().toISOString();
+    const bundles = [];
+    const mtfSources = [];
+    const errors: string[] = [];
+    for (const tf of timeframes.slice(0, 6)) {
+      try {
+        const hist = await fetchHfmHistoricalCandles({
+          symbol,
+          timeframe: tf,
+          limit: candleLimit,
+          refresh: body.refresh === true,
+        });
+        if (!hist.available || !hist.bars?.length) {
+          errors.push(`${tf}:no_bars`);
+          continue;
+        }
+        if (hist.provider && String(hist.provider).toUpperCase() !== MIF_PROVIDER_ID) {
+          errors.push(`${tf}:provider_mismatch`);
+          continue;
+        }
+        const adapted = adaptHfmHistoricalBars(hist.bars as never, {
+          symbol,
+          timeframe: hist.timeframe || tf,
+        });
+        const candles = adapted.candles;
+        const integrity = assessMifDataIntegrity({
+          candles: [...candles],
+          providerSymbol: symbol,
+          timeframe: tf,
+          assessmentTimestamp,
+        });
+        const quality = { kind: "step1-data-integrity" as const, assessment: integrity };
+        const marketStructure = assessMifMarketStructure({
+          candles, providerSymbol: symbol, timeframe: tf, quality, assessmentTimestamp,
+        });
+        const supportResistance = assessMifSupportResistance({
+          candles, providerSymbol: symbol, timeframe: tf, quality, marketStructure, assessmentTimestamp,
+        });
+        const liquidityReference = assessMifLiquidityReference({
+          candles, providerSymbol: symbol, timeframe: tf, quality, marketStructure, assessmentTimestamp,
+        });
+        const momentum = assessMifMomentum({
+          candles, providerSymbol: symbol, timeframe: tf, quality, assessmentTimestamp,
+        });
+        const priceDisplacement = assessMifPriceDisplacement({
+          candles, providerSymbol: symbol, timeframe: tf, quality, marketStructure, assessmentTimestamp,
+        });
+        const buyerSellerPressure = assessMifBuyerSellerPressure({
+          candles, providerSymbol: symbol, timeframe: tf, quality, assessmentTimestamp,
+        });
+        const candlestick = assessMifCandlestickPatterns({
+          candles, providerSymbol: symbol, timeframe: tf, quality, assessmentTimestamp,
+        });
+        const regime = assessMifMarketRegime({
+          candles, providerSymbol: symbol, timeframe: tf, quality, assessmentTimestamp,
+        });
+        const fibonacci = assessMifFibonacci({
+          candles, providerSymbol: symbol, timeframe: tf, quality, assessmentTimestamp,
+        });
+        const chartPatterns = assessMifChartPatterns({
+          candles, providerSymbol: symbol, timeframe: tf, quality, assessmentTimestamp,
+        });
+        const harmonic = assessMifHarmonicPatterns({
+          candles, providerSymbol: symbol, timeframe: tf, quality, assessmentTimestamp,
+        });
+        const unified = assessMifUnifiedChartAnalysis({
+          pattern: chartPatterns, fibonacci, assessmentTimestamp,
+        });
+        const tip = candles[candles.length - 1] ?? null;
+        bundles.push({
+          timeframe: tf,
+          tipCandleState: tip?.candleState ?? null,
+          integrity,
+          marketStructure,
+          supportResistance,
+          liquidityReference,
+          momentum,
+          priceDisplacement,
+          buyerSellerPressure,
+          regime,
+          fibonacci,
+          chartPatterns,
+          harmonic,
+          unified,
+          candlestickPatternIds: candlestick.patternIds,
+        });
+        mtfSources.push({
+          timeframe: tf,
+          providerSymbol: symbol,
+          regime,
+          harmonic,
+          fibonacci,
+          chartPatterns,
+          unified,
+          tipCandleState: tip?.candleState ?? null,
+          tipTimebase: tip?.timebase ?? null,
+          tipOpenTimeSec: tip?.openTimeSec ?? null,
+          qualityStatus: integrity.status === "VALID" || integrity.status === "WARNING"
+            || integrity.status === "DEGRADED" || integrity.status === "BLOCKED"
+            ? integrity.status
+            : "MISSING",
+        });
+      } catch (err) {
+        errors.push(`${tf}:${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    const mtf = mtfSources.length
+      ? assessMifMultiTimeframeRelationships({
+          sources: mtfSources,
+          providerSymbol: symbol,
+          assessmentTimestamp,
+        })
+      : null;
+    const assessment = bundles.length
+      ? assessMifDeepTechnicalIntelligence({
+          providerSymbol: symbol,
+          primaryTimeframe,
+          timeframeBundles: bundles,
+          mtfRelationships: mtf,
+          assessmentTimestamp,
+        })
+      : null;
+    const evidence = assessment
+      ? adaptDeepTechnicalIntelligenceToEvidence(assessment, { snapshotId: null })
+      : null;
+    const payload = {
+      ok: !!assessment,
+      providerId: MIF_PROVIDER_ID,
+      symbol,
+      assessedAt: assessmentTimestamp,
+      assessment,
+      mtfRelationships: mtf,
+      evidence,
+      errors,
+      isWinProbability: false,
+      isEventProbability: false,
+      doesNotConfirmOrInvalidateLifecycleAlone: true,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      callsOpenAi: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, assessment ? 200 : 422, payload);
     return true;
   }
 

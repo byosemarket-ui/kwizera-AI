@@ -93,6 +93,20 @@ export const MIF_EVIDENCE_FAMILY_CATALOG: Record<
     notes:
       "Phase 05 candle-structure + tick-activity PROXY — not aggressor volume, not win probability, not institutional absorption.",
   },
+  DEEP_TECHNICAL_INTELLIGENCE: {
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-deep-technical-intelligence",
+    expectedSourceContractId: "kwizera.mif.deep-technical-intelligence.v1",
+    notes:
+      "Phase 06 orchestrator — composes structure/regime/MTF/patterns/pressure; confluence is analytical, not probability.",
+  },
+  CANDLESTICK_PATTERN: {
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-candlestick-patterns",
+    expectedSourceContractId: "kwizera.mif.candlestick-patterns.v1",
+    notes:
+      "Phase 06 thin wrapper over ai/forex-patterns — detected ≠ confirmed trade signal.",
+  },
   VOLATILITY: {
     availability: "AVAILABLE",
     expectedSourceEngine: "mif-market-regime",
