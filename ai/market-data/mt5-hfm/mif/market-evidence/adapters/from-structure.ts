@@ -12,6 +12,7 @@ import type {
 import type { MifBuyerSellerPressureAssessment } from "../../analysis/buyer-seller-pressure/types.js";
 import type { MifDeepTechnicalIntelligenceAssessment } from "../../analysis/deep-technical-intelligence/types.js";
 import type { MifCandlestickPatternsAssessment } from "../../analysis/candlestick-patterns/assess-candlestick-patterns.js";
+import type { MifExternalMarketIntelligenceAssessment } from "../../analysis/external-market-intelligence/types.js";
 import type { MifSupportResistanceAssessment } from "../../analysis/support-resistance/types.js";
 import type { MifEvidenceDirection, MifEvidenceLevel, MifUnifiedMarketEvidence } from "../types.js";
 import { buildUnifiedEvidence, mapBuySellToDirection } from "./common.js";
@@ -803,6 +804,106 @@ export function adaptCandlestickPatternsToEvidence(
       assessmentId: assessment.assessmentId,
       inputIdentity: assessment.inputIdentity,
       patternIds: assessment.patternIds,
+    },
+  });
+}
+
+/** Phase 07 — adapt external market intelligence into UMEP (analytical; not probability). */
+export function adaptExternalMarketIntelligenceToEvidence(
+  assessment: MifExternalMarketIntelligenceAssessment,
+  opts?: { analysisId?: string | null; runId?: string | null; snapshotId?: string | null },
+): MifUnifiedMarketEvidence {
+  return buildUnifiedEvidence({
+    sourceEngine: assessment.engineId,
+    engineVersion: assessment.engineVersion,
+    evidenceType: "EVENT_RISK",
+    providerSymbol: assessment.providerSymbol,
+    timeframe: null,
+    instrument: assessment.instrument,
+    direction: "NEUTRAL",
+    eventTime: assessment.assessmentTimestamp,
+    observedAt: assessment.assessmentTimestamp,
+    candleStatus: null,
+    warnings: assessment.dataSourceMode === "FIXTURE" ? ["fixture_or_cache_only"] : [],
+    limitations: assessment.limitations,
+    measurements: [
+      { id: "status", name: "status", value: assessment.status, unit: null, note: null },
+      {
+        id: "eventRisk",
+        name: "eventRisk",
+        value: assessment.eventRisk.riskClass,
+        unit: null,
+        note: "proximity_importance_only",
+      },
+      {
+        id: "alignment",
+        name: "technicalFundamentalAlignment",
+        value: assessment.technicalFundamentalAlignment,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "dataSourceMode",
+        name: "dataSourceMode",
+        value: assessment.dataSourceMode,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "calendarFreshness",
+        name: "calendarFreshness",
+        value: assessment.calendarFreshness,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "financialNewsStatus",
+        name: "financialNewsStatus",
+        value: assessment.financialNewsStatus,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "centralBankLiveFeedStatus",
+        name: "centralBankLiveFeedStatus",
+        value: assessment.centralBankLiveFeedStatus,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "relevantEventCount",
+        name: "relevantEventCount",
+        value: assessment.relevantEvents.length,
+        unit: "count",
+        note: null,
+      },
+    ],
+    score: {
+      confidenceType: "ENGINE_SPECIFIC",
+      value: null,
+      scale: null,
+      isWinProbability: false,
+      isCalibratedPrediction: false,
+      calibrationStatus: null,
+      reliabilityStatus: null,
+      definition:
+        "Phase 07 external market intelligence — event risk / alignment are analytical, not win probability",
+    },
+    analysisId: opts?.analysisId ?? null,
+    runId: opts?.runId ?? null,
+    snapshotId: opts?.snapshotId ?? null,
+    snapshotIdSourceVerified: opts?.snapshotId != null,
+    sourceAssessmentId: assessment.assessmentId,
+    sourceInputIdentity: assessment.inputIdentity,
+    sourceContractId: assessment.contractId,
+    sourceContractVersion: assessment.contractVersion,
+    fingerprintSource: {
+      kind: "external-market-intelligence",
+      assessmentId: assessment.assessmentId,
+      inputIdentity: assessment.inputIdentity,
+      eventRisk: assessment.eventRisk.riskClass,
+      alignment: assessment.technicalFundamentalAlignment,
+      modelVersion: assessment.modelVersion,
     },
   });
 }

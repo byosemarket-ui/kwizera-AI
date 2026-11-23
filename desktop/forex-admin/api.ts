@@ -795,6 +795,31 @@ export const forexProvidersApi = {
       macdAdxBollinger: string;
       placesOrders: false;
     }>("/api/forex/providers/mt5-hfm/mif/deep-technical-intelligence/capability"),
+  /** Phase 07 — external market intelligence (analytical; not probability). */
+  mt5HfmMifExternalMarketIntelligence: (body: {
+    symbol: string;
+    asOfUtc?: string;
+    fixtureEvents?: unknown[];
+    technicalBias?: Record<string, unknown>;
+  }) =>
+    request<{
+      ok: boolean;
+      assessment?: unknown;
+      isWinProbability: false;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+    }>("/api/forex/providers/mt5-hfm/mif/external-market-intelligence", {
+      method: "POST",
+      body: JSON.stringify({ providerId: "HFM_MT5", ...body }),
+    }),
+  mt5HfmMifExternalMarketIntelligenceCapability: () =>
+    request<{
+      ok: boolean;
+      financialNews: string;
+      continuousIngestionWorker: string;
+      placesOrders: false;
+    }>("/api/forex/providers/mt5-hfm/mif/external-market-intelligence/capability"),
   /** Phase 5E Step 1 — analytical ranking (not win probability). */
   mt5HfmMifRankingList: (params?: {
     symbol?: string;

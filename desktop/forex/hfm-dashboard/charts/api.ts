@@ -703,4 +703,43 @@ export async function fetchHfmDeepTechnicalIntelligenceCapability(
   return { httpStatus: status, ...body };
 }
 
+/** Phase 07 — external market intelligence (analytical; not probability). */
+const MIF_EXTERNAL_MARKET = "/api/forex/providers/mt5-hfm/mif/external-market-intelligence";
+
+export async function fetchHfmExternalMarketIntelligence(input: {
+  symbol: string;
+  asOfUtc?: string;
+  snapshotId?: string;
+  fixtureEvents?: unknown[];
+  technicalBias?: Record<string, unknown>;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(
+    MIF_EXTERNAL_MARKET,
+    {
+      method: "POST",
+      body: {
+        symbol: input.symbol,
+        providerId: "HFM_MT5",
+        asOfUtc: input.asOfUtc,
+        snapshotId: input.snapshotId,
+        fixtureEvents: input.fixtureEvents,
+        technicalBias: input.technicalBias,
+      },
+      signal: input.signal,
+    },
+  );
+  return { httpStatus: status, ...body };
+}
+
+export async function fetchHfmExternalMarketIntelligenceCapability(
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(
+    `${MIF_EXTERNAL_MARKET}/capability`,
+    { signal },
+  );
+  return { httpStatus: status, ...body };
+}
+
 export { TICKS };

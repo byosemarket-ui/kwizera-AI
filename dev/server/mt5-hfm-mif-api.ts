@@ -81,11 +81,21 @@
  * GET  /api/forex/providers/mt5-hfm/mif/buyer-seller-pressure/capability
  * POST /api/forex/providers/mt5-hfm/mif/deep-technical-intelligence
  * GET  /api/forex/providers/mt5-hfm/mif/deep-technical-intelligence/capability
+ * POST /api/forex/providers/mt5-hfm/mif/external-market-intelligence
+ * GET  /api/forex/providers/mt5-hfm/mif/external-market-intelligence/capability
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { assertAdminAccess, rolesFromHeaders, adminTokenFromHeaders } from "../../ai/admin-control-plane/admin-auth-boundary.js";
 import { assertNoSecretsInMt5HfmPayload } from "../../ai/market-data/mt5-hfm/secrets-guard.js";
 import { fetchHfmHistoricalCandles } from "../../ai/market-data/mt5-hfm/historical-engine.js";
+import {
+  buildFundamentalsStatusPublic,
+  buildHfmFundamentalsPackageForSnapshot,
+  economicCalendarGateAvailability,
+  getBackgroundRefreshEnabled,
+  isEconomicCalendarLiveAllowed,
+  normalizeSmtEvent,
+} from "../../ai/market-data/mt5-hfm/fundamentals/index.js";
 import {
   MIF_PRODUCTION_DEFAULT_TIMEFRAMES,
   MIF_PRODUCTION_INTEGRATION_CONTRACT_ID,
@@ -95,12 +105,14 @@ import {
   MIF_RESEARCH_EXPORTABLE_TIMEFRAMES,
   adaptBuyerSellerPressureToEvidence,
   adaptDeepTechnicalIntelligenceToEvidence,
+  adaptExternalMarketIntelligenceToEvidence,
   adaptHfmHistoricalBars,
   assessMifBuyerSellerPressure,
   assessMifCandlestickPatterns,
   assessMifChartPatterns,
   assessMifDataIntegrity,
   assessMifDeepTechnicalIntelligence,
+  assessMifExternalMarketIntelligence,
   assessMifFibonacci,
   assessMifHarmonicPatterns,
   assessMifLiquidityReference,
@@ -3821,6 +3833,139 @@ export async function handleMt5HfmMifApi(
       mutatesBroker: false,
       acceptsForExecution: false,
       callsOpenAi: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, assessment ? 200 : 422, payload);
+    return true;
+  }
+
+  // --- Phase 07 external market intelligence (read-only; HFM_MT5 only) ---
+  if (url.pathname === `${PATH_PREFIX}/external-market-intelligence/capability` && req.method === "GET") {
+    const gate = economicCalendarGateAvailability();
+    sendJson(res, 200, {
+      ok: true,
+      providerId: MIF_PROVIDER_ID,
+      calendarProvider: "SHOWMYTRADES",
+      calendarGate: gate,
+      liveCalendarAllowed: isEconomicCalendarLiveAllowed(),
+      backgroundRefreshEnabled: getBackgroundRefreshEnabled(),
+      financialNews: "NOT_IMPLEMENTED",
+      newsSentiment: "NOT_IMPLEMENTED",
+      centralBankLiveFeed: "NOT_IMPLEMENTED",
+      crossAssetContext: "NOT_IMPLEMENTED",
+      eventRisk: "IMPLEMENTED",
+      surpriseCalculation: "IMPLEMENTED",
+      technicalFundamentalAlignment: "IMPLEMENTED",
+      continuousIngestionWorker: "DISABLED_BY_POLICY",
+      isWinProbability: false,
+      doesNotConfirmOrInvalidateLifecycleAlone: true,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      fundamentalsStatus: buildFundamentalsStatusPublic(),
+    });
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/external-market-intelligence` && req.method === "POST") {
+    let body: Record<string, unknown> = {};
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      body = {};
+    }
+    const symbol = String(body.symbol ?? body.providerSymbol ?? "").trim().toUpperCase();
+    if (!symbol) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INSTRUMENT", message: "symbol required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const providerRaw = String(body.providerId ?? body.provider ?? MIF_PROVIDER_ID).trim().toUpperCase();
+    if (providerRaw !== MIF_PROVIDER_ID) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "WRONG_PROVIDER",
+          message: `provider ${providerRaw} rejected; only HFM_MT5 permitted`,
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const assessmentTimestamp = new Date().toISOString();
+    const asOfUtc = String(body.asOfUtc || assessmentTimestamp);
+    const technicalBias = body.technicalBias && typeof body.technicalBias === "object"
+      ? (body.technicalBias as {
+          assessmentId?: string;
+          overallTrendDirection?: "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED" | "UNKNOWN";
+        })
+      : null;
+
+    // Prefer fixture events when provided (deterministic / gates-off path).
+    let assessment = null;
+    if (Array.isArray(body.fixtureEvents) && body.fixtureEvents.length) {
+      const retrievedAt = assessmentTimestamp;
+      const events = body.fixtureEvents
+        .map((raw) => normalizeSmtEvent(raw, retrievedAt))
+        .filter((e): e is NonNullable<typeof e> => e != null);
+      assessment = assessMifExternalMarketIntelligence({
+        providerSymbol: symbol,
+        asOfUtc,
+        events,
+        technicalBias,
+        assessmentTimestamp,
+        dataSourceMode: "FIXTURE",
+        calendarAvailability: "OK",
+        calendarFreshness: "FRESH",
+      });
+    } else {
+      const pkg = await buildHfmFundamentalsPackageForSnapshot({
+        snapshotId: String(body.snapshotId || `emi:${symbol}:${asOfUtc}`),
+        symbol,
+        asOfUtc,
+        persist: false,
+      });
+      assessment = assessMifExternalMarketIntelligence({
+        providerSymbol: symbol,
+        asOfUtc,
+        fundamentalsPackage: pkg,
+        technicalBias,
+        assessmentTimestamp,
+        dataSourceMode: pkg.events.length
+          ? (isEconomicCalendarLiveAllowed() ? "LIVE_CACHE" : "FIXTURE")
+          : "UNAVAILABLE",
+        calendarAvailability: pkg.availability,
+        calendarFreshness: pkg.freshness,
+      });
+    }
+
+    const evidence = assessment
+      ? adaptExternalMarketIntelligenceToEvidence(assessment, {
+          snapshotId: body.snapshotId ? String(body.snapshotId) : null,
+        })
+      : null;
+    const payload = {
+      ok: !!assessment && assessment.status !== "BLOCKED",
+      providerId: MIF_PROVIDER_ID,
+      symbol,
+      assessedAt: assessmentTimestamp,
+      assessment,
+      evidence,
+      isWinProbability: false,
+      isEventProbability: false,
+      doesNotConfirmOrInvalidateLifecycleAlone: true,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      callsOpenAi: false,
+      backgroundRefreshEnabled: false,
     };
     assertNoSecretsInMt5HfmPayload(payload);
     sendJson(res, assessment ? 200 : 422, payload);

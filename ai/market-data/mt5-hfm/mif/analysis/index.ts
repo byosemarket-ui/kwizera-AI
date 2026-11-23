@@ -24,4 +24,5 @@ export * from "./price-displacement/index.js";
 export * from "./buyer-seller-pressure/index.js";
 export * from "./candlestick-patterns/index.js";
 export * from "./deep-technical-intelligence/index.js";
+export * from "./external-market-intelligence/index.js";
 

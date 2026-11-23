@@ -107,6 +107,43 @@ export const MIF_EVIDENCE_FAMILY_CATALOG: Record<
     notes:
       "Phase 06 thin wrapper over ai/forex-patterns — detected ≠ confirmed trade signal.",
   },
+  ECONOMIC_CALENDAR: {
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-external-market-intelligence",
+    expectedSourceContractId: "kwizera.mif.external-market-intelligence.v1",
+    notes:
+      "Phase 07 economic calendar via HFM fundamentals cache/fixture (ShowMyTrades) — informational only.",
+  },
+  ECONOMIC_RELEASE: {
+    availability: "PARTIAL",
+    expectedSourceEngine: "mif-external-market-intelligence",
+    expectedSourceContractId: "kwizera.mif.external-market-intelligence.v1",
+    notes: "Released events + surprise when actual/forecast comparable — not a trade signal.",
+  },
+  EVENT_RISK: {
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-external-market-intelligence",
+    expectedSourceContractId: "kwizera.mif.external-market-intelligence.v1",
+    notes: "Proximity+importance event risk — does not guarantee volatility or direction.",
+  },
+  FUNDAMENTAL_CONTEXT: {
+    availability: "PARTIAL",
+    expectedSourceEngine: "mif-external-market-intelligence",
+    expectedSourceContractId: "kwizera.mif.external-market-intelligence.v1",
+    notes: "Technical/fundamental alignment context — news/CB feeds not implemented.",
+  },
+  FINANCIAL_NEWS: {
+    availability: "UNSUPPORTED",
+    expectedSourceEngine: null,
+    expectedSourceContractId: null,
+    notes: "Phase 07 — financial news feed NOT_IMPLEMENTED; no fabricated articles.",
+  },
+  CENTRAL_BANK_POLICY: {
+    availability: "UNSUPPORTED",
+    expectedSourceEngine: null,
+    expectedSourceContractId: null,
+    notes: "Phase 07 — dedicated central-bank live feed NOT_IMPLEMENTED.",
+  },
   VOLATILITY: {
     availability: "AVAILABLE",
     expectedSourceEngine: "mif-market-regime",
