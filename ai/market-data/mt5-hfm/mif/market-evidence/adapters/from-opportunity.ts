@@ -1,11 +1,134 @@
-import type { MifOpportunityCandidate } from "../../opportunity-detection/types.js";
+import type {
+  MifDetectionEvidenceRef,
+  MifOpportunityCandidate,
+} from "../../opportunity-detection/types.js";
 import type { MifOpportunityRankingRun, MifRankedOpportunity } from "../../opportunity-ranking/types.js";
 import type { MifProbabilityBundle } from "../../probability-intelligence/types.js";
 import type { MifProductionIntegrationResult } from "../../production-integration/types.js";
-import type { MifStrategyEligibilityResult } from "../../strategy-intelligence/types.js";
+import type {
+  MifEvidenceFamily,
+  MifStrategyEligibilityResult,
+} from "../../strategy-intelligence/types.js";
 import { MIF_STRATEGY_INTELLIGENCE_ENGINE_ID, MIF_STRATEGY_INTELLIGENCE_ENGINE_VERSION } from "../../strategy-intelligence/contracts.js";
-import type { MifEvidenceConfidenceType, MifUnifiedMarketEvidence } from "../types.js";
+import type {
+  MifEvidenceConfidenceType,
+  MifEvidenceType,
+  MifUnifiedMarketEvidence,
+} from "../types.js";
 import { buildUnifiedEvidence, mapBuySellToDirection } from "./common.js";
+
+function mapEvidenceFamilyToType(family: MifEvidenceFamily): MifEvidenceType {
+  switch (family) {
+    case "MARKET_STRUCTURE":
+    case "RANGE_STRUCTURE":
+      return "MARKET_STRUCTURE";
+    case "MARKET_REGIME":
+    case "VOLATILITY":
+      return "MARKET_REGIME";
+    case "MULTI_TIMEFRAME_RELATIONSHIP":
+      return "MTF_RELATIONSHIP";
+    case "FIBONACCI":
+      return "FIBONACCI";
+    case "GEOMETRIC_PATTERN":
+      return "CHART_PATTERN";
+    case "HARMONIC_PATTERN":
+      return "HARMONIC_PATTERN";
+    case "SUPPORT_RESISTANCE":
+      return "SUPPORT_RESISTANCE";
+    case "LIQUIDITY_REFERENCE":
+      return "LIQUIDITY_REFERENCE";
+    case "PRICE_DISPLACEMENT":
+      return "PRICE_DISPLACEMENT";
+    case "MOMENTUM":
+      return "MOMENTUM";
+    case "DATA_QUALITY":
+      return "DATA_QUALITY";
+    case "CANDLE_CONFIRMATION":
+    default:
+      return "OTHER";
+  }
+}
+
+/**
+ * Phase 01 — preserve OD catalog evidenceIds (tc.regime, etc.) in the unified
+ * package so scenario/candidate citations remain groundable for Charts AI.
+ * ABSENT refs are included intentionally (missing ≠ negative).
+ */
+export function adaptDetectionEvidenceRefToEvidence(
+  ref: MifDetectionEvidenceRef,
+  opts: {
+    providerSymbol: string;
+    observedAt: string;
+    analysisId?: string | null;
+    runId?: string | null;
+    snapshotId?: string | null;
+  },
+): MifUnifiedMarketEvidence {
+  const evidenceId = String(ref.evidenceId || "").trim();
+  return buildUnifiedEvidence({
+    sourceEngine: ref.sourceEngine ?? "mif-production-evidence-ref",
+    engineVersion: ref.sourceContractVersion ?? "1.0.0",
+    evidenceType: mapEvidenceFamilyToType(ref.family),
+    providerSymbol: opts.providerSymbol,
+    timeframe: ref.timeframe,
+    direction: "NEUTRAL",
+    eventTime: ref.assessmentTimestamp ?? opts.observedAt,
+    observedAt: opts.observedAt,
+    candleStatus: ref.candleState,
+    warnings: ref.notes ? [ref.notes] : [],
+    limitations: [
+      "productionEvidenceRef",
+      "presenceIsNotDirectionalBias",
+      "ABSENT_means_missing_or_insufficient_not_bearish_or_bullish",
+    ],
+    measurements: [
+      { id: "family", name: "family", value: ref.family, unit: null, note: null },
+      { id: "presence", name: "presence", value: ref.presence, unit: null, note: null },
+      {
+        id: "qualityStatus",
+        name: "qualityStatus",
+        value: ref.qualityStatus,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "timeframeRole",
+        name: "timeframeRole",
+        value: ref.timeframeRole,
+        unit: null,
+        note: null,
+      },
+    ],
+    score: {
+      confidenceType: "ENGINE_SPECIFIC",
+      value: null,
+      scale: `presence=${ref.presence};quality=${ref.qualityStatus}`,
+      isWinProbability: false,
+      isCalibratedPrediction: false,
+      calibrationStatus: null,
+      reliabilityStatus: ref.qualityStatus,
+      definition:
+        "Production evidence presence/quality — ABSENT means missing/insufficient, not opposing direction",
+    },
+    analysisId: opts.analysisId ?? null,
+    runId: opts.runId ?? null,
+    snapshotId: opts.snapshotId ?? null,
+    snapshotIdSourceVerified: opts.snapshotId != null,
+    sourceAssessmentId: ref.sourceAssessmentId,
+    sourceInputIdentity: ref.sourceInputIdentity,
+    sourceContractId: ref.sourceContractId,
+    sourceContractVersion: ref.sourceContractVersion,
+    evidenceIdOverride: evidenceId || null,
+    fingerprintSource: {
+      kind: "production-evidence-ref",
+      evidenceId,
+      family: ref.family,
+      presence: ref.presence,
+      qualityStatus: ref.qualityStatus,
+      sourceAssessmentId: ref.sourceAssessmentId,
+    },
+  });
+}
 
 const MAX_RANKED_ITEMS = 24;
 

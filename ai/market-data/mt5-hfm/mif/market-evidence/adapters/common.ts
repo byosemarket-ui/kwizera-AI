@@ -59,6 +59,12 @@ export interface BuildEvidenceInput {
   contentHash?: string | null;
   /** Raw source slice used for fingerprint — must not invent fields. */
   fingerprintSource: unknown;
+  /**
+   * Phase 01 — when set, preserve a trusted upstream evidenceId (e.g. OD catalog
+   * ids like `tc.regime`) so AI grounding allowlists match scenario citations.
+   * Never invent ids; only pass through server-side production refs.
+   */
+  evidenceIdOverride?: string | null;
 }
 
 function clipArr<T>(arr: readonly T[] | undefined, max: number): T[] {
@@ -79,16 +85,18 @@ export function buildUnifiedEvidence(input: BuildEvidenceInput): MifUnifiedMarke
   const snapshotId = input.snapshotId ?? null;
   const snapshotIdSourceVerified =
     snapshotId == null ? false : input.snapshotIdSourceVerified === true;
-  const evidenceId = buildEvidenceId({
-    sourceEngine: input.sourceEngine,
-    evidenceType: input.evidenceType,
-    providerSymbol: input.providerSymbol,
-    timeframe: input.timeframe,
-    sourceAssessmentId: input.sourceAssessmentId ?? null,
-    sourceCandidateId: input.sourceCandidateId ?? null,
-    sourceFingerprint,
-    snapshotId,
-  });
+  const override = String(input.evidenceIdOverride ?? "").trim();
+  const evidenceId = override
+    || buildEvidenceId({
+      sourceEngine: input.sourceEngine,
+      evidenceType: input.evidenceType,
+      providerSymbol: input.providerSymbol,
+      timeframe: input.timeframe,
+      sourceAssessmentId: input.sourceAssessmentId ?? null,
+      sourceCandidateId: input.sourceCandidateId ?? null,
+      sourceFingerprint,
+      snapshotId,
+    });
 
   const item: MifUnifiedMarketEvidence = {
     contractId: MIF_UNIFIED_MARKET_EVIDENCE_CONTRACT_ID,

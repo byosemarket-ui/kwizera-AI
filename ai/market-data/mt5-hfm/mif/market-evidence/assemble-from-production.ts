@@ -10,6 +10,7 @@ import { MIF_MARKET_EVIDENCE_MAX_ITEMS } from "./contracts.js";
 import { assembleMarketEvidencePackage } from "./package.js";
 import type { MifMarketEvidencePackage, MifUnifiedMarketEvidence } from "./types.js";
 import {
+  adaptDetectionEvidenceRefToEvidence,
   adaptOpportunityCandidateToEvidence,
   adaptProbabilityBundleToEvidence,
   adaptProductionResultToEvidence,
@@ -45,9 +46,22 @@ export function assembleEvidenceFromProduction(
     snapshotId,
   };
 
-  const items: MifUnifiedMarketEvidence[] = [
-    adaptProductionResultToEvidence(input.result, opts),
-  ];
+  // Phase 01: catalog evidence refs first so truncation preserves groundable IDs
+  // (tc.regime, etc.) and ABSENT presence remains visible to Charts AI.
+  const items: MifUnifiedMarketEvidence[] = [];
+  for (const ref of input.result.evidenceRefs ?? []) {
+    items.push(
+      adaptDetectionEvidenceRefToEvidence(ref, {
+        providerSymbol: input.result.providerSymbol,
+        observedAt: input.result.processingTimestamp,
+        analysisId,
+        runId,
+        snapshotId,
+      }),
+    );
+  }
+
+  items.push(adaptProductionResultToEvidence(input.result, opts));
 
   for (const cand of input.result.detection?.candidates ?? []) {
     items.push(adaptOpportunityCandidateToEvidence(cand, opts));
@@ -78,6 +92,7 @@ export function assembleEvidenceFromProduction(
     items.push(...input.extraItems);
   }
 
+  const refCount = input.result.evidenceRefs?.length ?? 0;
   return assembleMarketEvidencePackage({
     items: items.slice(0, MIF_MARKET_EVIDENCE_MAX_ITEMS * 2),
     analysisId,
@@ -86,8 +101,11 @@ export function assembleEvidenceFromProduction(
     snapshotIdSourceVerified: input.snapshotIdSourceVerified === true,
     providerSymbol: input.result.providerSymbol,
     limitations: [
-      "Phase 2 package — Charts Analyze Now integration deferred to later Master Plan phase",
-      "Per-TF technical assessments must be supplied via extraItems when needed",
+      "Charts Analyze Now packages production evidenceRefs with stable catalog evidenceIds",
+      "ABSENT presence means missing/insufficient — not directional opposition",
+      ...(refCount === 0
+        ? ["Per-TF technical assessments must be supplied via evidenceRefs or extraItems when needed"]
+        : [`productionEvidenceRefsIncluded=${refCount}`]),
     ],
   });
 }

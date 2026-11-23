@@ -25,6 +25,7 @@ export {
   adaptProductionResultToEvidence,
   adaptRankingRunToEvidence,
   adaptProbabilityBundleToEvidence,
+  adaptDetectionEvidenceRefToEvidence,
 } from "./from-opportunity.js";
 
 export {

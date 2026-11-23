@@ -16,7 +16,10 @@ export {
   legacyOutcomeFileStem,
   isWindowsUnsafeFileStem,
 } from "./portable-filename.js";
-export { assembleMarketEvidencePackage } from "./package.js";
+export {
+  assembleMarketEvidencePackage,
+  prioritizeEvidenceItemsForCap,
+} from "./package.js";
 export {
   assembleEvidenceFromProduction,
   type AssembleFromProductionInput,

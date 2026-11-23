@@ -435,15 +435,27 @@ export function buildHfmUnifiedAiAnalysisInput(
     warnings.push("deterministic_scenarios_unavailable");
   }
 
+  // Phase 01 — balanced allowlist: do not fill entirely from bullish first.
   const candidateIds = new Set<string>();
   if (scenarioPkg) {
-    for (const id of scenarioPkg.bullishScenario.contributingCandidateIds ?? []) {
+    const bull = [...(scenarioPkg.bullishScenario.contributingCandidateIds ?? [])];
+    const bear = [...(scenarioPkg.bearishScenario.contributingCandidateIds ?? [])];
+    const half = Math.max(1, Math.floor(maxCandidates / 2));
+    for (const id of bull.slice(0, half)) {
       if (candidateIds.size >= maxCandidates) break;
       candidateIds.add(id);
     }
-    for (const id of scenarioPkg.bearishScenario.contributingCandidateIds ?? []) {
+    for (const id of bear.slice(0, half)) {
       if (candidateIds.size >= maxCandidates) break;
       candidateIds.add(id);
+    }
+    // Fill remaining slots round-robin from leftovers.
+    let i = half;
+    while (candidateIds.size < maxCandidates && (i < bull.length || i < bear.length)) {
+      if (i < bull.length) candidateIds.add(bull[i]!);
+      if (candidateIds.size >= maxCandidates) break;
+      if (i < bear.length) candidateIds.add(bear[i]!);
+      i += 1;
     }
   }
 
@@ -455,6 +467,24 @@ export function buildHfmUnifiedAiAnalysisInput(
   }
 
   const allowedEvidenceIds = evidenceItems.map((e) => e.evidenceId).sort();
+  // Compact presence matrix so AI can distinguish ABSENT (missing) from opposing evidence.
+  const productionEvidencePresence = evidenceItems
+    .map((e) => {
+      const presence = e.measurements?.find((m) => m.id === "presence")?.value ?? null;
+      const family = e.measurements?.find((m) => m.id === "family")?.value ?? null;
+      if (presence == null && family == null) return null;
+      return {
+        evidenceId: e.evidenceId,
+        family,
+        presence,
+        note:
+          presence === "ABSENT"
+            ? "missing_or_insufficient_not_directional"
+            : null,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x != null)
+    .slice(0, maxEvidence);
   const scenarioIds = scenarioPkg
     ? [scenarioPkg.bullishScenario.scenarioId, scenarioPkg.bearishScenario.scenarioId]
     : [];
@@ -527,6 +557,7 @@ export function buildHfmUnifiedAiAnalysisInput(
       totalAvailable: evidencePkg?.items.length ?? 0,
       truncated: evidenceTruncated,
       items: evidenceItems.map(summarizeEvidenceItem),
+      productionEvidencePresence,
       relations: (evidencePkg?.relations ?? []).slice(0, 40),
       packageWarnings: (evidencePkg?.warnings ?? []).map((w) => clipNote(w)),
       packageLimitations: (evidencePkg?.limitations ?? []).map((w) => clipNote(w)),
@@ -594,8 +625,10 @@ export function buildHfmUnifiedAiAnalysisInput(
       "exactly_four_chart_images_H1_M30_M15_M5",
       "AI_must_not_invent_prices_or_evidence_ids",
       "FORMING_candles_alone_cannot_confirm",
+      "ABSENT_evidence_means_missing_or_insufficient_not_bearish_or_bullish",
       "fundamentalPackage_is_informational_only_does_not_alter_phase4_ranking",
       "do_not_invent_economic_releases_forecasts_or_actuals",
+      "Charts_path_skipProbability_ranking_only_not_calibrated_probability",
       ...(completeness === "PARTIAL" ? ["input_package_PARTIAL_do_not_describe_as_complete"] : []),
       ...(formingOnlyBlocked ? ["formingOnlyConfirmationBlocked=true"] : []),
     ],
@@ -608,11 +641,30 @@ export function buildHfmUnifiedAiAnalysisInput(
     inputWarnings: warnings,
   };
 
+  // Phase 01 — compute identity before final stringify; never discard size bound
+  // by re-stringifying an untruncated packageObject after a hard slice.
+  const identityPayload = {
+    contractId: HFM_UNIFIED_AI_INPUT_CONTRACT_ID,
+    contractVersion: HFM_UNIFIED_AI_INPUT_CONTRACT_VERSION,
+    snapshotId: snap.snapshotId,
+    snapshotHash: snap.snapshotHash,
+    symbol: snap.symbol,
+    evidencePackageId: evidencePkg?.packageId ?? null,
+    scenarioPackageId: scenarioPkg?.packageId ?? null,
+    availableEvidenceIds: allowedEvidenceIds,
+    availableScenarioIds: scenarioIds,
+    completeness,
+    imageHashes: imageRefs.map((r) => r.imageHash).sort(),
+  };
+  const unifiedInputIdentity = createHash("sha256")
+    .update(stableSerialize(identityPayload), "utf8")
+    .digest("hex");
+  packageObject.unifiedInputIdentity = unifiedInputIdentity;
+
   let json = JSON.stringify(packageObject);
   let sizeTruncated = false;
   if (json.length > HFM_UNIFIED_AI_MAX_JSON_CHARS) {
     sizeTruncated = true;
-    // Drop candle samples from non-required TFs first, then shrink sample size note.
     const mc = packageObject.marketContext as Record<string, unknown>;
     const tfs = mc.timeframes as Record<string, Record<string, unknown>>;
     for (const tf of Object.keys(tfs)) {
@@ -629,32 +681,33 @@ export function buildHfmUnifiedAiAnalysisInput(
     packageObject.truncated = true;
     packageObject.completeness = "PARTIAL";
     (packageObject.inputWarnings as string[]).push("json_size_truncated");
+    warnings.push("json_size_truncated");
     json = JSON.stringify(packageObject);
     if (json.length > HFM_UNIFIED_AI_MAX_JSON_CHARS) {
-      json = json.slice(0, HFM_UNIFIED_AI_MAX_JSON_CHARS);
-      warnings.push("json_hard_truncated");
+      // Drop evidence item bodies further rather than mid-JSON slice.
+      const det = packageObject.deterministicEvidence as Record<string, unknown>;
+      if (Array.isArray(det.items)) {
+        det.items = (det.items as unknown[]).slice(0, Math.min(40, (det.items as unknown[]).length));
+        det.truncated = true;
+        det.itemCount = (det.items as unknown[]).length;
+      }
+      (packageObject.inputWarnings as string[]).push("json_size_evidence_shrunk");
+      warnings.push("json_size_evidence_shrunk");
+      json = JSON.stringify(packageObject);
+      if (json.length > HFM_UNIFIED_AI_MAX_JSON_CHARS) {
+        packageObject.completeness = "PARTIAL";
+        (packageObject.inputWarnings as string[]).push("json_size_exceeds_bound_partial");
+        warnings.push("json_size_exceeds_bound_partial");
+        // Last resort: omit candle samples entirely.
+        for (const tf of Object.keys(tfs)) {
+          if (tfs[tf] && typeof tfs[tf] === "object") {
+            tfs[tf] = { ...tfs[tf], candlesSampled: [], note: "Candles omitted for JSON size bound." };
+          }
+        }
+        json = JSON.stringify(packageObject);
+      }
     }
   }
-
-  const identityPayload = {
-    contractId: HFM_UNIFIED_AI_INPUT_CONTRACT_ID,
-    contractVersion: HFM_UNIFIED_AI_INPUT_CONTRACT_VERSION,
-    snapshotId: snap.snapshotId,
-    snapshotHash: snap.snapshotHash,
-    symbol: snap.symbol,
-    evidencePackageId: evidencePkg?.packageId ?? null,
-    scenarioPackageId: scenarioPkg?.packageId ?? null,
-    availableEvidenceIds: allowedEvidenceIds,
-    availableScenarioIds: scenarioIds,
-    completeness: sizeTruncated ? "PARTIAL" : completeness,
-    imageHashes: imageRefs.map((r) => r.imageHash).sort(),
-  };
-  const unifiedInputIdentity = createHash("sha256")
-    .update(stableSerialize(identityPayload), "utf8")
-    .digest("hex");
-
-  packageObject.unifiedInputIdentity = unifiedInputIdentity;
-  json = JSON.stringify(packageObject);
 
   const finalCompleteness: HfmUnifiedInputCompleteness =
     sizeTruncated || truncated || completeness === "PARTIAL" ? "PARTIAL" : "COMPLETE";

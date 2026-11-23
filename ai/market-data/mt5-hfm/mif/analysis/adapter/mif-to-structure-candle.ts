@@ -16,7 +16,8 @@ export type MifStructureAdapterIssueCode =
   | "INVALID_STATE"
   | "DUPLICATE_OPEN_TIME"
   | "OUT_OF_ORDER"
-  | "UNSUPPORTED_CANDLE_STATE";
+  | "UNSUPPORTED_CANDLE_STATE"
+  | "FORMING_EXCLUDED";
 
 export interface MifStructureAdapterIssue {
   code: MifStructureAdapterIssueCode;
@@ -162,6 +163,13 @@ export function mifCandlesToStructureCandles(input: {
 
     const closed = isClosedState(c.candleState);
     if (!closed && !includeForming) {
+      // Phase 01 — observable exclusion (forming never confirms structure).
+      issues.push({
+        code: "FORMING_EXCLUDED",
+        message: "Forming candle excluded from structure confirmation path",
+        index: i,
+        openTimeSec: c.openTimeSec,
+      });
       skippedInputIndexes.push(i);
       continue;
     }

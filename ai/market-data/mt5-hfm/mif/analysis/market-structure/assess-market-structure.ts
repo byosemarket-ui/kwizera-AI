@@ -276,7 +276,8 @@ export function assessMifMarketStructure(
     primaryRef,
     qualityRef,
     diagnosticsSummary:
-      `bias=${bias}; confirmed=${confirmed.length}; provisional=${provisional.length}; events=${events.length}`,
+      `bias=${bias}; confirmed=${confirmed.length}; provisional=${provisional.length}; events=${events.length}`
+      + `; formingExcluded=${adapted.issues.filter((i) => i.code === "FORMING_EXCLUDED").length}`,
     placesOrders: false,
     mutatesBroker: false,
     acceptsForExecution: false,
