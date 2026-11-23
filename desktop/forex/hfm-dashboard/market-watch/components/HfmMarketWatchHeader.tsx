@@ -1,4 +1,8 @@
 import { formatAge } from "../../format";
+import {
+  labelMt5AgentAuth,
+  labelTerminalProcess,
+} from "../../hfm-status-display";
 import { HFM_MW_PROVIDER, type HfmMwRealtimeHints } from "../types";
 import { HfmProviderConnectionBadge } from "./HfmProviderStatus";
 
@@ -41,22 +45,12 @@ export function HfmMarketWatchHeader({
   const accountLabel = login
     ? `Account (Demo) ${login}${server ? ` · ${server}` : ""}`
     : "Account unavailable";
-  const terminalLabel =
-    realtime.terminalRunning === true
-      ? "MT5 online"
-      : realtime.terminalRunning === false
-        ? "MT5 offline"
-        : "MT5 unknown";
-  const terminalTone =
-    realtime.terminalRunning === true ? "live" : realtime.terminalRunning === false ? "down" : "wait";
-  const authLabel =
-    realtime.authenticated === true
-      ? "Agent authenticated"
-      : realtime.authenticated === false
-        ? "Agent unauthenticated"
-        : "Agent auth unknown";
-  const authTone =
-    realtime.authenticated === true ? "live" : realtime.authenticated === false ? "down" : "wait";
+  const term = labelTerminalProcess(realtime.terminalRunning);
+  const auth = labelMt5AgentAuth(realtime.authenticated, realtime.terminalRunning);
+  const terminalLabel = `MT5 ${term.text.toLowerCase()}`;
+  const terminalTone = term.tone === "ok" ? "live" : term.tone === "bad" ? "down" : "wait";
+  const authLabel = `Agent ${auth.text.toLowerCase()}`;
+  const authTone = auth.tone === "ok" ? "live" : auth.tone === "bad" ? "down" : "wait";
 
   return (
     <header className="hfm-mw-header">

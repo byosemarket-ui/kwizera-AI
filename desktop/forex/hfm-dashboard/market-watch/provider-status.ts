@@ -1,6 +1,7 @@
 /**
  * STEP 3A — map distinguishable HFM health signals to Market Watch UI status.
- * Node reachability ≠ MT5 connected. Prefer broker/SSE connection state.
+ * R2-UI-1: provider badge reflects feed/SSE readiness — NOT terminal process alone.
+ * Terminal Online/Offline remains a separate status row.
  */
 
 import type { HfmConnectionState, HfmFreshness, HfmSseStatus } from "../types";
@@ -17,22 +18,33 @@ export function mapHfmProviderUiStatus(input: {
   if (input.sseStatus === "connecting" || input.sseStatus === "reconnecting") return "CONNECTING";
   if (input.sseStatus === "error") return "ERROR";
   if (input.connectionState === "degraded" || input.freshness === "STALE") return "DEGRADED";
+  // Live quote feed is authoritative for market-data readiness even if the
+  // Wine terminal probe is false/unknown (probe can lag independently).
   if (
-    input.connectionState === "connected" &&
-    (input.sseStatus === "connected" || input.authenticated === true) &&
-    input.freshness !== "DISCONNECTED"
+    input.freshness === "LIVE"
+    && (input.sseStatus === "connected" || input.connectionState === "connected")
   ) {
     return "CONNECTED";
   }
   if (
-    input.connectionState === "disconnected" ||
-    input.freshness === "DISCONNECTED" ||
-    input.terminalRunning === false
+    input.connectionState === "connected"
+    && (input.sseStatus === "connected" || input.authenticated === true)
+    && input.freshness !== "DISCONNECTED"
+    && input.freshness !== "DATA_UNAVAILABLE"
+  ) {
+    return "CONNECTED";
+  }
+  if (
+    input.connectionState === "disconnected"
+    || input.freshness === "DISCONNECTED"
+    || input.freshness === "DATA_UNAVAILABLE"
   ) {
     return "DISCONNECTED";
   }
   if (input.sseStatus === "idle" || input.connectionState === "waiting") return "WAITING";
-  return "DISCONNECTED";
+  // terminalRunning alone must not force DISCONNECTED when feed is unknown/waiting.
+  void input.terminalRunning;
+  return "WAITING";
 }
 
 export function providerUiStatusLabel(status: HfmMwProviderUiStatus): string {

@@ -98,6 +98,19 @@ export interface HfmChartsReasoningPopulationCounts {
   timeBasis: "reasoning.createdAt";
 }
 
+/** R2-HYG-1 — observable exclusion diagnostics (no sensitive payloads). */
+export interface HfmChartsProductionEligibilityDiagnostics {
+  policyId: "charts-production-eligibility";
+  policyVersion: "1";
+  rawEvaluationRecords: number;
+  includedForAnalytics: number;
+  excludedNonProduction: number;
+  excludedNonProductionByReason: Record<string, number>;
+  legacyUnmarkedIncluded: number;
+  clientProductionClaimsIgnored: number;
+  note: string;
+}
+
 export interface HfmChartsPerformanceAnalyticsReport {
   schemaVersion: string;
   contractId: string;
@@ -109,6 +122,8 @@ export interface HfmChartsPerformanceAnalyticsReport {
   filters: HfmChartsAnalyticsFilters;
   populationMode: HfmChartsPopulationMode;
   timeBasis: HfmChartsTimeBasis;
+  /** R2-HYG-1 — present when storage loaders apply server-side provenance filter. */
+  productionEligibility?: HfmChartsProductionEligibilityDiagnostics;
   population: {
     rawEvaluationRecords: number;
     selectedEvaluations: number;

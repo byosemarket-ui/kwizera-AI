@@ -7,6 +7,14 @@ import {
   freshnessLabel,
   quoteDirection,
 } from "../format";
+import {
+  labelCandleFeed,
+  labelMarketDataReadiness,
+  labelMt5AgentAuth,
+  labelQuoteFeed,
+  labelTerminalProcess,
+  statusToneClass,
+} from "../hfm-status-display";
 
 function toneForFreshness(f: HfmFreshness): "live" | "closed" | "stale" | "wait" | "down" {
   if (f === "LIVE") return "live";
@@ -212,30 +220,42 @@ export function HfmOrdersPositions({ account }: { account: HfmAccountState | nul
 
 export function HfmSystemHealth({ state }: { state: HfmRealtimeState }) {
   const sseOk = state.sseStatus === "connected";
-  const termOk = state.terminalRunning === true;
-  const authOk = state.authenticated === true;
-  const feedOk =
-    state.freshness === "LIVE" || state.freshness === "MARKET_CLOSED" || state.freshness === "STALE";
-  const feedDisconnected = state.freshness === "DISCONNECTED" || state.freshness === "DATA_UNAVAILABLE";
+  const term = labelTerminalProcess(state.terminalRunning);
+  const auth = labelMt5AgentAuth(state.authenticated, state.terminalRunning);
+  const quote = labelQuoteFeed(state.freshness);
+  const candleCount = Object.values(state.candles).reduce((n, tfs) => {
+    if (!tfs) return n;
+    return n + Object.values(tfs).reduce((m, bars) => m + (Array.isArray(bars) ? bars.length : 0), 0);
+  }, 0);
+  const candle = labelCandleFeed({ candleBarCount: candleCount, quoteFeed: state.freshness });
+  const ready = labelMarketDataReadiness({
+    sseStatus: state.sseStatus,
+    connectionState: state.connectionState,
+    freshness: state.freshness,
+  });
   return (
     <section className="hfm-card" aria-label="System health">
       <h2>System Health</h2>
       <ul className="hfm-health-list">
         <li>
           <span>MT5 Terminal</span>
-          <strong className={termOk ? "hfm-ok" : "hfm-bad"}>{termOk ? "Online" : "Offline"}</strong>
+          <strong className={statusToneClass(term.tone)}>{term.text}</strong>
         </li>
         <li>
           <span>Broker auth</span>
-          <strong className={authOk ? "hfm-ok" : "hfm-bad"}>
-            {authOk ? "Authenticated" : "Unauthenticated"}
-          </strong>
+          <strong className={statusToneClass(auth.tone)}>{auth.text}</strong>
         </li>
         <li>
-          <span>HFM Data Feed</span>
-          <strong className={feedOk ? "hfm-ok" : feedDisconnected ? "hfm-bad" : "hfm-warn"}>
-            {freshnessLabel(state.freshness)}
-          </strong>
+          <span>Quote feed</span>
+          <strong className={statusToneClass(quote.tone)}>{quote.text}</strong>
+        </li>
+        <li>
+          <span>Candle feed</span>
+          <strong className={statusToneClass(candle.tone)}>{candle.text}</strong>
+        </li>
+        <li>
+          <span>Market data</span>
+          <strong className={statusToneClass(ready.tone)}>{ready.text}</strong>
         </li>
         <li>
           <span>SSE client</span>

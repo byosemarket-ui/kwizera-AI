@@ -7,7 +7,8 @@ import {
   HFM_CHARTS_CONFIDENCE_SEMANTICS,
   type HfmChartsCalibrationCensusBucket,
 } from "./confidence-provenance.js";
-import { loadAllChartsEvaluationsBounded } from "./analytics-engine.js";
+import type { HfmChartsProductionEligibilityDiagnostics } from "./analytics-types.js";
+import { loadProductionEligibleChartsEvaluations } from "./non-production-charts-record.js";
 import {
   getHfmChartsPredictionOutcomeStorage,
   type HfmChartsPredictionOutcomeStorage,
@@ -53,6 +54,8 @@ export interface HfmChartsCalibrationCensusReport {
   timeframes: Record<string, number>;
   directions: Record<string, number>;
   warnings: string[];
+  /** R2-HYG-1 — present when storage loaders apply server-side provenance filter. */
+  productionEligibility?: HfmChartsProductionEligibilityDiagnostics;
   placesOrders: false;
   mutatesBroker: false;
   acceptsForExecution: false;
@@ -185,9 +188,26 @@ export async function buildChartsCalibrationCensusFromStorage(input?: {
   maxRecords?: number;
 }): Promise<HfmChartsCalibrationCensusReport> {
   const storage = input?.storage ?? getHfmChartsPredictionOutcomeStorage();
-  const evaluations = await loadAllChartsEvaluationsBounded(
-    storage,
-    input?.maxRecords ?? 10_000,
-  );
-  return buildChartsCalibrationCensus(evaluations);
+  const loaded = await loadProductionEligibleChartsEvaluations({
+    chartsStorage: storage,
+    maxRecords: input?.maxRecords ?? 10_000,
+  });
+  const report = buildChartsCalibrationCensus(loaded.included);
+  return {
+    ...report,
+    productionEligibility: loaded.diagnostics,
+    warnings: [
+      ...report.warnings,
+      ...(loaded.diagnostics.excludedNonProduction > 0
+        ? [
+            `Excluded ${loaded.diagnostics.excludedNonProduction} non-production evaluation(s) from census (server provenance).`,
+          ]
+        : []),
+      ...(loaded.diagnostics.legacyUnmarkedIncluded > 0
+        ? [
+            `Included ${loaded.diagnostics.legacyUnmarkedIncluded} legacy unmarked evaluation(s) conservatively.`,
+          ]
+        : []),
+    ],
+  };
 }

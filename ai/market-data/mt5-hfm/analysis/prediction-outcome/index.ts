@@ -15,3 +15,4 @@ export * from "./analytics-engine.js";
 export * from "./reasoning-counts.js";
 export * from "./confidence-provenance.js";
 export * from "./calibration-census.js";
+export * from "./non-production-charts-record.js";

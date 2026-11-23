@@ -21,6 +21,7 @@ import {
   classifyConfidenceBucketFromProvenance,
   coerceConfidenceBucketFilter,
 } from "./confidence-provenance.js";
+import { loadProductionEligibleChartsEvaluations } from "./non-production-charts-record.js";
 import type {
   HfmChartsPredictionEvaluationRecord,
 } from "./types.js";
@@ -778,10 +779,29 @@ export async function buildChartsPerformanceAnalyticsFromStorage(input: {
   filters?: Partial<HfmChartsAnalyticsFilters>;
   reasoningCounts?: HfmChartsReasoningPopulationCounts | null;
 }): Promise<HfmChartsPerformanceAnalyticsReport> {
-  const evaluations = await loadAllChartsEvaluationsBounded(input.storage);
-  return buildChartsPerformanceAnalytics({
-    evaluations,
+  const loaded = await loadProductionEligibleChartsEvaluations({
+    chartsStorage: input.storage,
+  });
+  const report = buildChartsPerformanceAnalytics({
+    evaluations: loaded.included,
     filters: input.filters,
     reasoningCounts: input.reasoningCounts,
   });
+  return {
+    ...report,
+    productionEligibility: loaded.diagnostics,
+    warnings: [
+      ...report.warnings,
+      ...(loaded.diagnostics.excludedNonProduction > 0
+        ? [
+            `Excluded ${loaded.diagnostics.excludedNonProduction} non-production evaluation(s) from analytics (server provenance).`,
+          ]
+        : []),
+      ...(loaded.diagnostics.legacyUnmarkedIncluded > 0
+        ? [
+            `Included ${loaded.diagnostics.legacyUnmarkedIncluded} legacy unmarked evaluation(s) conservatively.`,
+          ]
+        : []),
+    ],
+  };
 }

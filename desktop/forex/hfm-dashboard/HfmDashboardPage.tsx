@@ -27,6 +27,14 @@ import {
 import { HfmMarketWatchPage } from "./market-watch/HfmMarketWatchPage";
 import { HfmProviderStatus } from "./market-watch/components/HfmProviderStatus";
 import type { HfmMwRealtimeHints, HfmMarketWatchViewId } from "./market-watch/types";
+import {
+  labelCandleFeed,
+  labelMarketDataReadiness,
+  labelMt5AgentAuth,
+  labelQuoteFeed,
+  labelTerminalProcess,
+  statusToneClass,
+} from "./hfm-status-display";
 import "./hfm-dashboard.css";
 import "./market-watch/hfm-market-watch.css";
 
@@ -141,35 +149,29 @@ export function HfmDashboardPage({
     ],
   );
 
-  const sideTerm =
-    state.terminalRunning === true ? (
-      <span className="hfm-ok">Online</span>
-    ) : (
-      <span className="hfm-bad">Offline</span>
-    );
-  // Agent auth ≠ SSE client socket. Keep them separate so a connected browser
-  // cannot paint the broker/agent as healthy while the terminal is down.
-  const sideAgent =
-    state.authenticated === true ? (
-      <span className="hfm-ok">Authenticated</span>
-    ) : state.terminalRunning === true ? (
-      <span className="hfm-warn">Terminal up / auth unknown</span>
-    ) : (
-      <span className="hfm-bad">Unauthenticated</span>
-    );
+  // R2-UI-1: terminal ≠ auth ≠ quote ≠ candle ≠ market-data readiness.
+  const termLbl = labelTerminalProcess(state.terminalRunning);
+  const authLbl = labelMt5AgentAuth(state.authenticated, state.terminalRunning);
+  const quoteLbl = labelQuoteFeed(state.freshness);
+  const candleLbl = labelCandleFeed({
+    candleBarCount: bars.length,
+    quoteFeed: state.freshness,
+  });
+  const readyLbl = labelMarketDataReadiness({
+    sseStatus: state.sseStatus,
+    connectionState: state.connectionState,
+    freshness: state.freshness,
+  });
+  const sideTerm = <span className={statusToneClass(termLbl.tone)}>{termLbl.text}</span>;
+  const sideAgent = <span className={statusToneClass(authLbl.tone)}>{authLbl.text}</span>;
+  const sideQuote = <span className={statusToneClass(quoteLbl.tone)}>{quoteLbl.text}</span>;
+  const sideCandle = <span className={statusToneClass(candleLbl.tone)}>{candleLbl.text}</span>;
+  const sideReady = <span className={statusToneClass(readyLbl.tone)}>{readyLbl.text}</span>;
   const sideSse =
     state.sseStatus === "connected" ? (
       <span className="hfm-ok">Connected</span>
     ) : (
       <span className="hfm-warn">{state.sseStatus}</span>
-    );
-  const sideConn =
-    state.terminalRunning === true && state.authenticated === true && state.connectionState === "connected" ? (
-      <span className="hfm-ok">Connected</span>
-    ) : state.terminalRunning === false ? (
-      <span className="hfm-bad">Terminal offline</span>
-    ) : (
-      <span className="hfm-warn">{state.connectionState}</span>
     );
 
   const activeNav: NavId =
@@ -250,12 +252,20 @@ export function HfmDashboardPage({
               {sideAgent}
             </div>
             <div className="hfm-side-row">
-              <span>SSE client</span>
-              {sideSse}
+              <span>Quote feed</span>
+              {sideQuote}
             </div>
             <div className="hfm-side-row">
-              <span>Broker connection</span>
-              {sideConn}
+              <span>Candle feed</span>
+              {sideCandle}
+            </div>
+            <div className="hfm-side-row">
+              <span>Market data</span>
+              {sideReady}
+            </div>
+            <div className="hfm-side-row">
+              <span>SSE client</span>
+              {sideSse}
             </div>
             <HfmProviderStatus realtime={realtimeHints} compact />
           </div>
