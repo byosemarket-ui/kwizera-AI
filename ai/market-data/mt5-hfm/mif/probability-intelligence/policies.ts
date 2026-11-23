@@ -35,7 +35,7 @@ export const MIF_POLICY_HFM_PROBABILITY: MifProbabilityPolicy = {
     moderateReliabilityMaxHalfWidth:
       "Half-width ≤ 0.15 with sufficient sample → at most MODERATE_RELIABILITY.",
     defaultEvaluationHorizonBars:
-      "Matches outcome-evaluation default maxAgeBars=200; horizon must be explicit on assessments.",
+      "Outcome evaluation expires only when maxAgeBars is explicit; horizon must be explicit on assessments.",
     noBayesianSmoothing:
       "No Bayesian prior is applied. Raw empirical frequency is never silently adjusted. Adjusted estimates are not invented.",
   },

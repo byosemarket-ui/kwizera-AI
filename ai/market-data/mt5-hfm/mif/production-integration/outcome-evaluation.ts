@@ -128,7 +128,13 @@ export function evaluateOpportunityOutcome(
   input: MifOutcomeEvaluationInput,
 ): MifOutcomeEvaluationRecord {
   const evaluationTimestamp = input.evaluationTimestamp ?? new Date().toISOString();
-  const maxAge = input.maxAgeBars ?? 200;
+  // Phase 04: do not invent a universal expiry. Expire only when maxAgeBars is
+  // an explicit positive integer. Undefined/null/non-positive = no expiration rule.
+  const maxAgeRaw = input.maxAgeBars;
+  const maxAge =
+    maxAgeRaw != null && Number.isFinite(maxAgeRaw) && maxAgeRaw > 0
+      ? Math.floor(maxAgeRaw)
+      : null;
   const levels = { ...input.levels };
 
   const inputsHash = createHash("sha256")
@@ -272,7 +278,8 @@ export function evaluateOpportunityOutcome(
     gapDetected = steps.some((s) => median > 0 && s > median * 2.5);
   }
 
-  const window = after.slice(0, maxAge);
+  // When no explicit maxAgeBars, observe the full provided closed window (no invented cap).
+  const window = maxAge != null ? after.slice(0, maxAge) : after;
   const refs = window.map((c) => c.openTimeSec);
 
   let invalidationHit: MifCanonicalCandle | null = null;
@@ -348,7 +355,7 @@ export function evaluateOpportunityOutcome(
     });
   }
 
-  if (after.length < maxAge && gapDetected && window.length < 3) {
+  if (maxAge != null && after.length < maxAge && gapDetected && window.length < 3) {
     return base({
       resultKind: "INSUFFICIENT_HISTORICAL_EVIDENCE",
       outcomeKind: "OUTCOME_UNKNOWN",
@@ -365,7 +372,7 @@ export function evaluateOpportunityOutcome(
     });
   }
 
-  if (window.length >= maxAge) {
+  if (maxAge != null && window.length >= maxAge) {
     return base({
       resultKind: "EXPIRED_UNRESOLVED",
       outcomeKind: "EXPIRED_UNRESOLVED",

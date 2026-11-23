@@ -38,17 +38,19 @@ export function ForexAdminMt5HfmMifPage() {
   const [selectedReasoning, setSelectedReasoning] = useState<Record<string, unknown> | null>(null);
   const [lastOd, setLastOd] = useState<Record<string, unknown> | null>(null);
   const [workerEnabled, setWorkerEnabled] = useState(false);
+  const [lifecycleMonitorEnabled, setLifecycleMonitorEnabled] = useState(false);
 
   const loadLists = useCallback(async () => {
     setBusy("refresh");
     setError(null);
     try {
-      const [cands, ranks, probs, ais, worker] = await Promise.all([
+      const [cands, ranks, probs, ais, worker, lifeMon] = await Promise.all([
         forexProvidersApi.mt5HfmMifCandidatesList({ symbol, limit: 10 }),
         forexProvidersApi.mt5HfmMifRankingList({ symbol, limit: 5 }),
         forexProvidersApi.mt5HfmMifProbabilityList({ symbol, limit: 5 }),
         forexProvidersApi.mt5HfmMifAiReasoningList({ symbol, limit: 5 }),
         forexProvidersApi.mt5HfmMifWorkerStatus().catch(() => null),
+        forexProvidersApi.mt5HfmMifLifecycleMonitorStatus().catch(() => null),
       ]);
       setCandidates(cands.items ?? []);
       setRankingItems(ranks.items ?? []);
@@ -57,6 +59,10 @@ export function ForexAdminMt5HfmMifPage() {
       if (worker && typeof worker === "object") {
         const w = asRecord((worker as { worker?: unknown }).worker);
         setWorkerEnabled(Boolean(w.enabled));
+      }
+      if (lifeMon && typeof lifeMon === "object") {
+        const m = asRecord((lifeMon as { monitor?: unknown }).monitor);
+        setLifecycleMonitorEnabled(Boolean(m.enabled));
       }
       setNote("HFM_MT5 Market Intelligence lists refreshed (read-only).");
     } catch (err) {
@@ -204,6 +210,10 @@ export function ForexAdminMt5HfmMifPage() {
             Run AI reasoning
           </button>
           <Badge value={workerEnabled ? "WORKER ON" : "WORKER OFF"} tone={workerEnabled ? "danger" : "ok"} />
+          <Badge
+            value={lifecycleMonitorEnabled ? "LIFECYCLE MON ON" : "LIFECYCLE MON OFF"}
+            tone={lifecycleMonitorEnabled ? "warn" : "ok"}
+          />
           <Badge value="HFM_MT5 only" tone="ok" />
           <Badge value="no execution" tone="ok" />
         </div>

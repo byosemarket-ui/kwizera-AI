@@ -14,6 +14,19 @@ import { getMifOpportunityStorage } from "./persistence/storage.js";
 import type { MifCandidateLifecycleState, MifCandidateOutcomeKind } from "./persistence/types.js";
 import { HFM_LIFECYCLE_TRANSITION_RULE_VERSION } from "./lifecycle-semantics.js";
 
+/** Parse explicit `maxAgeBars=N` from condition/thesis strings. */
+export function extractMaxAgeBarsFromConditions(
+  texts: readonly string[],
+): number | null {
+  for (const raw of texts) {
+    const m = /\bmaxAgeBars\s*=\s*(\d+)\b/i.exec(String(raw || ""));
+    if (!m) continue;
+    const n = Number(m[1]);
+    if (Number.isFinite(n) && n > 0) return Math.floor(n);
+  }
+  return null;
+}
+
 export interface ObserveCandidateInput {
   candidateId: string;
   /** Subsequent closed candles after detection (chronological preferred). */
@@ -131,13 +144,25 @@ export async function observeCandidateAgainstCandles(
     activation = first.openTimeSec - 1;
   }
 
+  // Expiration only when explicitly configured (input or condition token). Never invent.
+  const maxAgeFromConditions = extractMaxAgeBarsFromConditions([
+    ...candidate.requiredConfirmations,
+    ...candidate.invalidationConditions,
+    candidate.thesis ?? "",
+    candidate.rationale ?? "",
+  ]);
+  const resolvedMaxAgeBars =
+    input.maxAgeBars != null && Number.isFinite(input.maxAgeBars) && input.maxAgeBars > 0
+      ? Math.floor(input.maxAgeBars)
+      : maxAgeFromConditions;
+
   const evaluation = evaluateOpportunityOutcome({
     candidateId: input.candidateId,
     opportunitySnapshotRef: candidate.candidateId,
     activationOpenTimeSec: activation,
     levels,
     closedCandles: input.closedCandles,
-    maxAgeBars: input.maxAgeBars,
+    maxAgeBars: resolvedMaxAgeBars ?? undefined,
   });
 
   if (input.persistEvaluation !== false) {

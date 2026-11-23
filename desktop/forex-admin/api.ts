@@ -730,6 +730,20 @@ export const forexProvidersApi = {
       mutatesBroker: false;
       acceptsForExecution: false;
     }>("/api/forex/providers/mt5-hfm/mif/worker/status"),
+  /** Phase 04 — lifecycle monitor status (read-only; worker disabled by default). */
+  mt5HfmMifLifecycleMonitorStatus: () =>
+    request<{
+      ok: boolean;
+      monitor: {
+        enabled?: boolean;
+        lastEvidenceHealth?: string | null;
+        lastCompletedAt?: string | null;
+        activationPolicy?: string;
+      };
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+    }>("/api/forex/providers/mt5-hfm/mif/lifecycle-monitor/status"),
   /** Phase 5E Step 1 — analytical ranking (not win probability). */
   mt5HfmMifRankingList: (params?: {
     symbol?: string;

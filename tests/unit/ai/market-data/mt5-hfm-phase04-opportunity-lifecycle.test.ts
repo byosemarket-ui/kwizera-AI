@@ -326,6 +326,31 @@ describe("Phase 04 — observe invalidation / expiry / duplicate (fixture)", () 
     // No CLOSED window → no transition to INVALIDATED
     expect(obs.lifecycleState).toBe("DETECTED");
   });
+
+  it("does not invent expiration when maxAgeBars is unset", async () => {
+    await seedCandidate(store, {
+      candidateId: "cand-no-expiry",
+      thesis: "entryPrice=2100 invalidationPrice=2000 targetPrice=3000 invalidationSide=BELOW targetSide=ABOVE",
+      invalidationConditions: ["invalidationPrice=2000", "invalidationSide=BELOW"],
+      requiredConfirmations: ["targetPrice=3000", "targetSide=ABOVE"],
+    });
+    const bars = Array.from({ length: 12 }, (_, i) =>
+      candle(i + 1, 2102, 2098, 2100),
+    );
+    const obs = await observeCandidateAgainstCandles({
+      candidateId: "cand-no-expiry",
+      closedCandles: bars,
+      invalidationPrice: 2000,
+      invalidationSide: "BELOW",
+      targetPrice: 3000,
+      targetSide: "ABOVE",
+      activationOpenTimeSec: T0,
+      // maxAgeBars intentionally omitted — must not invent universal expiry
+    });
+    expect(obs.ok).toBe(true);
+    expect(obs.lifecycleState).not.toBe("EXPIRED");
+    expect(obs.evaluation?.resultKind).toBe("STILL_ACTIVE");
+  });
 });
 
 describe("Phase 04 — monitor cycle evidence gates (fixture)", () => {
