@@ -86,6 +86,13 @@ export const MIF_EVIDENCE_FAMILY_CATALOG: Record<
     expectedSourceContractId: "kwizera.mif.momentum.v1",
     notes: "Phase 5D.6 ROC+RSI momentum assessment — not a win probability.",
   },
+  BUYER_SELLER_PRESSURE: {
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-buyer-seller-pressure",
+    expectedSourceContractId: "kwizera.mif.buyer-seller-pressure.v1",
+    notes:
+      "Phase 05 candle-structure + tick-activity PROXY — not aggressor volume, not win probability, not institutional absorption.",
+  },
   VOLATILITY: {
     availability: "AVAILABLE",
     expectedSourceEngine: "mif-market-regime",

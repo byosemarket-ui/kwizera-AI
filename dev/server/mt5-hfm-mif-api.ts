@@ -77,10 +77,13 @@
  * POST /api/forex/providers/mt5-hfm/mif/lifecycle-monitor/enable
  * POST /api/forex/providers/mt5-hfm/mif/lifecycle-monitor/disable
  * GET  /api/forex/providers/mt5-hfm/mif/lifecycle/transitions
+ * POST /api/forex/providers/mt5-hfm/mif/buyer-seller-pressure
+ * GET  /api/forex/providers/mt5-hfm/mif/buyer-seller-pressure/capability
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { assertAdminAccess, rolesFromHeaders, adminTokenFromHeaders } from "../../ai/admin-control-plane/admin-auth-boundary.js";
 import { assertNoSecretsInMt5HfmPayload } from "../../ai/market-data/mt5-hfm/secrets-guard.js";
+import { fetchHfmHistoricalCandles } from "../../ai/market-data/mt5-hfm/historical-engine.js";
 import {
   MIF_PRODUCTION_DEFAULT_TIMEFRAMES,
   MIF_PRODUCTION_INTEGRATION_CONTRACT_ID,
@@ -88,6 +91,11 @@ import {
   MIF_PROVIDER_ID,
   MIF_RESEARCH_API_MAX_BAR_PAGE,
   MIF_RESEARCH_EXPORTABLE_TIMEFRAMES,
+  adaptBuyerSellerPressureToEvidence,
+  adaptHfmHistoricalBars,
+  assessMifBuyerSellerPressure,
+  assessMifDataIntegrity,
+  buildMultiTimeframePressureContext,
   assessEvidenceIntelligence,
   assessProbabilityIntelligence,
   aggregateResearchResults,
@@ -3455,6 +3463,144 @@ export async function handleMt5HfmMifApi(
       mutatesBroker: false,
       acceptsForExecution: false,
     });
+    return true;
+  }
+
+  // --- Phase 05 buyer/seller pressure (read-only; HFM_MT5 only) ---
+  if (url.pathname === `${PATH_PREFIX}/buyer-seller-pressure/capability` && req.method === "GET") {
+    sendJson(res, 200, {
+      ok: true,
+      providerId: MIF_PROVIDER_ID,
+      aggressorSideAvailable: false,
+      orderBookAvailable: false,
+      bidAskQuotes: "DIRECTLY_MEASURED",
+      candleOhlc: "DIRECTLY_MEASURED",
+      tickVolume: "DIRECTLY_MEASURED_WHEN_PRESENT",
+      realVolume: "DIRECTLY_MEASURED_WHEN_PRESENT_OFTEN_NULL",
+      pressureScores: "INFERRED_FROM_CANDLE_STRUCTURE",
+      absorption: "PROXY_ESTIMATE_OR_UNAVAILABLE",
+      isWinProbability: false,
+      isEventProbability: false,
+      doesNotConfirmOrInvalidateLifecycleAlone: true,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+    });
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/buyer-seller-pressure` && req.method === "POST") {
+    let body: Record<string, unknown> = {};
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      body = {};
+    }
+    const symbol = String(body.symbol ?? body.providerSymbol ?? "").trim().toUpperCase();
+    if (!symbol) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INSTRUMENT", message: "symbol required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const providerRaw = String(body.providerId ?? body.provider ?? MIF_PROVIDER_ID).trim().toUpperCase();
+    if (providerRaw !== MIF_PROVIDER_ID) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "WRONG_PROVIDER",
+          message: `provider ${providerRaw} rejected; only HFM_MT5 permitted`,
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const timeframes = Array.isArray(body.timeframes)
+      ? body.timeframes.map((t) => String(t).trim().toUpperCase()).filter(Boolean)
+      : [String(body.timeframe || "H1").trim().toUpperCase() || "H1"];
+    const candleLimit =
+      typeof body.candleLimit === "number" && Number.isFinite(body.candleLimit)
+        ? Math.min(500, Math.max(20, Math.floor(body.candleLimit)))
+        : 120;
+    const assessmentTimestamp = new Date().toISOString();
+    const assessments = [];
+    const errors: string[] = [];
+    for (const tf of timeframes.slice(0, 6)) {
+      try {
+        const hist = await fetchHfmHistoricalCandles({
+          symbol,
+          timeframe: tf,
+          limit: candleLimit,
+          refresh: body.refresh === true,
+        });
+        if (!hist.available || !hist.bars?.length) {
+          errors.push(`${tf}:no_bars`);
+          continue;
+        }
+        if (hist.provider && String(hist.provider).toUpperCase() !== MIF_PROVIDER_ID) {
+          errors.push(`${tf}:provider_mismatch`);
+          continue;
+        }
+        const adapted = adaptHfmHistoricalBars(hist.bars as never, {
+          symbol,
+          timeframe: hist.timeframe || tf,
+        });
+        const candles = adapted.candles.filter((c) => c.candleState === "CLOSED");
+        const integrity = assessMifDataIntegrity({
+          candles: [...candles],
+          providerSymbol: symbol,
+          timeframe: tf,
+          assessmentTimestamp,
+        });
+        const assessment = assessMifBuyerSellerPressure({
+          candles,
+          providerSymbol: symbol,
+          timeframe: tf,
+          quality: { kind: "step1-data-integrity", assessment: integrity },
+          assessmentTimestamp,
+        });
+        assessments.push(assessment);
+      } catch (err) {
+        errors.push(`${tf}:${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    const primary = assessments[0] ?? null;
+    const mtf = assessments.length
+      ? buildMultiTimeframePressureContext({
+          providerSymbol: symbol,
+          assessments,
+          assessedAt: assessmentTimestamp,
+        })
+      : null;
+    const evidence = primary
+      ? adaptBuyerSellerPressureToEvidence(primary, { snapshotId: null })
+      : null;
+    const payload = {
+      ok: assessments.length > 0,
+      providerId: MIF_PROVIDER_ID,
+      symbol,
+      assessedAt: assessmentTimestamp,
+      assessment: primary,
+      assessments,
+      multiTimeframe: mtf,
+      evidence,
+      errors,
+      isWinProbability: false,
+      isEventProbability: false,
+      doesNotConfirmOrInvalidateLifecycleAlone: true,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      callsOpenAi: false,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, assessments.length ? 200 : 422, payload);
     return true;
   }
 

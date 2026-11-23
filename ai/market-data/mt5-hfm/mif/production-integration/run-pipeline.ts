@@ -13,6 +13,7 @@ import { assessMifLiquidityReference } from "../analysis/liquidity-reference/ass
 import { assessMifMarketStructure } from "../analysis/market-structure/assess-market-structure.js";
 import { assessMifMomentum } from "../analysis/momentum/assess-momentum.js";
 import { assessMifPriceDisplacement } from "../analysis/price-displacement/assess-price-displacement.js";
+import { assessMifBuyerSellerPressure } from "../analysis/buyer-seller-pressure/assess-buyer-seller-pressure.js";
 import { assessMifMultiTimeframeRelationships } from "../analysis/mtf-relationships/assess-mtf-relationships.js";
 import type { MifMtfTimeframeSources } from "../analysis/mtf-relationships/types.js";
 import { assessMifChartPatterns } from "../analysis/patterns/detect-chart-patterns.js";
@@ -151,6 +152,7 @@ function assessOneTf(input: {
   liquidityReference: ReturnType<typeof assessMifLiquidityReference>;
   momentum: ReturnType<typeof assessMifMomentum>;
   priceDisplacement: ReturnType<typeof assessMifPriceDisplacement>;
+  buyerSellerPressure: ReturnType<typeof assessMifBuyerSellerPressure>;
 } {
   const integrity = assessMifDataIntegrity({
     candles: [...input.candles],
@@ -201,6 +203,13 @@ function assessOneTf(input: {
     marketStructure,
     assessmentTimestamp: input.assessmentTimestamp,
   });
+  const buyerSellerPressure = assessMifBuyerSellerPressure({
+    candles: [...input.candles],
+    providerSymbol: input.symbol,
+    timeframe: input.timeframe,
+    quality,
+    assessmentTimestamp: input.assessmentTimestamp,
+  });
   const regime = assessMifMarketRegime({
     candles: [...input.candles],
     providerSymbol: input.symbol,
@@ -247,6 +256,7 @@ function assessOneTf(input: {
     liquidityReference,
     momentum,
     priceDisplacement,
+    buyerSellerPressure,
   };
 }
 

@@ -744,6 +744,31 @@ export const forexProvidersApi = {
       mutatesBroker: false;
       acceptsForExecution: false;
     }>("/api/forex/providers/mt5-hfm/mif/lifecycle-monitor/status"),
+  /** Phase 05 — buyer/seller pressure (proxy; not probability). */
+  mt5HfmMifBuyerSellerPressure: (body: {
+    symbol: string;
+    timeframes?: string[];
+    candleLimit?: number;
+  }) =>
+    request<{
+      ok: boolean;
+      assessment?: unknown;
+      multiTimeframe?: unknown;
+      isWinProbability: false;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+    }>("/api/forex/providers/mt5-hfm/mif/buyer-seller-pressure", {
+      method: "POST",
+      body: JSON.stringify({ providerId: "HFM_MT5", ...body }),
+    }),
+  mt5HfmMifBuyerSellerPressureCapability: () =>
+    request<{
+      ok: boolean;
+      aggressorSideAvailable: false;
+      orderBookAvailable: false;
+      placesOrders: false;
+    }>("/api/forex/providers/mt5-hfm/mif/buyer-seller-pressure/capability"),
   /** Phase 5E Step 1 — analytical ranking (not win probability). */
   mt5HfmMifRankingList: (params?: {
     symbol?: string;

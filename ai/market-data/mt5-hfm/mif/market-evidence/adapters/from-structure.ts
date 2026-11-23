@@ -9,6 +9,7 @@ import type {
   MifPriceDisplacementAssessment,
   MifPriceDisplacementKind,
 } from "../../analysis/price-displacement/types.js";
+import type { MifBuyerSellerPressureAssessment } from "../../analysis/buyer-seller-pressure/types.js";
 import type { MifSupportResistanceAssessment } from "../../analysis/support-resistance/types.js";
 import type { MifEvidenceDirection, MifEvidenceLevel, MifUnifiedMarketEvidence } from "../types.js";
 import { buildUnifiedEvidence, mapBuySellToDirection } from "./common.js";
@@ -512,6 +513,127 @@ export function adaptPriceDisplacementToEvidence(
       inputIdentity: assessment.inputIdentity,
       displacementKind: assessment.displacementKind,
       confirmed: assessment.confirmed,
+    },
+  });
+}
+
+function mapPressureDominantToDirection(
+  side: MifBuyerSellerPressureAssessment["dominantSide"],
+): MifEvidenceDirection {
+  if (side === "BUYERS_DOMINANT") return "BULLISH";
+  if (side === "SELLERS_DOMINANT") return "BEARISH";
+  return "NEUTRAL";
+}
+
+/** Phase 05 — adapt buyer/seller pressure assessment into UMEP (proxy scores; not probability). */
+export function adaptBuyerSellerPressureToEvidence(
+  assessment: MifBuyerSellerPressureAssessment,
+  opts?: { analysisId?: string | null; runId?: string | null; snapshotId?: string | null },
+): MifUnifiedMarketEvidence {
+  return buildUnifiedEvidence({
+    sourceEngine: assessment.engineId,
+    engineVersion: assessment.engineVersion,
+    evidenceType: "BUYER_SELLER_PRESSURE",
+    providerSymbol: assessment.providerSymbol,
+    timeframe: assessment.timeframe,
+    instrument: assessment.instrument,
+    direction: mapPressureDominantToDirection(assessment.dominantSide),
+    eventTime: assessment.assessmentTimestamp,
+    observedAt: assessment.assessmentTimestamp,
+    candleStatus: assessment.provisional ? "FORMING" : "CLOSED",
+    warnings: assessment.provisional ? ["provisional_tip"] : [],
+    limitations: assessment.limitations,
+    measurements: [
+      { id: "status", name: "status", value: assessment.status, unit: null, note: null },
+      {
+        id: "dataClassification",
+        name: "dataClassification",
+        value: assessment.dataClassification,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "buyingPressureScore",
+        name: "buyingPressureScore",
+        value: assessment.buyingPressureScore,
+        unit: "0-100_proxy_not_probability",
+        note: assessment.scoreClassification,
+      },
+      {
+        id: "sellingPressureScore",
+        name: "sellingPressureScore",
+        value: assessment.sellingPressureScore,
+        unit: "0-100_proxy_not_probability",
+        note: assessment.scoreClassification,
+      },
+      {
+        id: "pressureImbalance",
+        name: "pressureImbalance",
+        value: assessment.pressureImbalance,
+        unit: "-1_to_1",
+        note: null,
+      },
+      {
+        id: "dominantSide",
+        name: "dominantSide",
+        value: assessment.dominantSide,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "dominanceStrength",
+        name: "dominanceStrength",
+        value: assessment.dominanceStrength,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "absorptionAssessment",
+        name: "absorptionAssessment",
+        value: assessment.absorptionAssessment,
+        unit: null,
+        note: "proxy_only",
+      },
+      {
+        id: "exhaustionAssessment",
+        name: "exhaustionAssessment",
+        value: assessment.exhaustionAssessment,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "pricePressureRelationship",
+        name: "pricePressureRelationship",
+        value: assessment.pricePressureRelationship,
+        unit: null,
+        note: null,
+      },
+    ],
+    score: {
+      confidenceType: "ENGINE_SPECIFIC",
+      value: assessment.buyingPressureScore,
+      scale: "0-100_buying_pressure_proxy_not_probability",
+      isWinProbability: false,
+      isCalibratedPrediction: false,
+      calibrationStatus: null,
+      reliabilityStatus: null,
+      definition:
+        "Candle-structure buying pressure proxy 0–100 — not win probability, not aggressor volume",
+    },
+    analysisId: opts?.analysisId ?? null,
+    runId: opts?.runId ?? null,
+    snapshotId: opts?.snapshotId ?? null,
+    snapshotIdSourceVerified: opts?.snapshotId != null,
+    sourceAssessmentId: assessment.assessmentId,
+    sourceInputIdentity: assessment.inputIdentity,
+    sourceContractId: assessment.contractId,
+    sourceContractVersion: assessment.contractVersion,
+    fingerprintSource: {
+      kind: "buyer-seller-pressure",
+      assessmentId: assessment.assessmentId,
+      inputIdentity: assessment.inputIdentity,
+      dominantSide: assessment.dominantSide,
+      modelVersion: assessment.modelVersion,
     },
   });
 }

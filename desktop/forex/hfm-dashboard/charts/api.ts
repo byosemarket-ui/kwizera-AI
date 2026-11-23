@@ -631,4 +631,39 @@ export async function fetchHfmOpportunityLifecycleMonitorStatus(
   return { httpStatus: status, ...body };
 }
 
+/** Phase 05 — buyer/seller pressure (analytical proxy; not probability). */
+const MIF_BUYER_SELLER_PRESSURE = "/api/forex/providers/mt5-hfm/mif/buyer-seller-pressure";
+
+export async function fetchHfmBuyerSellerPressure(input: {
+  symbol: string;
+  timeframes?: string[];
+  candleLimit?: number;
+  signal?: AbortSignal;
+}): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(
+    MIF_BUYER_SELLER_PRESSURE,
+    {
+      method: "POST",
+      body: {
+        symbol: input.symbol,
+        providerId: "HFM_MT5",
+        timeframes: input.timeframes ?? ["H1", "H4", "M15"],
+        candleLimit: input.candleLimit ?? 120,
+      },
+      signal: input.signal,
+    },
+  );
+  return { httpStatus: status, ...body };
+}
+
+export async function fetchHfmBuyerSellerPressureCapability(
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const { status, body } = await requestJson<Record<string, unknown>>(
+    `${MIF_BUYER_SELLER_PRESSURE}/capability`,
+    { signal },
+  );
+  return { httpStatus: status, ...body };
+}
+
 export { TICKS };
