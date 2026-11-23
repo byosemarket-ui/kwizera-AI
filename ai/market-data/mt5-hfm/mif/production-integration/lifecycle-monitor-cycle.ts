@@ -107,7 +107,11 @@ function classifyBarFreshness(input: {
     return "INVALID_TIMESTAMP";
   }
   const ageMs = input.nowMs - input.newestOpenTimeSec * 1000;
-  if (!Number.isFinite(ageMs) || ageMs < -60_000) return "INVALID_TIMESTAMP";
+  if (!Number.isFinite(ageMs)) return "INVALID_TIMESTAMP";
+  // Broker/server clock skew: bars slightly "in the future" are still usable.
+  // Only reject absurd forward skew (> 24h), which indicates corrupt timestamps.
+  const MAX_FORWARD_SKEW_MS = 24 * 60 * 60 * 1000;
+  if (ageMs < -MAX_FORWARD_SKEW_MS) return "INVALID_TIMESTAMP";
   if (ageMs > input.maxBarAgeMs) return "STALE";
   return "FRESH";
 }

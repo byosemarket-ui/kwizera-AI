@@ -364,6 +364,32 @@ describe("Phase 04 — monitor cycle evidence gates (fixture)", () => {
     expect(cycle.callsOpenAi).toBe(false);
   });
 
+  it("accepts mild broker clock skew as fresh (not INVALID_TIMESTAMP)", async () => {
+    const nowSec = T0 + 5 * STEP;
+    const cycle = await runHfmLifecycleMonitorCycle({
+      providerSymbol: "XAUUSD",
+      timeframe: "H1",
+      // Wall clock slightly behind newest bar open (broker skew)
+      nowMs: (nowSec - 30 * 60) * 1000,
+      maxBarAgeMs: 24 * 60 * 60 * 1000,
+      fetchCandles: async () => ({
+        provider: "HFM_MT5",
+        available: true,
+        bars: [1, 2, 3, 4, 5].map((i) => ({
+          time: T0 + i * STEP,
+          open: 2100,
+          high: 2102,
+          low: 2098,
+          close: 2100,
+          validationStatus: "ok",
+        })),
+        errors: [],
+        newestTimestamp: nowSec,
+      }),
+    });
+    expect(cycle.evidenceHealth).toBe("FRESH");
+  });
+
   it("rejects ForexConnect provider evidence", async () => {
     const cycle = await runHfmLifecycleMonitorCycle({
       providerSymbol: "XAUUSD",
