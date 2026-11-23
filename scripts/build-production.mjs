@@ -124,6 +124,17 @@ console.log("[KWIZERA] Production JS emit complete:", path.relative(root, gatewa
 console.log("[KWIZERA] App worker:", path.relative(root, entry));
 console.log("[KWIZERA] Forex chart helpers:", path.relative(root, forexIndicators));
 
+// Deploy reliability — fail closed if adapters barrel lacks required named exports.
+const adaptersSmoke = spawnSync(
+  process.execPath,
+  [path.join(root, "deploy", "smoke-hfm-adapters-exports.mjs")],
+  { cwd: root, stdio: "inherit" },
+);
+if (adaptersSmoke.status !== 0) {
+  console.error("[KWIZERA] HFM adapters export smoke failed.");
+  process.exit(adaptersSmoke.status ?? 1);
+}
+
 if (serverOnly) {
   console.warn("[KWIZERA] --server-only: studio UI was not built. VPS deploys must not use this flag.");
   console.log("[KWIZERA] Next: npm run start:production");
