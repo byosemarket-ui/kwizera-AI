@@ -43,6 +43,7 @@ const required = [
   "adaptCandlestickPatternsToEvidence",
   "adaptExternalMarketIntelligenceToEvidence",
   "adaptStrategyResearchToEvidence",
+  "adaptResearchReliabilityToEvidence",
 ];
 
 const mod = await import(pathToFileURL(barrel).href);

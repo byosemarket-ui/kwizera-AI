@@ -854,6 +854,47 @@ export const forexProvidersApi = {
       isProbabilityCalibration: false;
       placesOrders: false;
     }>("/api/forex/providers/mt5-hfm/mif/strategy-research/capability"),
+  /** Phase 09 — live data & research reliability (not probability; request-driven). */
+  mt5HfmMifResearchReliability: (body: {
+    symbol: string;
+    timeframe?: string;
+    quote?: Record<string, unknown> | null;
+    previousQuote?: Record<string, unknown> | null;
+    recentSpreads?: number[];
+    fixtureBars?: unknown[];
+    lastClosedCandle?: Record<string, unknown> | null;
+    sourceMode?: string;
+    datasetId?: string;
+    historicalRegime?: string | null;
+    currentRegime?: string | null;
+    eventsProvided?: boolean;
+    eventSourceMode?: string | null;
+    liveCalendarAllowed?: boolean;
+    baselineResearch?: unknown;
+    recentResearch?: unknown;
+  }) =>
+    request<{
+      ok: boolean;
+      assessment?: unknown;
+      alerts?: unknown[];
+      isWinProbability: false;
+      isProbabilityCalibration: false;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+      continuousReliabilityWorker: string;
+    }>("/api/forex/providers/mt5-hfm/mif/research-reliability", {
+      method: "POST",
+      body: JSON.stringify({ providerId: "HFM_MT5", ...body }),
+    }),
+  mt5HfmMifResearchReliabilityCapability: () =>
+    request<{
+      ok: boolean;
+      continuousReliabilityWorker: string;
+      brokerExecution: string;
+      isProbabilityCalibration: false;
+      placesOrders: false;
+    }>("/api/forex/providers/mt5-hfm/mif/research-reliability/capability"),
   /** Phase 5E Step 1 — analytical ranking (not win probability). */
   mt5HfmMifRankingList: (params?: {
     symbol?: string;

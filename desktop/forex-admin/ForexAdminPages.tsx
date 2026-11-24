@@ -38,6 +38,7 @@ import { ForexAdminMt5HfmMifPage } from "./ForexAdminMt5HfmMifPage";
 import { ForexAdminMt5HfmAnaloguePage } from "./ForexAdminMt5HfmAnaloguePage";
 import { ForexAdminMt5HfmBacktestingPage } from "./ForexAdminMt5HfmBacktestingPage";
 import { ForexAdminMt5HfmHistoricalResearchPage } from "./ForexAdminMt5HfmHistoricalResearchPage";
+import { ForexAdminMt5HfmResearchReliabilityPage } from "./ForexAdminMt5HfmResearchReliabilityPage";
 import { ForexAdminMt5HfmResearchResultsPage } from "./ForexAdminMt5HfmResearchResultsPage";
 import { ForexAdminMt5HfmPerformanceAnalyticsPage } from "./ForexAdminMt5HfmPerformanceAnalyticsPage";
 import { ForexAdminAtRiskLimitsPanel } from "./ForexAdminAtRiskLimitsPanel";
@@ -953,6 +954,7 @@ export function titleForView(view: ForexAdminViewId): string {
     "mt5-hfm-analogue": "Historical Analogue Research",
     "mt5-hfm-backtesting": "Backtesting & Walk-Forward",
     "mt5-hfm-historical-research": "Historical Research",
+    "mt5-hfm-research-reliability": "Research Reliability",
     "mt5-hfm-research-results": "Research Results",
     "mt5-hfm-performance-analytics": "Performance Analytics",
     instruments: "FXCM Instruments",
@@ -1009,6 +1011,8 @@ export function ForexAdminPageRouter({
         return <ForexAdminMt5HfmBacktestingPage />;
       case "mt5-hfm-historical-research":
         return <ForexAdminMt5HfmHistoricalResearchPage />;
+      case "mt5-hfm-research-reliability":
+        return <ForexAdminMt5HfmResearchReliabilityPage />;
       case "mt5-hfm-research-results":
         return <ForexAdminMt5HfmResearchResultsPage />;
       case "mt5-hfm-performance-analytics":

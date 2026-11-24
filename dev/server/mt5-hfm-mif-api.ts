@@ -85,6 +85,8 @@
  * GET  /api/forex/providers/mt5-hfm/mif/external-market-intelligence/capability
  * POST /api/forex/providers/mt5-hfm/mif/strategy-research
  * GET  /api/forex/providers/mt5-hfm/mif/strategy-research/capability
+ * POST /api/forex/providers/mt5-hfm/mif/research-reliability
+ * GET  /api/forex/providers/mt5-hfm/mif/research-reliability/capability
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { assertAdminAccess, rolesFromHeaders, adminTokenFromHeaders } from "../../ai/admin-control-plane/admin-auth-boundary.js";
@@ -109,9 +111,11 @@ import {
   adaptDeepTechnicalIntelligenceToEvidence,
   adaptExternalMarketIntelligenceToEvidence,
   adaptStrategyResearchToEvidence,
+  adaptResearchReliabilityToEvidence,
   adaptHfmHistoricalBars,
   assessMifBuyerSellerPressure,
   assessMifStrategyResearch,
+  assessMifResearchReliability,
   assessMifCandlestickPatterns,
   assessMifChartPatterns,
   assessMifDataIntegrity,
@@ -4120,6 +4124,184 @@ export async function handleMt5HfmMifApi(
       mutatesBroker: false,
       acceptsForExecution: false,
       continuousResearchWorker: "DISABLED_BY_POLICY",
+      researchOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
+    return true;
+  }
+
+  // --- Phase 09 research reliability (read-only; HFM_MT5 only; no continuous worker) ---
+  if (url.pathname === `${PATH_PREFIX}/research-reliability/capability` && req.method === "GET") {
+    sendJson(res, 200, {
+      ok: true,
+      providerId: MIF_PROVIDER_ID,
+      scope: "phase09-research-reliability",
+      liveQuoteValidation: "IMPLEMENTED",
+      historicalCandleValidation: "REUSED_AND_VERIFIED",
+      liveHistoricalCompare: "IMPLEMENTED",
+      researchInputGate: "IMPLEMENTED",
+      strategyRobustness: "IMPLEMENTED",
+      regimeShift: "IMPLEMENTED",
+      eventReliability: "IMPLEMENTED",
+      continuousReliabilityWorker: "DISABLED_BY_POLICY",
+      brokerExecution: "DISABLED_BY_POLICY",
+      isWinProbability: false,
+      isEventProbability: false,
+      isProbabilityCalibration: false,
+      doesNotConfirmOrInvalidateLifecycleAlone: true,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      note: "Reliability = evidence quality/completeness — not win probability. Request-driven only.",
+    });
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/research-reliability` && req.method === "POST") {
+    const RESEARCH_RELIABILITY_MAX_BODY = 64 * 1024;
+    let body: Record<string, unknown> = {};
+    try {
+      body = await readJsonBodyBounded(req, RESEARCH_RELIABILITY_MAX_BODY);
+    } catch (err) {
+      const code = (err as { code?: string } | null)?.code;
+      if (code === "PAYLOAD_TOO_LARGE") {
+        sendJson(res, 413, {
+          ok: false,
+          error: {
+            code: "PAYLOAD_TOO_LARGE",
+            message: `research-reliability body exceeds ${RESEARCH_RELIABILITY_MAX_BODY} bytes`,
+          },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: code === "BAD_JSON" ? "BAD_JSON" : "INVALID_BODY",
+          message: err instanceof Error ? err.message : "invalid JSON body",
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const symbol = String(body.symbol ?? body.providerSymbol ?? "").trim().toUpperCase();
+    if (!symbol) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INSTRUMENT", message: "symbol required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const providerRaw = String(body.providerId ?? body.provider ?? MIF_PROVIDER_ID).trim().toUpperCase();
+    if (providerRaw !== MIF_PROVIDER_ID) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "WRONG_PROVIDER",
+          message: `provider ${providerRaw} rejected; only HFM_MT5 permitted (Binance/ForexConnect not allowed for Forex)`,
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const timeframe = body.timeframe ? String(body.timeframe).trim().toUpperCase() : "H1";
+    const assessmentTimestamp = new Date().toISOString();
+    const quoteRaw = body.quote && typeof body.quote === "object" ? (body.quote as Record<string, unknown>) : null;
+    const prevRaw =
+      body.previousQuote && typeof body.previousQuote === "object"
+        ? (body.previousQuote as Record<string, unknown>)
+        : null;
+    const parseQuote = (raw: Record<string, unknown> | null) => {
+      if (!raw) return null;
+      return {
+        providerId: raw.providerId != null ? String(raw.providerId) : MIF_PROVIDER_ID,
+        symbol: String(raw.symbol ?? symbol).trim().toUpperCase(),
+        bid: typeof raw.bid === "number" ? raw.bid : null,
+        ask: typeof raw.ask === "number" ? raw.ask : null,
+        mid: typeof raw.mid === "number" ? raw.mid : undefined,
+        spread: typeof raw.spread === "number" ? raw.spread : undefined,
+        providerTimestampSec:
+          typeof raw.providerTimestampSec === "number"
+            ? raw.providerTimestampSec
+            : typeof raw.time === "number"
+              ? raw.time
+              : null,
+        receivedAt: raw.receivedAt != null ? String(raw.receivedAt) : null,
+        status: raw.status != null ? String(raw.status) : null,
+      };
+    };
+    const lastClosed =
+      body.lastClosedCandle && typeof body.lastClosedCandle === "object"
+        ? (body.lastClosedCandle as {
+            time: number;
+            open: number;
+            high: number;
+            low: number;
+            close: number;
+          })
+        : null;
+    const assessment = assessMifResearchReliability({
+      providerSymbol: symbol,
+      timeframe,
+      quote: body.quote === null ? null : parseQuote(quoteRaw) ?? undefined,
+      previousQuote: parseQuote(prevRaw) ?? undefined,
+      recentSpreads: Array.isArray(body.recentSpreads)
+        ? (body.recentSpreads as number[]).filter((n) => typeof n === "number")
+        : undefined,
+      fixtureBars: Array.isArray(body.fixtureBars) ? (body.fixtureBars as never) : undefined,
+      sourceMode: body.sourceMode
+        ? (String(body.sourceMode) as never)
+        : Array.isArray(body.fixtureBars) && body.fixtureBars.length
+          ? "FIXTURE"
+          : undefined,
+      datasetId: body.datasetId ? String(body.datasetId) : null,
+      lastClosedCandle: lastClosed,
+      baselineResearch:
+        body.baselineResearch && typeof body.baselineResearch === "object"
+          ? (body.baselineResearch as never)
+          : null,
+      recentResearch:
+        body.recentResearch && typeof body.recentResearch === "object"
+          ? (body.recentResearch as never)
+          : null,
+      historicalRegime: body.historicalRegime != null ? String(body.historicalRegime) : null,
+      currentRegime: body.currentRegime != null ? String(body.currentRegime) : null,
+      eventsProvided: Boolean(body.eventsProvided),
+      eventSourceMode: body.eventSourceMode ? (String(body.eventSourceMode) as never) : null,
+      liveCalendarAllowed: Boolean(body.liveCalendarAllowed),
+      assessmentTimestamp,
+    });
+    const evidence = adaptResearchReliabilityToEvidence(assessment, {
+      snapshotId: body.snapshotId ? String(body.snapshotId) : null,
+    });
+    const payload = {
+      ok: true,
+      providerId: MIF_PROVIDER_ID,
+      symbol,
+      timeframe,
+      assessedAt: assessmentTimestamp,
+      assessment,
+      evidence,
+      alerts: assessment.alerts,
+      isWinProbability: false,
+      isEventProbability: false,
+      isProbabilityCalibration: false,
+      doesNotConfirmOrInvalidateLifecycleAlone: true,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      continuousReliabilityWorker: "DISABLED_BY_POLICY",
       researchOnly: true,
     };
     assertNoSecretsInMt5HfmPayload(payload);

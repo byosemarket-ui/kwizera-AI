@@ -15,6 +15,7 @@ import type { MifCandlestickPatternsAssessment } from "../../analysis/candlestic
 import type { MifExternalMarketIntelligenceAssessment } from "../../analysis/external-market-intelligence/types.js";
 import type { MifSupportResistanceAssessment } from "../../analysis/support-resistance/types.js";
 import type { MifStrategyResearchAssessment } from "../../strategy-research/types.js";
+import type { MifResearchReliabilityAssessment } from "../../research-reliability/types.js";
 import type { MifEvidenceDirection, MifEvidenceLevel, MifUnifiedMarketEvidence } from "../types.js";
 import { buildUnifiedEvidence, mapBuySellToDirection } from "./common.js";
 
@@ -1000,6 +1001,103 @@ export function adaptStrategyResearchToEvidence(
       researchRunId: assessment.researchRunId,
       inputIdentity: assessment.inputIdentity,
       reliabilityStatus: assessment.reliabilityStatus,
+      modelVersion: assessment.modelVersion,
+    },
+  });
+}
+
+export function adaptResearchReliabilityToEvidence(
+  assessment: MifResearchReliabilityAssessment,
+  opts?: { analysisId?: string | null; runId?: string | null; snapshotId?: string | null },
+): MifUnifiedMarketEvidence {
+  return buildUnifiedEvidence({
+    sourceEngine: assessment.engineId,
+    engineVersion: assessment.engineVersion,
+    evidenceType: "RESEARCH_RELIABILITY",
+    providerSymbol: assessment.providerSymbol,
+    timeframe: assessment.timeframe,
+    instrument: null,
+    direction: "NEUTRAL",
+    eventTime: assessment.assessmentTimestamp,
+    observedAt: assessment.assessmentTimestamp,
+    candleStatus: null,
+    warnings: assessment.missingInputs.map((m) => `missing:${m}`),
+    limitations: assessment.limitations,
+    measurements: [
+      {
+        id: "quoteClass",
+        name: "quoteClassification",
+        value: assessment.quote?.classification ?? null,
+        unit: null,
+        note: "http_ok_is_not_live",
+      },
+      {
+        id: "candleQuality",
+        name: "candleQuality",
+        value: assessment.candles?.dataset.qualityStatus ?? null,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "compareStatus",
+        name: "liveHistoricalCompare",
+        value: assessment.liveHistoricalCompare?.status ?? null,
+        unit: null,
+        note: "bid_ask_not_candle_close",
+      },
+      {
+        id: "researchGate",
+        name: "researchGate",
+        value: assessment.researchGate?.gate ?? null,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "robustness",
+        name: "strategyRobustness",
+        value: assessment.strategyRobustness?.status ?? null,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "reliabilityScore",
+        name: "evidenceCompleteness",
+        value: assessment.reliabilityScore.value,
+        unit: "ratio",
+        note: "not_win_probability",
+      },
+      {
+        id: "alertCount",
+        name: "alertCount",
+        value: assessment.alerts.length,
+        unit: "count",
+        note: "not_buy_sell",
+      },
+    ],
+    score: {
+      confidenceType: "ENGINE_SPECIFIC",
+      value: assessment.reliabilityScore.value,
+      scale: "0_1",
+      isWinProbability: false,
+      isCalibratedPrediction: false,
+      calibrationStatus: null,
+      reliabilityStatus: null,
+      definition:
+        "Phase 09 research reliability — evidence completeness only; DIAGNOSTIC_USES_CONFIDENCE_NOT_EVENT_PROBABILITY",
+    },
+    analysisId: opts?.analysisId ?? null,
+    runId: opts?.runId ?? null,
+    snapshotId: opts?.snapshotId ?? null,
+    snapshotIdSourceVerified: opts?.snapshotId != null,
+    sourceAssessmentId: assessment.assessmentId,
+    sourceInputIdentity: assessment.inputIdentity,
+    sourceContractId: assessment.contractId,
+    sourceContractVersion: assessment.contractVersion,
+    fingerprintSource: {
+      kind: "research-reliability",
+      assessmentId: assessment.assessmentId,
+      inputIdentity: assessment.inputIdentity,
+      gate: assessment.researchGate?.gate ?? null,
       modelVersion: assessment.modelVersion,
     },
   });

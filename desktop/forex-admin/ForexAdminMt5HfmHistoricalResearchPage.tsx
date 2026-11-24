@@ -136,6 +136,7 @@ export function ForexAdminMt5HfmHistoricalResearchPage() {
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, fontSize: 13 }}>
           <a href="/admin/forex/mt5-hfm/backtesting">Backtesting &amp; Walk-Forward</a>
+          <a href="/admin/forex/mt5-hfm/research-reliability">Research Reliability</a>
           <a href="/admin/forex/mt5-hfm/research-results">Research Results</a>
           <a href="/admin/forex/mt5-hfm/performance-analytics">Performance Analytics</a>
         </div>
