@@ -4003,11 +4003,38 @@ export async function handleMt5HfmMifApi(
   }
 
   if (url.pathname === `${PATH_PREFIX}/strategy-research` && req.method === "POST") {
+    // Fixture research payloads (bars+trades+events) exceed default 8 KiB MAX_BODY.
+    // Bound to 64 KiB like other HFM research POSTs; never silently empty on oversize.
+    const STRATEGY_RESEARCH_MAX_BODY = 64 * 1024;
     let body: Record<string, unknown> = {};
     try {
-      body = await readJsonBody(req);
-    } catch {
-      body = {};
+      body = await readJsonBodyBounded(req, STRATEGY_RESEARCH_MAX_BODY);
+    } catch (err) {
+      const code = (err as { code?: string } | null)?.code;
+      if (code === "PAYLOAD_TOO_LARGE") {
+        sendJson(res, 413, {
+          ok: false,
+          error: {
+            code: "PAYLOAD_TOO_LARGE",
+            message: `strategy-research body exceeds ${STRATEGY_RESEARCH_MAX_BODY} bytes`,
+          },
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: code === "BAD_JSON" ? "BAD_JSON" : "INVALID_BODY",
+          message: err instanceof Error ? err.message : "invalid JSON body",
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
     }
     const symbol = String(body.symbol ?? body.providerSymbol ?? "").trim().toUpperCase();
     if (!symbol) {

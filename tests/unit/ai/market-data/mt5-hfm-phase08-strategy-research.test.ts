@@ -245,4 +245,30 @@ describe("Phase 08 — safety / reuse guards", () => {
     const p = resolveStrategyResearchPolicy();
     expect(p.lookAheadPolicy).toMatch(/future bars/i);
   });
+
+  it("large fixture payloads remain analytically valid (API allows up to 64KiB)", () => {
+    // Regression guard for VPS defect: default MIF readJsonBody MAX_BODY=8KiB
+    // previously emptied oversize strategy-research POSTs into INVALID_INSTRUMENT.
+    const manyBars = Array.from({ length: 80 }, (_, i) => {
+      const open = 100 + i;
+      return {
+        time: 1_700_000_000 + i * 3600,
+        open,
+        high: open + 1,
+        low: open - 1,
+        close: open + 0.2,
+      };
+    });
+    const a = assessMifStrategyResearch({
+      providerSymbol: "EURUSD",
+      timeframe: "H1",
+      strategyId: "TREND_CONTINUATION",
+      fixtureBars: manyBars,
+      simulatedTrades: trades(35),
+      sourceMode: "FIXTURE",
+    });
+    expect(a.dataset.candleCount).toBe(80);
+    expect(a.sourceMode).toBe("FIXTURE");
+    expect(a.placesOrders).toBe(false);
+  });
 });
