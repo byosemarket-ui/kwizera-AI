@@ -4,7 +4,8 @@
 **Authoritative requirements source:** Owner MASTER IMPLEMENTATION PROMPTs (Cursor agent transcripts) + in-repo `contracts.ts` + this register.  
 **There is no single git-tracked Master Plan markdown for 01–09.** Specs are recovered from transcripts and encoded in contracts/tests.
 
-**Baseline tip (Phase 09):** `0c54f32fe0a4da39eee184c761775bd4a631b762`  
+**Phase 09 tip:** `0c54f32fe0a4da39eee184c761775bd4a631b762`  
+**Consolidation tip (deployed):** `bd5e70ca0f0efce889c206e5cabb2b983645d7ff`  
 **Safety (non-negotiable):** Execution Master OFF · Emergency lock ON · OD OFF · Auto Analysis OFF · ForexConnect stopped · no broker orders · no Phase 10.
 
 ---
