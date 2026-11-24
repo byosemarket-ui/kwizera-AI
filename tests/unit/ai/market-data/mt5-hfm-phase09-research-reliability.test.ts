@@ -332,6 +332,19 @@ describe("Phase 09 — live/historical compare", () => {
 });
 
 describe("Phase 09 — research gate", () => {
+  it("returns INSUFFICIENT_DATA when dataset is missing (live-only)", () => {
+    const gate = evaluateResearchInputGate({
+      dataset: null,
+      strategyId: "TREND_CONTINUATION",
+      strategyVersion: "1.0.0",
+      sourceMode: "LIVE_SOURCE",
+      relatedResearchRunId: null,
+      validationTimestamp: new Date().toISOString(),
+    });
+    expect(gate.gate).toBe("INSUFFICIENT_DATA");
+    expect(gate.blockReasons).toContain("dataset_missing");
+  });
+
   it("allows with warnings for fixture; blocks invalid", () => {
     const good = validateResearchDataset({
       datasetId: "g1",

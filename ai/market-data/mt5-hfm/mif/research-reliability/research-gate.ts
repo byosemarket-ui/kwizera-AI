@@ -15,7 +15,8 @@ export function evaluateResearchInputGate(input: {
   const dataset = input.dataset;
 
   if (!dataset) {
-    blockReasons.push("dataset_missing");
+    // Missing candles/dataset is insufficient evidence — not an integrity corruption block.
+    blockReasons.push("dataset_missing", "INSUFFICIENT_DATA");
   } else {
     if (!dataset.mayProceed) {
       blockReasons.push(...dataset.blockReasons);

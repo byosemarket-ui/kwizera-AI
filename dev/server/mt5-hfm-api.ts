@@ -17,6 +17,7 @@
  * GET  /api/forex/providers/mt5-hfm/account            (cached Demo snapshot only)
  * GET  /api/forex/providers/mt5-hfm/stream             (Demo SSE realtime feed)
  * GET  /api/forex/providers/mt5-hfm/realtime/status    (Hub freshness / subscribers)
+ * POST /api/forex/providers/mt5-hfm/realtime/subscribe (compat alias → /subscriptions)
  * GET  /api/forex/providers/mt5-hfm/quotes             (Validated quote snapshot)
  * GET  /api/forex/providers/mt5-hfm/quotes/status      (Quote status counts)
  * GET  /api/forex/providers/mt5-hfm/quotes/:symbol     (Latest validated quote)
@@ -418,6 +419,54 @@ export async function handleMt5HfmApi(
       };
       assertNoSecretsInMt5HfmPayload(payload);
       sendJson(res, 200, payload);
+      return true;
+    }
+
+    // Compat alias: ops probes historically called /realtime/subscribe.
+    // Canonical mutation path remains GET/POST /subscriptions (STEP 2B manager).
+    if (url.pathname === "/api/forex/providers/mt5-hfm/realtime/subscribe" && req.method === "POST") {
+      if (!checkRateLimit(req)) {
+        sendJson(res, 429, {
+          ok: false,
+          error: { code: "RATE_LIMITED", message: "Too many subscription mutations." },
+        });
+        return true;
+      }
+      const body = await readJsonBody(req);
+      const symbols = Array.isArray(body.symbols)
+        ? body.symbols.map(String)
+        : body.symbol
+          ? [String(body.symbol)]
+          : [];
+      if (symbols.length === 0) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "SYMBOL_REQUIRED", message: "symbol or symbols required." },
+          canonicalPath: "/api/forex/providers/mt5-hfm/subscriptions",
+        });
+        return true;
+      }
+      const priority = body.priority as HfmSubscriptionPriority | number | undefined;
+      const result = await getHfmSubscriptionManager().subscribeMany(symbols, {
+        priority,
+        requestedBy: "api-realtime-subscribe-alias",
+      });
+      const payload = {
+        ok: result.ok,
+        provider: "HFM_MT5" as const,
+        environment: "demo" as const,
+        accepted: result.accepted,
+        rejected: result.rejected,
+        capacity: getHfmSubscriptionManager().capacity(),
+        deprecatedAlias: true as const,
+        canonicalPath: "/api/forex/providers/mt5-hfm/subscriptions",
+        note: "Prefer POST /subscriptions; /realtime/subscribe is a compatibility alias only.",
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, result.ok ? 200 : 207, payload);
       return true;
     }
 

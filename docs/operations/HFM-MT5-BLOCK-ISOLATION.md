@@ -99,6 +99,17 @@ HFM MT5 terminal (Wine)
   → Charts UI
 ```
 
+### Quote subscription routes (ops)
+
+| Method | Path | Role |
+|---|---|---|
+| GET/POST | `/api/forex/providers/mt5-hfm/subscriptions` | **Canonical** subscription manager |
+| GET | `/api/forex/providers/mt5-hfm/quotes/:symbol` | Validated quote snapshot |
+| GET | `/api/forex/providers/mt5-hfm/realtime/status` | Hub freshness / counts |
+| POST | `/api/forex/providers/mt5-hfm/realtime/subscribe` | **Compatibility alias only** → same as POST `/subscriptions` (returns `deprecatedAlias: true`) |
+
+Do **not** treat HTTP 200 alone as LIVE. Quote classification requires provider timestamp evidence.
+
 Optional (not required for isolation): outcome evaluate APIs, calibration census, Admin performance analytics.
 
 ---
