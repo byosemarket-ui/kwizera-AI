@@ -5,6 +5,7 @@ export type ForexAdminRouteId =
   | "mt5-hfm-mif"
   | "mt5-hfm-analogue"
   | "mt5-hfm-backtesting"
+  | "mt5-hfm-historical-research"
   | "mt5-hfm-research-results"
   | "mt5-hfm-performance-analytics"
   | "instruments"
@@ -78,6 +79,14 @@ export const FOREX_ADMIN_NAV: ForexAdminNavItem[] = [
     id: "mt5-hfm-backtesting",
     label: "Backtesting & Walk-Forward",
     path: "/admin/forex/mt5-hfm/backtesting",
+    implemented: true,
+    group: "market-data",
+    groupLabel: "Market Data",
+  },
+  {
+    id: "mt5-hfm-historical-research",
+    label: "Historical Research",
+    path: "/admin/forex/mt5-hfm/historical-research",
     implemented: true,
     group: "market-data",
     groupLabel: "Market Data",
@@ -172,6 +181,13 @@ export function parseForexAdminRouteFromLocation(
       view: "mt5-hfm-backtesting",
       documentId: null,
       canonicalPath: "/admin/forex/mt5-hfm/backtesting",
+    };
+  }
+  if (rest === "mt5-hfm/historical-research") {
+    return {
+      view: "mt5-hfm-historical-research",
+      documentId: null,
+      canonicalPath: "/admin/forex/mt5-hfm/historical-research",
     };
   }
   if (rest === "mt5-hfm/research-results") {
@@ -289,6 +305,8 @@ export function getForexAdminDocumentTitle(view: ForexAdminViewId): string {
       return "KWIZERA AI STUDIO — Historical Analogue Research";
     case "mt5-hfm-backtesting":
       return "KWIZERA AI STUDIO — Backtesting & Walk-Forward";
+    case "mt5-hfm-historical-research":
+      return "KWIZERA AI STUDIO — Historical Research";
     case "mt5-hfm-research-results":
       return "KWIZERA AI STUDIO — Research Results";
     case "mt5-hfm-performance-analytics":

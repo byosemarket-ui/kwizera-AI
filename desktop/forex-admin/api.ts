@@ -820,6 +820,40 @@ export const forexProvidersApi = {
       continuousIngestionWorker: string;
       placesOrders: false;
     }>("/api/forex/providers/mt5-hfm/mif/external-market-intelligence/capability"),
+  /** Phase 08 — historical strategy research (RESEARCH_ONLY; not probability). */
+  mt5HfmMifStrategyResearch: (body: {
+    symbol: string;
+    timeframe?: string;
+    strategyId?: string;
+    strategyVersion?: string;
+    fixtureBars?: unknown[];
+    simulatedTrades?: unknown[];
+    fixtureEvents?: unknown[];
+    regimeLabels?: string[];
+    walkForward?: Record<string, unknown>;
+    costSensitivityGrid?: unknown[];
+    multipleComparisonsCount?: number;
+  }) =>
+    request<{
+      ok: boolean;
+      assessment?: unknown;
+      isWinProbability: false;
+      researchOnly: true;
+      placesOrders: false;
+      mutatesBroker: false;
+      acceptsForExecution: false;
+    }>("/api/forex/providers/mt5-hfm/mif/strategy-research", {
+      method: "POST",
+      body: JSON.stringify({ providerId: "HFM_MT5", ...body }),
+    }),
+  mt5HfmMifStrategyResearchCapability: () =>
+    request<{
+      ok: boolean;
+      continuousResearchWorker: string;
+      brokerExecution: string;
+      isProbabilityCalibration: false;
+      placesOrders: false;
+    }>("/api/forex/providers/mt5-hfm/mif/strategy-research/capability"),
   /** Phase 5E Step 1 — analytical ranking (not win probability). */
   mt5HfmMifRankingList: (params?: {
     symbol?: string;

@@ -14,6 +14,7 @@ import type { MifDeepTechnicalIntelligenceAssessment } from "../../analysis/deep
 import type { MifCandlestickPatternsAssessment } from "../../analysis/candlestick-patterns/assess-candlestick-patterns.js";
 import type { MifExternalMarketIntelligenceAssessment } from "../../analysis/external-market-intelligence/types.js";
 import type { MifSupportResistanceAssessment } from "../../analysis/support-resistance/types.js";
+import type { MifStrategyResearchAssessment } from "../../strategy-research/types.js";
 import type { MifEvidenceDirection, MifEvidenceLevel, MifUnifiedMarketEvidence } from "../types.js";
 import { buildUnifiedEvidence, mapBuySellToDirection } from "./common.js";
 
@@ -903,6 +904,102 @@ export function adaptExternalMarketIntelligenceToEvidence(
       inputIdentity: assessment.inputIdentity,
       eventRisk: assessment.eventRisk.riskClass,
       alignment: assessment.technicalFundamentalAlignment,
+      modelVersion: assessment.modelVersion,
+    },
+  });
+}
+
+export function adaptStrategyResearchToEvidence(
+  assessment: MifStrategyResearchAssessment,
+  opts?: { analysisId?: string | null; runId?: string | null; snapshotId?: string | null },
+): MifUnifiedMarketEvidence {
+  return buildUnifiedEvidence({
+    sourceEngine: assessment.engineId,
+    engineVersion: assessment.engineVersion,
+    evidenceType: "STRATEGY_RESEARCH",
+    providerSymbol: assessment.providerSymbol,
+    timeframe: assessment.timeframe,
+    instrument: null,
+    direction: "NEUTRAL",
+    eventTime: assessment.runTimestamp,
+    observedAt: assessment.runTimestamp,
+    candleStatus: null,
+    warnings: [
+      ...(assessment.sourceMode === "FIXTURE" || assessment.sourceMode === "SYNTHETIC_TEST_DATA"
+        ? ["fixture_or_synthetic_not_live_history"]
+        : []),
+      ...assessment.overfittingWarnings,
+    ],
+    limitations: assessment.limitations,
+    measurements: [
+      { id: "status", name: "status", value: assessment.status, unit: null, note: null },
+      {
+        id: "reliabilityStatus",
+        name: "reliabilityStatus",
+        value: assessment.reliabilityStatus,
+        unit: null,
+        note: "RESEARCH_ONLY interpretive banner always applies",
+      },
+      {
+        id: "winRate",
+        name: "historicalWinRate",
+        value: assessment.performance.winRate.value,
+        unit: "ratio",
+        note: "not_next_trade_probability",
+      },
+      {
+        id: "expectancy",
+        name: "expectancy",
+        value: assessment.performance.expectancy.value,
+        unit: "unit_return",
+        note: null,
+      },
+      {
+        id: "sampleSize",
+        name: "closedTradeSample",
+        value: assessment.performance.winRate.sampleSize,
+        unit: "count",
+        note: null,
+      },
+      {
+        id: "sourceMode",
+        name: "sourceMode",
+        value: assessment.sourceMode,
+        unit: null,
+        note: null,
+      },
+      {
+        id: "datasetQuality",
+        name: "datasetQuality",
+        value: assessment.dataset.qualityStatus,
+        unit: null,
+        note: null,
+      },
+    ],
+    score: {
+      confidenceType: "ENGINE_SPECIFIC",
+      value: null,
+      scale: null,
+      isWinProbability: false,
+      isCalibratedPrediction: false,
+      calibrationStatus: null,
+      reliabilityStatus: null,
+      definition:
+        "Phase 08 strategy research — historical metrics are RESEARCH_ONLY, not win probability",
+    },
+    analysisId: opts?.analysisId ?? null,
+    runId: opts?.runId ?? null,
+    snapshotId: opts?.snapshotId ?? null,
+    snapshotIdSourceVerified: opts?.snapshotId != null,
+    sourceAssessmentId: assessment.researchRunId,
+    sourceInputIdentity: assessment.inputIdentity,
+    sourceContractId: assessment.contractId,
+    sourceContractVersion: assessment.contractVersion,
+    fingerprintSource: {
+      kind: "strategy-research",
+      researchRunId: assessment.researchRunId,
+      inputIdentity: assessment.inputIdentity,
+      reliabilityStatus: assessment.reliabilityStatus,
       modelVersion: assessment.modelVersion,
     },
   });

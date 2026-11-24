@@ -21,6 +21,7 @@ export {
   adaptDeepTechnicalIntelligenceToEvidence,
   adaptCandlestickPatternsToEvidence,
   adaptExternalMarketIntelligenceToEvidence,
+  adaptStrategyResearchToEvidence,
 } from "./from-structure.js";
 
 export {

@@ -144,6 +144,13 @@ export const MIF_EVIDENCE_FAMILY_CATALOG: Record<
     expectedSourceContractId: null,
     notes: "Phase 07 — dedicated central-bank live feed NOT_IMPLEMENTED.",
   },
+  STRATEGY_RESEARCH: {
+    availability: "AVAILABLE",
+    expectedSourceEngine: "mif-strategy-research",
+    expectedSourceContractId: "kwizera.mif.strategy-research.v1",
+    notes:
+      "Phase 08 historical research metrics — RESEARCH_ONLY; not win probability; not live execution proof.",
+  },
   VOLATILITY: {
     availability: "AVAILABLE",
     expectedSourceEngine: "mif-market-regime",

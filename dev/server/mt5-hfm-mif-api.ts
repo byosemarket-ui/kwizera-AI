@@ -83,6 +83,8 @@
  * GET  /api/forex/providers/mt5-hfm/mif/deep-technical-intelligence/capability
  * POST /api/forex/providers/mt5-hfm/mif/external-market-intelligence
  * GET  /api/forex/providers/mt5-hfm/mif/external-market-intelligence/capability
+ * POST /api/forex/providers/mt5-hfm/mif/strategy-research
+ * GET  /api/forex/providers/mt5-hfm/mif/strategy-research/capability
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { assertAdminAccess, rolesFromHeaders, adminTokenFromHeaders } from "../../ai/admin-control-plane/admin-auth-boundary.js";
@@ -106,8 +108,10 @@ import {
   adaptBuyerSellerPressureToEvidence,
   adaptDeepTechnicalIntelligenceToEvidence,
   adaptExternalMarketIntelligenceToEvidence,
+  adaptStrategyResearchToEvidence,
   adaptHfmHistoricalBars,
   assessMifBuyerSellerPressure,
+  assessMifStrategyResearch,
   assessMifCandlestickPatterns,
   assessMifChartPatterns,
   assessMifDataIntegrity,
@@ -3969,6 +3973,130 @@ export async function handleMt5HfmMifApi(
     };
     assertNoSecretsInMt5HfmPayload(payload);
     sendJson(res, assessment ? 200 : 422, payload);
+    return true;
+  }
+
+  // --- Phase 08 strategy research (read-only; HFM_MT5 only; no continuous worker) ---
+  if (url.pathname === `${PATH_PREFIX}/strategy-research/capability` && req.method === "GET") {
+    sendJson(res, 200, {
+      ok: true,
+      providerId: MIF_PROVIDER_ID,
+      scope: "phase08-strategy-research",
+      datasetValidation: "IMPLEMENTED",
+      historicalSimulation: "REUSED_AND_VERIFIED",
+      walkForward: "REUSED_AND_VERIFIED",
+      costSensitivity: "IMPLEMENTED",
+      regimeBreakdown: "IMPLEMENTED",
+      eventPriceResearch: "FIXTURE_ONLY",
+      continuousResearchWorker: "DISABLED_BY_POLICY",
+      brokerExecution: "DISABLED_BY_POLICY",
+      isWinProbability: false,
+      isEventProbability: false,
+      isProbabilityCalibration: false,
+      doesNotConfirmOrInvalidateLifecycleAlone: true,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      note: "RESEARCH_ONLY — reuses Phase 5F historical-research/backtesting; Phase 07 gates unchanged",
+    });
+    return true;
+  }
+
+  if (url.pathname === `${PATH_PREFIX}/strategy-research` && req.method === "POST") {
+    let body: Record<string, unknown> = {};
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      body = {};
+    }
+    const symbol = String(body.symbol ?? body.providerSymbol ?? "").trim().toUpperCase();
+    if (!symbol) {
+      sendJson(res, 400, {
+        ok: false,
+        error: { code: "INVALID_INSTRUMENT", message: "symbol required" },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const providerRaw = String(body.providerId ?? body.provider ?? MIF_PROVIDER_ID).trim().toUpperCase();
+    if (providerRaw !== MIF_PROVIDER_ID) {
+      sendJson(res, 400, {
+        ok: false,
+        error: {
+          code: "WRONG_PROVIDER",
+          message: `provider ${providerRaw} rejected; only HFM_MT5 permitted`,
+        },
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+    const timeframe = String(body.timeframe || "H1").trim().toUpperCase();
+    const strategyId = String(body.strategyId || "TREND_CONTINUATION").trim();
+    const assessmentTimestamp = new Date().toISOString();
+    const fixtureBars = Array.isArray(body.fixtureBars) ? body.fixtureBars : [];
+    const simulatedTrades = Array.isArray(body.simulatedTrades) ? body.simulatedTrades : [];
+    const events = Array.isArray(body.fixtureEvents)
+      ? body.fixtureEvents
+          .map((raw) => normalizeSmtEvent(raw, assessmentTimestamp))
+          .filter((e): e is NonNullable<typeof e> => e != null)
+      : [];
+    const assessment = assessMifStrategyResearch({
+      providerSymbol: symbol,
+      timeframe,
+      strategyId,
+      strategyVersion: body.strategyVersion ? String(body.strategyVersion) : undefined,
+      datasetId: body.datasetId ? String(body.datasetId) : undefined,
+      fixtureBars: fixtureBars as never,
+      simulatedTrades: simulatedTrades as never,
+      regimeLabelsByTradeIndex: Array.isArray(body.regimeLabels)
+        ? (body.regimeLabels as string[])
+        : undefined,
+      events,
+      eventSourceMode: events.length ? "FIXTURE" : undefined,
+      sourceMode: fixtureBars.length || simulatedTrades.length ? "FIXTURE" : "HISTORICAL_SOURCE",
+      walkForward: body.walkForward && typeof body.walkForward === "object"
+        ? (body.walkForward as never)
+        : null,
+      reusedBacktestRunId: body.reusedBacktestRunId ? String(body.reusedBacktestRunId) : null,
+      costAssumption: body.costAssumption && typeof body.costAssumption === "object"
+        ? (body.costAssumption as never)
+        : null,
+      costSensitivityGrid: Array.isArray(body.costSensitivityGrid)
+        ? (body.costSensitivityGrid as never)
+        : undefined,
+      multipleComparisonsCount:
+        typeof body.multipleComparisonsCount === "number"
+          ? body.multipleComparisonsCount
+          : 1,
+      assessmentTimestamp,
+    });
+    const evidence = adaptStrategyResearchToEvidence(assessment, {
+      snapshotId: body.snapshotId ? String(body.snapshotId) : null,
+    });
+    const payload = {
+      ok: assessment.status !== "BLOCKED" && assessment.status !== "FAILED",
+      providerId: MIF_PROVIDER_ID,
+      symbol,
+      timeframe,
+      assessedAt: assessmentTimestamp,
+      assessment,
+      evidence,
+      isWinProbability: false,
+      isEventProbability: false,
+      isProbabilityCalibration: false,
+      doesNotConfirmOrInvalidateLifecycleAlone: true,
+      placesOrders: false,
+      mutatesBroker: false,
+      acceptsForExecution: false,
+      continuousResearchWorker: "DISABLED_BY_POLICY",
+      researchOnly: true,
+    };
+    assertNoSecretsInMt5HfmPayload(payload);
+    sendJson(res, 200, payload);
     return true;
   }
 
