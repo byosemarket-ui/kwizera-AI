@@ -18,6 +18,13 @@ export type DecisionAction =
   | "WAITING_FOR_CONFIRMATION"
   | "NONE";
 
+/** Directional preference separate from confirmed entry / WAITING. */
+export type PreferredBias =
+  | "BUY_BIAS"
+  | "SELL_BIAS"
+  | "NO_TRADE"
+  | "NONE";
+
 export type ParsedPredictionLinkageStatus =
   | "CREATED"
   | "REUSED"
@@ -59,6 +66,8 @@ export interface ParsedLevel {
 
 export interface ParsedAnalysisView {
   action: DecisionAction;
+  /** Preferred directional bias; may be BUY_BIAS/SELL_BIAS while action remains WAITING. */
+  preferredBias: PreferredBias;
   decisionStatus: string | null;
   confidence: number | null;
   confidenceLabel: string | null;
@@ -66,11 +75,15 @@ export interface ParsedAnalysisView {
   summary: string;
   selectedScenarioId: string | null;
   marketRegime: string | null;
+  overallBias: string | null;
+  rankingReference: string | null;
   bullishAssessment: ParsedDirectionalAssessment | null;
   bearishAssessment: ParsedDirectionalAssessment | null;
   supportingEvidenceIds: string[];
   conflictingEvidenceIds: string[];
   missingConfirmations: string[];
+  /** Alias surfaced for Charts blocking UI (same ids/notes as missingConfirmations). */
+  blockingReasons: string[];
   invalidationConditions: string[];
   disagreement: ParsedDisagreement;
   levels: ParsedLevel[];
@@ -128,6 +141,69 @@ function parseAssessment(
     missingConfirmations: strArr(o.missingConfirmations),
     invalidationConditions: strArr(o.invalidationConditions),
   };
+}
+
+const SUPPORTIVE_STATUSES = new Set([
+  "WAITING_FOR_CONFIRMATION",
+  "DEVELOPING",
+  "POSSIBLE",
+  "NEEDS_CONFIRMATION",
+  "CONFIRMED",
+  "ACTIVE",
+  "DETECTED",
+]);
+
+const WEAK_STATUSES = new Set([
+  "INSUFFICIENT",
+  "NOT_SUPPORTED",
+  "INVALIDATED",
+  "REJECTED",
+  "EXPIRED",
+  "LOW_EVIDENCE",
+  "BLOCKED",
+]);
+
+function statusRank(status: string | null | undefined): number {
+  const s = String(status ?? "").toUpperCase();
+  if (s === "CONFIRMED" || s === "ACTIVE" || s === "DETECTED") return 3;
+  if (SUPPORTIVE_STATUSES.has(s)) return 2;
+  if (WEAK_STATUSES.has(s)) return 0;
+  return 1;
+}
+
+/**
+ * Separates directional preference from confirmed trade action.
+ * A market may show BUY_BIAS/SELL_BIAS while the decision remains WAITING_FOR_CONFIRMATION.
+ */
+export function derivePreferredBias(input: {
+  action: DecisionAction;
+  bullish: ParsedDirectionalAssessment | null;
+  bearish: ParsedDirectionalAssessment | null;
+  overallBias: string | null;
+  rankingReference: string | null;
+}): PreferredBias {
+  if (input.action === "BUY") return "BUY_BIAS";
+  if (input.action === "SELL") return "SELL_BIAS";
+  if (input.action === "NO_TRADE") return "NO_TRADE";
+
+  const ref = String(input.rankingReference ?? "").toUpperCase();
+  if (ref.includes("BULLISH")) return "BUY_BIAS";
+  if (ref.includes("BEARISH")) return "SELL_BIAS";
+
+  const overall = String(input.overallBias ?? "").toUpperCase();
+  if (overall === "BULLISH") return "BUY_BIAS";
+  if (overall === "BEARISH") return "SELL_BIAS";
+
+  const bullRank = statusRank(input.bullish?.status);
+  const bearRank = statusRank(input.bearish?.status);
+  const bullSupport = input.bullish?.supportingEvidenceIds.length ?? 0;
+  const bearSupport = input.bearish?.supportingEvidenceIds.length ?? 0;
+
+  if (bearRank > bullRank) return "SELL_BIAS";
+  if (bullRank > bearRank) return "BUY_BIAS";
+  if (bearSupport > bullSupport) return "SELL_BIAS";
+  if (bullSupport > bearSupport) return "BUY_BIAS";
+  return "NONE";
 }
 
 export function parseHfmAnalysisRecord(analysis: unknown): ParsedAnalysisView | null {
@@ -199,6 +275,19 @@ export function parseHfmAnalysisRecord(analysis: unknown): ParsedAnalysisView | 
   const lineage = asRecord(root.lineage);
   const evidence = asRecord(result?.evidence);
   const cs = asRecord(result?.confidenceSemantics);
+  const marketOverview = asRecord(result?.marketOverview);
+  const bullishAssessment = parseAssessment(result?.bullishAssessment, "BULLISH");
+  const bearishAssessment = parseAssessment(result?.bearishAssessment, "BEARISH");
+  const overallBias = str(marketOverview?.overallBias);
+  const rankingReference = str(lineage?.rankingReference);
+  const missingConfirmations = strArr(result?.missingConfirmations);
+  const preferredBias = derivePreferredBias({
+    action,
+    bullish: bullishAssessment,
+    bearish: bearishAssessment,
+    overallBias,
+    rankingReference,
+  });
   const linkageRaw = asRecord(root.predictionLinkage);
   const linkageStatusRaw = str(linkageRaw?.status)?.toUpperCase() ?? "";
   const predictionLinkage: ParsedPredictionLinkage = {
@@ -216,6 +305,7 @@ export function parseHfmAnalysisRecord(analysis: unknown): ParsedAnalysisView | 
 
   return {
     action,
+    preferredBias,
     decisionStatus: str(result?.decisionStatus),
     confidence: num(decision?.confidence),
     confidenceLabel: str(decision?.confidenceLabel),
@@ -225,11 +315,14 @@ export function parseHfmAnalysisRecord(analysis: unknown): ParsedAnalysisView | 
     summary: str(decision?.summary) ?? "",
     selectedScenarioId: str(result?.selectedScenarioId) ?? str(lineage?.selectedScenarioId),
     marketRegime: str(result?.marketRegime),
-    bullishAssessment: parseAssessment(result?.bullishAssessment, "BULLISH"),
-    bearishAssessment: parseAssessment(result?.bearishAssessment, "BEARISH"),
+    overallBias,
+    rankingReference,
+    bullishAssessment,
+    bearishAssessment,
     supportingEvidenceIds: strArr(result?.supportingEvidenceIds),
     conflictingEvidenceIds: strArr(result?.conflictingEvidenceIds),
-    missingConfirmations: strArr(result?.missingConfirmations),
+    missingConfirmations,
+    blockingReasons: missingConfirmations,
     invalidationConditions: strArr(result?.invalidationConditions),
     disagreement: {
       agreesWithRanking:

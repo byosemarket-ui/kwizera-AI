@@ -15,6 +15,15 @@ function formatDecision(action: ParsedAnalysisView["action"]): string {
   }
 }
 
+function formatPreferredBias(bias: ParsedAnalysisView["preferredBias"]): string {
+  switch (bias) {
+    case "BUY_BIAS": return "BUY BIAS";
+    case "SELL_BIAS": return "SELL BIAS";
+    case "NO_TRADE": return "NO TRADE";
+    default: return "NONE";
+  }
+}
+
 function agreeLabel(v: boolean | null): string {
   if (v === true) return "Agrees";
   if (v === false) return "Disagrees";
@@ -37,6 +46,10 @@ export function HfmAiDecisionPanel(props: {
         {formatDecision(view?.action ?? "NONE")}
       </div>
       <dl className="hap-kv">
+        <div data-preferred-bias={view?.preferredBias ?? "NONE"}>
+          <dt>Preferred bias</dt>
+          <dd>{formatPreferredBias(view?.preferredBias ?? "NONE")}</dd>
+        </div>
         <div>
           <dt>Decision status</dt>
           <dd>{view?.decisionStatus ?? "—"}</dd>
@@ -49,6 +62,18 @@ export function HfmAiDecisionPanel(props: {
           <dt>Market regime</dt>
           <dd>{view?.marketRegime ?? "—"}</dd>
         </div>
+        {view?.rankingReference ? (
+          <div>
+            <dt>Ranking reference</dt>
+            <dd>{view.rankingReference}</dd>
+          </div>
+        ) : null}
+        {view?.overallBias ? (
+          <div>
+            <dt>Overall bias</dt>
+            <dd>{view.overallBias}</dd>
+          </div>
+        ) : null}
       </dl>
       <div className="hap-confidence-label" data-score-kind="analytical-confidence">
         <span>Analytical confidence</span>
@@ -115,14 +140,43 @@ export function HfmAiDecisionPanel(props: {
           </p>
         ) : null}
       </div>
+      {(view?.bullishAssessment || view?.bearishAssessment) ? (
+        <div className="hap-disagree" data-directional-assessments="true">
+          <strong>Directional assessments</strong>
+          {view?.bullishAssessment ? (
+            <p>
+              Bullish: {view.bullishAssessment.status}
+              {view.bullishAssessment.summary ? ` — ${view.bullishAssessment.summary}` : ""}
+            </p>
+          ) : null}
+          {view?.bearishAssessment ? (
+            <p>
+              Bearish: {view.bearishAssessment.status}
+              {view.bearishAssessment.summary ? ` — ${view.bearishAssessment.summary}` : ""}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {view?.supportingEvidenceIds.length ? (
         <p className="hap-empty">Supporting: {view.supportingEvidenceIds.join(", ")}</p>
       ) : null}
       {view?.conflictingEvidenceIds.length ? (
         <p className="hap-empty">Conflicting: {view.conflictingEvidenceIds.join(", ")}</p>
       ) : null}
-      {view?.missingConfirmations.length ? (
-        <p className="hap-empty">Missing: {view.missingConfirmations.join(", ")}</p>
+      {view && (view.blockingReasons.length || view.missingConfirmations.length) ? (
+        <div className="hap-disagree" data-blocking-reasons="true">
+          <strong>Blocking reasons</strong>
+          <p>
+            {(view.blockingReasons.length ? view.blockingReasons : view.missingConfirmations).join("; ")}
+          </p>
+          {view.action === "WAITING_FOR_CONFIRMATION" ? (
+            <p className="hap-empty">
+              Required to resolve: closed-candle confirmation on the preferred side, source-backed entry,
+              and non-forming tip evidence where confirmation rules require it. Bias above is preference only —
+              not a trade authorization.
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {view?.invalidationConditions.length ? (
         <p className="hap-empty">Invalidation: {view.invalidationConditions.join(", ")}</p>

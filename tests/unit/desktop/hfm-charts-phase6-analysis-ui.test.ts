@@ -104,12 +104,64 @@ describe("Phase 6 — parse v1.2 analysis", () => {
     expect(view?.selectedScenarioId).toBe("sc-bullish");
   });
 
+  it("separates preferred BUY_BIAS from WAITING_FOR_CONFIRMATION", () => {
+    const view = parseHfmAnalysisRecord(mockAnalysis());
+    expect(view?.action).toBe("WAITING_FOR_CONFIRMATION");
+    expect(view?.preferredBias).toBe("BUY_BIAS");
+    expect(view?.blockingReasons).toEqual(["M5"]);
+  });
+
+  it("derives SELL_BIAS from ranking reference while waiting", () => {
+    const raw = mockAnalysis({
+      lineage: {
+        groundingStatus: "PASSED",
+        selectedScenarioId: null,
+        inputCompleteness: "COMPLETE",
+        evidencePackageId: "ep1",
+        scenarioPackageId: "sp1",
+        rankingReference: "BEARISH_PREFERRED",
+      },
+    });
+    const result = raw.result as {
+      bullishAssessment: { status: string; supportingEvidenceIds: string[] };
+      bearishAssessment: {
+        status: string;
+        supportingEvidenceIds: string[];
+        missingConfirmations: string[];
+      };
+      missingConfirmations: string[];
+      selectedScenarioId: string | null;
+    };
+    result.bullishAssessment = {
+      ...result.bullishAssessment,
+      status: "INSUFFICIENT",
+      supportingEvidenceIds: [],
+    };
+    result.bearishAssessment = {
+      ...result.bearishAssessment,
+      status: "WAITING_FOR_CONFIRMATION",
+      supportingEvidenceIds: ["tc.regime"],
+      missingConfirmations: ["tc.closed_continuation"],
+    };
+    result.missingConfirmations = [
+      "tc.closed_continuation",
+      "Closed-candle confirmation; all supplied timeframe tips are FORMING.",
+    ];
+    result.selectedScenarioId = null;
+    const view = parseHfmAnalysisRecord(raw);
+    expect(view?.action).toBe("WAITING_FOR_CONFIRMATION");
+    expect(view?.preferredBias).toBe("SELL_BIAS");
+    expect(view?.rankingReference).toBe("BEARISH_PREFERRED");
+    expect(view?.blockingReasons[0]).toBe("tc.closed_continuation");
+  });
+
   it("treats NO_TRADE as valid analytical outcome", () => {
     const raw = mockAnalysis();
     (raw.result as { decision: { action: string } }).decision.action = "NO_TRADE";
     (raw.result as { decisionStatus: string }).decisionStatus = "NO_TRADE";
     const view = parseHfmAnalysisRecord(raw);
     expect(view?.action).toBe("NO_TRADE");
+    expect(view?.preferredBias).toBe("NO_TRADE");
   });
 });
 
