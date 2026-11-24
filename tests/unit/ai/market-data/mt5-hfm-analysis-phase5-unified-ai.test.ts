@@ -946,6 +946,6 @@ describe("Phase 5 — safety regressions", () => {
 
   it("schema and prompt are v1.2", () => {
     expect(HFM_REASONING_SCHEMA_VERSION).toBe("hfm-ai-analysis-v1.2");
-    expect(HFM_REASONING_PROMPT_VERSION).toBe("hfm-ai-reasoning-prompt-v1.2");
+    expect(HFM_REASONING_PROMPT_VERSION).toBe("hfm-ai-reasoning-prompt-v1.2.1");
   });
 });

@@ -50,6 +50,21 @@ function mapAssessmentStatus(status: string | null | undefined): QualityStatus {
   }
 }
 
+/**
+ * Prefer last CLOSED candle for assessment grounding.
+ * Live Charts snapshots always append a FORMING tip — labeling every evidence
+ * ref as FORMING incorrectly blocks confirmation and misleads AI.
+ */
+function assessmentCandleState(candles: readonly MifCanonicalCandle[]): MifCandleState | null {
+  if (!candles.length) return null;
+  for (let i = candles.length - 1; i >= 0; i -= 1) {
+    const state = candles[i]!.candleState;
+    if (state === "CLOSED") return "CLOSED";
+  }
+  return candles[candles.length - 1]!.candleState;
+}
+
+/** Tip state only — used when an assessment is explicitly provisional on the forming tip. */
 function tipCandleState(candles: readonly MifCanonicalCandle[]): MifCandleState | null {
   if (!candles.length) return null;
   return candles[candles.length - 1]!.candleState;
@@ -140,6 +155,7 @@ export function buildProductionEvidenceRefs(
 ): MifDetectionEvidenceRef[] {
   void input.unified;
   const tip = tipCandleState(input.primaryCandles);
+  const closedOrTip = assessmentCandleState(input.primaryCandles) ?? tip;
   const tf = input.primaryTimeframe;
   const ts = input.assessmentTimestamp;
   const reqs = collectCatalogRequirements();
@@ -262,7 +278,7 @@ export function buildProductionEvidenceRefs(
     let sourcePolicyVersion: string | null = null;
     let sourceAssessmentId: string | null = null;
     let sourceInputIdentity: string | null = null;
-    let candleState: MifCandleState | null = tip;
+    let candleState: MifCandleState | null = closedOrTip;
     let notes: string | undefined;
 
     if (req.availability === "UNSUPPORTED") {
@@ -813,6 +829,104 @@ export function buildProductionEvidenceRefs(
         notes,
       }),
     );
+  }
+
+  // Phase 05/06 — always project dedicated assessments into UMEP even when
+  // strategy catalog optionalEvidence omits these families (delivery gap fix).
+  const seenIds = new Set(out.map((r) => r.evidenceId));
+  const pushSupplemental = (partial: Parameters<typeof ref>[0]) => {
+    if (seenIds.has(partial.evidenceId)) return;
+    seenIds.add(partial.evidenceId);
+    out.push(ref(partial));
+  };
+
+  const bsp = input.buyerSellerPressure;
+  if (bsp) {
+    const usable =
+      (bsp.status === "VALID" || bsp.status === "WARNING" || bsp.status === "PROVISIONAL")
+      && bsp.dominantSide !== "INSUFFICIENT_EVIDENCE";
+    pushSupplemental({
+      evidenceId: "ume.buyer_seller_pressure",
+      family: "BUYER_SELLER_PRESSURE",
+      presence: usable ? "PRESENT" : "ABSENT",
+      qualityStatus: usable ? mapAssessmentStatus(bsp.status) : mapAssessmentStatus(bsp.status),
+      sourceEngine: bsp.engineId,
+      sourceContractId: bsp.contractId,
+      sourceContractVersion: bsp.contractVersion,
+      sourcePolicyVersion: bsp.policyVersion,
+      sourceAssessmentId: bsp.assessmentId,
+      sourceInputIdentity: bsp.inputIdentity,
+      timeframe: tf,
+      timeframeRole: "INTERMEDIATE_STRUCTURE",
+      assessmentTimestamp: ts,
+      candleState: bsp.provisional ? (tip ?? "FORMING") : closedOrTip,
+      notes: [
+        `dominantSide=${bsp.dominantSide}`,
+        `dataClassification=${bsp.dataClassification}`,
+        `notAggressorVolume=TRUE`,
+        `notWinProbability=TRUE`,
+        `supplementalProjection=TRUE`,
+      ].join("; "),
+    });
+  }
+
+  const dti = input.deepTechnicalIntelligence;
+  if (dti) {
+    const usable =
+      dti.status === "VALID"
+      || dti.status === "WARNING"
+      || dti.status === "PROVISIONAL"
+      || dti.status === "DEGRADED";
+    pushSupplemental({
+      evidenceId: "ume.deep_technical_intelligence",
+      family: "DEEP_TECHNICAL_INTELLIGENCE",
+      presence: usable ? "PRESENT" : "ABSENT",
+      qualityStatus: mapAssessmentStatus(dti.status),
+      sourceEngine: dti.engineId,
+      sourceContractId: dti.contractId,
+      sourceContractVersion: dti.contractVersion,
+      sourcePolicyVersion: dti.policyVersion,
+      sourceAssessmentId: dti.assessmentId,
+      sourceInputIdentity: dti.inputIdentity,
+      timeframe: tf,
+      timeframeRole: "INTERMEDIATE_STRUCTURE",
+      assessmentTimestamp: ts,
+      candleState: closedOrTip,
+      notes: [
+        `mtf=${dti.mtf.alignment}`,
+        `regime=${dti.overallRegimeLabel}`,
+        `confluence=${dti.confluence.grade}`,
+        `notWinProbability=TRUE`,
+        `supplementalProjection=TRUE`,
+      ].join("; "),
+    });
+  }
+
+  const csp = input.candlestickPatterns;
+  if (csp) {
+    const hasDetections = (csp.detections?.length ?? 0) > 0;
+    pushSupplemental({
+      evidenceId: "ume.candlestick_patterns",
+      family: "CANDLESTICK_PATTERN",
+      presence: hasDetections ? "PRESENT" : "ABSENT",
+      qualityStatus: mapAssessmentStatus(csp.status),
+      sourceEngine: csp.engineId,
+      sourceContractId: csp.contractId,
+      sourceContractVersion: csp.contractVersion,
+      sourcePolicyVersion: null,
+      sourceAssessmentId: csp.assessmentId,
+      sourceInputIdentity: csp.inputIdentity,
+      timeframe: tf,
+      timeframeRole: "INTERMEDIATE_STRUCTURE",
+      assessmentTimestamp: ts,
+      candleState: closedOrTip,
+      notes: [
+        `count=${csp.detections?.length ?? 0}`,
+        `patternIds=${(csp.patternIds ?? []).join(",")}`,
+        `notTradeSignal=TRUE`,
+        `supplementalProjection=TRUE`,
+      ].join("; "),
+    });
   }
 
   // Stable order by evidenceId
