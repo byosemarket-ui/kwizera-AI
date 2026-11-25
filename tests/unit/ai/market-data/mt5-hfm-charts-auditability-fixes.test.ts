@@ -351,6 +351,21 @@ describe("FIX B — prompt provenance", () => {
 
     const subset = extractPromptMeasurementSubset(unified);
     expect(subset.numericMeasurements.some((m) => m.measurementId === "rsi")).toBe(true);
+
+    // Engine passes unified.json as a string — provenance must parse it.
+    const fromString = buildHfmPromptProvenance({
+      systemPrompt: system,
+      userPrompt: user,
+      unifiedJson: JSON.stringify(unified),
+      model: "gpt-test",
+      analysisId: "an-2",
+      snapshotId: "snap-2",
+      evidencePackageId: "umep:test",
+      scenarioPackageId: "scen-1",
+      unifiedInputIdentity: "uid-2",
+    });
+    expect(fromString.numericMeasurements.some((m) => m.measurementId === "rsi")).toBe(true);
+    expect(fromString.numericMeasurements.some((m) => m.measurementId === "atr")).toBe(true);
   });
 });
 

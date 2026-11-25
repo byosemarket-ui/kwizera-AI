@@ -276,7 +276,7 @@ export async function runHfmAiReasoning(input: {
     const promptProvenance = buildHfmPromptProvenance({
       systemPrompt: system,
       userPrompt: userText,
-      unifiedJson: unified.json as Record<string, unknown>,
+      unifiedJson: unified.json,
       model,
       analysisId,
       snapshotId: evidence.snapshotId,

@@ -86,20 +86,33 @@ function digestPrompt(systemPrompt: string, userPrompt: string): string {
  * Extract the numeric / level / conflict subset that was included in unified.json
  * (already prioritised/truncated by buildHfmUnifiedAiAnalysisInput).
  */
+function coerceUnifiedObject(unifiedJson: unknown): Record<string, unknown> {
+  if (typeof unifiedJson === "string") {
+    try {
+      const parsed = JSON.parse(unifiedJson) as unknown;
+      return asRec(parsed) ?? {};
+    } catch {
+      return {};
+    }
+  }
+  return asRec(unifiedJson) ?? {};
+}
+
 export function extractPromptMeasurementSubset(
-  unifiedJson: Record<string, unknown>,
+  unifiedJson: Record<string, unknown> | string,
 ): {
   numericMeasurements: HfmPromptNumericMeasurement[];
   levelRefs: HfmPromptLevelRef[];
   conflictEvidenceIds: string[];
   limitationNotes: string[];
 } {
+  const root = coerceUnifiedObject(unifiedJson);
   const numericMeasurements: HfmPromptNumericMeasurement[] = [];
   const levelRefs: HfmPromptLevelRef[] = [];
   const conflictEvidenceIds: string[] = [];
   const limitationNotes: string[] = [];
 
-  const det = asRec(unifiedJson.deterministicEvidence);
+  const det = asRec(root.deterministicEvidence);
   const items = Array.isArray(det?.items) ? det!.items : [];
   for (const raw of items) {
     const item = asRec(raw);
@@ -166,7 +179,7 @@ export function extractPromptMeasurementSubset(
     }
   }
 
-  const scen = asRec(unifiedJson.scenarioPackage);
+  const scen = asRec(root.scenarioPackage);
   for (const sideKey of ["bullishScenario", "bearishScenario"] as const) {
     const side = asRec(scen?.[sideKey]);
     if (!side) continue;
@@ -179,7 +192,7 @@ export function extractPromptMeasurementSubset(
     }
   }
 
-  const meta = asRec(unifiedJson.analysisMetadata);
+  const meta = asRec(root.analysisMetadata);
   for (const w of (meta?.dataQualityWarnings as unknown[]) ?? []) {
     if (typeof w === "string" && w) limitationNotes.push(w.slice(0, 200));
   }
@@ -195,7 +208,8 @@ export function extractPromptMeasurementSubset(
 export function buildHfmPromptProvenance(input: {
   systemPrompt: string;
   userPrompt: string;
-  unifiedJson: Record<string, unknown>;
+  /** Unified AI package object or its JSON.stringify form (engine passes the string). */
+  unifiedJson: Record<string, unknown> | string;
   model: string | null;
   analysisId: string;
   snapshotId: string;
