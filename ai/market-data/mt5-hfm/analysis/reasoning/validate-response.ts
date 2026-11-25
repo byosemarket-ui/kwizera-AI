@@ -912,57 +912,116 @@ export function validateHfmReasoningModelResponse(input: {
 
   let pricePrecision = buildUnavailablePricePrecision("pending");
 
-  // BUY/SELL require all four TF analyses + market overview (fail closed on gaps)
-  if (decisionAction === "BUY" || decisionAction === "SELL") {
-    if (missingSections.some((s) => s.startsWith("timeframeAnalysis.") || s === "marketOverview")) {
-      return {
-        ok: false,
-        code: "INVALID_MODEL_RESPONSE",
-        error: "BUY/SELL rejected: required multi-timeframe or market overview analysis not provided",
-      };
-    }
-    if (direction !== decisionAction) {
-      return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "direction must match BUY/SELL decision" };
-    }
-    if (entryLow == null || entryHigh == null || stopLoss == null) {
-      return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "BUY/SELL requires entry zone and stopLoss" };
-    }
-    if (decisionAction === "BUY" && !(stopLoss < entryLow)) {
-      return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "BUY stopLoss must be below entry" };
-    }
-    if (decisionAction === "SELL" && !(stopLoss > entryHigh)) {
-      return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "SELL stopLoss must be above entry" };
-    }
-    for (const tp of takeProfitTargets) {
-      if (decisionAction === "BUY" && !(tp > entryHigh)) {
-        return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "BUY takeProfit must be above entry" };
-      }
-      if (decisionAction === "SELL" && !(tp < entryLow)) {
-        return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "SELL takeProfit must be below entry" };
-      }
-    }
+  // Primary BUY/SELL is directional. Strict entry/TF rules apply only when setup is READY+CONFIRMED.
+  const decisionStatusToken = enumToken(raw.decisionStatus) ?? "";
+  const setupIsExecutionReady =
+    setupStatus === "READY" && decisionStatusToken === "CONFIRMED";
 
-    const priceCheck = validateTradePlanPricesAgainstInstrument({
-      symbol: input.expected.symbol,
-      instrument: input.instrument ?? null,
-      prices: [
-        { label: "entryLow", value: entryLow, required: true },
-        { label: "entryHigh", value: entryHigh, required: true },
-        { label: "stopLoss", value: stopLoss, required: true },
-        ...takeProfitTargets.map((v, i) => ({ label: `takeProfit[${i}]`, value: v, required: true })),
-        { label: "invalidationPrice", value: invalidationPrice, required: false },
-      ],
-    });
-    if (!priceCheck.ok) {
-      return {
-        ok: false,
-        code: priceCheck.precision.source === "UNAVAILABLE"
-          ? "INSTRUMENT_METADATA_UNAVAILABLE"
-          : "INVALID_PRICE_PRECISION",
-        error: priceCheck.error,
-      };
+  if (decisionAction === "BUY" || decisionAction === "SELL") {
+    if (setupIsExecutionReady) {
+      // Confirmed ready plans require full TF + overview + geometry.
+      if (missingSections.some((s) => s.startsWith("timeframeAnalysis.") || s === "marketOverview")) {
+        return {
+          ok: false,
+          code: "INVALID_MODEL_RESPONSE",
+          error: "READY BUY/SELL rejected: required multi-timeframe or market overview analysis not provided",
+        };
+      }
+      if (direction !== decisionAction) {
+        return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "direction must match BUY/SELL decision" };
+      }
+      if (entryLow == null || entryHigh == null || stopLoss == null) {
+        return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "READY BUY/SELL requires entry zone and stopLoss" };
+      }
+      if (decisionAction === "BUY" && !(stopLoss < entryLow)) {
+        return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "BUY stopLoss must be below entry" };
+      }
+      if (decisionAction === "SELL" && !(stopLoss > entryHigh)) {
+        return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "SELL stopLoss must be above entry" };
+      }
+      for (const tp of takeProfitTargets) {
+        if (decisionAction === "BUY" && !(tp > entryHigh)) {
+          return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "BUY takeProfit must be above entry" };
+        }
+        if (decisionAction === "SELL" && !(tp < entryLow)) {
+          return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "SELL takeProfit must be below entry" };
+        }
+      }
+
+      const priceCheck = validateTradePlanPricesAgainstInstrument({
+        symbol: input.expected.symbol,
+        instrument: input.instrument ?? null,
+        prices: [
+          { label: "entryLow", value: entryLow, required: true },
+          { label: "entryHigh", value: entryHigh, required: true },
+          { label: "stopLoss", value: stopLoss, required: true },
+          ...takeProfitTargets.map((v, i) => ({ label: `takeProfit[${i}]`, value: v, required: true })),
+          { label: "invalidationPrice", value: invalidationPrice, required: false },
+        ],
+      });
+      if (!priceCheck.ok) {
+        return {
+          ok: false,
+          code: priceCheck.precision.source === "UNAVAILABLE"
+            ? "INSTRUMENT_METADATA_UNAVAILABLE"
+            : "INVALID_PRICE_PRECISION",
+          error: priceCheck.error,
+        };
+      }
+      pricePrecision = priceCheck.precision;
+    } else {
+      // Directional bias only — entry may be unavailable; TF gaps → COMPLETED_WITH_GAPS.
+      if (direction !== "NONE" && direction !== decisionAction) {
+        return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "direction must match BUY/SELL decision or NONE" };
+      }
+      completenessNotes.push(
+        "Primary BUY/SELL is directional bias only; setup not READY — levels/TF gaps allowed",
+      );
+      // If optional levels were supplied, soft-check geometry without failing on missing TF.
+      if (entryLow != null && entryHigh != null && stopLoss != null) {
+        if (decisionAction === "BUY" && !(stopLoss < entryLow)) {
+          return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "BUY stopLoss must be below entry" };
+        }
+        if (decisionAction === "SELL" && !(stopLoss > entryHigh)) {
+          return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "SELL stopLoss must be above entry" };
+        }
+        const softCheck = validateTradePlanPricesAgainstInstrument({
+          symbol: input.expected.symbol,
+          instrument: input.instrument ?? null,
+          prices: [
+            { label: "entryLow", value: entryLow, required: true },
+            { label: "entryHigh", value: entryHigh, required: true },
+            { label: "stopLoss", value: stopLoss, required: true },
+            ...takeProfitTargets.map((v, i) => ({ label: `takeProfit[${i}]`, value: v, required: true })),
+            { label: "invalidationPrice", value: invalidationPrice, required: false },
+          ],
+        });
+        if (softCheck.ok) pricePrecision = softCheck.precision;
+        else {
+          pricePrecision = input.instrument
+            ? {
+                verified: false,
+                digits: input.instrument.digits,
+                tickSize: input.instrument.tickSize,
+                point: input.instrument.point,
+                source: "HFM_CATALOG" as const,
+                reason: softCheck.error,
+              }
+            : buildUnavailablePricePrecision(softCheck.error);
+        }
+      } else {
+        pricePrecision = input.instrument
+          ? {
+              verified: false,
+              digits: input.instrument.digits,
+              tickSize: input.instrument.tickSize,
+              point: input.instrument.point,
+              source: "HFM_CATALOG" as const,
+              reason: "Directional BUY/SELL without READY setup — price precision deferred",
+            }
+          : buildUnavailablePricePrecision("Directional BUY/SELL without READY setup");
+      }
     }
-    pricePrecision = priceCheck.precision;
   } else {
     if (direction !== "NONE") {
       return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "NO_TRADE/WAITING direction must be NONE" };

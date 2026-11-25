@@ -22,6 +22,10 @@ import {
   HFM_REASONING_PROMPT_VERSION,
   HFM_REASONING_SCHEMA_VERSION,
 } from "../../../../ai/market-data/mt5-hfm/analysis/reasoning/constants";
+import {
+  buildMockValidReasoningPayload,
+  validateHfmReasoningModelResponse,
+} from "../../../../ai/market-data/mt5-hfm/analysis/reasoning/validate-response";
 import { parseHfmAnalysisRecord } from "../../../../desktop/forex/hfm-dashboard/charts/analysis/parse-hfm-analysis-result";
 
 function emptyScenarioSide(side: "BULLISH" | "BEARISH", status: string): MifScenarioPackage["bullishScenario"] {
@@ -690,6 +694,60 @@ describe("HFM directional fusion", () => {
     });
     expect(isPredictionBridgeEligible(applied)).toBe(false);
     expect(applied.confidenceSemantics.decisionConfidenceIsWinProbability).toBe(false);
+  });
+});
+
+describe("validator — directional BUY/SELL without READY setup", () => {
+  it("accepts BUY direction when TF gaps exist and setup is WAITING", () => {
+    const raw = buildMockValidReasoningPayload({
+      symbol: "XAUUSD",
+      contextId: "snap-1",
+      snapshotId: "snap-1",
+      snapshotHash: "hash-1",
+      model: "test",
+      action: "BUY",
+    });
+    raw.decisionStatus = "WAITING_FOR_CONFIRMATION";
+    raw.marketDirection = "BUY";
+    raw.executionReadiness = "WAITING_FOR_CONFIRMATION";
+    (raw.tradePlan as Record<string, unknown>).direction = "NONE";
+    (raw.tradePlan as Record<string, unknown>).setupStatus = "WAITING";
+    (raw.tradePlan as Record<string, unknown>).entryZone = { low: null, high: null };
+    (raw.tradePlan as Record<string, unknown>).stopLoss = null;
+    (raw.tradePlan as Record<string, unknown>).takeProfitTargets = [];
+    (raw.tradePlan as Record<string, unknown>).invalidationPrice = null;
+    (raw.tradePlan as Record<string, unknown>).riskRewardEstimate = null;
+    // Simulate missing TF blocks (NOT_PROVIDED)
+    raw.timeframeAnalysis = {
+      H1: { sectionStatus: "NOT_PROVIDED" },
+      M30: { sectionStatus: "NOT_PROVIDED" },
+      M15: { sectionStatus: "NOT_PROVIDED" },
+      M5: { sectionStatus: "NOT_PROVIDED" },
+    };
+    raw.marketOverview = {
+      sectionStatus: "NOT_PROVIDED",
+      marketCondition: "UNCLEAR",
+      overallBias: "MIXED",
+      higherTimeframeBias: "unclear",
+      timeframeAlignment: "UNCLEAR",
+    };
+    const v = validateHfmReasoningModelResponse({
+      raw,
+      expected: {
+        symbol: "XAUUSD",
+        contextId: "snap-1",
+        snapshotId: "snap-1",
+        snapshotHash: "hash-1",
+        model: "test",
+        analysisId: "an-1",
+      },
+      instrument: null,
+    });
+    expect(v.ok).toBe(true);
+    if (v.ok) {
+      expect(v.result.decision.action).toBe("BUY");
+      expect(v.result.analysisStatus).toBe("COMPLETED_WITH_GAPS");
+    }
   });
 });
 
