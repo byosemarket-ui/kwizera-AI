@@ -113,8 +113,17 @@ export function collectGroundingErrors(input: {
     ...input.takeProfitTargets.map((v, i) => ({ label: `takeProfit[${i}]`, value: v as number | null })),
   ];
 
-  const requiresLevels = input.decisionAction === "BUY" || input.decisionAction === "SELL";
-  if (requiresLevels) {
+  // Level grounding applies when prices are present OR when the setup claims CONFIRMED.
+  // Primary BUY/SELL without READY/CONFIRMED is directional bias and may omit entries.
+  const claimsConfirmedSetup = input.decisionStatus === "CONFIRMED";
+  const hasAnyLevel =
+    input.entryLow != null
+    || input.entryHigh != null
+    || input.stopLoss != null
+    || input.invalidationPrice != null
+    || input.takeProfitTargets.length > 0;
+  const requiresLevels = claimsConfirmedSetup || hasAnyLevel;
+  if (requiresLevels && hasAnyLevel) {
     if (ctx.allowedPrices.size === 0) {
       errors.push("invented_price_no_source_levels_available");
     }
@@ -133,20 +142,22 @@ export function collectGroundingErrors(input: {
         errors.push("risk_reward_without_complete_levels");
       }
     }
-  } else if (input.riskRewardEstimate != null) {
-    // Non-trade decisions should not claim RR
+  } else if (
+    input.riskRewardEstimate != null
+    && !(input.decisionAction === "BUY" || input.decisionAction === "SELL")
+  ) {
+    // Non-directional decisions should not claim RR
     errors.push("risk_reward_on_non_trade_decision");
   }
 
-  if (
-    (input.decisionStatus === "CONFIRMED" || input.decisionAction === "BUY" || input.decisionAction === "SELL")
-    && ctx.formingOnlyConfirmationBlocked
-  ) {
+  // FORMING tips block confirmation — not directional BUY/SELL bias itself.
+  if (claimsConfirmedSetup && ctx.formingOnlyConfirmationBlocked) {
     errors.push("forming_only_cannot_confirm");
   }
 
   if (
-    (input.decisionAction === "BUY" || input.decisionAction === "SELL")
+    claimsConfirmedSetup
+    && (input.decisionAction === "BUY" || input.decisionAction === "SELL")
     && ctx.inputCompleteness === "PARTIAL"
     && ctx.allowedEvidenceIds.size === 0
   ) {

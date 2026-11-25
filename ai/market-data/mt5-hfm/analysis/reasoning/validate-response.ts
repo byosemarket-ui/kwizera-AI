@@ -823,7 +823,7 @@ export function validateHfmReasoningModelResponse(input: {
   }
   const confidence = confNorm.confidence;
   const confidenceLabel = asString(raw.decision.confidenceLabel);
-  const summary = asString(raw.decision.summary);
+  let summary = asString(raw.decision.summary);
   if (!action || !ACTIONS.has(action) || !confidenceLabel || !CONF_LABELS.has(confidenceLabel) || !summary) {
     return { ok: false, code: "INVALID_MODEL_RESPONSE", error: "decision fields invalid" };
   }
@@ -1148,15 +1148,20 @@ export function validateHfmReasoningModelResponse(input: {
     };
   }
 
-  // Reject win-probability claims in summary / disagreement text
+  // Scrub win-probability claims — keep analytical conclusion; never treat as calibrated win rate.
   const winProbRe = /\b(win\s*probability|probability\s+of\s+(profit|success)|calibrated\s+success\s+rate)\b/i;
-  if (winProbRe.test(summary) || (disagreementReason && winProbRe.test(disagreementReason))) {
-    return {
-      ok: false,
-      code: "INVALID_MODEL_RESPONSE",
-      error: "win-probability claims are not permitted; decision.confidence is analytical only",
-    };
+  let summaryClean = summary;
+  if (winProbRe.test(summaryClean)) {
+    summaryClean = summaryClean.replace(winProbRe, "analytical confidence");
+    completenessNotes.push("Scrubbed win-probability wording from decision.summary");
   }
+  let disagreementReasonClean = disagreementReason;
+  if (disagreementReasonClean && winProbRe.test(disagreementReasonClean)) {
+    disagreementReasonClean = disagreementReasonClean.replace(winProbRe, "analytical confidence");
+    completenessNotes.push("Scrubbed win-probability wording from disagreementReason");
+  }
+  summary = summaryClean;
+  disagreementReason = disagreementReasonClean;
 
   const selectedScenarioId =
     raw.selectedScenarioId === null || raw.selectedScenarioId === undefined || raw.selectedScenarioId === ""

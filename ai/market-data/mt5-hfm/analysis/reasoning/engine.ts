@@ -13,6 +13,7 @@ import { isOpenAiVisionEligibleModel } from "../../../../forex-ai/multi-image-op
 import { getHfmCatalogService } from "../../catalog-service.js";
 import { getHfmAnalysisStorage } from "../storage.js";
 import {
+  HFM_REASONING_CONFIDENCE_DEFINITION,
   HFM_REASONING_OPENAI_TIMEOUT_MS,
   HFM_REASONING_PROMPT_VERSION,
   HFM_REASONING_SCHEMA_VERSION,
@@ -35,7 +36,10 @@ import {
   buildHfmUnifiedAiAnalysisInput,
   extractPackagesFromLoadedArtifacts,
 } from "./unified-input.js";
-import { validateHfmReasoningModelResponse } from "./validate-response.js";
+import {
+  buildMockValidReasoningPayload,
+  validateHfmReasoningModelResponse,
+} from "./validate-response.js";
 import {
   applyPrimaryMarketDirection,
   isPredictionBridgeEligible,
@@ -459,23 +463,82 @@ export async function runHfmAiReasoning(input: {
           }
           return parts.join("; ");
         })();
-        record = {
-          ...record,
-          status: "FAILED",
-          errorCode: validated.code as HfmReasoningErrorCode,
-          errorMessage: `${validated.error} (topKeys=${keys}; ${fieldDiag})`.slice(0, 500),
-          usage: {
-            promptTokens: numOrNull(usageObj?.prompt_tokens),
-            completionTokens: numOrNull(usageObj?.completion_tokens),
-            totalTokens: numOrNull(usageObj?.total_tokens),
-            latencyMs: (chat.latencyMs ?? 0) + (repair.latencyMs ?? 0),
-          },
-          completedAt: new Date().toISOString(),
-          lineage: { ...lineageBase, groundingStatus: "FAILED" },
-        };
-        setActiveReasoningRecord(record);
-        await storage.save(record);
-        return record;
+
+        // Deterministic fusion fallback — still emit BUY|SELL when model schema fails.
+        const fusionDir =
+          orchestration?.directionalFusion?.conviction.direction
+          ?? (scenarioPackage?.strongerSide === "BEARISH"
+            ? "SELL"
+            : scenarioPackage?.strongerSide === "BULLISH"
+            ? "BUY"
+            : "BUY");
+        const fusionFallbackRaw = buildMockValidReasoningPayload({
+          symbol: evidence.symbol,
+          contextId: evidence.contextId,
+          snapshotId: evidence.snapshotId,
+          snapshotHash: evidence.snapshotHash,
+          model,
+          action: fusionDir,
+          analysisId,
+        });
+        fusionFallbackRaw.decisionStatus = "WAITING_FOR_CONFIRMATION";
+        fusionFallbackRaw.marketDirection = fusionDir;
+        fusionFallbackRaw.executionReadiness = "WAITING_FOR_CONFIRMATION";
+        fusionFallbackRaw.analysisStatus = "COMPLETED_WITH_GAPS";
+        (fusionFallbackRaw.decision as Record<string, unknown>).summary =
+          `Deterministic directional fusion fallback (${fusionDir}). ` +
+          `Model response rejected: ${validated.error}. ` +
+          "Analytical bias only — not execution authorization. " +
+          HFM_REASONING_CONFIDENCE_DEFINITION;
+        (fusionFallbackRaw.decision as Record<string, unknown>).confidence = Math.min(
+          40,
+          orchestration?.directionalFusion?.conviction.directionalConvictionScore ?? 25,
+        );
+        (fusionFallbackRaw.decision as Record<string, unknown>).confidenceLabel = "LOW";
+        (fusionFallbackRaw.tradePlan as Record<string, unknown>).direction = "NONE";
+        (fusionFallbackRaw.tradePlan as Record<string, unknown>).setupStatus = "WAITING";
+        (fusionFallbackRaw.tradePlan as Record<string, unknown>).entryZone = { low: null, high: null };
+        (fusionFallbackRaw.tradePlan as Record<string, unknown>).stopLoss = null;
+        (fusionFallbackRaw.tradePlan as Record<string, unknown>).takeProfitTargets = [];
+        (fusionFallbackRaw.tradePlan as Record<string, unknown>).invalidationPrice = null;
+        (fusionFallbackRaw.tradePlan as Record<string, unknown>).riskRewardEstimate = null;
+        (fusionFallbackRaw.tradePlan as Record<string, unknown>).explanation =
+          "Entry unavailable — fusion fallback directional assessment only.";
+        (fusionFallbackRaw.evidence as Record<string, unknown>).uncertainties = [
+          `MODEL_VALIDATION_FAILED:${validated.code}`,
+          String(validated.error).slice(0, 200),
+          fieldDiag.slice(0, 200),
+        ];
+        (fusionFallbackRaw.evidence as Record<string, unknown>).dataQualityWarnings = [
+          "FUSION_FALLBACK_AFTER_MODEL_VALIDATION_FAILURE",
+        ];
+        const fallbackValidated = validateHfmReasoningModelResponse({
+          raw: fusionFallbackRaw,
+          expected: expectedIds,
+          instrument,
+          grounding,
+        });
+        if (fallbackValidated.ok) {
+          validated = fallbackValidated;
+        } else {
+          record = {
+            ...record,
+            status: "FAILED",
+            errorCode: validated.code as HfmReasoningErrorCode,
+            errorMessage: `${validated.error} (topKeys=${keys}; ${fieldDiag}; fallback=${fallbackValidated.error})`.slice(0, 500),
+            usage: {
+              promptTokens: numOrNull(usageObj?.prompt_tokens),
+              completionTokens: numOrNull(usageObj?.completion_tokens),
+              totalTokens: numOrNull(usageObj?.total_tokens),
+              latencyMs: (chat.latencyMs ?? 0) + (repair.latencyMs ?? 0),
+            },
+            completedAt: new Date().toISOString(),
+            lineage: { ...lineageBase, groundingStatus: "FAILED" },
+          };
+          setActiveReasoningRecord(record);
+          await storage.save(record);
+          return record;
+        }
       }
     }
 
