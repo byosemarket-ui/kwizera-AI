@@ -86,6 +86,48 @@ function addFinitePrice(set: Set<number>, v: unknown): void {
   if (typeof v === "number" && Number.isFinite(v)) set.add(v);
 }
 
+/** Prefer numeric indicator + provenance measurements over meta presence fields for AI. */
+function prioritizeMeasurementsForAi(
+  measurements: readonly MifUnifiedMarketEvidence["measurements"][number][],
+  max = 16,
+): MifUnifiedMarketEvidence["measurements"][number][] {
+  const priority = new Set([
+    "rsi",
+    "roc",
+    "atr",
+    "rsiPeriod",
+    "rocPeriod",
+    "atrPeriod",
+    "rsiMethod",
+    "rocMethod",
+    "atrMethod",
+    "trAtr",
+    "bodyAtr",
+    "tipOpenTimeSec",
+    "tipCloseTimeSec",
+    "candleState",
+    "timeframe",
+    "symbol",
+    "conflictKind",
+    "resolutionStatus",
+    "structurePrice",
+    "supportMid",
+    "resistanceMid",
+    "primaryMid",
+    "liquidityPrice",
+    "calculationStatus",
+    "dataQualityStatus",
+    "direction",
+    "phase",
+    "overallRegimeLabel",
+    "warmUpComplete",
+    "snapshotRef",
+  ]);
+  const preferred = measurements.filter((m) => priority.has(String(m.id)));
+  const rest = measurements.filter((m) => !priority.has(String(m.id)));
+  return [...preferred, ...rest].slice(0, max);
+}
+
 function summarizeEvidenceItem(e: MifUnifiedMarketEvidence): Record<string, unknown> {
   return {
     evidenceId: e.evidenceId,
@@ -103,11 +145,12 @@ function summarizeEvidenceItem(e: MifUnifiedMarketEvidence): Record<string, unkn
       side: lv.side,
       note: lv.note != null ? clipNote(lv.note, 120) : null,
     })),
-    measurements: (e.measurements ?? []).slice(0, 8).map((m) => ({
+    measurements: prioritizeMeasurementsForAi(e.measurements ?? []).map((m) => ({
       id: m.id,
       name: m.name,
       value: m.value,
       unit: m.unit,
+      note: m.note != null ? clipNote(String(m.note), 120) : null,
     })),
     supportingEvidenceIds: e.supportingEvidenceIds ?? [],
     conflictingEvidenceIds: e.conflictingEvidenceIds ?? [],
@@ -522,6 +565,12 @@ export function buildHfmUnifiedAiAnalysisInput(
   if (staleEvidenceCount > 0) {
     warnings.push(`stale_evidence_items=${staleEvidenceCount}`);
   }
+  const engineConflictItem = evidenceItems.find(
+    (e) => e.evidenceId === "ume.engine_conflict.regime_dti_structure",
+  );
+  const engineConflictKind =
+    engineConflictItem?.measurements?.find((m) => m.id === "conflictKind")?.value
+    ?? null;
 
   const rankingSummary = verified.orchestration
     ? {
@@ -675,6 +724,13 @@ export function buildHfmUnifiedAiAnalysisInput(
         : []),
       ...(completeness === "PARTIAL" ? ["input_package_PARTIAL_do_not_describe_as_complete"] : []),
       ...(formingOnlyBlocked ? ["formingOnlyConfirmationBlocked=true"] : []),
+      ...(engineConflictKind && engineConflictKind !== "AGREEMENT"
+        ? [
+            `engine_conflict_kind=${String(engineConflictKind)}`,
+            "do_not_silently_prefer_one_engine_when_conflict_present",
+            "DTI_overallRegimeLabel_is_presentation_overlay_not_independent_regime_vote",
+          ]
+        : []),
     ],
     safety: {
       placesOrders: false,

@@ -81,6 +81,13 @@ export function adaptDetectionEvidenceRefToEvidence(
       "presenceIsNotDirectionalBias",
       "ABSENT_means_missing_or_insufficient_not_bearish_or_bullish",
     ],
+    levels: (ref.levels ?? []).map((lv) => ({
+      id: lv.id,
+      kind: lv.kind,
+      price: lv.price,
+      side: lv.side,
+      note: lv.note,
+    })),
     measurements: [
       { id: "family", name: "family", value: ref.family, unit: null, note: null },
       { id: "presence", name: "presence", value: ref.presence, unit: null, note: null },
@@ -98,6 +105,14 @@ export function adaptDetectionEvidenceRefToEvidence(
         unit: null,
         note: null,
       },
+      // Prefer structured engine numerics (RSI/ROC/ATR/levels provenance) after presence meta.
+      ...(ref.measurements ?? []).map((m) => ({
+        id: m.id,
+        name: m.name,
+        value: m.value,
+        unit: m.unit,
+        note: m.note,
+      })),
     ],
     score: {
       confidenceType: "ENGINE_SPECIFIC",

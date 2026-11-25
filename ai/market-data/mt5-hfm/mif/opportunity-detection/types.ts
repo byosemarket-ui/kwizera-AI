@@ -47,6 +47,24 @@ export type MifOpportunityCandidateStatus =
   | "INVALID"
   | "REJECTED";
 
+/** Optional structured measurement attached to a production evidence ref (UMEP path). */
+export interface MifDetectionEvidenceMeasurement {
+  id: string;
+  name: string;
+  value: number | string | boolean | null;
+  unit: string | null;
+  note: string | null;
+}
+
+/** Optional source-backed level attached to a production evidence ref (UMEP path). */
+export interface MifDetectionEvidenceLevel {
+  id: string;
+  kind: string;
+  price: number | null;
+  side: "HIGH" | "LOW" | "MID" | "ZONE" | "OTHER" | null;
+  note: string | null;
+}
+
 export interface MifDetectionEvidenceRef {
   evidenceId: string;
   family: MifEvidenceFamily;
@@ -63,6 +81,10 @@ export interface MifDetectionEvidenceRef {
   qualityStatus: "VALID" | "WARNING" | "DEGRADED" | "BLOCKED" | "MISSING" | "UNKNOWN";
   candleState: MifCandleState | null;
   notes?: string;
+  /** Structured numerics / provenance — preferred over notes-only for AI delivery. */
+  measurements?: readonly MifDetectionEvidenceMeasurement[];
+  /** Source-backed prices for scenario/AI grounding. */
+  levels?: readonly MifDetectionEvidenceLevel[];
 }
 
 export interface MifOpportunityDetectionContext extends MifSafetyFlags {

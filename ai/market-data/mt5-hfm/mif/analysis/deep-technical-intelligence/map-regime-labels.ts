@@ -94,7 +94,18 @@ export function mapDeepTechnicalTrendRegime(input: {
     };
   }
 
-  if (structureDim === "RANGING" || composite === "RANGING" || structure?.bias === "RANGING") {
+  // RANGE_BOUND only when regime structure is ranging (or regime absent and
+  // structure bias alone says ranging). Do NOT let structure.bias=RANGING
+  // silently override an explicit TRENDING regime — that produced false
+  // regime-vs-DTI conflicts (methodology collapse, not independent disagreement).
+  const regimeIsTrending =
+    structureDim === "TRENDING"
+    || composite === "TRENDING_UP"
+    || composite === "TRENDING_DOWN";
+  if (
+    !regimeIsTrending
+    && (structureDim === "RANGING" || composite === "RANGING" || structure?.bias === "RANGING")
+  ) {
     return {
       direction: "NEUTRAL",
       strength: "NONE",

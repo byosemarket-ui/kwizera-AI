@@ -26,9 +26,36 @@ import type {
   MifEvidencePresence,
   MifStrategyEvidenceRequirement,
 } from "../strategy-intelligence/types.js";
-import type { MifDetectionEvidenceRef } from "../opportunity-detection/types.js";
+import type {
+  MifDetectionEvidenceLevel,
+  MifDetectionEvidenceMeasurement,
+  MifDetectionEvidenceRef,
+} from "../opportunity-detection/types.js";
+import {
+  classifyRegimeDtiStructureConflict,
+  formatConflictNotes,
+} from "./engine-conflict.js";
 
 type QualityStatus = MifDetectionEvidenceRef["qualityStatus"];
+
+function meas(
+  id: string,
+  value: number | string | boolean | null,
+  unit: string | null = null,
+  note: string | null = null,
+): MifDetectionEvidenceMeasurement {
+  return { id, name: id, value, unit, note };
+}
+
+function lvl(
+  id: string,
+  kind: string,
+  price: number | null,
+  side: MifDetectionEvidenceLevel["side"] = null,
+  note: string | null = null,
+): MifDetectionEvidenceLevel {
+  return { id, kind, price, side, note };
+}
 
 function mapAssessmentStatus(status: string | null | undefined): QualityStatus {
   switch (String(status || "").toUpperCase()) {
@@ -90,6 +117,8 @@ function ref(partial: {
   assessmentTimestamp: string | null;
   candleState: MifCandleState | null;
   notes?: string;
+  measurements?: readonly MifDetectionEvidenceMeasurement[];
+  levels?: readonly MifDetectionEvidenceLevel[];
 }): MifDetectionEvidenceRef {
   return {
     evidenceId: partial.evidenceId,
@@ -107,6 +136,8 @@ function ref(partial: {
     qualityStatus: partial.qualityStatus,
     candleState: partial.candleState,
     ...(partial.notes ? { notes: partial.notes } : {}),
+    ...(partial.measurements?.length ? { measurements: partial.measurements } : {}),
+    ...(partial.levels?.length ? { levels: partial.levels } : {}),
   };
 }
 
@@ -280,6 +311,8 @@ export function buildProductionEvidenceRefs(
     let sourceInputIdentity: string | null = null;
     let candleState: MifCandleState | null = closedOrTip;
     let notes: string | undefined;
+    let measurements: MifDetectionEvidenceMeasurement[] = [];
+    let levels: MifDetectionEvidenceLevel[] = [];
 
     if (req.availability === "UNSUPPORTED") {
       presence = "UNSUPPORTED";
@@ -349,15 +382,63 @@ export function buildProductionEvidenceRefs(
         }
         case "FIBONACCI": {
           if (fibPresent) {
+            const fib = input.fibonacci!;
             presence = "PRESENT";
             qualityStatus = fibQ;
-            sourceEngine = input.fibonacci!.engineId;
-            sourceContractId = input.fibonacci!.contractId;
-            sourceContractVersion = input.fibonacci!.contractVersion;
-            sourcePolicyVersion = input.fibonacci!.policyVersion;
-            sourceAssessmentId = input.fibonacci!.assessmentId;
-            sourceInputIdentity = input.fibonacci!.inputIdentity;
-            notes = `orientation=${input.fibonacci!.orientation ?? "none"}; grade=from_assessment`;
+            sourceEngine = fib.engineId;
+            sourceContractId = fib.contractId;
+            sourceContractVersion = fib.contractVersion;
+            sourcePolicyVersion = fib.policyVersion;
+            sourceAssessmentId = fib.assessmentId;
+            sourceInputIdentity = fib.inputIdentity;
+            notes = [
+              `orientation=${fib.orientation ?? "none"}`,
+              `grade=from_assessment`,
+              fib.anchorA ? `anchorA=${fib.anchorA.price}@${fib.anchorA.timeSec}` : null,
+              fib.anchorB ? `anchorB=${fib.anchorB.price}@${fib.anchorB.timeSec}` : null,
+            ].filter(Boolean).join("; ");
+            if (fib.anchorA) {
+              levels.push(lvl(
+                `fib.anchorA.${fib.anchorA.swingId}`,
+                "FIBONACCI_ANCHOR",
+                fib.anchorA.price,
+                fib.anchorA.kind === "HIGH" ? "HIGH" : "LOW",
+                `swingId=${fib.anchorA.swingId};status=CONFIRMED`,
+              ));
+            }
+            if (fib.anchorB) {
+              levels.push(lvl(
+                `fib.anchorB.${fib.anchorB.swingId}`,
+                "FIBONACCI_ANCHOR",
+                fib.anchorB.price,
+                fib.anchorB.kind === "HIGH" ? "HIGH" : "LOW",
+                `swingId=${fib.anchorB.swingId};status=CONFIRMED`,
+              ));
+            }
+            for (const r of fib.retracements.slice(0, 8)) {
+              levels.push(lvl(
+                `fib.ret.${r.ratio}`,
+                "FIBONACCI_RETRACEMENT",
+                r.price,
+                "MID",
+                `ratio=${r.ratio};method=swing_anchors`,
+              ));
+              measurements.push(meas(`fibRetracement_${r.ratio}`, r.price, "price", `ratio=${r.ratio}`));
+            }
+            for (const e of fib.extensions.slice(0, 4)) {
+              levels.push(lvl(
+                `fib.ext.${e.ratio}`,
+                "FIBONACCI_EXTENSION",
+                e.price,
+                "MID",
+                `ratio=${e.ratio};method=swing_anchors`,
+              ));
+            }
+            measurements.push(
+              meas("symbol", fib.providerSymbol, null, null),
+              meas("timeframe", fib.timeframe, null, null),
+              meas("calculationStatus", fib.status, null, null),
+            );
           } else if (input.fibonacci) {
             presence = "ABSENT";
             qualityStatus = fibQ;
@@ -411,15 +492,16 @@ export function buildProductionEvidenceRefs(
         }
         case "MARKET_STRUCTURE": {
           if (structureEnginePresent) {
-            const pref = input.marketStructure!.primaryRef!;
+            const ms = input.marketStructure!;
+            const pref = ms.primaryRef!;
             presence = "PRESENT";
             qualityStatus = structureQ;
-            sourceEngine = input.marketStructure!.engineId;
-            sourceContractId = input.marketStructure!.contractId;
-            sourceContractVersion = input.marketStructure!.contractVersion;
-            sourcePolicyVersion = input.marketStructure!.policyVersion;
-            sourceAssessmentId = input.marketStructure!.assessmentId;
-            sourceInputIdentity = input.marketStructure!.inputIdentity;
+            sourceEngine = ms.engineId;
+            sourceContractId = ms.contractId;
+            sourceContractVersion = ms.contractVersion;
+            sourcePolicyVersion = ms.policyVersion;
+            sourceAssessmentId = ms.assessmentId;
+            sourceInputIdentity = ms.inputIdentity;
             notes = [
               `refId=${pref.refId}`,
               `refType=${pref.refType}`,
@@ -427,9 +509,32 @@ export function buildProductionEvidenceRefs(
               `confirmed=TRUE`,
               `swingState=CONFIRMED`,
               `temporalOrder=BEFORE_SWEEP`,
-              `bias=${input.marketStructure!.bias}`,
+              `bias=${ms.bias}`,
               `price=${pref.price}`,
             ].join("; ");
+            levels.push(lvl(
+              pref.refId,
+              pref.refType || "STRUCTURE_REF",
+              pref.price,
+              pref.refSide === "BUY_SIDE" ? "HIGH" : pref.refSide === "SELL_SIDE" ? "LOW" : "OTHER",
+              `confirmed=TRUE;bias=${ms.bias};engine=${ms.engineId}`,
+            ));
+            measurements.push(
+              meas("symbol", ms.providerSymbol, null, null),
+              meas("timeframe", ms.timeframe, null, null),
+              meas("bias", ms.bias, null, null),
+              meas("structurePrice", pref.price, "price", `refId=${pref.refId}`),
+              meas("calculationStatus", ms.status, null, null),
+              meas("dataQualityStatus", structureQ, null, null),
+            );
+            for (const ev of (ms.events ?? []).slice(-4)) {
+              measurements.push(meas(
+                `event_${ev.type}_${ev.status}`,
+                ev.priceLevel ?? null,
+                "price",
+                `type=${ev.type};status=${ev.status}`,
+              ));
+            }
           } else if (structurePartialPresent) {
             presence = "PRESENT";
             qualityStatus = regimeQ;
@@ -493,6 +598,10 @@ export function buildProductionEvidenceRefs(
               `expand=${expanding || pd.confirmed ? "TRUE" : "FALSE"}`,
               `magnitude=${m?.bodyAtr ?? "null"}`,
               `trAtr=${m?.trueRangeAtr ?? "null"}`,
+              `atr=${m?.atr ?? "null"}`,
+              `atrPeriod=${m?.atrPeriod ?? pd.calculationParameters.atrPeriod}`,
+              `atrMethod=${m?.atrMethodId ?? pd.calculationParameters.atrMethodId}`,
+              `atrUnit=price`,
               `closeLoc=${m?.closeLocation ?? "null"}`,
               `closeState=${m?.candleState ?? tip ?? "UNKNOWN"}`,
               `strongCandle=${m?.strongCandle === true ? "TRUE" : "FALSE"}`,
@@ -502,9 +611,38 @@ export function buildProductionEvidenceRefs(
               `confirmed=${pd.confirmed ? "TRUE" : "FALSE"}`,
               `provisional=${pd.provisional ? "TRUE" : "FALSE"}`,
               `openTimeSec=${m?.openTimeSec ?? "null"}`,
+              `closeTimeSec=${m?.closeTimeSec ?? "null"}`,
               `engine=mif-price-displacement`,
               `contract=${pd.contractId}@${pd.contractVersion}`,
             ].join("; ");
+            measurements.push(
+              meas("symbol", pd.providerSymbol, null, null),
+              meas("timeframe", pd.timeframe, null, null),
+              meas("atr", m?.atr ?? null, "price", "ATR absolute (SMA-of-TR); not a ratio"),
+              meas("atrPeriod", m?.atrPeriod ?? pd.calculationParameters.atrPeriod, "bars", null),
+              meas("atrMethod", m?.atrMethodId ?? pd.calculationParameters.atrMethodId, null, null),
+              meas("trAtr", m?.trueRangeAtr ?? null, "atr_ratio", "trueRange/ATR — dimensionless"),
+              meas("bodyAtr", m?.bodyAtr ?? null, "atr_ratio", "body/ATR — dimensionless"),
+              meas("tipOpenTimeSec", m?.openTimeSec ?? null, "unix_sec", null),
+              meas("tipCloseTimeSec", m?.closeTimeSec ?? null, "unix_sec", null),
+              meas("candleState", m?.candleState ?? tip ?? "UNKNOWN", null, null),
+              meas("calculationStatus", pd.status, null, null),
+              meas("dataQualityStatus", qualityStatus, null, null),
+              meas("snapshotRef", pd.assessmentId, null, null),
+            );
+            if (m?.structuralBoundaryPrice != null) {
+              levels.push(lvl(
+                m.structuralBoundaryRefId ?? "displacement.boundary",
+                "DISPLACEMENT_BOUNDARY",
+                m.structuralBoundaryPrice,
+                m.structuralBoundarySide === "RESISTANCE"
+                  ? "HIGH"
+                  : m.structuralBoundarySide === "SUPPORT"
+                    ? "LOW"
+                    : "OTHER",
+                `side=${m.structuralBoundarySide}`,
+              ));
+            }
           } else if (displacementRegimeFallback) {
             // Explicit PARTIAL fallback when dedicated engine unavailable.
             presence = "PRESENT";
@@ -616,6 +754,39 @@ export function buildProductionEvidenceRefs(
               `lifecycle=${b.lifecycle}`,
               `touchCount=${b.touchCount}`,
             ].filter(Boolean).join("; ");
+            levels.push(lvl(
+              b.boundaryId,
+              b.kind,
+              b.mid,
+              "MID",
+              `high=${b.high};low=${b.low};lifecycle=${b.lifecycle};touchCount=${b.touchCount}`,
+            ));
+            if (bestSupport) {
+              levels.push(lvl(
+                bestSupport.boundaryId,
+                "SUPPORT",
+                bestSupport.mid,
+                "LOW",
+                `touchCount=${bestSupport.touchCount};lifecycle=${bestSupport.lifecycle}`,
+              ));
+            }
+            if (bestResistance) {
+              levels.push(lvl(
+                bestResistance.boundaryId,
+                "RESISTANCE",
+                bestResistance.mid,
+                "HIGH",
+                `touchCount=${bestResistance.touchCount};lifecycle=${bestResistance.lifecycle}`,
+              ));
+            }
+            measurements.push(
+              meas("symbol", input.supportResistance!.providerSymbol, null, null),
+              meas("timeframe", input.supportResistance!.timeframe, null, null),
+              meas("supportMid", bestSupport?.mid ?? null, "price", null),
+              meas("resistanceMid", bestResistance?.mid ?? null, "price", null),
+              meas("primaryMid", b.mid, "price", `kind=${b.kind}`),
+              meas("calculationStatus", input.supportResistance!.status, null, null),
+            );
           } else if (boundaryPresent) {
             presence = "PRESENT";
             qualityStatus = regimeQ;
@@ -676,6 +847,17 @@ export function buildProductionEvidenceRefs(
               `lifecycle=${r.lifecycle}`,
               `doesNotClaimRestingOrders=TRUE`,
             ].join("; ");
+            levels.push(lvl(
+              r.referenceId,
+              r.refType || "LIQUIDITY_REF",
+              r.price,
+              r.refSide === "BUY_SIDE" ? "HIGH" : r.refSide === "SELL_SIDE" ? "LOW" : "OTHER",
+              `lifecycle=${r.lifecycle};doesNotClaimRestingOrders=TRUE`,
+            ));
+            measurements.push(
+              meas("liquidityPrice", r.price, "price", `refId=${r.referenceId}`),
+              meas("timeframe", input.liquidityReference!.timeframe, null, null),
+            );
           } else {
             presence = "ABSENT";
             qualityStatus = "MISSING";
@@ -685,20 +867,57 @@ export function buildProductionEvidenceRefs(
         }
         case "MOMENTUM": {
           if (momEnginePresent) {
+            const mom = input.momentum!;
+            const roc = mom.indicators.find((i) => i.indicatorId === "ROC");
+            const rsi = mom.indicators.find((i) => i.indicatorId === "RSI");
             presence = "PRESENT";
             qualityStatus = momQ;
-            sourceEngine = input.momentum!.engineId;
-            sourceContractId = input.momentum!.contractId;
-            sourceContractVersion = input.momentum!.contractVersion;
-            sourcePolicyVersion = input.momentum!.policyVersion;
-            sourceAssessmentId = input.momentum!.assessmentId;
-            sourceInputIdentity = input.momentum!.inputIdentity;
+            sourceEngine = mom.engineId;
+            sourceContractId = mom.contractId;
+            sourceContractVersion = mom.contractVersion;
+            sourcePolicyVersion = mom.policyVersion;
+            sourceAssessmentId = mom.assessmentId;
+            sourceInputIdentity = mom.inputIdentity;
+            candleState = mom.sourceCandleState ?? "CLOSED";
             notes = [
-              `direction=${input.momentum!.direction}`,
-              `phase=${input.momentum!.phase}`,
+              `direction=${mom.direction}`,
+              `phase=${mom.phase}`,
+              roc?.value != null ? `roc=${roc.value}` : null,
+              rsi?.value != null ? `rsi=${rsi.value}` : null,
+              roc ? `rocPeriod=${roc.period}` : null,
+              rsi ? `rsiPeriod=${rsi.period}` : null,
+              `rocMethod=percent_change`,
+              `rsiMethod=Wilder`,
+              mom.sourceTipOpenTimeSec != null
+                ? `tipOpenTimeSec=${mom.sourceTipOpenTimeSec}`
+                : null,
+              mom.sourceTipCloseTimeSec != null
+                ? `tipCloseTimeSec=${mom.sourceTipCloseTimeSec}`
+                : null,
+              `candleState=${mom.sourceCandleState ?? "CLOSED"}`,
               `fabricated=FALSE`,
               `notWinProbability=TRUE`,
-            ].join("; ");
+            ].filter(Boolean).join("; ");
+            measurements.push(
+              meas("symbol", mom.providerSymbol, null, null),
+              meas("timeframe", mom.timeframe, null, null),
+              meas("indicator", "ROC14", null, roc?.definition ?? null),
+              meas("roc", roc?.value ?? null, roc?.unit ?? "percent", `period=${roc?.period ?? 14};method=percent_change`),
+              meas("rocPeriod", roc?.period ?? 14, "bars", null),
+              meas("rocMethod", "percent_change", null, null),
+              meas("rsi", rsi?.value ?? null, rsi?.unit ?? "index_0_100", `period=${rsi?.period ?? 14};method=Wilder`),
+              meas("rsiPeriod", rsi?.period ?? 14, "bars", null),
+              meas("rsiMethod", "Wilder", null, null),
+              meas("tipOpenTimeSec", mom.sourceTipOpenTimeSec ?? null, "unix_sec", null),
+              meas("tipCloseTimeSec", mom.sourceTipCloseTimeSec ?? null, "unix_sec", null),
+              meas("candleState", mom.sourceCandleState ?? "CLOSED", null, null),
+              meas("direction", mom.direction, null, null),
+              meas("phase", mom.phase, null, null),
+              meas("calculationStatus", mom.status, null, null),
+              meas("dataQualityStatus", momQ, null, null),
+              meas("snapshotRef", mom.assessmentId, null, null),
+              meas("warmUpComplete", Boolean(roc?.warmUpComplete && rsi?.warmUpComplete), null, null),
+            );
           } else {
             presence = "ABSENT";
             qualityStatus = "MISSING";
@@ -827,6 +1046,8 @@ export function buildProductionEvidenceRefs(
         assessmentTimestamp: ts,
         candleState,
         notes,
+        measurements,
+        levels,
       }),
     );
   }
@@ -871,6 +1092,11 @@ export function buildProductionEvidenceRefs(
   }
 
   const dti = input.deepTechnicalIntelligence;
+  const conflictReport = classifyRegimeDtiStructureConflict({
+    regime: input.regime ?? null,
+    marketStructure: input.marketStructure ?? null,
+    deepTechnical: dti ?? null,
+  });
   if (dti) {
     const usable =
       dti.status === "VALID"
@@ -896,9 +1122,53 @@ export function buildProductionEvidenceRefs(
         `mtf=${dti.mtf.alignment}`,
         `regime=${dti.overallRegimeLabel}`,
         `confluence=${dti.confluence.grade}`,
+        `conflictKind=${conflictReport.kind}`,
         `notWinProbability=TRUE`,
         `supplementalProjection=TRUE`,
+        `presentationOverlay=TRUE`,
       ].join("; "),
+      measurements: [
+        meas("overallRegimeLabel", dti.overallRegimeLabel, null, "DTI presentation overlay"),
+        meas("mtfAlignment", dti.mtf.alignment, null, null),
+        meas("confluenceGrade", dti.confluence.grade, null, null),
+        meas("conflictKind", conflictReport.kind, null, null),
+        meas("timeframe", dti.timeframe, null, null),
+        meas("calculationStatus", dti.status, null, null),
+      ],
+    });
+  }
+
+  if (
+    conflictReport.kind !== "AGREEMENT"
+    && (input.regime || dti || input.marketStructure)
+  ) {
+    pushSupplemental({
+      evidenceId: "ume.engine_conflict.regime_dti_structure",
+      family: "DEEP_TECHNICAL_INTELLIGENCE",
+      presence: "PRESENT",
+      qualityStatus: conflictReport.kind === "INSUFFICIENT_DATA" ? "MISSING" : "WARNING",
+      sourceEngine: "mif-engine-conflict",
+      sourceContractId: "kwizera.mif.engine-conflict.v1",
+      sourceContractVersion: "1.0.0",
+      sourcePolicyVersion: null,
+      sourceAssessmentId: conflictReport.snapshotRefs[0] ?? null,
+      sourceInputIdentity: null,
+      timeframe: tf,
+      timeframeRole: "INTERMEDIATE_STRUCTURE",
+      assessmentTimestamp: ts,
+      candleState: closedOrTip,
+      notes: formatConflictNotes(conflictReport),
+      measurements: [
+        meas("conflictKind", conflictReport.kind, null, null),
+        meas("resolutionStatus", conflictReport.resolutionStatus, null, null),
+        meas("engines", conflictReport.engines.join(",") || "none", null, null),
+        ...conflictReport.conclusions.slice(0, 6).map((c) =>
+          meas(`conclusion_${c.engine}`, c.conclusion, null, c.timeframe),
+        ),
+        ...conflictReport.reasons.slice(0, 4).map((r, i) =>
+          meas(`reason_${i + 1}`, r, null, null),
+        ),
+      ],
     });
   }
 

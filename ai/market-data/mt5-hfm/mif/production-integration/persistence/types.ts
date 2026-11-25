@@ -56,7 +56,14 @@ export interface MifPersistedAnalysisRun {
   detectorOutcomes: readonly {
     strategyId: string;
     detectorId: string | null;
+    detectorVersion?: string | null;
     status: string;
+    diagnostics?: string | null;
+    warnings?: readonly string[];
+    reasonCodes?: readonly string[];
+    candidateId?: string | null;
+    candidateStatus?: string | null;
+    evaluationTimestamp?: string | null;
   }[];
   placesOrders: false;
   mutatesBroker: false;

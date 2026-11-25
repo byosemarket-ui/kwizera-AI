@@ -5,6 +5,7 @@ export * from "./contracts.js";
 export * from "./types.js";
 export * from "./timeframe-roles.js";
 export * from "./build-evidence.js";
+export * from "./engine-conflict.js";
 export * from "./evidence-quality.js";
 export * from "./run-pipeline.js";
 export * from "./persistence/storage.js";

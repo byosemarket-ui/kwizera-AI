@@ -55,6 +55,12 @@ export interface MifMomentumAssessment extends MifSafetyFlags {
   notWinProbability: true;
   indicators: readonly MifMomentumIndicatorReading[];
   conflictingIndicators: boolean;
+  /** Tip closed candle open time used for ROC/RSI (unix sec). */
+  sourceTipOpenTimeSec: number | null;
+  /** Tip closed candle close time when known (unix sec); null if not on candle. */
+  sourceTipCloseTimeSec: number | null;
+  /** Momentum always evaluates CLOSED candles only. */
+  sourceCandleState: "CLOSED";
   qualityRef: {
     sourceKind: string | null;
     status: string;

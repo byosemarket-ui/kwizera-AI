@@ -1062,6 +1062,11 @@ export function runMifHfmOpportunityPipelineFromSeries(
         strategyId: o.strategyId,
         status: o.status,
         detectorId: o.detectorId,
+        detectorVersion: o.detectorVersion,
+        diagnostics: o.diagnostics,
+        warnings: o.warnings,
+        reasonCodes: o.reasonCodes,
+        candidateId: o.candidate?.candidateId ?? null,
       })),
     });
   } catch (err) {
