@@ -214,7 +214,7 @@ export async function prepareHfmAnalysisContext(
     let intelligenceOrchestration: unknown | null = null;
     if (!failedHard && snapshot) {
       try {
-        const orch = runChartsIntelligenceOrchestration({
+        const orch = await runChartsIntelligenceOrchestration({
           snapshot,
           correlationId: snapshot.snapshotId,
         });
@@ -222,6 +222,14 @@ export async function prepareHfmAnalysisContext(
         diagnostics.push(
           `intelligence:${orch.orchestrationStatus}:trusted=${orch.completeness.evidenceTrustedComplete}:warnings=${orch.warnings.length}`,
         );
+        if (orch.odPersistence?.attempted) {
+          diagnostics.push(
+            `odPersistence:persisted=${orch.odPersistence.persisted}:runId=${orch.odPersistence.runId ?? "none"}:created=${orch.odPersistence.created}:candidates=${orch.odPersistence.candidateIds.length}`,
+          );
+          if (orch.odPersistence.error) {
+            diagnostics.push(`odPersistence:error=${orch.odPersistence.error}`);
+          }
+        }
       } catch (err) {
         diagnostics.push(
           `intelligence:FAILED:${err instanceof Error ? err.message : String(err)}`,

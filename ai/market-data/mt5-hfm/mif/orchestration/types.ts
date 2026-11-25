@@ -61,6 +61,18 @@ export interface MifOrchestrationResult extends MifSafetyFlags {
   /** Phase 4 — deterministic dual-direction scenario package (non-LLM). */
   scenarioPackage: MifScenarioPackage | null;
   scenarioPackageId: string | null;
+  /**
+   * Charts → OD durable persistence result (null when not attempted).
+   * Failure is visible — never silent success.
+   */
+  odPersistence: {
+    attempted: boolean;
+    persisted: boolean;
+    runId: string | null;
+    candidateIds: readonly string[];
+    created: boolean;
+    error: string | null;
+  } | null;
   orchestrationStatus: MifOrchestrationStatus;
   completeness: MifOrchestrationCompleteness;
   warnings: readonly string[];

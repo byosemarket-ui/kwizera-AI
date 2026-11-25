@@ -307,7 +307,14 @@ export class MifOpportunityStorage {
    */
   async persistAnalysisResult(
     result: MifProductionIntegrationResult,
-    opts?: { analysisStartedAt?: string; runId?: string },
+    opts?: {
+      analysisStartedAt?: string;
+      runId?: string;
+      snapshotId?: string | null;
+      snapshotHash?: string | null;
+      chartsCorrelationId?: string | null;
+      provenanceSource?: "CHARTS_ANALYZE_NOW" | "OD_LIVE" | "OD_SERIES" | "UNKNOWN";
+    },
   ): Promise<{
     run: MifPersistedAnalysisRun;
     created: boolean;
@@ -319,6 +326,17 @@ export class MifOpportunityStorage {
     const analysisCompletedAt = result.processingTimestamp || new Date().toISOString();
     const analysisStartedAt = opts?.analysisStartedAt ?? analysisCompletedAt;
     const runId = opts?.runId || result.requestId || randomUUID();
+    const snapshotId = opts?.snapshotId != null && String(opts.snapshotId).trim()
+      ? String(opts.snapshotId).trim()
+      : null;
+    const snapshotHash = opts?.snapshotHash != null && String(opts.snapshotHash).trim()
+      ? String(opts.snapshotHash).trim()
+      : null;
+    const chartsCorrelationId = opts?.chartsCorrelationId != null
+      && String(opts.chartsCorrelationId).trim()
+      ? String(opts.chartsCorrelationId).trim()
+      : null;
+    const provenanceSource = opts?.provenanceSource ?? (snapshotId ? "CHARTS_ANALYZE_NOW" : "UNKNOWN");
 
     const existing = await this.getRun(runId);
     if (existing) {
@@ -393,6 +411,11 @@ export class MifOpportunityStorage {
         diagnostics: o.diagnostics ?? null,
         warnings: (o.warnings ?? []).slice(0, 12),
         reasonCodes: (o.reasonCodes ?? []).map(String).slice(0, 12),
+        missingEvidence: [
+          ...(o.evidenceValidation?.missingRequired ?? []),
+          ...((o.eligibility?.missing ?? []).map((m) => String(m.evidenceId || m.family || ""))),
+        ].map(String).filter(Boolean).slice(0, 24),
+        confirmationRequirements: (o.candidate?.requiredConfirmations ?? []).map(String).slice(0, 24),
         candidateId: o.candidate?.candidateId ?? null,
         candidateStatus: o.candidate?.status ?? null,
         evaluationTimestamp: o.evaluationTimestamp ?? null,
@@ -402,6 +425,13 @@ export class MifOpportunityStorage {
       acceptsForExecution: false,
       doesNotApproveAiReasoning: true,
       resultSnapshot: safeResult as MifProductionIntegrationResult,
+      snapshotId,
+      snapshotHash,
+      chartsCorrelationId,
+      provenance: {
+        source: provenanceSource,
+        persistedAt: analysisCompletedAt,
+      },
     };
 
     await atomicWrite(this.runPath(runId), `${JSON.stringify(run, null, 2)}\n`);
@@ -441,6 +471,7 @@ export class MifOpportunityStorage {
         rationale: cand.rationale,
         outcomeKind: "NONE",
         candidateSnapshot: cand,
+        snapshotId,
         placesOrders: false,
         mutatesBroker: false,
         acceptsForExecution: false,
@@ -487,19 +518,60 @@ export class MifOpportunityStorage {
   }
 
   private async touchIndex(run: MifPersistedAnalysisRun): Promise<void> {
-    const idx = (await readJsonFile<{ runs: Array<{ runId: string; requestId: string; symbol: string; at: string }> }>(
-      this.indexPath,
-    )) ?? { runs: [] };
+    const idx = (await readJsonFile<{
+      runs: Array<{
+        runId: string;
+        requestId: string;
+        symbol: string;
+        at: string;
+        snapshotId?: string | null;
+      }>;
+    }>(this.indexPath)) ?? { runs: [] };
     if (!idx.runs.some((r) => r.runId === run.runId)) {
       idx.runs.unshift({
         runId: run.runId,
         requestId: run.requestId,
         symbol: run.providerSymbol,
         at: run.analysisCompletedAt,
+        snapshotId: run.snapshotId ?? null,
       });
       idx.runs = idx.runs.slice(0, MIF_OPPORTUNITY_INDEX_RETENTION);
       await atomicWrite(this.indexPath, `${JSON.stringify(idx, null, 2)}\n`);
     }
+  }
+
+  /** Lookup OD run by Charts snapshotId (newest match wins). */
+  async getRunBySnapshotId(snapshotId: string): Promise<MifPersistedAnalysisRun | null> {
+    const sid = String(snapshotId || "").trim();
+    if (!sid) return null;
+    const byId = await this.getRun(sid);
+    if (byId && (byId.snapshotId === sid || byId.runId === sid || byId.requestId === sid)) {
+      return byId;
+    }
+    const idx = (await readJsonFile<{
+      runs: Array<{ runId: string; snapshotId?: string | null }>;
+    }>(this.indexPath)) ?? { runs: [] };
+    for (const row of idx.runs) {
+      if (row.snapshotId === sid || row.runId === sid) {
+        const run = await this.getRun(row.runId);
+        if (run) return run;
+      }
+    }
+    // Fallback scan (bounded) for older indexes without snapshotId column.
+    try {
+      const names = (await fs.readdir(this.runsDir))
+        .filter((n) => n.endsWith(".json") && !n.startsWith("_"))
+        .slice(0, 80);
+      for (const name of names) {
+        const run = await this.getRun(name.replace(/\.json$/i, ""));
+        if (run && (run.snapshotId === sid || run.runId === sid || run.requestId === sid)) {
+          return run;
+        }
+      }
+    } catch {
+      /* ignore scan errors */
+    }
+    return null;
   }
 
   /**

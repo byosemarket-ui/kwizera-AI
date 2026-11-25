@@ -33,6 +33,7 @@ export type MifScenarioLevelStatus =
   | "AVAILABLE_FROM_SOURCE"
   | "LEVELS_PARTIAL"
   | "LEVELS_NOT_PROVIDED"
+  | "LEVELS_INVALID_GEOMETRY"
   | "NOT_APPLICABLE";
 
 export interface MifScenarioLevel {

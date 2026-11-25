@@ -69,6 +69,7 @@ function emptyRecord(
     usage: partial.usage ?? null,
     result: partial.result ?? null,
     predictionLinkage: partial.predictionLinkage ?? null,
+    promptProvenance: partial.promptProvenance ?? null,
     placesOrders: false,
     mutatesBroker: false,
     acceptsForExecution: false,
@@ -271,6 +272,18 @@ export async function runHfmAiReasoning(input: {
 
     const system = buildHfmReasoningSystemPrompt();
     const userText = buildHfmReasoningUserPrompt(unified.json);
+    const { buildHfmPromptProvenance } = await import("./prompt-provenance.js");
+    const promptProvenance = buildHfmPromptProvenance({
+      systemPrompt: system,
+      userPrompt: userText,
+      unifiedJson: unified.json as Record<string, unknown>,
+      model,
+      analysisId,
+      snapshotId: evidence.snapshotId,
+      evidencePackageId: unified.evidencePackageId,
+      scenarioPackageId: unified.scenarioPackageId,
+      unifiedInputIdentity: unified.unifiedInputIdentity,
+    });
     // Images in TF order H1→M5; do not log base64. Exactly four images (H4 text-only).
     const images = evidence.images.map((img) => ({
       mimeType: img.mimeType,
@@ -278,8 +291,9 @@ export async function runHfmAiReasoning(input: {
     }));
 
     const gateExclusive = getOpenAiInferenceGate();
-    record = { ...record, status: "REASONING" };
+    record = { ...record, status: "REASONING", promptProvenance };
     setActiveReasoningRecord(record);
+    await storage.save(record).catch(() => undefined);
 
     const chat = await gateExclusive.runExclusive(evidence.snapshotId, async () =>
       openAiChatMultimodalJson({
@@ -482,6 +496,7 @@ export async function runHfmAiReasoning(input: {
       ...record,
       status: "COMPLETED",
       result,
+      promptProvenance,
       errorCode: null,
       errorMessage: null,
       usage: {

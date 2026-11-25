@@ -617,10 +617,10 @@ describe("Phase 4 — orchestration integration + persistence + safety", () => {
     await fs.rm(tmp, { recursive: true, force: true });
   });
 
-  it("Charts orchestration includes scenario package; OD remains disabled", () => {
+  it("Charts orchestration includes scenario package; OD remains disabled", async () => {
     expect(getMifOdWorkerStatus().enabled).toBe(false);
     const snap = makeSnapshot();
-    const orch = runChartsIntelligenceOrchestration({
+    const orch = await runChartsIntelligenceOrchestration({
       snapshot: snap,
       correlationId: snap.snapshotId,
     });
@@ -638,7 +638,7 @@ describe("Phase 4 — orchestration integration + persistence + safety", () => {
   it("persists scenario package by snapshotId with read-after-write", async () => {
     const store = new HfmAnalysisStorage(tmp);
     const snap = makeSnapshot();
-    const orch = runChartsIntelligenceOrchestration({ snapshot: snap });
+    const orch = await runChartsIntelligenceOrchestration({ snapshot: snap });
     expect(orch.scenarioPackage).toBeTruthy();
     await store.saveScenarioPackage(snap.snapshotId, orch.scenarioPackage);
     const loaded = await store.loadScenarioPackage(snap.snapshotId) as {

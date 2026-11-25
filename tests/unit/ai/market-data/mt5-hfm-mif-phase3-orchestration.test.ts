@@ -287,9 +287,9 @@ describe("Phase 3 — orchestration pipeline & fail-open", () => {
     __resetOrchestrationLockForTests();
   });
 
-  it("runs ranking-only path with Charts snapshot identity verified", () => {
+  it("runs ranking-only path with Charts snapshot identity verified", async () => {
     const snap = makeSnapshot();
-    const result = runChartsIntelligenceOrchestration({
+    const result = await runChartsIntelligenceOrchestration({
       snapshot: snap,
       correlationId: snap.snapshotId,
     });
@@ -312,18 +312,18 @@ describe("Phase 3 — orchestration pipeline & fail-open", () => {
     }
   });
 
-  it("refuses fabricated snapshot identity", () => {
+  it("refuses fabricated snapshot identity", async () => {
     const snap = makeSnapshot({ missingIdentity: true });
-    const result = runHfmIntelligenceOrchestration({ snapshot: snap });
+    const result = await runHfmIntelligenceOrchestration({ snapshot: snap });
     expect(result.orchestrationStatus).toBe("FAILED");
     expect(result.snapshotIdSourceVerified).toBe(false);
     expect(result.warnings).toContain("MISSING_SNAPSHOT_IDENTITY");
     expect(result.evidencePackage).toBeNull();
   });
 
-  it("returns PARTIAL when H4 missing (not fabricated)", () => {
+  it("returns PARTIAL when H4 missing (not fabricated)", async () => {
     const snap = makeSnapshot({ omitTf: "H4" });
-    const result = runHfmIntelligenceOrchestration({
+    const result = await runHfmIntelligenceOrchestration({
       snapshot: snap,
       correlationId: "partial-h4",
     });
@@ -335,10 +335,10 @@ describe("Phase 3 — orchestration pipeline & fail-open", () => {
     }
   });
 
-  it("skips when another orchestration holds the lock", () => {
+  it("skips when another orchestration holds the lock", async () => {
     expect(tryAcquireOrchestrationLock("holder-a")).toBe(true);
     const snap = makeSnapshot();
-    const result = runHfmIntelligenceOrchestration({
+    const result = await runHfmIntelligenceOrchestration({
       snapshot: snap,
       correlationId: "blocked",
     });
@@ -348,15 +348,15 @@ describe("Phase 3 — orchestration pipeline & fail-open", () => {
     expect(isOrchestrationLocked()).toBe(false);
   });
 
-  it("releases lock after failure and timeout path", () => {
+  it("releases lock after failure and timeout path", async () => {
     const snap = makeSnapshot();
-    const failed = runHfmIntelligenceOrchestration({
+    const failed = await runHfmIntelligenceOrchestration({
       snapshot: { ...snap, snapshotId: "", snapshotHash: "" },
     });
     expect(failed.orchestrationStatus).toBe("FAILED");
     expect(isOrchestrationLocked()).toBe(false);
 
-    const timed = runHfmIntelligenceOrchestration({
+    const timed = await runHfmIntelligenceOrchestration({
       snapshot: snap,
       deadlineMs: 0,
     });
@@ -371,11 +371,11 @@ describe("Phase 3 — orchestration pipeline & fail-open", () => {
     expect(MIF_ORCHESTRATION_DEADLINE_MS).toBe(10_000);
   });
 
-  it("OD worker remains disabled and safety flags stay false", () => {
+  it("OD worker remains disabled and safety flags stay false", async () => {
     const worker = getMifOdWorkerStatus();
     expect(worker.enabled).toBe(false);
     const snap = makeSnapshot();
-    const result = runChartsIntelligenceOrchestration({ snapshot: snap });
+    const result = await runChartsIntelligenceOrchestration({ snapshot: snap });
     expect(result.placesOrders).toBe(false);
     expect(result.mutatesBroker).toBe(false);
     expect(result.acceptsForExecution).toBe(false);
@@ -402,7 +402,7 @@ describe("Phase 3 — evidence persistence", () => {
   it("write + read-after-write by snapshotId; legacy contexts remain readable", async () => {
     const store = new HfmAnalysisStorage(tmp);
     const snap = makeSnapshot();
-    const orch = runChartsIntelligenceOrchestration({ snapshot: snap });
+    const orch = await runChartsIntelligenceOrchestration({ snapshot: snap });
 
     await store.saveIntelligenceOrchestration(snap.snapshotId, orch);
     const loaded = await store.loadIntelligenceOrchestration(snap.snapshotId);

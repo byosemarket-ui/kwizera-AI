@@ -78,6 +78,7 @@ function baseResult(partial: Partial<MifOrchestrationResult> & {
     evidencePackage: partial.evidencePackage ?? null,
     scenarioPackage: partial.scenarioPackage ?? null,
     scenarioPackageId: partial.scenarioPackageId ?? null,
+    odPersistence: partial.odPersistence ?? null,
     orchestrationStatus: partial.orchestrationStatus,
     completeness: partial.completeness,
     warnings: partial.warnings ?? [],
@@ -105,10 +106,11 @@ export interface RunHfmIntelligenceOrchestrationInput {
 /**
  * Orchestrate bounded MIF intelligence from an existing Charts snapshot.
  * Does not re-fetch HFM market data. Does not call OpenAI. Does not enable OD worker.
+ * Persists OD run/candidates via the canonical opportunity store (idempotent by runId).
  */
-export function runHfmIntelligenceOrchestration(
+export async function runHfmIntelligenceOrchestration(
   input: RunHfmIntelligenceOrchestrationInput,
-): MifOrchestrationResult {
+): Promise<MifOrchestrationResult> {
   const started = Date.now();
   const timings = emptyTimings();
   const correlationId = String(input.correlationId || "").trim() || randomUUID();
@@ -321,6 +323,72 @@ export function runHfmIntelligenceOrchestration(
     timings.pipelineMs = Date.now() - t1;
     warnings.push(...(pipeline.warnings ?? []));
 
+    // Charts Analyze Now OD persistence parity — durable run + candidates linked to snapshot.
+    // Keep skipProbability semantics; do not enable OD worker. Failures are visible.
+    let odPersistence: MifOrchestrationResult["odPersistence"] = {
+      attempted: false,
+      persisted: false,
+      runId: null,
+      candidateIds: [],
+      created: false,
+      error: null,
+    };
+    const tPersist = Date.now();
+    if (
+      !String(pipeline.analysisStatus || "").startsWith("FAILED_VALIDATION")
+      && pipeline.detection
+    ) {
+      odPersistence = { ...odPersistence, attempted: true };
+      try {
+        const { getMifOpportunityStorage } = await import(
+          "../production-integration/persistence/storage.js"
+        );
+        const store = getMifOpportunityStorage();
+        const saved = await store.persistAnalysisResult(pipeline, {
+          analysisStartedAt: new Date(started).toISOString(),
+          // Idempotent key: snapshot identity (Charts correlationId === snapshotId).
+          runId: snap.snapshotId,
+          snapshotId: snap.snapshotId,
+          snapshotHash: snap.snapshotHash,
+          chartsCorrelationId: correlationId,
+          provenanceSource: "CHARTS_ANALYZE_NOW",
+        });
+        odPersistence = {
+          attempted: true,
+          persisted: true,
+          runId: saved.run.runId,
+          candidateIds: saved.candidates.map((c) => c.candidateId),
+          created: saved.created,
+          error: null,
+        };
+        // Reflect persistence on in-memory pipeline for UMEP / mifRunId.
+        (pipeline as { persistence?: unknown }).persistence = {
+          persisted: true,
+          runId: saved.run.runId,
+          candidateIds: saved.candidates.map((c) => c.candidateId),
+          created: saved.created,
+          rankingRunId: saved.rankingRunId,
+        };
+        if (!saved.created) {
+          warnings.push("OD_PERSISTENCE_IDEMPOTENT_REUSE");
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        odPersistence = {
+          attempted: true,
+          persisted: false,
+          runId: null,
+          candidateIds: [],
+          created: false,
+          error: msg,
+        };
+        warnings.push(`OD_PERSISTENCE_FAILED:${msg}`);
+      }
+    } else {
+      warnings.push("OD_PERSISTENCE_SKIPPED");
+    }
+    timings.persistMs = Date.now() - tPersist;
+
     const rankingIncluded = pipeline.ranking != null;
     const enginesCompleted = [
       "integrity",
@@ -461,11 +529,14 @@ export function runHfmIntelligenceOrchestration(
       timeframePack: pack,
       candleTipStates: converted.tipStates,
       mifRequestId: pipeline.requestId,
-      mifRunId: pipeline.persistence?.runId ?? pipeline.requestId,
+      mifRunId: odPersistence?.runId
+        ?? pipeline.persistence?.runId
+        ?? pipeline.requestId,
       evidencePackageId: evidencePackage?.packageId ?? evidencePackageId,
       evidencePackage,
       scenarioPackage,
       scenarioPackageId,
+      odPersistence,
       orchestrationStatus,
       completeness: {
         expectedTimeframes: [...pack],

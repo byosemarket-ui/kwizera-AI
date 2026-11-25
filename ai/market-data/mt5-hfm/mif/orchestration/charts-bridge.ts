@@ -19,10 +19,11 @@ export interface HfmChartsIntelligenceRequest {
 /**
  * Clean Charts → MIF orchestration entry.
  * Fail-open: returns FAILED/SKIPPED/PARTIAL without throwing on ordinary errors.
+ * Persists OD run/candidates linked to the Charts snapshot (async).
  */
-export function runChartsIntelligenceOrchestration(
+export async function runChartsIntelligenceOrchestration(
   input: HfmChartsIntelligenceRequest,
-): MifOrchestrationResult {
+): Promise<MifOrchestrationResult> {
   return runHfmIntelligenceOrchestration({
     snapshot: input.snapshot,
     correlationId: input.correlationId,

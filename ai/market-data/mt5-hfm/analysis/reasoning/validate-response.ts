@@ -96,11 +96,63 @@ function enumToken(v: unknown): string | null {
   return t;
 }
 
+/**
+ * Coerce model string arrays without `String(object)` → "[object Object]".
+ * Prefer explicit text fields; JSON.stringify as last resort for plain objects.
+ */
+function coerceFactString(x: unknown): string {
+  if (x == null) return "";
+  if (typeof x === "string") {
+    const t = x.trim();
+    return t === "[object Object]" ? "" : t;
+  }
+  if (typeof x === "number" || typeof x === "boolean") return String(x);
+  if (Array.isArray(x)) {
+    return x.map(coerceFactString).filter(Boolean).join("; ");
+  }
+  if (isObj(x)) {
+    for (const key of [
+      "text",
+      "fact",
+      "summary",
+      "description",
+      "value",
+      "note",
+      "message",
+      "label",
+      "observation",
+    ] as const) {
+      const s = asString(x[key]);
+      if (s) {
+        const t = s.trim();
+        if (t && t !== "[object Object]") {
+          const eid = asString(x.evidenceId) || asString(x.evidenceRef) || asString(x.id);
+          return eid ? `${t} [${eid}]` : t;
+        }
+      }
+    }
+    try {
+      const json = JSON.stringify(x);
+      if (json && json !== "{}" && json !== "[object Object]") return json;
+    } catch {
+      return "";
+    }
+  }
+  return "";
+}
+
 function coerceStringArray(v: unknown): string[] {
   if (Array.isArray(v)) {
-    return v.map((x) => (x == null ? "" : String(x))).filter((s) => s.length > 0);
+    return v.map(coerceFactString).filter((s) => s.length > 0);
   }
-  if (typeof v === "string" && v.trim()) return [v.trim()];
+  if (typeof v === "string" && v.trim()) {
+    const t = v.trim();
+    return t === "[object Object]" ? [] : [t];
+  }
+  if (isObj(v)) {
+    const one = coerceFactString(v);
+    return one ? [one] : [];
+  }
   return [];
 }
 

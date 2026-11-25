@@ -61,6 +61,8 @@ export interface MifPersistedAnalysisRun {
     diagnostics?: string | null;
     warnings?: readonly string[];
     reasonCodes?: readonly string[];
+    missingEvidence?: readonly string[];
+    confirmationRequirements?: readonly string[];
     candidateId?: string | null;
     candidateStatus?: string | null;
     evaluationTimestamp?: string | null;
@@ -71,6 +73,17 @@ export interface MifPersistedAnalysisRun {
   doesNotApproveAiReasoning: true;
   /** Full result retained for audit (no secrets). */
   resultSnapshot: MifProductionIntegrationResult;
+  /**
+   * Charts Analyze Now linkage (optional; absent on older OD-only runs).
+   * Never fabricate — only set when the Charts snapshot identity is known.
+   */
+  snapshotId?: string | null;
+  snapshotHash?: string | null;
+  chartsCorrelationId?: string | null;
+  provenance?: {
+    source: "CHARTS_ANALYZE_NOW" | "OD_LIVE" | "OD_SERIES" | "UNKNOWN";
+    persistedAt: string;
+  } | null;
 }
 
 export interface MifPersistedLifecycleEvent {
@@ -122,6 +135,8 @@ export interface MifPersistedCandidate {
   outcomeKind: MifCandidateOutcomeKind;
   /** Original candidate payload (immutable snapshot). */
   candidateSnapshot: MifOpportunityCandidate;
+  /** Charts snapshot linkage when persisted from Analyze Now. */
+  snapshotId?: string | null;
   placesOrders: false;
   mutatesBroker: false;
   acceptsForExecution: false;

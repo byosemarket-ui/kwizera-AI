@@ -273,6 +273,11 @@ export interface HfmReasoningRecord {
    * Present after bridge attempt on COMPLETED analyses; null/absent on older records.
    */
   predictionLinkage?: HfmChartsPredictionLinkage | null;
+  /**
+   * Auditable prompt provenance: digest of rendered prompt + numeric measurement subset.
+   * Absent on older records. Never stores secrets or image payloads.
+   */
+  promptProvenance?: import("./prompt-provenance.js").HfmPromptProvenance | null;
   placesOrders: false;
   mutatesBroker: false;
   acceptsForExecution: false;

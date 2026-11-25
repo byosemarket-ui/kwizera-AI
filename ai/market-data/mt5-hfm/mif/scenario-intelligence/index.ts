@@ -5,7 +5,7 @@ export {
   candidateStatusToPresentation,
   MIF_SCENARIO_LIFECYCLE_MAPPING,
 } from "./lifecycle-map.js";
-export { buildScenarioLevels } from "./levels.js";
+export { buildScenarioLevels, validateScenarioLevelGeometry } from "./levels.js";
 export {
   computeSetupFingerprint,
   computeScenarioId,
