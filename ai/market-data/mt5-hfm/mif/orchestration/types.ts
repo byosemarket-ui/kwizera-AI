@@ -1,6 +1,7 @@
 import type { MifSafetyFlags } from "../canonical/types.js";
 import type { MifMarketEvidencePackage } from "../market-evidence/types.js";
 import type { MifScenarioPackage } from "../scenario-intelligence/types.js";
+import type { HfmDirectionalFusionPackage } from "../directional-fusion/types.js";
 import type {
   MIF_ORCHESTRATION_CONTRACT_ID,
   MIF_ORCHESTRATION_CONTRACT_VERSION,
@@ -61,6 +62,8 @@ export interface MifOrchestrationResult extends MifSafetyFlags {
   /** Phase 4 — deterministic dual-direction scenario package (non-LLM). */
   scenarioPackage: MifScenarioPackage | null;
   scenarioPackageId: string | null;
+  /** Deterministic BUY|SELL directional fusion + conviction (analytical only). */
+  directionalFusion: HfmDirectionalFusionPackage | null;
   /**
    * Charts → OD durable persistence result (null when not attempted).
    * Failure is visible — never silent success.

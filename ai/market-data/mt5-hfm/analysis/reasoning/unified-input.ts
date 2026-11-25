@@ -572,10 +572,11 @@ export function buildHfmUnifiedAiAnalysisInput(
     engineConflictItem?.measurements?.find((m) => m.id === "conflictKind")?.value
     ?? null;
 
+  const fusionPkg = verified.orchestration?.directionalFusion ?? null;
   const rankingSummary = verified.orchestration
     ? {
         isWinProbability: false as const,
-        note: "Deterministic ranking / scenario outcome is non-probability guidance. OpenAI must not treat ranking score as win probability.",
+        note: "Deterministic ranking / scenario outcome / directional fusion are non-probability guidance. OpenAI must not treat scores as win probability.",
         orchestrationStatus: verified.orchestration.orchestrationStatus,
         evidenceTrustedComplete: verified.orchestration.completeness?.evidenceTrustedComplete ?? false,
         scenarioOutcome: scenarioPkg?.outcome ?? null,
@@ -583,6 +584,8 @@ export function buildHfmUnifiedAiAnalysisInput(
         comparisonExplanation: scenarioPkg
           ? clipNote(scenarioPkg.comparisonExplanation, 400)
           : null,
+        directionalFusionDirection: fusionPkg?.conviction.direction ?? null,
+        directionalConvictionScore: fusionPkg?.conviction.directionalConvictionScore ?? null,
       }
     : {
         isWinProbability: false as const,
@@ -592,6 +595,8 @@ export function buildHfmUnifiedAiAnalysisInput(
         scenarioOutcome: null,
         strongerSide: null,
         comparisonExplanation: null,
+        directionalFusionDirection: null,
+        directionalConvictionScore: null,
       };
 
   const truncated = evidenceTruncated || imageRefs.length !== 4;
@@ -672,6 +677,35 @@ export function buildHfmUnifiedAiAnalysisInput(
             snapshotHash: scenarioPkg.snapshotHash,
             snapshotIdSourceVerified: scenarioPkg.snapshotIdSourceVerified,
           },
+        }
+      : null,
+    /** Deterministic BUY|SELL fusion — primary directional guidance (not execution auth). */
+    directionalFusion: fusionPkg
+      ? {
+          contractId: fusionPkg.contractId,
+          contractVersion: fusionPkg.contractVersion,
+          engineId: fusionPkg.engineId,
+          engineVersion: fusionPkg.engineVersion,
+          direction: fusionPkg.conviction.direction,
+          directionalConvictionScore: fusionPkg.conviction.directionalConvictionScore,
+          convictionLabel: fusionPkg.conviction.convictionLabel,
+          bullishEvidenceScore: fusionPkg.conviction.bullishEvidenceScore,
+          bearishEvidenceScore: fusionPkg.conviction.bearishEvidenceScore,
+          evidenceCompleteness: fusionPkg.conviction.evidenceCompleteness,
+          dataQuality: fusionPkg.conviction.dataQuality,
+          conflictSeverity: fusionPkg.conviction.conflictSeverity,
+          conflictKind: fusionPkg.conviction.conflictKind,
+          supportingEngineIds: fusionPkg.conviction.supportingEngineIds.slice(0, 24),
+          contradictingEngineIds: fusionPkg.conviction.contradictingEngineIds.slice(0, 24),
+          keyEvidence: fusionPkg.conviction.keyEvidence.slice(0, 12).map((k) => clipNote(k, 160)),
+          knownLimitations: fusionPkg.conviction.knownLimitations.slice(0, 16).map((k) => clipNote(k, 120)),
+          calculationVersion: fusionPkg.conviction.calculationVersion,
+          tieBreakApplied: fusionPkg.conviction.tieBreakApplied,
+          tieBreakReason: fusionPkg.conviction.tieBreakReason,
+          scoreSemantics: fusionPkg.conviction.scoreSemantics,
+          executionAuthorizationImplied: false as const,
+          familyCapsApplied: fusionPkg.familyCapsApplied,
+          note: "Primary market direction MUST be BUY or SELL. Fusion score is analytical conviction, not win probability, and does not authorize execution.",
         }
       : null,
     /** Phase 7 economic calendar — informational; never modifies Phase 4 ranking. */

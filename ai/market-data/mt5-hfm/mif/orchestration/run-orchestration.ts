@@ -12,6 +12,8 @@ import { runMifHfmOpportunityPipelineFromSeries } from "../production-integratio
 import { getMifOdWorkerStatus } from "../production-integration/worker.js";
 import { buildScenarioIntelligence } from "../scenario-intelligence/build-scenarios.js";
 import type { MifScenarioPackage } from "../scenario-intelligence/types.js";
+import { fuseHfmDirectionalBias } from "../directional-fusion/fuse-directional-bias.js";
+import type { HfmDirectionalFusionPackage } from "../directional-fusion/types.js";
 import {
   MIF_ORCHESTRATION_CONTRACT_ID,
   MIF_ORCHESTRATION_CONTRACT_VERSION,
@@ -78,6 +80,7 @@ function baseResult(partial: Partial<MifOrchestrationResult> & {
     evidencePackage: partial.evidencePackage ?? null,
     scenarioPackage: partial.scenarioPackage ?? null,
     scenarioPackageId: partial.scenarioPackageId ?? null,
+    directionalFusion: partial.directionalFusion ?? null,
     odPersistence: partial.odPersistence ?? null,
     orchestrationStatus: partial.orchestrationStatus,
     completeness: partial.completeness,
@@ -466,6 +469,7 @@ export async function runHfmIntelligenceOrchestration(
     // Phase 4 — deterministic scenario synthesis on already-available pipeline outputs.
     let scenarioPackage: MifScenarioPackage | null = null;
     let scenarioPackageId: string | null = null;
+    let directionalFusion: HfmDirectionalFusionPackage | null = null;
     if (Date.now() >= deadlineAtMs) {
       warnings.push("TIMEOUT:skipped_scenario_intelligence");
       enginesSkipped.push("scenario_intelligence");
@@ -494,6 +498,32 @@ export async function runHfmIntelligenceOrchestration(
         );
         enginesSkipped.push("scenario_intelligence");
       }
+    }
+
+    // Directional evidence fusion — always BUY|SELL; never replaces execution readiness.
+    if (Date.now() < deadlineAtMs) {
+      try {
+        directionalFusion = fuseHfmDirectionalBias({
+          symbol,
+          scenarioPackage,
+          evidencePackage,
+          pipeline,
+          tipStates: converted.tipStates,
+        });
+        enginesCompleted.push("directional_fusion");
+        warnings.push(
+          `directional_fusion=${directionalFusion.conviction.direction}:` +
+          `${directionalFusion.conviction.directionalConvictionScore}`,
+        );
+      } catch (err) {
+        warnings.push(
+          `directional_fusion_failed:${err instanceof Error ? err.message : String(err)}`,
+        );
+        enginesSkipped.push("directional_fusion");
+      }
+    } else {
+      warnings.push("TIMEOUT:skipped_directional_fusion");
+      enginesSkipped.push("directional_fusion");
     }
 
     const timedOut = pipeline.warnings.some((w) => String(w).startsWith("TIMEOUT:"))
@@ -536,6 +566,7 @@ export async function runHfmIntelligenceOrchestration(
       evidencePackage,
       scenarioPackage,
       scenarioPackageId,
+      directionalFusion,
       odPersistence,
       orchestrationStatus,
       completeness: {

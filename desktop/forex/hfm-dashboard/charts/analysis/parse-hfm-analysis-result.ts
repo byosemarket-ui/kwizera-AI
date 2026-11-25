@@ -64,11 +64,33 @@ export interface ParsedLevel {
   sourceBacked: boolean;
 }
 
+export interface ParsedDirectionalConviction {
+  direction: "BUY" | "SELL" | null;
+  score: number | null;
+  label: string | null;
+  bullishEvidenceScore: number | null;
+  bearishEvidenceScore: number | null;
+  evidenceCompleteness: number | null;
+  dataQuality: number | null;
+  conflictSeverity: number | null;
+  conflictKind: string | null;
+  supportingEngineIds: string[];
+  contradictingEngineIds: string[];
+  keyEvidence: string[];
+  knownLimitations: string[];
+  calculationVersion: string | null;
+  scoreSemantics: string | null;
+}
+
 export interface ParsedAnalysisView {
   action: DecisionAction;
-  /** Preferred directional bias; may be BUY_BIAS/SELL_BIAS while action remains WAITING. */
+  /** Primary market direction — BUY|SELL when fusion/normalization applied. */
+  marketDirection: "BUY" | "SELL" | null;
+  /** Preferred directional bias; may be BUY_BIAS/SELL_BIAS while readiness remains WAITING. */
   preferredBias: PreferredBias;
   decisionStatus: string | null;
+  executionReadiness: string | null;
+  directionalConviction: ParsedDirectionalConviction | null;
   confidence: number | null;
   confidenceLabel: string | null;
   confidenceDisclaimer: string;
@@ -212,13 +234,49 @@ export function parseHfmAnalysisRecord(analysis: unknown): ParsedAnalysisView | 
   const result = asRecord(root.result);
   const decision = asRecord(result?.decision);
   const rawAction = str(decision?.action)?.toUpperCase() ?? "";
+  const rawMarketDirection = str(result?.marketDirection)?.toUpperCase() ?? "";
+  const marketDirection: "BUY" | "SELL" | null =
+    rawMarketDirection === "BUY" || rawMarketDirection === "SELL"
+      ? rawMarketDirection
+      : rawAction === "BUY" || rawAction === "SELL"
+      ? rawAction
+      : null;
+  // Hero / primary action prefers marketDirection (always BUY|SELL when present).
   const action: DecisionAction =
-    rawAction === "BUY"
-    || rawAction === "SELL"
-    || rawAction === "NO_TRADE"
-    || rawAction === "WAITING_FOR_CONFIRMATION"
+    marketDirection
+      ? marketDirection
+      : rawAction === "BUY"
+      || rawAction === "SELL"
+      || rawAction === "NO_TRADE"
+      || rawAction === "WAITING_FOR_CONFIRMATION"
       ? rawAction
       : "NONE";
+
+  const convictionRaw = asRecord(result?.directionalConviction);
+  const directionalConviction: ParsedDirectionalConviction | null = convictionRaw
+    ? {
+        direction:
+          str(convictionRaw.direction)?.toUpperCase() === "SELL"
+            ? "SELL"
+            : str(convictionRaw.direction)?.toUpperCase() === "BUY"
+            ? "BUY"
+            : marketDirection,
+        score: num(convictionRaw.directionalConvictionScore),
+        label: str(convictionRaw.convictionLabel),
+        bullishEvidenceScore: num(convictionRaw.bullishEvidenceScore),
+        bearishEvidenceScore: num(convictionRaw.bearishEvidenceScore),
+        evidenceCompleteness: num(convictionRaw.evidenceCompleteness),
+        dataQuality: num(convictionRaw.dataQuality),
+        conflictSeverity: num(convictionRaw.conflictSeverity),
+        conflictKind: str(convictionRaw.conflictKind),
+        supportingEngineIds: strArr(convictionRaw.supportingEngineIds),
+        contradictingEngineIds: strArr(convictionRaw.contradictingEngineIds),
+        keyEvidence: strArr(convictionRaw.keyEvidence),
+        knownLimitations: strArr(convictionRaw.knownLimitations),
+        calculationVersion: str(convictionRaw.calculationVersion),
+        scoreSemantics: str(convictionRaw.scoreSemantics),
+      }
+    : null;
 
   const trade = asRecord(result?.tradePlan);
   const entry = asRecord(trade?.entryZone);
@@ -305,8 +363,11 @@ export function parseHfmAnalysisRecord(analysis: unknown): ParsedAnalysisView | 
 
   return {
     action,
+    marketDirection,
     preferredBias,
     decisionStatus: str(result?.decisionStatus),
+    executionReadiness: str(result?.executionReadiness),
+    directionalConviction,
     confidence: num(decision?.confidence),
     confidenceLabel: str(decision?.confidenceLabel),
     confidenceDisclaimer:

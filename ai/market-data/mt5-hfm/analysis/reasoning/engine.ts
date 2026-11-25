@@ -37,6 +37,10 @@ import {
 } from "./unified-input.js";
 import { validateHfmReasoningModelResponse } from "./validate-response.js";
 import {
+  applyPrimaryMarketDirection,
+  isPredictionBridgeEligible,
+} from "./apply-primary-direction.js";
+import {
   HFM_CHARTS_PREDICTION_BRIDGE_CONTRACT_ID,
   HFM_CHARTS_PREDICTION_BRIDGE_CONTRACT_VERSION,
   HFM_CHARTS_PREDICTION_BRIDGE_ID,
@@ -474,23 +478,28 @@ export async function runHfmAiReasoning(input: {
     }
 
     // Force trusted identity fields (never trust model alone).
-    const result = {
-      ...validated.result,
-      provider: "HFM_MT5" as const,
-      symbol: evidence.symbol,
-      contextId: evidence.contextId,
-      snapshotId: evidence.snapshotId,
-      snapshotHash: evidence.snapshotHash,
-      analysisId,
-      model,
-      unifiedInputIdentity: unified.unifiedInputIdentity,
-      evidencePackageId: unified.evidencePackageId,
-      scenarioPackageId: unified.scenarioPackageId,
-      inputCompleteness: unified.completeness,
-      placesOrders: false as const,
-      mutatesBroker: false as const,
-      acceptsForExecution: false as const,
-    };
+    // Apply deterministic BUY|SELL primary direction from evidence fusion.
+    const result = applyPrimaryMarketDirection({
+      result: {
+        ...validated.result,
+        provider: "HFM_MT5" as const,
+        symbol: evidence.symbol,
+        contextId: evidence.contextId,
+        snapshotId: evidence.snapshotId,
+        snapshotHash: evidence.snapshotHash,
+        analysisId,
+        model,
+        unifiedInputIdentity: unified.unifiedInputIdentity,
+        evidencePackageId: unified.evidencePackageId,
+        scenarioPackageId: unified.scenarioPackageId,
+        inputCompleteness: unified.completeness,
+        placesOrders: false as const,
+        mutatesBroker: false as const,
+        acceptsForExecution: false as const,
+      },
+      fusion: orchestration?.directionalFusion ?? null,
+      strongerSide: scenarioPackage?.strongerSide ?? null,
+    });
 
     record = {
       ...record,
@@ -513,19 +522,44 @@ export async function runHfmAiReasoning(input: {
       },
     };
 
-    // P8.A — bridge completed BUY/SELL into immutable MIF prediction snapshot.
-    // Failures never drop the analysis; NO_TRADE/WAITING skip without fake predictions.
+    // P8.A — bridge only when setup is CONFIRMED+READY (direction alone is not enough).
+    // Failures never drop the analysis; unconfirmed BUY/SELL skip without fake predictions.
     try {
       const {
         applyPredictionLinkage,
         bridgeChartsReasoningToPrediction,
       } = await import("../prediction-bridge/index.js");
-      const bridgeResult = await bridgeChartsReasoningToPrediction({
-        record,
-        context: evidence.context,
-        scenarioPackage,
-      });
-      record = applyPredictionLinkage(record, bridgeResult);
+      if (!isPredictionBridgeEligible(result)) {
+        record = {
+          ...record,
+          predictionLinkage: {
+            bridgeContractId: HFM_CHARTS_PREDICTION_BRIDGE_CONTRACT_ID,
+            bridgeContractVersion: HFM_CHARTS_PREDICTION_BRIDGE_CONTRACT_VERSION,
+            bridgeId: HFM_CHARTS_PREDICTION_BRIDGE_ID,
+            bridgeVersion: HFM_CHARTS_PREDICTION_BRIDGE_VERSION,
+            status: "SKIPPED",
+            predictionId: null,
+            snapshotHash: null,
+            decisionAction: result.decision?.action ?? null,
+            scenarioId: result.selectedScenarioId ?? null,
+            setupFingerprint: null,
+            evidencePackageId: result.evidencePackageId ?? null,
+            scenarioPackageId: result.scenarioPackageId ?? null,
+            reason: `NOT_EXECUTION_READY:${result.executionReadiness ?? result.decisionStatus}`,
+            bridgedAt: new Date().toISOString(),
+            placesOrders: false,
+            mutatesBroker: false,
+            acceptsForExecution: false,
+          },
+        };
+      } else {
+        const bridgeResult = await bridgeChartsReasoningToPrediction({
+          record,
+          context: evidence.context,
+          scenarioPackage,
+        });
+        record = applyPredictionLinkage(record, bridgeResult);
+      }
     } catch (bridgeErr) {
       const message =
         bridgeErr instanceof Error ? bridgeErr.message : String(bridgeErr);

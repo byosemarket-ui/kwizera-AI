@@ -6,7 +6,7 @@
 export const HFM_REASONING_SCHEMA_VERSION = "hfm-ai-analysis-v1.2" as const;
 export const HFM_REASONING_SCHEMA_VERSION_LEGACY_V11 = "hfm-ai-analysis-v1.1" as const;
 export const HFM_REASONING_SCHEMA_VERSION_LEGACY = "hfm-ai-analysis-v1" as const;
-export const HFM_REASONING_PROMPT_VERSION = "hfm-ai-reasoning-prompt-v1.2.1" as const;
+export const HFM_REASONING_PROMPT_VERSION = "hfm-ai-reasoning-prompt-v1.3.0" as const;
 export const HFM_REASONING_PROVIDER = "HFM_MT5" as const;
 
 /** Vision / image timeframes (unchanged — H4 is text context only). */

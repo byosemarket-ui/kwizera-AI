@@ -143,6 +143,39 @@ export interface HfmReasoningConfidenceSemantics {
   definition: string;
 }
 
+export type HfmMarketDirectionPrimary = "BUY" | "SELL";
+
+export type HfmExecutionReadinessStatus =
+  | "SETUP_CONFIRMED"
+  | "SETUP_DEVELOPING"
+  | "ENTRY_NOT_AVAILABLE"
+  | "RISK_CHECK_REQUIRED"
+  | "EXECUTION_NOT_AUTHORIZED"
+  | "WAITING_FOR_CONFIRMATION"
+  | "INSUFFICIENT"
+  | "NO_TRADE";
+
+export interface HfmDirectionalConvictionBlock {
+  direction: HfmMarketDirectionPrimary;
+  directionalConvictionScore: number;
+  convictionLabel: string;
+  bullishEvidenceScore: number;
+  bearishEvidenceScore: number;
+  evidenceCompleteness: number;
+  dataQuality: number;
+  conflictSeverity: number;
+  conflictKind?: string;
+  supportingEngineIds: string[];
+  contradictingEngineIds: string[];
+  keyEvidence: string[];
+  knownLimitations: string[];
+  calculationVersion: string;
+  tieBreakApplied?: boolean;
+  tieBreakReason?: string | null;
+  scoreSemantics: "ANALYTICAL_DIRECTIONAL_CONVICTION_NOT_WIN_PROBABILITY";
+  executionAuthorizationImplied: false;
+}
+
 export interface HfmReasoningValidatedResult {
   schemaVersion: typeof HFM_REASONING_SCHEMA_VERSION | string;
   analysisStatus: "COMPLETED" | "COMPLETED_WITH_GAPS";
@@ -155,7 +188,20 @@ export interface HfmReasoningValidatedResult {
   model: string;
   analysisId: string;
   marketRegime: string;
+  /**
+   * Primary market direction — always BUY or SELL.
+   * Distinct from execution readiness / trade authorization.
+   */
+  marketDirection?: HfmMarketDirectionPrimary;
+  /** Analytical directional conviction (0–100). Not win probability. */
+  directionalConviction?: HfmDirectionalConvictionBlock | null;
+  /** Separate from marketDirection — never authorizes broker orders. */
+  executionReadiness?: HfmExecutionReadinessStatus;
   decision: {
+    /**
+     * Primary directional conclusion. Post-fusion this is always BUY|SELL.
+     * Legacy model outputs may still emit WAITING/NO_TRADE before normalization.
+     */
     action: HfmReasoningDecisionAction;
     /** Model-reported analytical confidence — NOT win probability. */
     confidence: number;

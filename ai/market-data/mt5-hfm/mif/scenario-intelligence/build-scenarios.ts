@@ -429,9 +429,11 @@ export function buildScenarioIntelligence(
     const delta = bullScore - bearScore;
     if (Math.abs(delta) < 8) {
       outcome = "BALANCED_CONFLICT";
-      strongerSide = null;
+      // Still expose a deterministic directional lean for fusion (not setup confirmation).
+      strongerSide = delta >= 0 ? "BULLISH" : "BEARISH";
       comparisonExplanation =
-        `Both sides qualified with similar strength (bull=${bullScore.toFixed(1)}, bear=${bearScore.toFixed(1)}); conflicts retained.`;
+        `Both sides qualified with similar strength (bull=${bullScore.toFixed(1)}, bear=${bearScore.toFixed(1)}); ` +
+        `directional lean=${strongerSide} for evidence fusion — not execution authorization.`;
     } else if (delta > 0) {
       outcome = "BULLISH_PREFERRED";
       strongerSide = "BULLISH";
@@ -443,6 +445,15 @@ export function buildScenarioIntelligence(
       comparisonExplanation =
         `Bearish stronger (bear=${bearScore.toFixed(1)} vs bull=${bullScore.toFixed(1)}) by evidence quality — not raw detector count.`;
     }
+  }
+
+  // When neither side qualifies as a setup, still expose structure-lean strongerSide for fusion
+  // if scores differ — primary direction must remain BUY/SELL capable downstream.
+  if (!strongerSide && (bullScore !== 0 || bearScore !== 0)) {
+    strongerSide = bullScore >= bearScore ? "BULLISH" : "BEARISH";
+    comparisonExplanation =
+      `${comparisonExplanation} Directional lean=${strongerSide} from relative evidence scores ` +
+      `(bull=${bullScore.toFixed(1)}, bear=${bearScore.toFixed(1)}) — setup remains unqualified.`;
   }
 
   const timeframeContext = buildTimeframeContext({

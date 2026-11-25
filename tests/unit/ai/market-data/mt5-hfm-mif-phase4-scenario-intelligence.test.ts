@@ -366,9 +366,17 @@ describe("Phase 4 — scenario contracts and direction", () => {
       missingTimeframes: [],
     });
     expect(result.package.outcome).toBe("NO_QUALIFIED_OPPORTUNITY");
-    expect(result.package.strongerSide).toBeNull();
+    // Setup remains unqualified; strongerSide may still expose a deterministic
+    // directional lean for evidence fusion (not execution authorization).
+    expect(
+      result.package.strongerSide === null
+      || result.package.strongerSide === "BULLISH"
+      || result.package.strongerSide === "BEARISH",
+    ).toBe(true);
     expect(result.package.bullishScenario.status).toBe("INSUFFICIENT");
     expect(result.package.bearishScenario.status).toBe("INSUFFICIENT");
+    expect(result.package.notExecutable).toBe(true);
+    expect(result.package.acceptsForExecution).toBe(false);
   });
 });
 

@@ -237,6 +237,43 @@ export async function bridgeChartsReasoningToPrediction(
     });
   }
 
+  // Primary BUY/SELL direction is not enough — require confirmed ready setup.
+  const decisionStatus = String(result.decisionStatus ?? "").toUpperCase();
+  const setupStatus = String(result.tradePlan?.setupStatus ?? "").toUpperCase();
+  const executionReadiness = String(
+    (result as { executionReadiness?: string }).executionReadiness ?? "",
+  ).toUpperCase();
+  if (decisionStatus !== "CONFIRMED" || setupStatus !== "READY") {
+    return skipResult(record, "WAITING", {
+      decisionAction: action,
+      scenarioId,
+      setupFingerprint,
+      evidencePackageId,
+      scenarioPackageId,
+    });
+  }
+  if (
+    executionReadiness
+    && executionReadiness !== "SETUP_CONFIRMED"
+    && (
+      executionReadiness === "WAITING_FOR_CONFIRMATION"
+      || executionReadiness === "SETUP_DEVELOPING"
+      || executionReadiness === "ENTRY_NOT_AVAILABLE"
+      || executionReadiness === "EXECUTION_NOT_AUTHORIZED"
+      || executionReadiness === "INSUFFICIENT"
+      || executionReadiness === "NO_TRADE"
+      || executionReadiness === "RISK_CHECK_REQUIRED"
+    )
+  ) {
+    return skipResult(record, "WAITING", {
+      decisionAction: action,
+      scenarioId,
+      setupFingerprint,
+      evidencePackageId,
+      scenarioPackageId,
+    });
+  }
+
   const levelsResult = extractChartsTradeLevels(result);
   if (!levelsResult.ok) {
     return skipResult(record, levelsResult.code, {
