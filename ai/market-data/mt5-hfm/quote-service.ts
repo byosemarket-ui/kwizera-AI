@@ -8,6 +8,10 @@ import {
   freshnessFromAgeSec,
   type Mt5HfmFreshnessPolicy,
 } from "./freshness.js";
+import {
+  assessHfmQuoteAges,
+  mapQuoteFreshnessToHfmStatus,
+} from "./quote-freshness.js";
 import { getHfmQuoteSubscriptionRegistry } from "./quote-subscriptions.js";
 import { getHfmSubscriptionManager } from "./subscription-manager.js";
 import { getHfmSymbolFreshnessEngine } from "./symbol-freshness.js";
@@ -80,14 +84,81 @@ function mapFeedToQuoteStatus(
   return base;
 }
 
+/**
+ * B2 delay check: receipt UTC vs trusted tick UTC (never raw broker time).
+ * Measures how old the market tick was at receipt. Snapshot-file age alone is
+ * not used here — that remains feed-level via ctx.ageSec / mapFeedToQuoteStatus.
+ */
 function applyDelayCheck(quote: HfmCanonicalQuote, ctx: HfmQuoteIngestContext): HfmQuoteStatus {
-  if (quote.status !== "LIVE" || quote.quoteTimestamp == null) return quote.status;
+  if (quote.status !== "LIVE") return quote.status;
   const receivedMs = Date.parse(ctx.receivedAt);
-  if (!Number.isFinite(receivedMs)) return quote.status;
-  const tickMs = quote.quoteTimestampMs ?? quote.quoteTimestamp * 1000;
-  const lagSec = (receivedMs - tickMs) / 1000;
-  if (lagSec > 60 && lagSec < 3600) return "DELAYED";
+  const nowSec = Number.isFinite(receivedMs) ? receivedMs / 1000 : Date.now() / 1000;
+  const assessment = assessHfmQuoteAges({
+    quoteTimestampUtc: quote.quoteTimestampUtc,
+    timestampNormalizationStatus: quote.timestampNormalizationStatus,
+    receivedAt: ctx.receivedAt,
+    snapshotAgeSec: ctx.ageSec,
+    marketSessionState: quote.marketSessionState,
+    brokerClockFrozen: quote.brokerClockFrozen,
+    nowSec,
+  });
+  // Prefer tick-aware mapping when we have trusted UTC; otherwise leave status
+  // from feed-level mapFeedToQuoteStatus (never use raw broker time).
+  if (!assessment.tickAgeTrusted) {
+    return quote.status;
+  }
+  const mapped = mapQuoteFreshnessToHfmStatus(assessment);
+  if (mapped === "DELAYED" || mapped === "STALE" || mapped === "MARKET_CLOSED" || mapped === "ERROR") {
+    return mapped;
+  }
   return quote.status;
+}
+
+function enrichQuoteFreshness(
+  quote: HfmCanonicalQuote,
+  opts: { snapshotAgeSec: number | null; nowSec?: number },
+): HfmCanonicalQuote {
+  const assessment = assessHfmQuoteAges({
+    quoteTimestampUtc: quote.quoteTimestampUtc,
+    timestampNormalizationStatus: quote.timestampNormalizationStatus,
+    receivedAt: quote.receivedAt,
+    snapshotAgeSec: opts.snapshotAgeSec,
+    marketSessionState: quote.marketSessionState,
+    brokerClockFrozen: quote.brokerClockFrozen,
+    nowSec: opts.nowSec,
+  });
+  let status = quote.status;
+  // Never let an old LKG tick remain LIVE solely because the cache was just read.
+  // Allow upgrade only when reassessment proves a trusted fresh tick (recovery path).
+  if (
+    status === "LIVE" ||
+    status === "DELAYED" ||
+    status === "STALE" ||
+    status === "WAITING_FOR_DATA"
+  ) {
+    const mapped = mapQuoteFreshnessToHfmStatus(assessment);
+    if (status === "LIVE" && mapped !== "LIVE") {
+      status = mapped;
+    } else if (status === "DELAYED" && (mapped === "STALE" || mapped === "MARKET_CLOSED" || mapped === "ERROR")) {
+      status = mapped;
+    } else if (
+      (status === "WAITING_FOR_DATA" || status === "DELAYED" || status === "STALE") &&
+      mapped === "LIVE"
+    ) {
+      status = "LIVE";
+    }
+  }
+  return {
+    ...quote,
+    status,
+    snapshotAgeSec: assessment.snapshotAgeSec,
+    tickAgeSec: assessment.tickAgeSec,
+    receiptAgeSec: assessment.receiptAgeSec,
+    quoteFreshnessStatus: assessment.quoteFreshnessStatus,
+    dataQualityStatus: assessment.dataQualityStatus,
+    freshnessReason: assessment.freshnessReason,
+    statusReason: quote.statusReason ?? assessment.freshnessReason,
+  };
 }
 
 export class HfmQuoteService {
@@ -100,6 +171,8 @@ export class HfmQuoteService {
   private lastFeedFreshness = "WAITING_FOR_DATA";
   private lastMarketClosed = false;
   private lastTerminalRunning: boolean | null = null;
+  /** Last hub snapshot/file ageSec observed at ingest (for read-time reassessment). */
+  private lastSnapshotAgeSec: number | null = null;
 
   constructor(policy: Mt5HfmFreshnessPolicy = DEFAULT_MT5_HFM_FRESHNESS_POLICY) {
     this.policy = { ...policy };
@@ -145,6 +218,7 @@ export class HfmQuoteService {
     this.lastFeedFreshness = ctx.feedFreshness;
     this.lastMarketClosed = ctx.marketClosed;
     this.lastTerminalRunning = ctx.terminalRunning;
+    this.lastSnapshotAgeSec = ctx.ageSec;
 
     const freshness = getHfmSymbolFreshnessEngine();
     freshness.setConnectivity({
@@ -186,14 +260,19 @@ export class HfmQuoteService {
         nextStatus = applyDelayCheck({ ...quote, status: nextStatus }, ctx);
       }
 
-      const transitioned: HfmCanonicalQuote = {
-        ...quote,
-        status: nextStatus,
-        previousStatus,
-        statusReason: quote.statusReason,
-        statusChangedAt:
-          previousStatus !== nextStatus ? ctx.receivedAt : prev?.lastKnownGood?.statusChangedAt ?? ctx.receivedAt,
-      };
+      const receivedMs = Date.parse(ctx.receivedAt);
+      const ingestNowSec = Number.isFinite(receivedMs) ? receivedMs / 1000 : Date.now() / 1000;
+      const transitioned: HfmCanonicalQuote = enrichQuoteFreshness(
+        {
+          ...quote,
+          status: nextStatus,
+          previousStatus,
+          statusReason: quote.statusReason,
+          statusChangedAt:
+            previousStatus !== nextStatus ? ctx.receivedAt : prev?.lastKnownGood?.statusChangedAt ?? ctx.receivedAt,
+        },
+        { snapshotAgeSec: ctx.ageSec, nowSec: ingestNowSec },
+      );
 
       if (!accepted) {
         rejected.push(transitioned);
@@ -243,11 +322,19 @@ export class HfmQuoteService {
   }
 
   getQuote(symbol: string): HfmCanonicalQuote | null {
+    const resolve = (q: HfmCanonicalQuote | null | undefined): HfmCanonicalQuote | null => {
+      if (!q) return null;
+      // Reassess ages at read time so LKG cannot fake LIVE after wall-clock advances.
+      return enrichQuoteFreshness(q, {
+        snapshotAgeSec: this.lastSnapshotAgeSec,
+        nowSec: Date.now() / 1000,
+      });
+    };
     const direct = this.bySymbol.get(symbol)?.lastKnownGood;
-    if (direct) return direct;
+    if (direct) return resolve(direct);
     const u = symbol.toUpperCase();
     for (const [k, st] of this.bySymbol) {
-      if (k.toUpperCase() === u) return st.lastKnownGood;
+      if (k.toUpperCase() === u) return resolve(st.lastKnownGood);
     }
     return null;
   }
@@ -288,6 +375,23 @@ export class HfmQuoteService {
           tickFlags: null,
           quoteTimestamp: null,
           quoteTimestampMs: null,
+          quoteTimestampUtc: null,
+          quoteTimestampUtcMs: null,
+          brokerUtcOffsetSec: null,
+          receivedAtUtc: this.lastReceivedAt ?? new Date().toISOString(),
+          clockSkewSec: null,
+          timestampSource: "unknown",
+          timestampNormalizationStatus: "UNAVAILABLE",
+          timestampNormalizationReason: "NO_QUOTE",
+          marketSessionState: "SESSION_UNKNOWN",
+          marketSessionReason: "NO_QUOTE",
+          brokerClockFrozen: false,
+          snapshotAgeSec: this.lastSnapshotAgeSec,
+          tickAgeSec: null,
+          receiptAgeSec: null,
+          quoteFreshnessStatus: "TICK_AGE_UNAVAILABLE",
+          dataQualityStatus: "UNAVAILABLE",
+          freshnessReason: "NO_QUOTE",
           receivedAt: this.lastReceivedAt ?? new Date().toISOString(),
           sequence: this.lastSequence,
           status: "NO_QUOTE",

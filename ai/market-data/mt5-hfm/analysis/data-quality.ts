@@ -173,35 +173,97 @@ export function validateQuote(
   }
 
   let quoteStatus: HfmAnalysisQualityStatus = "VALID";
-  const brokerTs = quote.brokerTimestamp;
-  if (brokerTs != null && Number.isFinite(brokerTs) && brokerTs > 0) {
-    const age = nowSec - brokerTs;
-    if (age > HFM_ANALYSIS_QUALITY_POLICY.quoteStaleMaxAgeSec) {
-      if (quote.freshness === "MARKET_CLOSED") {
-        warnings.push(issue("MARKET_CLOSED_QUOTE", "quote age high but market closed", "warning", {
-          symbol: sym,
-          sourceField: "brokerTimestamp",
-        }));
-        quoteStatus = "DEGRADED";
+  // B2: tick age from trusted UTC only — never nowSec - raw brokerTimestamp.
+  const tickAge =
+    quote.tickAgeSec != null && Number.isFinite(quote.tickAgeSec)
+      ? quote.tickAgeSec
+      : quote.quoteTimestampUtc != null &&
+          Number.isFinite(quote.quoteTimestampUtc) &&
+          quote.quoteTimestampUtc > 0 &&
+          (quote.timestampNormalizationStatus === "NORMALIZED" ||
+            quote.timestampNormalizationStatus === "PARTIAL")
+        ? Math.max(0, nowSec - quote.quoteTimestampUtc)
+        : null;
+
+  const session = quote.marketSessionState;
+  if (session === "MT5_DISCONNECTED" || quote.freshness === "ERROR") {
+    warnings.push(issue("MT5_DISCONNECTED", "terminal disconnected", "warning", {
+      symbol: sym,
+      sourceField: "marketSessionState",
+    }));
+    quoteStatus = "DEGRADED";
+  } else if (session === "FEED_UNAVAILABLE") {
+    warnings.push(issue("FEED_UNAVAILABLE", "quote feed unavailable", "warning", {
+      symbol: sym,
+      sourceField: "marketSessionState",
+    }));
+    quoteStatus = "DEGRADED";
+  } else if (
+    session === "MARKET_CLOSED" ||
+    quote.brokerClockFrozen === true ||
+    quote.freshness === "MARKET_CLOSED"
+  ) {
+    warnings.push(issue("MARKET_CLOSED_QUOTE", "market closed or broker clock frozen", "warning", {
+      symbol: sym,
+      sourceField: "marketSessionState",
+    }));
+    quoteStatus = "DEGRADED";
+  } else if (session === "TRADING_BREAK") {
+    warnings.push(issue("TRADING_BREAK", "symbol in trading break", "warning", {
+      symbol: sym,
+      sourceField: "marketSessionState",
+    }));
+    quoteStatus = "DEGRADED";
+  }
+
+  if (tickAge != null) {
+    if (tickAge > HFM_ANALYSIS_QUALITY_POLICY.quoteStaleMaxAgeSec) {
+      if (
+        session === "MARKET_CLOSED" ||
+        quote.brokerClockFrozen === true ||
+        quote.freshness === "MARKET_CLOSED"
+      ) {
+        // Closed + old tick is expected — already warned as MARKET_CLOSED_QUOTE.
+        if (quoteStatus === "VALID") quoteStatus = "DEGRADED";
       } else {
-        errors.push(issue("STALE_QUOTE", `quote age ${age}s exceeds stale window`, "error", {
+        errors.push(issue("STALE_QUOTE", `tick age ${tickAge}s exceeds stale window`, "error", {
           symbol: sym,
-          sourceField: "brokerTimestamp",
+          sourceField: "quoteTimestampUtc",
         }));
         quoteStatus = "STALE";
       }
-    } else if (age > HFM_ANALYSIS_QUALITY_POLICY.quoteLiveMaxAgeSec) {
-      warnings.push(issue("DELAYED_QUOTE", `quote age ${age}s`, "warning", {
-        symbol: sym,
-        sourceField: "brokerTimestamp",
-      }));
+    } else if (tickAge > HFM_ANALYSIS_QUALITY_POLICY.quoteLiveMaxAgeSec) {
+      const quiet =
+        quote.quoteFreshnessStatus === "QUIET_OPEN_MARKET" ||
+        (quote.snapshotAgeSec != null &&
+          quote.snapshotAgeSec <= HFM_ANALYSIS_QUALITY_POLICY.quoteLiveMaxAgeSec);
+      warnings.push(
+        issue(
+          quiet ? "QUIET_OPEN_MARKET" : "DELAYED_QUOTE",
+          quiet
+            ? `fresh snapshot with tick age ${tickAge}s (quiet open market)`
+            : `tick age ${tickAge}s`,
+          "warning",
+          { symbol: sym, sourceField: "quoteTimestampUtc" },
+        ),
+      );
       if (quoteStatus === "VALID") quoteStatus = "DEGRADED";
     }
   } else if (!["MARKET_CLOSED", "NO_QUOTE"].includes(quote.freshness)) {
-    warnings.push(issue("MISSING_QUOTE_TS", "broker quote timestamp missing", "warning", {
-      symbol: sym,
-      sourceField: "brokerTimestamp",
-    }));
+    const untrusted =
+      quote.timestampNormalizationStatus === "UNAVAILABLE" ||
+      quote.timestampNormalizationStatus === "UNRELIABLE" ||
+      quote.quoteTimestampUtc == null;
+    warnings.push(
+      issue(
+        untrusted ? "UNTRUSTED_QUOTE_TS" : "MISSING_QUOTE_TS",
+        untrusted
+          ? "trusted UTC tick timestamp unavailable — raw broker time not used for age"
+          : "quote timestamp missing",
+        "warning",
+        { symbol: sym, sourceField: "quoteTimestampUtc" },
+      ),
+    );
     if (quoteStatus === "VALID") quoteStatus = "DEGRADED";
   }
 

@@ -93,9 +93,20 @@ export function normalizeQuoteContext(input: {
   bid: number | null;
   ask: number | null;
   brokerTimestamp: number | null;
+  quoteTimestampUtc?: number | null;
   receiveTimestamp: string | null;
   freshness: string;
   acquisition: string | null;
+  marketSessionState?: string | null;
+  marketSessionReason?: string | null;
+  brokerClockFrozen?: boolean | null;
+  timestampNormalizationStatus?: string | null;
+  snapshotAgeSec?: number | null;
+  tickAgeSec?: number | null;
+  receiptAgeSec?: number | null;
+  quoteFreshnessStatus?: string | null;
+  dataQualityStatus?: string | null;
+  freshnessReason?: string | null;
 }): HfmAnalysisQuoteContext {
   let spread: number | null = null;
   if (
@@ -113,8 +124,19 @@ export function normalizeQuoteContext(input: {
     ask: input.ask,
     spread,
     brokerTimestamp: input.brokerTimestamp,
+    quoteTimestampUtc: input.quoteTimestampUtc ?? null,
     receiveTimestamp: input.receiveTimestamp,
     freshness: input.freshness,
     acquisition: input.acquisition,
+    marketSessionState: input.marketSessionState ?? null,
+    marketSessionReason: input.marketSessionReason ?? null,
+    brokerClockFrozen: input.brokerClockFrozen ?? null,
+    timestampNormalizationStatus: input.timestampNormalizationStatus ?? null,
+    snapshotAgeSec: input.snapshotAgeSec ?? null,
+    tickAgeSec: input.tickAgeSec ?? null,
+    receiptAgeSec: input.receiptAgeSec ?? null,
+    quoteFreshnessStatus: input.quoteFreshnessStatus ?? null,
+    dataQualityStatus: input.dataQualityStatus ?? null,
+    freshnessReason: input.freshnessReason ?? null,
   };
 }

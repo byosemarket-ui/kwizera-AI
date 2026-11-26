@@ -76,10 +76,25 @@ export interface HfmAnalysisQuoteContext {
   bid: number | null;
   ask: number | null;
   spread: number | null;
+  /** Raw broker-domain tick time (not UTC). */
   brokerTimestamp: number | null;
+  /** Trusted UTC tick time when normalization succeeded; never raw broker. */
+  quoteTimestampUtc?: number | null;
   receiveTimestamp: string | null;
+  /** Feed/status label (LIVE/STALE/DELAYED/MARKET_CLOSED/…). */
   freshness: string;
   acquisition: string | null;
+  /** B2 additive freshness contract (optional for older fixtures). */
+  marketSessionState?: string | null;
+  marketSessionReason?: string | null;
+  brokerClockFrozen?: boolean | null;
+  timestampNormalizationStatus?: string | null;
+  snapshotAgeSec?: number | null;
+  tickAgeSec?: number | null;
+  receiptAgeSec?: number | null;
+  quoteFreshnessStatus?: string | null;
+  dataQualityStatus?: string | null;
+  freshnessReason?: string | null;
 }
 
 export interface HfmAnalysisImmutableJob {

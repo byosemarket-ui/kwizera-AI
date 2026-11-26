@@ -11,7 +11,6 @@ import type { HfmAnalysisQuoteContext, HfmAnalysisTfDataset } from "./types.js";
 import { fetchHfmHistoricalCandles } from "../historical-engine.js";
 import { getHfmLiveCandleEngine } from "../live-candle-engine.js";
 import { getHfmQuoteService } from "../quote-service.js";
-import { freshnessFromAgeSec, DEFAULT_MT5_HFM_FRESHNESS_POLICY } from "../freshness.js";
 
 export interface HfmMultiTfCollectionResult {
   provider: typeof HFM_ANALYSIS_PROVIDER;
@@ -92,26 +91,28 @@ export async function collectHfmAnalysisMultiTf(input: {
   }
 
   const q = getHfmQuoteService().getQuote(symbol);
-  let freshness = "NO_QUOTE";
-  if (q) {
-    const age =
-      typeof q.quoteTimestamp === "number" && q.quoteTimestamp > 0
-        ? Math.floor(Date.now() / 1000) - q.quoteTimestamp
-        : null;
-    freshness = freshnessFromAgeSec(age, DEFAULT_MT5_HFM_FRESHNESS_POLICY, {
-      terminalRunning: true,
-      marketClosed: false,
-    });
-  }
+  // B2: use quote-service reassessment (trusted UTC tick age). Never Date.now()-brokerTs.
+  const freshness = q?.status ?? "NO_QUOTE";
 
   const quote = normalizeQuoteContext({
     symbol,
     bid: q?.bid ?? null,
     ask: q?.ask ?? null,
     brokerTimestamp: q?.quoteTimestamp ?? null,
+    quoteTimestampUtc: q?.quoteTimestampUtc ?? null,
     receiveTimestamp: q?.receivedAt ?? null,
     freshness,
-    acquisition: q ? "SymbolInfoTick" : null,
+    acquisition: q ? q.acquisitionMethod ?? "SymbolInfoTick" : null,
+    marketSessionState: q?.marketSessionState ?? null,
+    marketSessionReason: q?.marketSessionReason ?? null,
+    brokerClockFrozen: q?.brokerClockFrozen ?? null,
+    timestampNormalizationStatus: q?.timestampNormalizationStatus ?? null,
+    snapshotAgeSec: q?.snapshotAgeSec ?? null,
+    tickAgeSec: q?.tickAgeSec ?? null,
+    receiptAgeSec: q?.receiptAgeSec ?? null,
+    quoteFreshnessStatus: q?.quoteFreshnessStatus ?? null,
+    dataQualityStatus: q?.dataQualityStatus ?? null,
+    freshnessReason: q?.freshnessReason ?? null,
   });
 
   return {

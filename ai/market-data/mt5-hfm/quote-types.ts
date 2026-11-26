@@ -9,6 +9,10 @@ import type {
   HfmTimestampSource,
 } from "./quote-timestamp.js";
 import type { HfmMarketSessionState } from "./market-session.js";
+import type {
+  HfmDataQualityStatus,
+  HfmQuoteFreshnessStatus,
+} from "./quote-freshness.js";
 
 export const HFM_QUOTE_PROVIDER = "HFM_MT5" as const;
 export const HFM_QUOTE_ENVIRONMENT = "demo" as const;
@@ -102,6 +106,16 @@ export interface HfmCanonicalQuote {
   marketSessionReason: string | null;
   /** True when TimeCurrent appears frozen vs TimeGMT. */
   brokerClockFrozen: boolean;
+  /**
+   * STEP 1B.2 — distinct ages (seconds). tickAgeSec is null when UTC normalization
+   * is untrusted; never derived from raw broker quoteTimestamp.
+   */
+  snapshotAgeSec: number | null;
+  tickAgeSec: number | null;
+  receiptAgeSec: number | null;
+  quoteFreshnessStatus: HfmQuoteFreshnessStatus | null;
+  dataQualityStatus: HfmDataQualityStatus | null;
+  freshnessReason: string | null;
   /** Core/agent UTC receipt instant (ISO-8601). */
   receivedAt: string;
   sequence: number | null;
