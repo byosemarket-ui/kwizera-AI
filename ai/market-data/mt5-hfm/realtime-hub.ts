@@ -38,7 +38,7 @@ import {
   resolveHfmSseReplay,
   shouldDistributeQuoteEvent,
   HFM_SSE_MAX_EVENT_BYTES,
-  freshnessFromQuoteStatus,
+  envelopeFreshnessFromCanonical,
   resetHfmSseDistributionForTests,
 } from "./sse-distribution.js";
 import { getMt5HfmDemoProfileManager } from "./demo-profile.js";
@@ -490,14 +490,14 @@ async function pollOnce(): Promise<void> {
           tickTime,
           status: q.status,
         });
-        const quoteFreshness = freshnessFromQuoteStatus(q.status, freshness);
+        const quoteFreshness = envelopeFreshnessFromCanonical(q, freshness);
         recordQuotePublishLatency(q.receivedAt);
         publish(
           "quote",
           buildEnvelope("quote", payload, {
             eventId: randomUUID(),
             seq,
-            correlationId: typeof seq === "number" ? `seq-${seq}` : null,
+            correlationId: q.quoteVersionId ?? (typeof seq === "number" ? `seq-${seq}` : null),
             brokerTimestamp: tickTime ?? brokerTime,
             occurredAt: q.receivedAt,
             serverReceivedAt,

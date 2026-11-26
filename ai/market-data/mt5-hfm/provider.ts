@@ -227,42 +227,66 @@ export class HfmMt5MarketDataProvider implements MarketDataProvider {
   }
 
   async getQuotes(symbols?: string[]): Promise<HfmMt5QuoteResult> {
-    const res = await callMt5HfmAgent("demo.quotes_snapshot", { symbols: symbols ?? [] });
-    const result = (res.result ?? {}) as Record<string, unknown>;
-    const rawQuotes = Array.isArray(result.quotes) ? result.quotes : [];
-    const retrievedAt = String(result.retrievedAt ?? nowIso());
-    const quotes: NormalizedMarketQuote[] = rawQuotes.map((q) => {
-      const row = q as Record<string, unknown>;
-      const bid = typeof row.bid === "number" ? row.bid : null;
-      const ask = typeof row.ask === "number" ? row.ask : null;
+    // STEP 1B.3 — canonical Quote Service (never raw agent as accepted Forex quotes).
+    const { getHfmQuoteService } = await import("./quote-service.js");
+    const { ensureMt5HfmRealtimeHubStarted } = await import("./realtime-hub.js");
+    ensureMt5HfmRealtimeHubStarted();
+    const svc = getHfmQuoteService();
+    const syms =
+      symbols && symbols.length > 0
+        ? symbols
+        : ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY"];
+    const retrievedAt = nowIso();
+    const quotes: NormalizedMarketQuote[] = syms.map((symbol) => {
+      const q = svc.getQuote(symbol);
+      const bid = q?.bid ?? null;
+      const ask = q?.ask ?? null;
       const mid = bid != null && ask != null ? (bid + ask) / 2 : null;
-      const stale = row.stale === true;
-      const fresh = row.fresh === true;
+      const live = q?.status === "LIVE" && q.quoteFreshnessStatus === "FRESH_TICK";
+      const stale =
+        q?.status === "STALE" ||
+        q?.quoteFreshnessStatus === "STALE_TICK" ||
+        q?.quoteFreshnessStatus === "DELAYED_TICK" ||
+        q?.quoteFreshnessStatus === "QUIET_OPEN_MARKET";
       return {
         provider: "HFM_MT5" as NormalizedMarketQuote["provider"],
-        marketType: classifyQuoteSymbolFallback(String(row.symbol ?? "")),
-        providerSymbol: String(row.symbol ?? ""),
-        canonicalSymbol: String(row.symbol ?? ""),
-        providerTimestamp: row.tickTime != null ? String(row.tickTime) : null,
-        normalizedTimestamp: retrievedAt,
+        marketType: classifyQuoteSymbolFallback(symbol),
+        providerSymbol: q?.symbol ?? symbol,
+        canonicalSymbol: q?.symbol ?? symbol,
+        /** Broker-domain tick when present — NOT UTC. Prefer metadata.quoteTimestampUtc. */
+        providerTimestamp: q?.quoteTimestamp != null ? String(q.quoteTimestamp) : null,
+        /** Receipt UTC ISO — not the market tick time. */
+        normalizedTimestamp:
+          q?.quoteTimestampUtc != null
+            ? new Date(q.quoteTimestampUtc * 1000).toISOString()
+            : q?.receivedAt ?? retrievedAt,
         bid,
         ask,
         mid,
-        last: typeof row.last === "number" ? row.last : null,
+        last: q?.last ?? null,
         source: "HFM_MT5",
-        dataQuality: !res.ok ? "DISCONNECTED" : stale ? "STALE" : fresh ? "LIVE" : "NO_DATA",
+        dataQuality: !q
+          ? "NO_DATA"
+          : q.status === "ERROR"
+            ? "DISCONNECTED"
+            : stale
+              ? "STALE"
+              : live
+                ? "LIVE"
+                : q.status === "NO_QUOTE" || q.status === "INVALID"
+                  ? "NO_DATA"
+                  : "LIVE",
       };
     });
+    const available = quotes.some((q) => q.bid != null && q.ask != null);
     return {
       quotes,
-      quotesAvailable: Boolean(result.quotesAvailable) && quotes.length > 0,
-      stale: typeof result.stale === "boolean" ? result.stale : null,
+      quotesAvailable: available,
+      stale: available ? quotes.every((q) => q.dataQuality === "STALE") : null,
       source: "HFM_MT5",
       environment: "demo",
       retrievedAt,
-      unavailableReason: res.ok
-        ? (result.unavailableReason != null ? String(result.unavailableReason) : null)
-        : String(res.code ?? "AGENT_ERROR"),
+      unavailableReason: available ? null : "NO_CANONICAL_QUOTE",
     };
   }
 

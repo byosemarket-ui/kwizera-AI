@@ -141,6 +141,10 @@ export function freshnessFromQuoteStatus(
   }
 }
 
+/**
+ * Canonical SSE quote payload — B1/B2/B3 parity with REST.
+ * `tickTime` remains broker-domain (not UTC) for backward compatibility.
+ */
 export function quotePayloadForSse(q: HfmCanonicalQuote): Record<string, unknown> {
   return {
     symbol: q.symbol,
@@ -153,8 +157,29 @@ export function quotePayloadForSse(q: HfmCanonicalQuote): Record<string, unknown
     digits: q.digits,
     point: q.point,
     tickSize: q.tickSize,
+    /** Broker-domain tick seconds — NOT UTC. Prefer quoteTimestampUtc. */
     tickTime: q.quoteTimestamp,
     tickTimeMs: q.quoteTimestampMs,
+    quoteTimestamp: q.quoteTimestamp,
+    quoteTimestampMs: q.quoteTimestampMs,
+    quoteTimestampUtc: q.quoteTimestampUtc,
+    quoteTimestampUtcMs: q.quoteTimestampUtcMs,
+    brokerUtcOffsetSec: q.brokerUtcOffsetSec,
+    receivedAtUtc: q.receivedAtUtc ?? q.receivedAt,
+    timestampSource: q.timestampSource,
+    timestampNormalizationStatus: q.timestampNormalizationStatus,
+    timestampNormalizationReason: q.timestampNormalizationReason,
+    marketSessionState: q.marketSessionState,
+    marketSessionReason: q.marketSessionReason,
+    brokerClockFrozen: q.brokerClockFrozen,
+    quoteFreshnessStatus: q.quoteFreshnessStatus,
+    snapshotAgeSec: q.snapshotAgeSec,
+    tickAgeSec: q.tickAgeSec,
+    receiptAgeSec: q.receiptAgeSec,
+    dataQualityStatus: q.dataQualityStatus,
+    freshnessReason: q.freshnessReason,
+    quoteVersionId: q.quoteVersionId,
+    quoteProvenance: q.quoteProvenance,
     tickVolume: q.tickVolume,
     realVolume: q.realVolume,
     status: q.status,
@@ -169,6 +194,36 @@ export function quotePayloadForSse(q: HfmCanonicalQuote): Record<string, unknown
     mutatesBroker: false,
     acceptsForExecution: false,
   };
+}
+
+/**
+ * Map canonical quoteFreshnessStatus → SSE envelope freshness without collapsing
+ * quiet-open / delayed / disconnected distinctions incorrectly.
+ */
+export function envelopeFreshnessFromCanonical(
+  q: HfmCanonicalQuote,
+  feed: Mt5HfmFreshness,
+): Mt5HfmFreshness {
+  const qfs = q.quoteFreshnessStatus;
+  if (qfs === "FRESH_TICK") {
+    return feed === "MARKET_CLOSED" ? "MARKET_CLOSED" : "LIVE";
+  }
+  if (qfs === "QUIET_OPEN_MARKET" || qfs === "DELAYED_TICK") {
+    return "STALE";
+  }
+  if (qfs === "STALE_TICK") return "STALE";
+  if (qfs === "MARKET_CLOSED" || qfs === "TRADING_BREAK") return "MARKET_CLOSED";
+  if (qfs === "MT5_DISCONNECTED" || qfs === "FEED_UNAVAILABLE") {
+    return feed === "DISCONNECTED" ? "DISCONNECTED" : "DATA_UNAVAILABLE";
+  }
+  if (
+    qfs === "TICK_AGE_UNAVAILABLE" ||
+    qfs === "UNTRUSTED_TIMESTAMP" ||
+    qfs === "SESSION_UNKNOWN"
+  ) {
+    return "WAITING_FOR_DATA";
+  }
+  return freshnessFromQuoteStatus(q.status, feed);
 }
 
 /**
@@ -212,7 +267,7 @@ export function buildHfmConnectionSnapshot(opts: {
       continue;
     }
     const row = quotePayloadForSse(q);
-    row.snapshotFreshness = freshnessFromQuoteStatus(q.status, opts.feedFreshness);
+    row.snapshotFreshness = envelopeFreshnessFromCanonical(q, opts.feedFreshness);
     quotesOut.push(row);
   }
 

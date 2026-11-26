@@ -320,44 +320,52 @@ export async function handleMt5HfmApi(
       let market: {
         quotesAvailable: boolean | null;
         stale: boolean | null;
-        quotes: Array<{
-          symbol: string;
-          bid: number | null;
-          ask: number | null;
-          spread: number | null;
-          tickTime: string | null;
-          source: string;
-        }>;
+        quotes: Array<Record<string, unknown>>;
         source: string | null;
         retrievedAt: string | null;
         note: string | null;
       } | null = null;
       if (agentOk && authenticated) {
+        // STEP 1B.3 — status.market uses canonical Quote Service (not raw agent).
         try {
-          const qRes = await callMt5HfmAgent(
-            "demo.quotes_snapshot",
-            { symbols: ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD"] },
-            { timeoutMs: 15_000 },
+          ensureMt5HfmRealtimeHubStarted();
+          const svc = getHfmQuoteService();
+          const priority = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD"];
+          const rows = priority.map((symbol) => {
+            const q = svc.getQuote(symbol);
+            return {
+              symbol,
+              bid: q?.bid ?? null,
+              ask: q?.ask ?? null,
+              spread: q?.spread ?? null,
+              /** Broker-domain tick seconds as string — NOT UTC. */
+              tickTime: q?.quoteTimestamp != null ? String(q.quoteTimestamp) : null,
+              tickTimeDomain: "broker" as const,
+              quoteTimestampUtc: q?.quoteTimestampUtc ?? null,
+              timestampNormalizationStatus: q?.timestampNormalizationStatus ?? null,
+              marketSessionState: q?.marketSessionState ?? null,
+              quoteFreshnessStatus: q?.quoteFreshnessStatus ?? null,
+              status: q?.status ?? "NO_QUOTE",
+              quoteVersionId: q?.quoteVersionId ?? null,
+              quoteProvenance: q?.quoteProvenance ?? null,
+              source: "HFM_MT5_CANONICAL",
+            };
+          });
+          const available = rows.some((r) => r.bid != null && r.ask != null);
+          const stale = rows.every(
+            (r) =>
+              r.status === "STALE" ||
+              r.quoteFreshnessStatus === "STALE_TICK" ||
+              r.status === "NO_QUOTE",
           );
-          const q = (qRes.result ?? {}) as Record<string, unknown>;
-          const rawQuotes = Array.isArray(q.quotes) ? q.quotes : [];
           market = {
-            quotesAvailable: Boolean(q.quotesAvailable),
-            stale: typeof q.stale === "boolean" ? q.stale : null,
-            quotes: rawQuotes.slice(0, 24).map((row) => {
-              const r = row as Record<string, unknown>;
-              return {
-                symbol: String(r.symbol ?? ""),
-                bid: typeof r.bid === "number" ? r.bid : null,
-                ask: typeof r.ask === "number" ? r.ask : null,
-                spread: typeof r.spread === "number" ? r.spread : null,
-                tickTime: r.tickTime != null ? String(r.tickTime) : null,
-                source: String(r.source ?? "mt5_mcp"),
-              };
-            }),
-            source: String(q.source ?? "mt5_mcp"),
-            retrievedAt: q.retrievedAt != null ? String(q.retrievedAt) : null,
-            note: q.note != null ? String(q.note) : null,
+            quotesAvailable: available,
+            stale: available ? stale : null,
+            quotes: rows,
+            source: "HFM_MT5_CANONICAL",
+            retrievedAt: new Date().toISOString(),
+            note:
+              "Canonical Quote Service snapshot. tickTime is broker-domain (NOT UTC); prefer quoteTimestampUtc.",
           };
         } catch {
           market = {
@@ -366,7 +374,7 @@ export async function handleMt5HfmApi(
             quotes: [],
             source: null,
             retrievedAt: null,
-            note: "Market quote snapshot unavailable.",
+            note: "Canonical market quote snapshot unavailable.",
           };
         }
       }
@@ -885,24 +893,126 @@ export async function handleMt5HfmApi(
         sendLiveLocked(res, sendJson, "market data");
         return true;
       }
-      try {
-        const symbols = Array.isArray(body.symbols) ? body.symbols.map(String) : [];
-        const agentRes = await callMt5HfmAgent("demo.quotes_snapshot", { symbols });
-        const payload = {
-          ok: agentRes.ok,
-          environment: "demo" as const,
-          quotes: agentRes.result ?? null,
-          authenticatedLogin: false,
-          note: "Quotes require agent + future MT5 API enhancer; empty/unavailable is explicit.",
+      // STEP 1B.3 — canonical Quote Service authority (not raw agent as accepted market).
+      ensureMt5HfmRealtimeHubStarted();
+      const symbols = Array.isArray(body.symbols) ? body.symbols.map(String) : [];
+      const wantRaw = body.includeRawDiagnostic === true;
+      const svc = getHfmQuoteService();
+      const syms =
+        symbols.length > 0
+          ? symbols
+          : ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY"];
+      const canonicalRows = syms.map((symbol) => {
+        const q = svc.getQuote(symbol);
+        if (!q || q.status === "NO_QUOTE" || q.status === "INVALID") {
+          return {
+            symbol,
+            bid: null,
+            ask: null,
+            spread: null,
+            tickTime: null,
+            tickTimeDomain: "broker" as const,
+            tickTimeNote: "Broker-domain seconds when present — NOT UTC. Prefer quoteTimestampUtc.",
+            quoteTimestampUtc: null,
+            timestampNormalizationStatus: q?.timestampNormalizationStatus ?? "UNAVAILABLE",
+            marketSessionState: q?.marketSessionState ?? null,
+            quoteFreshnessStatus: q?.quoteFreshnessStatus ?? null,
+            status: q?.status ?? "NO_QUOTE",
+            quoteVersionId: q?.quoteVersionId ?? null,
+            quoteProvenance: q?.quoteProvenance ?? "NO_QUOTE",
+            canonical: true,
+            source: "HFM_MT5_CANONICAL",
+            fresh: false,
+            stale: true,
+            ageSec: q?.snapshotAgeSec ?? null,
+            snapshotAgeSec: q?.snapshotAgeSec ?? null,
+            tickAgeSec: q?.tickAgeSec ?? null,
+            receiptAgeSec: q?.receiptAgeSec ?? null,
+            retrievedAt: q?.receivedAt ?? null,
+            provider: "HFM_MT5",
+            environment: "demo",
+          };
+        }
+        return {
+          symbol: q.symbol,
+          bid: q.bid,
+          ask: q.ask,
+          spread: q.spread,
+          /** Legacy field: broker-domain tick seconds — NOT UTC. */
+          tickTime: q.quoteTimestamp,
+          tickTimeDomain: "broker" as const,
+          tickTimeNote: "Broker-domain seconds — NOT UTC. Prefer quoteTimestampUtc.",
+          quoteTimestamp: q.quoteTimestamp,
+          quoteTimestampUtc: q.quoteTimestampUtc,
+          quoteTimestampUtcMs: q.quoteTimestampUtcMs,
+          brokerUtcOffsetSec: q.brokerUtcOffsetSec,
+          timestampNormalizationStatus: q.timestampNormalizationStatus,
+          marketSessionState: q.marketSessionState,
+          quoteFreshnessStatus: q.quoteFreshnessStatus,
+          dataQualityStatus: q.dataQualityStatus,
+          freshnessReason: q.freshnessReason,
+          snapshotAgeSec: q.snapshotAgeSec,
+          tickAgeSec: q.tickAgeSec,
+          receiptAgeSec: q.receiptAgeSec,
+          status: q.status,
+          quoteVersionId: q.quoteVersionId,
+          quoteProvenance: q.quoteProvenance,
+          sequence: q.sequence,
+          digits: q.digits,
+          point: q.point,
+          canonical: true,
+          source: "HFM_MT5_CANONICAL",
+          fresh: q.status === "LIVE" && q.quoteFreshnessStatus === "FRESH_TICK",
+          stale: q.status === "STALE" || q.quoteFreshnessStatus === "STALE_TICK",
+          ageSec: q.snapshotAgeSec,
+          retrievedAt: q.receivedAt,
+          provider: "HFM_MT5",
+          environment: "demo",
         };
-        assertNoSecretsInMt5HfmPayload(payload);
-        sendJson(res, agentRes.ok ? 200 : 503, payload);
-      } catch {
-        sendJson(res, 503, {
-          ok: false,
-          error: { code: "AGENT_UNAVAILABLE", message: "MT5 agent socket unavailable." },
-        });
+      });
+      const anyOk = canonicalRows.some((r) => r.bid != null && r.ask != null);
+      let rawDiagnostic: unknown = null;
+      if (wantRaw) {
+        try {
+          const agentRes = await callMt5HfmAgent("demo.quotes_snapshot", { symbols: syms });
+          rawDiagnostic = {
+            warning:
+              "RAW_UNVALIDATED_AGENT_SNAPSHOT — not suitable for trading or AI decisions; tickTime is broker-domain not UTC.",
+            ok: agentRes.ok,
+            result: agentRes.result ?? null,
+          };
+        } catch {
+          rawDiagnostic = {
+            warning: "RAW_UNVALIDATED_AGENT_SNAPSHOT",
+            ok: false,
+            error: "AGENT_UNAVAILABLE",
+          };
+        }
       }
+      const payload = {
+        ok: anyOk,
+        environment: "demo" as const,
+        authority: "HfmQuoteService",
+        quotes: {
+          quotesAvailable: anyOk,
+          stale: !canonicalRows.some((r) => r.fresh),
+          source: "HFM_MT5_CANONICAL",
+          retrievedAt: new Date().toISOString(),
+          requestedSymbols: syms,
+          quotes: canonicalRows,
+          note:
+            "Canonical accepted Forex quotes from HfmQuoteService. Legacy tickTime is broker-domain (NOT UTC).",
+        },
+        authenticatedLogin: false,
+        rawDiagnostic,
+        note:
+          "STEP 1B.3: market/quotes serves canonical Quote Service data. Pass includeRawDiagnostic:true for marked raw agent snapshot only.",
+        placesOrders: false,
+        mutatesBroker: false,
+        acceptsForExecution: false,
+      };
+      assertNoSecretsInMt5HfmPayload(payload);
+      sendJson(res, anyOk ? 200 : 503, payload);
       return true;
     }
 
@@ -1321,7 +1431,21 @@ export async function handleMt5HfmApi(
                 bid: quote.bid,
                 ask: quote.ask,
                 last: null,
+                /** Broker-domain tick seconds — NOT UTC. */
                 brokerTimestamp: quote.quoteTimestamp ?? null,
+                quoteTimestampUtc: quote.quoteTimestampUtc ?? null,
+                quoteTimestampUtcMs: quote.quoteTimestampUtcMs ?? null,
+                brokerUtcOffsetSec: quote.brokerUtcOffsetSec ?? null,
+                timestampNormalizationStatus: quote.timestampNormalizationStatus ?? null,
+                marketSessionState: quote.marketSessionState ?? null,
+                quoteFreshnessStatus: quote.quoteFreshnessStatus ?? null,
+                tickAgeSec: quote.tickAgeSec ?? null,
+                snapshotAgeSec: quote.snapshotAgeSec ?? null,
+                receiptAgeSec: quote.receiptAgeSec ?? null,
+                dataQualityStatus: quote.dataQualityStatus ?? null,
+                freshnessReason: quote.freshnessReason ?? null,
+                quoteVersionId: quote.quoteVersionId ?? null,
+                quoteProvenance: quote.quoteProvenance ?? null,
                 receiveTimestamp: quote.receivedAt ?? null,
                 acquisition: "SymbolInfoTick",
               }

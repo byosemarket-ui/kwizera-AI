@@ -45,7 +45,22 @@ export interface HfmChartsAnalysisTick {
   bid: number;
   ask: number;
   last: number | null;
+  /** Broker-domain tick seconds — NOT UTC. */
   brokerTimestamp: number | null;
+  /** Trusted UTC tick seconds when normalization succeeded. */
+  quoteTimestampUtc?: number | null;
+  quoteTimestampUtcMs?: number | null;
+  brokerUtcOffsetSec?: number | null;
+  timestampNormalizationStatus?: string | null;
+  marketSessionState?: string | null;
+  quoteFreshnessStatus?: string | null;
+  tickAgeSec?: number | null;
+  snapshotAgeSec?: number | null;
+  receiptAgeSec?: number | null;
+  dataQualityStatus?: string | null;
+  freshnessReason?: string | null;
+  quoteVersionId?: string | null;
+  quoteProvenance?: string | null;
   receiveTimestamp: string | null;
   acquisition: string;
 }
@@ -74,7 +89,10 @@ export interface HfmChartsAnalysisSnapshot {
   ask: number | null;
   spread: number | null;
   latestTick: HfmChartsAnalysisTick | null;
+  /** Legacy alias of latestTick.brokerTimestamp (broker-domain — NOT UTC). */
   tickTimestamp: number | null;
+  /** Trusted UTC tick when available. */
+  quoteTimestampUtc: number | null;
   receiveTimestamp: string | null;
   freshness: HfmChartsAnalysisFreshness;
   connectionStatus: string;
@@ -132,6 +150,7 @@ export function buildHfmChartsAnalysisSnapshot(input: {
     spread,
     latestTick: input.latestTick ?? null,
     tickTimestamp: input.latestTick?.brokerTimestamp ?? null,
+    quoteTimestampUtc: input.latestTick?.quoteTimestampUtc ?? null,
     receiveTimestamp: input.latestTick?.receiveTimestamp ?? null,
     freshness: input.freshness,
     connectionStatus: input.connectionStatus ?? input.freshness,

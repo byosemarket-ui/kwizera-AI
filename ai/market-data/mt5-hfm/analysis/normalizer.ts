@@ -107,6 +107,8 @@ export function normalizeQuoteContext(input: {
   quoteFreshnessStatus?: string | null;
   dataQualityStatus?: string | null;
   freshnessReason?: string | null;
+  quoteVersionId?: string | null;
+  quoteProvenance?: string | null;
 }): HfmAnalysisQuoteContext {
   let spread: number | null = null;
   if (
@@ -138,5 +140,7 @@ export function normalizeQuoteContext(input: {
     quoteFreshnessStatus: input.quoteFreshnessStatus ?? null,
     dataQualityStatus: input.dataQualityStatus ?? null,
     freshnessReason: input.freshnessReason ?? null,
+    quoteVersionId: input.quoteVersionId ?? null,
+    quoteProvenance: input.quoteProvenance ?? null,
   };
 }

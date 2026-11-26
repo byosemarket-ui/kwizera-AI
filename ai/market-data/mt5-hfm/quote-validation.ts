@@ -356,6 +356,8 @@ export function validateHfmRawQuote(
     quoteFreshnessStatus: null,
     dataQualityStatus: null,
     freshnessReason: null,
+    quoteVersionId: null,
+    quoteProvenance: null,
     receivedAt: opts.receivedAt,
     sequence: opts.sequence,
     status,

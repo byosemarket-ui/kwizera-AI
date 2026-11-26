@@ -138,6 +138,8 @@ function fakeQuote(partial: Partial<HfmCanonicalQuote> & { symbol: string }): Hf
     quoteFreshnessStatus: null,
     dataQualityStatus: null,
     freshnessReason: null,
+    quoteVersionId: null,
+    quoteProvenance: null,
     receivedAt: "t",
     sequence: null,
     status: "NO_QUOTE",

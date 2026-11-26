@@ -113,6 +113,8 @@ export async function collectHfmAnalysisMultiTf(input: {
     quoteFreshnessStatus: q?.quoteFreshnessStatus ?? null,
     dataQualityStatus: q?.dataQualityStatus ?? null,
     freshnessReason: q?.freshnessReason ?? null,
+    quoteVersionId: q?.quoteVersionId ?? null,
+    quoteProvenance: q?.quoteProvenance ?? null,
   });
 
   return {

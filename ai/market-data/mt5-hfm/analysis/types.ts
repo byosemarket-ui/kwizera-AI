@@ -95,6 +95,9 @@ export interface HfmAnalysisQuoteContext {
   quoteFreshnessStatus?: string | null;
   dataQualityStatus?: string | null;
   freshnessReason?: string | null;
+  /** STEP 1B.3 — correlates with REST/SSE accepted quote version. */
+  quoteVersionId?: string | null;
+  quoteProvenance?: string | null;
 }
 
 export interface HfmAnalysisImmutableJob {

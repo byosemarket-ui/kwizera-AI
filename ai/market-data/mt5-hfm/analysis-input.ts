@@ -21,7 +21,18 @@ export interface Mt5HfmAnalysisMarketInput {
     bid: number | null;
     ask: number | null;
     spread: number | null;
+    /**
+     * Legacy field — may contain broker-domain tick string from providerTimestamp.
+     * Prefer quoteTimestampUtc when present. Never treat this as UTC by default.
+     */
     quoteTimestamp: string | null;
+    /** Trusted UTC tick ISO when available; null when untrusted/missing. */
+    quoteTimestampUtc: string | null;
+    /** Explicit broker-domain tick string (not UTC). */
+    brokerTimestamp: string | null;
+    timestampNormalizationStatus: string | null;
+    quoteFreshnessStatus: string | null;
+    quoteVersionId: string | null;
   } | null;
   dataSource: "HFM_MT5";
   freshness: "FRESH" | "STALE" | "UNAVAILABLE" | "UNKNOWN";
@@ -79,7 +90,28 @@ export function buildMt5HfmAnalysisInput(args: {
           bid: quoteRow.bid,
           ask: quoteRow.ask,
           spread,
-          quoteTimestamp: quoteRow.providerTimestamp,
+          // Legacy: historically filled from providerTimestamp (broker-domain). Keep but annotate.
+          quoteTimestamp: quoteRow.normalizedTimestamp,
+          quoteTimestampUtc:
+            quoteRow.normalizedTimestamp &&
+            quoteRow.dataQuality !== "NO_DATA" &&
+            quoteRow.dataQuality !== "DISCONNECTED"
+              ? quoteRow.normalizedTimestamp
+              : null,
+          brokerTimestamp: quoteRow.providerTimestamp,
+          timestampNormalizationStatus:
+            quoteRow.normalizedTimestamp && quoteRow.providerTimestamp
+              ? "NORMALIZED"
+              : quoteRow.providerTimestamp
+                ? "UNAVAILABLE"
+                : null,
+          quoteFreshnessStatus:
+            quoteRow.dataQuality === "LIVE"
+              ? "FRESH_TICK"
+              : quoteRow.dataQuality === "STALE"
+                ? "STALE_TICK"
+                : null,
+          quoteVersionId: null,
         }
       : null,
     dataSource: "HFM_MT5",

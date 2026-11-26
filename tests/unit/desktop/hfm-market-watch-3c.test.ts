@@ -57,6 +57,8 @@ function baseQuote(partial: Partial<HfmCanonicalQuote> & { symbol: string }): Hf
     quoteFreshnessStatus: null,
     dataQualityStatus: null,
     freshnessReason: null,
+    quoteVersionId: null,
+    quoteProvenance: null,
     receivedAt: "2023-11-14T22:13:20.000Z",
     sequence: 10,
     status: "LIVE",

@@ -23,8 +23,15 @@ import {
   type HfmQuoteStatus,
 } from "./quote-types.js";
 import { validateHfmRawQuote, type HfmRawQuoteInput } from "./quote-validation.js";
+import {
+  buildHfmQuoteVersionId,
+  compareHfmQuoteMonotonicity,
+  isHfmMonotonicAccept,
+} from "./quote-version.js";
 
 const MAX_REJECTED = 64;
+/** Bounded recent monotonic rejection reasons (symbol → last reason). */
+const MAX_MONOTONIC_DIAG = 32;
 
 export interface HfmQuoteIngestContext {
   server: string | null;
@@ -197,6 +204,31 @@ export class HfmQuoteService {
     }
   }
 
+  /** Last monotonic rejection diagnostics (capped; not per-poll spam). */
+  private readonly monotonicDiag = new Map<
+    string,
+    {
+      reason: string;
+      decision: string;
+      comparisonTrusted: boolean;
+      incomingVersionId: string | null;
+      existingVersionId: string | null;
+      at: string;
+    }
+  >();
+
+  getMonotonicDiagnostics(): Array<{
+    symbol: string;
+    reason: string;
+    decision: string;
+    comparisonTrusted: boolean;
+    incomingVersionId: string | null;
+    existingVersionId: string | null;
+    at: string;
+  }> {
+    return [...this.monotonicDiag.entries()].map(([symbol, d]) => ({ symbol, ...d }));
+  }
+
   async ingestRawQuotes(
     rawQuotes: HfmRawQuoteInput[],
     ctx: HfmQuoteIngestContext,
@@ -204,6 +236,7 @@ export class HfmQuoteService {
     published: HfmCanonicalQuote[];
     rejected: HfmCanonicalQuote[];
     skippedUnsubscribed: number;
+    skippedStaleOrDuplicate: number;
   }> {
     const catalog = await this.catalogMap();
     const subMgr = getHfmSubscriptionManager();
@@ -211,6 +244,7 @@ export class HfmQuoteService {
     const published: HfmCanonicalQuote[] = [];
     const rejected: HfmCanonicalQuote[] = [];
     let skippedUnsubscribed = 0;
+    let skippedStaleOrDuplicate = 0;
 
     this.lastServer = ctx.server;
     this.lastSequence = ctx.sequence;
@@ -262,17 +296,20 @@ export class HfmQuoteService {
 
       const receivedMs = Date.parse(ctx.receivedAt);
       const ingestNowSec = Number.isFinite(receivedMs) ? receivedMs / 1000 : Date.now() / 1000;
-      const transitioned: HfmCanonicalQuote = enrichQuoteFreshness(
-        {
-          ...quote,
-          status: nextStatus,
-          previousStatus,
-          statusReason: quote.statusReason,
-          statusChangedAt:
-            previousStatus !== nextStatus ? ctx.receivedAt : prev?.lastKnownGood?.statusChangedAt ?? ctx.receivedAt,
-        },
-        { snapshotAgeSec: ctx.ageSec, nowSec: ingestNowSec },
-      );
+      const withIdentity: HfmCanonicalQuote = {
+        ...quote,
+        status: nextStatus,
+        previousStatus,
+        statusReason: quote.statusReason,
+        statusChangedAt:
+          previousStatus !== nextStatus ? ctx.receivedAt : prev?.lastKnownGood?.statusChangedAt ?? ctx.receivedAt,
+        quoteVersionId: buildHfmQuoteVersionId({ ...quote, sequence: ctx.sequence }),
+        quoteProvenance: "LIVE_ACCEPTED",
+      };
+      const transitioned: HfmCanonicalQuote = enrichQuoteFreshness(withIdentity, {
+        snapshotAgeSec: ctx.ageSec,
+        nowSec: ingestNowSec,
+      });
 
       if (!accepted) {
         rejected.push(transitioned);
@@ -295,6 +332,52 @@ export class HfmQuoteService {
         continue;
       }
 
+      // STEP 1B.3 — monotonic LKG: never let an older/untrusted tick regress LKG.
+      const mono = compareHfmQuoteMonotonicity(prev?.lastKnownGood ?? null, transitioned);
+      if (!isHfmMonotonicAccept(mono.decision)) {
+        skippedStaleOrDuplicate += 1;
+        const diagKey = transitioned.symbol || stateKey;
+        this.monotonicDiag.set(diagKey, {
+          reason: mono.reason,
+          decision: mono.decision,
+          comparisonTrusted: mono.comparisonTrusted,
+          incomingVersionId: mono.incomingVersionId,
+          existingVersionId: mono.existingVersionId,
+          at: ctx.receivedAt,
+        });
+        while (this.monotonicDiag.size > MAX_MONOTONIC_DIAG) {
+          const first = this.monotonicDiag.keys().next().value;
+          if (first == null) break;
+          this.monotonicDiag.delete(first);
+        }
+        const rejectedMono: HfmCanonicalQuote = {
+          ...transitioned,
+          status: "INVALID",
+          statusReason: mono.reason,
+          quoteProvenance: "LIVE_ACCEPTED",
+          validation: {
+            ...transitioned.validation,
+            verdict: "rejected",
+            errors: [...transitioned.validation.errors, mono.reason],
+          },
+        };
+        this.pushRejected(rejectedMono);
+        // Preserve existing LKG unchanged (including original receipt/tick ages).
+        if (prev?.lastKnownGood) {
+          const state: SymbolQuoteState = {
+            lastKnownGood: prev.lastKnownGood,
+            lastRejected: rejectedMono,
+            status: prev.lastKnownGood.status,
+            updatedAt: prev.updatedAt,
+          };
+          this.bySymbol.set(stateKey, state);
+        }
+        if (sym) {
+          subMgr.markAcquired(sym, ctx.receivedAt, true);
+        }
+        continue;
+      }
+
       const state: SymbolQuoteState = {
         lastKnownGood: transitioned,
         lastRejected: prev?.lastRejected ?? null,
@@ -313,7 +396,7 @@ export class HfmQuoteService {
       }
     }
 
-    return { published, rejected, skippedUnsubscribed };
+    return { published, rejected, skippedUnsubscribed, skippedStaleOrDuplicate };
   }
 
   private pushRejected(q: HfmCanonicalQuote): void {
@@ -325,10 +408,15 @@ export class HfmQuoteService {
     const resolve = (q: HfmCanonicalQuote | null | undefined): HfmCanonicalQuote | null => {
       if (!q) return null;
       // Reassess ages at read time so LKG cannot fake LIVE after wall-clock advances.
-      return enrichQuoteFreshness(q, {
+      const enriched = enrichQuoteFreshness(q, {
         snapshotAgeSec: this.lastSnapshotAgeSec,
         nowSec: Date.now() / 1000,
       });
+      return {
+        ...enriched,
+        quoteVersionId: enriched.quoteVersionId ?? buildHfmQuoteVersionId(enriched),
+        quoteProvenance: "LKG_CACHED",
+      };
     };
     const direct = this.bySymbol.get(symbol)?.lastKnownGood;
     if (direct) return resolve(direct);
@@ -392,6 +480,8 @@ export class HfmQuoteService {
           quoteFreshnessStatus: "TICK_AGE_UNAVAILABLE",
           dataQualityStatus: "UNAVAILABLE",
           freshnessReason: "NO_QUOTE",
+          quoteVersionId: null,
+          quoteProvenance: "NO_QUOTE",
           receivedAt: this.lastReceivedAt ?? new Date().toISOString(),
           sequence: this.lastSequence,
           status: "NO_QUOTE",

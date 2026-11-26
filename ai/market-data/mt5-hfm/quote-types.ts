@@ -116,8 +116,22 @@ export interface HfmCanonicalQuote {
   quoteFreshnessStatus: HfmQuoteFreshnessStatus | null;
   dataQualityStatus: HfmDataQualityStatus | null;
   freshnessReason: string | null;
+  /**
+   * STEP 1B.3 — deterministic accepted-quote identity for REST/SSE/AI correlation.
+   * Not random; not based on local response time; not prices alone.
+   */
+  quoteVersionId: string | null;
+  /**
+   * How this quote is held in the service: LIVE_ACCEPTED (current ingest),
+   * LKG_CACHED (served from last known good), or null when not applicable.
+   */
+  quoteProvenance: "LIVE_ACCEPTED" | "LKG_CACHED" | "NO_QUOTE" | null;
   /** Core/agent UTC receipt instant (ISO-8601). */
   receivedAt: string;
+  /**
+   * Hub snapshot/poll sequence that accompanied this quote ingest.
+   * Snapshot-scoped — not a globally unique per-symbol tick counter.
+   */
   sequence: number | null;
   status: HfmQuoteStatus;
   validation: HfmQuoteValidationResult;
