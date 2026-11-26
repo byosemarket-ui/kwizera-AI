@@ -8,6 +8,7 @@ import type {
   HfmTimestampNormalizationStatus,
   HfmTimestampSource,
 } from "./quote-timestamp.js";
+import type { HfmMarketSessionState } from "./market-session.js";
 
 export const HFM_QUOTE_PROVIDER = "HFM_MT5" as const;
 export const HFM_QUOTE_ENVIRONMENT = "demo" as const;
@@ -16,6 +17,8 @@ export type {
   HfmTimestampNormalizationStatus,
   HfmTimestampSource,
 } from "./quote-timestamp.js";
+
+export type { HfmMarketSessionState } from "./market-session.js";
 
 export const HFM_QUOTE_STATUSES = [
   "LIVE",
@@ -85,13 +88,20 @@ export interface HfmCanonicalQuote {
    */
   receivedAtUtc: string;
   /**
-   * Raw broker tick seconds minus Core receipt UTC seconds.
-   * Documents observed aheadness that triggers BROKER_TIME_AHEAD_OF_UTC.
+   * Backward-compatible B1 field.
+   * Formula: quoteTimestamp(brokerSec) − receivedAtUtcSec
+   * ≈ brokerUtcOffsetSec − tickAgeSec when UTC normalization is trusted.
+   * Not pure oscillator skew (Core vs TimeGMT); keep distinct from brokerUtcOffsetSec.
    */
   clockSkewSec: number | null;
   timestampSource: HfmTimestampSource;
   timestampNormalizationStatus: HfmTimestampNormalizationStatus;
   timestampNormalizationReason: string | null;
+  /** B1.1 — schedule/connectivity classification (distinct from quote freshness). */
+  marketSessionState: HfmMarketSessionState;
+  marketSessionReason: string | null;
+  /** True when TimeCurrent appears frozen vs TimeGMT. */
+  brokerClockFrozen: boolean;
   /** Core/agent UTC receipt instant (ISO-8601). */
   receivedAt: string;
   sequence: number | null;

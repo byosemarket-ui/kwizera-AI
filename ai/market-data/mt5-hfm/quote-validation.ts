@@ -1,8 +1,13 @@
 /**
  * STEP 2A — deterministic HFM quote validation + spread calculation.
  * STEP 1B / B1 — UTC timestamp normalization via quote-timestamp.ts.
+ * STEP 1B.1 — market session awareness + frozen-clock offset protection.
  */
 import type { HfmCatalogInstrument } from "./catalog-types.js";
+import {
+  classifyHfmMarketSession,
+  isMarketSessionClosedLike,
+} from "./market-session.js";
 import {
   HFM_QUOTE_ENVIRONMENT,
   HFM_QUOTE_PROVIDER,
@@ -103,6 +108,8 @@ export function validateHfmRawQuote(
     brokerTime?: number | null;
     /** MT5 TimeGMT() from the same snapshot (GMT/UTC seconds). */
     gmtTime?: number | null;
+    terminalRunning?: boolean | null;
+    feedAvailable?: boolean | null;
   },
 ): { quote: HfmCanonicalQuote; accepted: boolean } {
   const errors: string[] = [];
@@ -224,9 +231,21 @@ export function validateHfmRawQuote(
 
   const receivedMs = Date.parse(opts.receivedAt);
   const receivedAtUtcSec = Number.isFinite(receivedMs) ? receivedMs / 1000 : Date.now() / 1000;
+
+  const session = classifyHfmMarketSession({
+    symbol: exactSymbol || symbol,
+    terminalRunning: opts.terminalRunning,
+    feedAvailable: opts.feedAvailable,
+    brokerTime: opts.brokerTime,
+    gmtTime: opts.gmtTime,
+    sessions: catalog?.sessions ?? null,
+  });
+
   const offsetResult = deriveHfmBrokerUtcOffset({
     brokerTime: opts.brokerTime,
     gmtTime: opts.gmtTime,
+    brokerClockFrozen: session.brokerClockFrozen,
+    marketSessionState: session.state,
   });
   const tsNorm = normalizeHfmQuoteTimestamps({
     quoteTimestampSec: quoteTimestamp,
@@ -234,6 +253,7 @@ export function validateHfmRawQuote(
     brokerUtcOffsetSec: offsetResult.brokerUtcOffsetSec,
     offsetStatus: offsetResult.status,
     offsetReason: offsetResult.reason,
+    offsetTrust: offsetResult.trust,
     acquisitionMethod,
     receivedAtUtcSec,
   });
@@ -262,6 +282,15 @@ export function validateHfmRawQuote(
   } else if (offsetResult.status === "PARTIAL") {
     warnings.push("BROKER_UTC_OFFSET_PARTIAL");
   }
+  if (session.brokerClockFrozen) {
+    warnings.push("BROKER_CLOCK_FROZEN");
+  } else if (session.state === "TRADING_BREAK") {
+    warnings.push("TRADING_BREAK");
+  } else if (session.state === "MT5_DISCONNECTED") {
+    warnings.push("MT5_DISCONNECTED");
+  } else if (session.state === "FEED_UNAVAILABLE") {
+    warnings.push("FEED_UNAVAILABLE");
+  }
 
   let verdict: HfmQuoteValidationResult["verdict"] = "ok";
   let status: HfmQuoteStatus = "LIVE";
@@ -283,6 +312,12 @@ export function validateHfmRawQuote(
     verdict = "warning";
     status = "LIVE";
     accepted = true;
+  }
+
+  // Schedule/connectivity overlays (do not reject a valid last quote).
+  if (accepted) {
+    if (session.state === "MT5_DISCONNECTED") status = "ERROR";
+    else if (isMarketSessionClosedLike(session.state)) status = "MARKET_CLOSED";
   }
 
   const quote: HfmCanonicalQuote = {
@@ -312,6 +347,9 @@ export function validateHfmRawQuote(
     timestampSource: tsNorm.timestampSource,
     timestampNormalizationStatus: tsNorm.timestampNormalizationStatus,
     timestampNormalizationReason: tsNorm.timestampNormalizationReason,
+    marketSessionState: session.state,
+    marketSessionReason: session.reason,
+    brokerClockFrozen: session.brokerClockFrozen,
     receivedAt: opts.receivedAt,
     sequence: opts.sequence,
     status,
@@ -325,7 +363,7 @@ export function validateHfmRawQuote(
     source: "mql5_readonly_snapshot",
     acquisitionMethod,
     previousStatus: null,
-    statusReason: errors[0] ?? warnings[0] ?? null,
+    statusReason: errors[0] ?? warnings[0] ?? session.reason ?? null,
     statusChangedAt: opts.receivedAt,
     mutatesBroker: false,
     placesOrders: false,

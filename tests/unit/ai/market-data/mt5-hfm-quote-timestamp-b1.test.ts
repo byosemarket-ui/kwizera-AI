@@ -1,10 +1,11 @@
 /**
  * STEP 1B / B1 — UTC timestamp normalization unit tests.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   deriveHfmBrokerUtcOffset,
   normalizeHfmQuoteTimestamps,
+  resetHfmTrustedBrokerUtcOffsetForTests,
 } from "../../../../ai/market-data/mt5-hfm/quote-timestamp";
 import { validateHfmRawQuote } from "../../../../ai/market-data/mt5-hfm/quote-validation";
 import { mifQuoteFromHfmCanonical } from "../../../../ai/market-data/mt5-hfm/mif/canonical/quote";
@@ -27,6 +28,10 @@ const catalog = new Map<string, HfmCatalogInstrument>([
 ]);
 
 describe("B1 deriveHfmBrokerUtcOffset", () => {
+  beforeEach(() => {
+    resetHfmTrustedBrokerUtcOffsetForTests();
+  });
+
   it("derives UTC+2 (+7200) from brokerTime - gmtTime", () => {
     const r = deriveHfmBrokerUtcOffset({
       brokerTime: receivedAtSec + 7200,

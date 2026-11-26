@@ -173,6 +173,8 @@ export class HfmQuoteService {
         environment: HFM_QUOTE_ENVIRONMENT,
         brokerTime: ctx.brokerTime ?? null,
         gmtTime: ctx.gmtTime ?? null,
+        terminalRunning: ctx.terminalRunning,
+        feedAvailable: ctx.terminalRunning !== false && ctx.feedFreshness !== "DISCONNECTED",
       });
 
       const stateKey = this.key(quote.symbol || sym || "UNKNOWN");
