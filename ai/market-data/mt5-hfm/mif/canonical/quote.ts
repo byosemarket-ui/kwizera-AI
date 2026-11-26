@@ -78,8 +78,9 @@ export function mifQuoteFromHfmCanonical(
     receivedAt,
     availableAt: receivedAt,
     availabilityStatus: receivedAt ? "KNOWN" : "UNKNOWN",
+    // B1: quoteTimestampSec remains broker-domain; expose derived offset for MIF freshness.
     timebase: "BROKER_SERVER",
-    timezoneOffsetSec: null,
+    timezoneOffsetSec: quote.brokerUtcOffsetSec,
     status: quote.status,
     sourceDialect: "hfm.canonical-quote",
     sourceProvenance: quote.source,

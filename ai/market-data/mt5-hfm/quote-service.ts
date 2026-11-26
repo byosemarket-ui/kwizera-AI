@@ -31,6 +31,10 @@ export interface HfmQuoteIngestContext {
   terminalRunning: boolean | null;
   feedFreshness: string;
   requireCatalogMatch?: boolean;
+  /** MT5 TimeCurrent() from the polled snapshot (broker-server seconds). */
+  brokerTime?: number | null;
+  /** MT5 TimeGMT() from the polled snapshot (GMT/UTC seconds). */
+  gmtTime?: number | null;
 }
 
 interface SymbolQuoteState {
@@ -167,6 +171,8 @@ export class HfmQuoteService {
         requireCatalogMatch: requireCatalog,
         provider: HFM_QUOTE_PROVIDER,
         environment: HFM_QUOTE_ENVIRONMENT,
+        brokerTime: ctx.brokerTime ?? null,
+        gmtTime: ctx.gmtTime ?? null,
       });
 
       const stateKey = this.key(quote.symbol || sym || "UNKNOWN");

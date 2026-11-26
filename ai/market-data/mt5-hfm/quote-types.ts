@@ -1,10 +1,21 @@
 /**
  * STEP 2A — HFM MT5 canonical quote contract (Demo read-only).
  * Static catalog metadata stays separate from dynamic quotes.
+ * STEP 1B / B1 adds explicit UTC timestamp normalization fields (additive).
  */
+
+import type {
+  HfmTimestampNormalizationStatus,
+  HfmTimestampSource,
+} from "./quote-timestamp.js";
 
 export const HFM_QUOTE_PROVIDER = "HFM_MT5" as const;
 export const HFM_QUOTE_ENVIRONMENT = "demo" as const;
+
+export type {
+  HfmTimestampNormalizationStatus,
+  HfmTimestampSource,
+} from "./quote-timestamp.js";
 
 export const HFM_QUOTE_STATUSES = [
   "LIVE",
@@ -49,10 +60,39 @@ export interface HfmCanonicalQuote {
   tickVolume: number | null;
   realVolume: number | null;
   tickFlags: number | null;
-  /** Broker tick time (unix seconds). */
+  /**
+   * Broker-domain tick time (unix-like seconds on the broker server clock).
+   * Not UTC. Preserved for compatibility and provenance.
+   */
   quoteTimestamp: number | null;
-  /** Broker tick time ms since epoch when available. */
+  /** Broker-domain tick time milliseconds when available. Not UTC. */
   quoteTimestampMs: number | null;
+  /**
+   * UTC-normalized tick time in unix seconds when brokerUtcOffsetSec is trusted.
+   * Null when normalization is unavailable or unreliable — never fabricated.
+   */
+  quoteTimestampUtc: number | null;
+  /** UTC-normalized tick time in milliseconds when available. */
+  quoteTimestampUtcMs: number | null;
+  /**
+   * Derived offset seconds: MT5 TimeCurrent() - TimeGMT().
+   * Positive means broker clock is ahead of GMT (e.g. +7200 for UTC+2).
+   */
+  brokerUtcOffsetSec: number | null;
+  /**
+   * Core/agent UTC receipt instant (ISO-8601). Same value as receivedAt;
+   * explicit alias for timestamp contract clarity.
+   */
+  receivedAtUtc: string;
+  /**
+   * Raw broker tick seconds minus Core receipt UTC seconds.
+   * Documents observed aheadness that triggers BROKER_TIME_AHEAD_OF_UTC.
+   */
+  clockSkewSec: number | null;
+  timestampSource: HfmTimestampSource;
+  timestampNormalizationStatus: HfmTimestampNormalizationStatus;
+  timestampNormalizationReason: string | null;
+  /** Core/agent UTC receipt instant (ISO-8601). */
   receivedAt: string;
   sequence: number | null;
   status: HfmQuoteStatus;

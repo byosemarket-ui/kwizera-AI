@@ -1,5 +1,6 @@
 /**
  * STEP 2A — deterministic HFM quote validation + spread calculation.
+ * STEP 1B / B1 — UTC timestamp normalization via quote-timestamp.ts.
  */
 import type { HfmCatalogInstrument } from "./catalog-types.js";
 import {
@@ -9,6 +10,10 @@ import {
   type HfmQuoteStatus,
   type HfmQuoteValidationResult,
 } from "./quote-types.js";
+import {
+  deriveHfmBrokerUtcOffset,
+  normalizeHfmQuoteTimestamps,
+} from "./quote-timestamp.js";
 
 const PRICE_EPS = 1e-12;
 
@@ -94,6 +99,10 @@ export function validateHfmRawQuote(
     requireCatalogMatch: boolean;
     provider?: string | null;
     environment?: string | null;
+    /** MT5 TimeCurrent() from the same snapshot as the tick (broker-server seconds). */
+    brokerTime?: number | null;
+    /** MT5 TimeGMT() from the same snapshot (GMT/UTC seconds). */
+    gmtTime?: number | null;
   },
 ): { quote: HfmCanonicalQuote; accepted: boolean } {
   const errors: string[] = [];
@@ -208,20 +217,50 @@ export function validateHfmRawQuote(
     warnings.push("PAYLOAD_SPREAD_MISMATCH");
   }
 
+  const acquisitionMethod =
+    raw.acquisitionMethod === "SymbolInfoTick" || raw.acquisitionMethod === "SymbolInfoDouble"
+      ? raw.acquisitionMethod
+      : "unknown";
+
+  const receivedMs = Date.parse(opts.receivedAt);
+  const receivedAtUtcSec = Number.isFinite(receivedMs) ? receivedMs / 1000 : Date.now() / 1000;
+  const offsetResult = deriveHfmBrokerUtcOffset({
+    brokerTime: opts.brokerTime,
+    gmtTime: opts.gmtTime,
+  });
+  const tsNorm = normalizeHfmQuoteTimestamps({
+    quoteTimestampSec: quoteTimestamp,
+    quoteTimestampMs,
+    brokerUtcOffsetSec: offsetResult.brokerUtcOffsetSec,
+    offsetStatus: offsetResult.status,
+    offsetReason: offsetResult.reason,
+    acquisitionMethod,
+    receivedAtUtcSec,
+  });
+
   if (quoteTimestamp != null) {
-    const receivedMs = Date.parse(opts.receivedAt);
-    const nowSec = Number.isFinite(receivedMs) ? receivedMs / 1000 : Date.now() / 1000;
-    // MT5 MqlTick.time is broker-server time as unix seconds. HFM Demo commonly
-    // runs UTC+2 (or similar), so tick.time can appear hours ahead of VPS UTC
-    // without being invalid. Soft-warn within a timezone window; hard-reject
-    // only absurd futures that cannot be broker TZ skew.
+    // Prefer UTC-normalized tick vs receipt UTC when available; otherwise keep the
+    // historical broker-vs-UTC soft-warn path (BROKER_TIME_AHEAD_OF_UTC).
     const FUTURE_SKEW_WARN_SEC = 12 * 3600;
     const FUTURE_SKEW_REJECT_SEC = 36 * 3600;
-    const ahead = quoteTimestamp - nowSec;
+    const compareSec = tsNorm.quoteTimestampUtc ?? quoteTimestamp;
+    const ahead = compareSec - receivedAtUtcSec;
     if (ahead > FUTURE_SKEW_REJECT_SEC) errors.push("FUTURE_TIMESTAMP");
     else if (ahead > FUTURE_SKEW_WARN_SEC) warnings.push("FUTURE_TIMESTAMP_SKEW");
-    else if (ahead > 300) warnings.push("BROKER_TIME_AHEAD_OF_UTC");
+    else if (tsNorm.quoteTimestampUtc == null && quoteTimestamp - receivedAtUtcSec > 300) {
+      // Raw broker clock ahead of UTC receipt — expected under broker TZ; do not remove.
+      warnings.push("BROKER_TIME_AHEAD_OF_UTC");
+    }
     if (quoteTimestamp < 0) errors.push("INVALID_TIMESTAMP");
+  }
+
+  // UNAVAILABLE is expressed via timestampNormalizationStatus (no verdict noise).
+  // UNRELIABLE / PARTIAL are soft warnings — never invent UTC ticks in those cases
+  // beyond what normalizeHfmQuoteTimestamps already allows for PARTIAL.
+  if (offsetResult.status === "UNRELIABLE") {
+    warnings.push("BROKER_UTC_OFFSET_UNRELIABLE");
+  } else if (offsetResult.status === "PARTIAL") {
+    warnings.push("BROKER_UTC_OFFSET_PARTIAL");
   }
 
   let verdict: HfmQuoteValidationResult["verdict"] = "ok";
@@ -246,11 +285,6 @@ export function validateHfmRawQuote(
     accepted = true;
   }
 
-  const acquisitionMethod =
-    raw.acquisitionMethod === "SymbolInfoTick" || raw.acquisitionMethod === "SymbolInfoDouble"
-      ? raw.acquisitionMethod
-      : "unknown";
-
   const quote: HfmCanonicalQuote = {
     provider: HFM_QUOTE_PROVIDER,
     environment: HFM_QUOTE_ENVIRONMENT,
@@ -268,8 +302,16 @@ export function validateHfmRawQuote(
     tickVolume,
     realVolume,
     tickFlags,
-    quoteTimestamp,
-    quoteTimestampMs,
+    quoteTimestamp: tsNorm.quoteTimestamp,
+    quoteTimestampMs: tsNorm.quoteTimestampMs,
+    quoteTimestampUtc: tsNorm.quoteTimestampUtc,
+    quoteTimestampUtcMs: tsNorm.quoteTimestampUtcMs,
+    brokerUtcOffsetSec: tsNorm.brokerUtcOffsetSec,
+    receivedAtUtc: opts.receivedAt,
+    clockSkewSec: tsNorm.clockSkewSec,
+    timestampSource: tsNorm.timestampSource,
+    timestampNormalizationStatus: tsNorm.timestampNormalizationStatus,
+    timestampNormalizationReason: tsNorm.timestampNormalizationReason,
     receivedAt: opts.receivedAt,
     sequence: opts.sequence,
     status,

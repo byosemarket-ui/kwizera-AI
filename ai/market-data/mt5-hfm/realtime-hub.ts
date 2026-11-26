@@ -437,6 +437,9 @@ async function pollOnce(): Promise<void> {
         terminalRunning,
         feedFreshness: freshness,
         requireCatalogMatch: false,
+        // B1: derive brokerUtcOffsetSec from the same snapshot clocks as the ticks.
+        brokerTime,
+        gmtTime,
       });
       getHfmSymbolFreshnessEngine().setConnectivity({
         terminalRunning,
