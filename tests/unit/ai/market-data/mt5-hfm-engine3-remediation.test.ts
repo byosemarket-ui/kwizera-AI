@@ -17,6 +17,7 @@ import {
   selectOffsetForBrokerCandle,
 } from "../../../../ai/market-data/mt5-hfm/candle-timestamp";
 import {
+  compactHfmOffsetArchiveEras,
   getHfmOffsetArchiveCoverage,
   getHfmOffsetArchiveObservations,
   loadHfmOffsetArchive,
@@ -252,28 +253,87 @@ describe("E3-R1 historical offset archive", () => {
     expect(loaded.loaded).toBe(0);
   });
 
-  it("ignores duplicate same-second observations and bounds growth", async () => {
-    for (let i = 0; i < 20; i++) {
+  it("compacts same-offset heartbeats into one era (no hourly slot burn)", async () => {
+    const t0 = 1_700_000_000;
+    // Simulate >600 hours of same-offset confirmations (would have filled 512 slots under old design).
+    for (let i = 0; i < 600; i++) {
       noteHfmOffsetArchiveObservation({
         offsetSec: 7200,
-        observedAtGmtSec: 1_700_000_000 + i,
-        observedAtBrokerSec: 1_700_007_200, // same broker second
+        observedAtGmtSec: t0 + i * 3600,
+        observedAtBrokerSec: t0 + 7200 + i * 3600,
         status: "NORMALIZED",
       });
     }
-    expect(getHfmOffsetArchiveObservations().length).toBeLessThanOrEqual(2);
-    // Distinct era changes still retained
-    for (let i = 0; i < HFM_OFFSET_ARCHIVE_MAX_OBS + 50; i++) {
+    const eras = getHfmOffsetArchiveObservations();
+    expect(eras.length).toBe(1);
+    expect(eras[0]!.offsetSec).toBe(7200);
+    expect(eras[0]!.firstObservedAtBrokerSec).toBe(t0 + 7200);
+    expect(eras[0]!.observedAtBrokerSec).toBe(t0 + 7200 + 599 * 3600);
+    // Distinct offset eras still retained separately (DST transition preserved).
+    noteHfmOffsetArchiveObservation({
+      offsetSec: 10800,
+      observedAtGmtSec: t0 + 700 * 3600,
+      observedAtBrokerSec: t0 + 7200 + 700 * 3600,
+      status: "NORMALIZED",
+    });
+    expect(getHfmOffsetArchiveObservations().length).toBe(2);
+    expect(getHfmOffsetArchiveObservations().map((e) => e.offsetSec)).toEqual([7200, 10800]);
+  });
+
+  it("bounds growth by era count; eviction drops oldest eras not heartbeats", async () => {
+    for (let i = 0; i < HFM_OFFSET_ARCHIVE_MAX_OBS + 40; i++) {
+      // Force a new era each time via large offset steps (±15m already triggers; use unique large deltas).
+      const offsetSec = 3600 + (i % 20) * 900; // cycles among distinct quarter-hours
       noteHfmOffsetArchiveObservation({
-        offsetSec: i % 2 === 0 ? 7200 : 10800,
-        observedAtGmtSec: 1_710_000_000 + i * 7200,
-        observedAtBrokerSec: 1_710_007_200 + i * 7200,
+        offsetSec,
+        observedAtGmtSec: 1_710_000_000 + i * 86_400,
+        observedAtBrokerSec: 1_710_003_600 + i * 86_400,
         status: "NORMALIZED",
       });
     }
     expect(getHfmOffsetArchiveObservations().length).toBeLessThanOrEqual(HFM_OFFSET_ARCHIVE_MAX_OBS);
     const cov = getHfmOffsetArchiveCoverage();
     expect(cov.distinctOffsets.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("ignores duplicate same-second observations", () => {
+    for (let i = 0; i < 20; i++) {
+      noteHfmOffsetArchiveObservation({
+        offsetSec: 7200,
+        observedAtGmtSec: 1_700_000_000 + i,
+        observedAtBrokerSec: 1_700_007_200,
+        status: "NORMALIZED",
+      });
+    }
+    expect(getHfmOffsetArchiveObservations().length).toBe(1);
+  });
+
+  it("compacts legacy multi-heartbeat files into eras on load", async () => {
+    const path = join(tmpDir, "broker-utc-offset.json");
+    const legacy = {
+      schemaVersion: 1,
+      provider: "HFM_MT5",
+      updatedAt: new Date().toISOString(),
+      observations: Array.from({ length: 100 }, (_, i) => ({
+        offsetSec: 7200,
+        measuredDeltaSec: 7200,
+        observedAtGmtSec: 1_700_000_000 + i * 3600,
+        observedAtBrokerSec: 1_700_007_200 + i * 3600,
+        status: "NORMALIZED",
+        source: "open_session_observation",
+      })),
+    };
+    writeFileSync(path, JSON.stringify(legacy), "utf8");
+    resetHfmOffsetArchiveForTests();
+    setHfmOffsetArchivePathForTests(path);
+    const loaded = await loadHfmOffsetArchive();
+    expect(loaded.loaded).toBe(1);
+    expect(getHfmOffsetArchiveObservations()[0]!.firstObservedAtBrokerSec).toBe(1_700_007_200);
+    expect(getHfmOffsetArchiveObservations()[0]!.observedAtBrokerSec).toBe(
+      1_700_007_200 + 99 * 3600,
+    );
+    // compact helper is deterministic
+    expect(compactHfmOffsetArchiveEras(getHfmOffsetArchiveObservations()).length).toBe(1);
   });
 
   it("archive-backed normalize works after in-process history cleared", async () => {

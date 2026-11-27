@@ -16,18 +16,34 @@ import {
 
 export const HFM_OFFSET_ARCHIVE_SCHEMA_VERSION = 1 as const;
 
-/** Max retained observations (era samples + heartbeats). Bounded memory/disk. */
+/**
+ * Max retained *offset eras* (not hourly heartbeats).
+ * Same-offset heartbeats compact into one era; only offset transitions
+ * (and distinct eras) consume a new slot. 512 eras ≫ expected DST/server changes.
+ */
 export const HFM_OFFSET_ARCHIVE_MAX_OBS = 512;
 
-/** Min gap between identical-offset heartbeats persisted to disk. */
+/**
+ * @deprecated Heartbeats no longer append slots. Kept for test/compat imports.
+ * Same-offset observations always compact into the open era.
+ */
 export const HFM_OFFSET_ARCHIVE_HEARTBEAT_SEC = 3600;
 
 export interface HfmOffsetArchiveObservation {
   offsetSec: number;
   /** Raw measured broker−GMT delta when distinct from trusted offset (e.g. 7199). */
   measuredDeltaSec: number | null;
-  observedAtGmtSec: number;
+  /**
+   * First confirmation of this continuous same-offset era (broker domain).
+   * Preserved across heartbeats so era start / DST boundary is not lost.
+   */
+  firstObservedAtBrokerSec: number;
+  /** First confirmation GMT seconds. */
+  firstObservedAtGmtSec: number;
+  /** Last-seen confirmation of this era (broker domain). Updated in place by heartbeats. */
   observedAtBrokerSec: number;
+  /** Last-seen confirmation GMT seconds. */
+  observedAtGmtSec: number;
   status: HfmTimestampNormalizationStatus;
   source: "open_session_observation" | "archive_backfill";
   brokerIdentity: string | null;
@@ -148,14 +164,26 @@ function validateObservation(raw: unknown): HfmOffsetArchiveObservation | null {
   if (o.status !== "NORMALIZED" && o.status !== "PARTIAL" && o.status !== "UNAVAILABLE" && o.status !== "UNRELIABLE") {
     return null;
   }
+  const observedAtGmtSec = Math.trunc(o.observedAtGmtSec as number);
+  const observedAtBrokerSec = Math.trunc(o.observedAtBrokerSec as number);
+  const firstBroker =
+    typeof o.firstObservedAtBrokerSec === "number" && Number.isFinite(o.firstObservedAtBrokerSec)
+      ? Math.trunc(o.firstObservedAtBrokerSec)
+      : observedAtBrokerSec;
+  const firstGmt =
+    typeof o.firstObservedAtGmtSec === "number" && Number.isFinite(o.firstObservedAtGmtSec)
+      ? Math.trunc(o.firstObservedAtGmtSec)
+      : observedAtGmtSec;
   return {
     offsetSec: Math.trunc(o.offsetSec),
     measuredDeltaSec:
       typeof o.measuredDeltaSec === "number" && Number.isFinite(o.measuredDeltaSec)
         ? Math.trunc(o.measuredDeltaSec)
         : null,
-    observedAtGmtSec: Math.trunc(o.observedAtGmtSec),
-    observedAtBrokerSec: Math.trunc(o.observedAtBrokerSec),
+    firstObservedAtBrokerSec: Math.min(firstBroker, observedAtBrokerSec),
+    firstObservedAtGmtSec: Math.min(firstGmt, observedAtGmtSec),
+    observedAtGmtSec,
+    observedAtBrokerSec,
     status: o.status,
     source:
       o.source === "archive_backfill" ? "archive_backfill" : "open_session_observation",
@@ -163,6 +191,46 @@ function validateObservation(raw: unknown): HfmOffsetArchiveObservation | null {
     sessionContext: typeof o.sessionContext === "string" ? o.sessionContext : null,
     reason: typeof o.reason === "string" ? o.reason : null,
   };
+}
+
+/** Collapse consecutive same-offset records into era spans (schema migration / safety). */
+export function compactHfmOffsetArchiveEras(
+  list: HfmOffsetArchiveObservation[],
+): HfmOffsetArchiveObservation[] {
+  const sorted = sortObs(list);
+  if (!sorted.length) return [];
+  const out: HfmOffsetArchiveObservation[] = [];
+  for (const row of sorted) {
+    const last = out[out.length - 1];
+    if (
+      last &&
+      Math.abs(last.offsetSec - row.offsetSec) < HFM_TRUSTED_OFFSET_REPLACE_DELTA_SEC
+    ) {
+      out[out.length - 1] = {
+        ...last,
+        firstObservedAtBrokerSec: Math.min(
+          last.firstObservedAtBrokerSec,
+          row.firstObservedAtBrokerSec,
+          row.observedAtBrokerSec,
+        ),
+        firstObservedAtGmtSec: Math.min(
+          last.firstObservedAtGmtSec,
+          row.firstObservedAtGmtSec,
+          row.observedAtGmtSec,
+        ),
+        observedAtBrokerSec: Math.max(last.observedAtBrokerSec, row.observedAtBrokerSec),
+        observedAtGmtSec: Math.max(last.observedAtGmtSec, row.observedAtGmtSec),
+        measuredDeltaSec: row.measuredDeltaSec ?? last.measuredDeltaSec,
+        status: row.status === "NORMALIZED" || last.status === "NORMALIZED" ? "NORMALIZED" : row.status,
+        reason: row.reason ?? last.reason,
+        brokerIdentity: row.brokerIdentity ?? last.brokerIdentity,
+        sessionContext: row.sessionContext ?? last.sessionContext,
+      };
+    } else {
+      out.push({ ...row });
+    }
+  }
+  return out.slice(-HFM_OFFSET_ARCHIVE_MAX_OBS);
 }
 
 /**
@@ -194,7 +262,7 @@ export async function loadHfmOffsetArchive(): Promise<{
       const v = validateObservation(row);
       if (v) cleaned.push(v);
     }
-    memoryArchive = sortObs(cleaned).slice(-HFM_OFFSET_ARCHIVE_MAX_OBS);
+    memoryArchive = compactHfmOffsetArchiveEras(cleaned);
     archiveLoaded = true;
     return { loaded: memoryArchive.length, path: filePath, corrupt: false };
   } catch (err) {
@@ -229,7 +297,7 @@ export async function persistHfmOffsetArchive(): Promise<{ ok: boolean; path: st
     schemaVersion: HFM_OFFSET_ARCHIVE_SCHEMA_VERSION,
     provider: "HFM_MT5",
     updatedAt: new Date().toISOString(),
-    observations: sortObs(memoryArchive).slice(-HFM_OFFSET_ARCHIVE_MAX_OBS),
+    observations: compactHfmOffsetArchiveEras(memoryArchive),
   };
   try {
     await atomicWrite(filePath, `${JSON.stringify(doc)}\n`);
@@ -242,10 +310,12 @@ export async function persistHfmOffsetArchive(): Promise<{ ok: boolean; path: st
 }
 
 /**
- * Append an observation. Does not rewrite older eras when offset differs —
- * both eras remain for historical lookup / DST boundary detection.
- * Duplicate same-second observations are ignored. Same-offset heartbeats
- * are rate-limited.
+ * Record an offset observation as a durable *era*.
+ *
+ * Same-offset heartbeats compact into the open era (first-seen preserved,
+ * last-seen updated) and never consume an additional slot — so hourly
+ * confirmations cannot evict older DST/offset eras from the 512-era budget.
+ * Distinct offsets append a new era. Older eras are never rewritten in place.
  */
 export function noteHfmOffsetArchiveObservation(input: {
   offsetSec: number;
@@ -268,14 +338,18 @@ export function noteHfmOffsetArchiveObservation(input: {
     return null;
   }
 
+  const brokerSec = Math.trunc(input.observedAtBrokerSec);
+  const gmtSec = Math.trunc(input.observedAtGmtSec);
   const next: HfmOffsetArchiveObservation = {
     offsetSec: Math.trunc(input.offsetSec),
     measuredDeltaSec:
       input.measuredDeltaSec != null && Number.isFinite(input.measuredDeltaSec)
         ? Math.trunc(input.measuredDeltaSec)
         : null,
-    observedAtGmtSec: Math.trunc(input.observedAtGmtSec),
-    observedAtBrokerSec: Math.trunc(input.observedAtBrokerSec),
+    firstObservedAtBrokerSec: brokerSec,
+    firstObservedAtGmtSec: gmtSec,
+    observedAtGmtSec: gmtSec,
+    observedAtBrokerSec: brokerSec,
     status: input.status,
     source: input.source ?? "open_session_observation",
     brokerIdentity: input.brokerIdentity ?? null,
@@ -285,36 +359,35 @@ export function noteHfmOffsetArchiveObservation(input: {
 
   const last = memoryArchive[memoryArchive.length - 1];
   if (last) {
+    // Exact duplicate confirmation — no-op.
     if (
       last.observedAtBrokerSec === next.observedAtBrokerSec &&
       last.offsetSec === next.offsetSec
     ) {
       return { ...last };
     }
-    // Same offset: heartbeat only if enough time elapsed.
-    if (
-      Math.abs(last.offsetSec - next.offsetSec) < HFM_TRUSTED_OFFSET_REPLACE_DELTA_SEC &&
-      next.observedAtGmtSec - last.observedAtGmtSec < HFM_OFFSET_ARCHIVE_HEARTBEAT_SEC
-    ) {
-      // Refresh in-memory last observation clocks without growing history.
+    // Same offset era: compact heartbeat into existing record (no new slot).
+    if (Math.abs(last.offsetSec - next.offsetSec) < HFM_TRUSTED_OFFSET_REPLACE_DELTA_SEC) {
       memoryArchive[memoryArchive.length - 1] = {
         ...last,
-        observedAtGmtSec: next.observedAtGmtSec,
-        observedAtBrokerSec: next.observedAtBrokerSec,
+        firstObservedAtBrokerSec: Math.min(last.firstObservedAtBrokerSec, next.observedAtBrokerSec),
+        firstObservedAtGmtSec: Math.min(last.firstObservedAtGmtSec, next.observedAtGmtSec),
+        observedAtGmtSec: Math.max(last.observedAtGmtSec, next.observedAtGmtSec),
+        observedAtBrokerSec: Math.max(last.observedAtBrokerSec, next.observedAtBrokerSec),
         measuredDeltaSec: next.measuredDeltaSec ?? last.measuredDeltaSec,
         status: next.status === "NORMALIZED" ? "NORMALIZED" : last.status,
         reason: next.reason ?? last.reason,
+        brokerIdentity: next.brokerIdentity ?? last.brokerIdentity,
+        sessionContext: next.sessionContext ?? last.sessionContext,
       };
       schedulePersist();
       return { ...memoryArchive[memoryArchive.length - 1]! };
     }
   }
 
+  // Offset transition / new era — preserve prior eras for DST boundary detection.
   memoryArchive.push(next);
-  if (memoryArchive.length > HFM_OFFSET_ARCHIVE_MAX_OBS) {
-    memoryArchive = memoryArchive.slice(-HFM_OFFSET_ARCHIVE_MAX_OBS);
-  }
-  memoryArchive = sortObs(memoryArchive);
+  memoryArchive = compactHfmOffsetArchiveEras(memoryArchive);
   schedulePersist();
   return { ...next };
 }
@@ -338,12 +411,18 @@ export function lookupHfmOffsetArchiveForBrokerCandle(
   const grace = 3600;
 
   const covering = memoryArchive.filter((o) => {
-    if (brokerOpenTime > o.observedAtBrokerSec + grace) return false;
-    const age = o.observedAtBrokerSec - brokerOpenTime;
-    return age >= 0 && age <= maxAge;
+    const first = o.firstObservedAtBrokerSec;
+    const last = o.observedAtBrokerSec;
+    // Candle falls inside the confirmed era span (inclusive, with grace).
+    if (brokerOpenTime >= first - grace && brokerOpenTime <= last + grace) return true;
+    // Legacy: observation may cover candles up to maxAge before first confirmation.
+    if (brokerOpenTime > last + grace) return false;
+    const ageFromFirst = first - brokerOpenTime;
+    return ageFromFirst >= 0 && ageFromFirst <= maxAge;
   });
   if (!covering.length) return null;
 
+  // Prefer the earliest-ending covering era (closest after/at candle open).
   covering.sort((a, b) => a.observedAtBrokerSec - b.observedAtBrokerSec);
   const chosen = covering[0]!;
 
@@ -415,7 +494,7 @@ export function ensureHfmOffsetArchiveLoadedSync(): void {
       const v = validateObservation(row);
       if (v) cleaned.push(v);
     }
-    memoryArchive = sortObs(cleaned).slice(-HFM_OFFSET_ARCHIVE_MAX_OBS);
+    memoryArchive = compactHfmOffsetArchiveEras(cleaned);
     archiveLoaded = true;
   } catch {
     archiveLoaded = true;
