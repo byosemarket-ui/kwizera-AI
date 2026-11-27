@@ -1,12 +1,20 @@
 /**
- * STEP 1B.3 — Quote version identity + LKG monotonic acceptance.
+ * STEP 1B.3 / 1B.4 — Quote version identity + LKG monotonic acceptance.
  *
  * quoteVersionId is deterministic from trustworthy source fields (never random,
  * never response-time based, never prices alone).
  *
- * Hub `sequence` is a snapshot/poll sequence, not a per-symbol tick counter.
- * Trusted ordering prefers quoteTimestampUtc; untrusted cases fall back to
- * sequence only when both sides have it, otherwise preserve existing LKG.
+ * Hub `sequence` is a process-local snapshot/poll sequence, not a global
+ * per-symbol tick counter and not comparable across agent/Core generations.
+ *
+ * Ordering precedence:
+ * 1. Trusted normalized UTC tick timestamp (both sides trusted).
+ * 2. Trusted incoming may displace untrusted LKG.
+ * 3. Untrusted incoming never displaces trusted LKG.
+ * 4. Snapshot sequence only when both sides are untrusted and sequence is
+ *    non-decreasing within the same process scope.
+ * 5. Sequence regression / reset → REJECT_INCOMPARABLE (preserve LKG); never
+ *    treat a reset sequence as proof the incoming quote is older.
  */
 
 import { isTrustedHfmTimestampNormalization } from "./quote-freshness.js";
@@ -199,7 +207,19 @@ export function compareHfmQuoteMonotonicity(
     };
   }
 
-  // Both untrusted (or existing untrusted): use hub snapshot sequence if comparable.
+  // Trusted UTC evidence may displace untrusted LKG (e.g. recovery after PARTIAL→NORMALIZED).
+  if (!a.trusted && b.trusted && b.utcMs != null) {
+    return {
+      decision: "ACCEPT_NEWER",
+      reason: "TRUSTED_UTC_DISPLACES_UNTRUSTED_LKG",
+      comparisonTrusted: true,
+      incomingVersionId,
+      existingVersionId,
+    };
+  }
+
+  // Both untrusted: use hub snapshot sequence only when non-decreasing in-scope.
+  // A lower sequence is treated as regression/reset (process-local), not as "older".
   if (a.seq != null && b.seq != null) {
     if (b.seq > a.seq) {
       return {
@@ -212,8 +232,8 @@ export function compareHfmQuoteMonotonicity(
     }
     if (b.seq < a.seq) {
       return {
-        decision: "REJECT_OLDER_TICK",
-        reason: "SNAPSHOT_SEQ_OLDER_THAN_LKG",
+        decision: "REJECT_INCOMPARABLE",
+        reason: "SNAPSHOT_SEQ_REGRESSION_OR_RESET_PRESERVE_LKG",
         comparisonTrusted: false,
         incomingVersionId,
         existingVersionId,

@@ -27,6 +27,11 @@ import { getHfmRecoveryEngine } from "./recovery-engine.js";
 import { getHfmSnapshotTracker } from "./snapshot-tracker.js";
 import { getHfmSubscriptionScheduler } from "./subscription-scheduler.js";
 import {
+  classifyFailedPoll,
+  classifySuccessfulIngestPoll,
+  type HfmPollOutcome,
+} from "./poll-outcome.js";
+import {
   buildHfmConnectionSnapshot,
   getHfmSseDistributionMetrics,
   quotePayloadForSse,
@@ -73,6 +78,11 @@ interface HubState {
   lastPollError: string | null;
   consecutiveFailures: number;
   candleCycleAt: number;
+  /** Last known marketClosed from a successful snapshot (never invented on poll failure). */
+  lastKnownMarketClosed: boolean | null;
+  lastKnownMarketClosedAt: number | null;
+  lastPollOutcome: HfmPollOutcome | null;
+  pollOutcomeCounts: Record<string, number>;
 }
 
 const MAX_SUBSCRIBERS = 8;
@@ -94,7 +104,17 @@ const hubState: HubState = {
   lastPollError: null,
   consecutiveFailures: 0,
   candleCycleAt: 0,
+  lastKnownMarketClosed: null,
+  lastKnownMarketClosedAt: null,
+  lastPollOutcome: null,
+  pollOutcomeCounts: {},
 };
+
+function recordPollOutcome(outcome: HfmPollOutcome): void {
+  hubState.lastPollOutcome = outcome;
+  const key = outcome.kind;
+  hubState.pollOutcomeCounts[key] = (hubState.pollOutcomeCounts[key] ?? 0) + 1;
+}
 
 const policy: Mt5HfmFreshnessPolicy = { ...DEFAULT_MT5_HFM_FRESHNESS_POLICY };
 
@@ -277,10 +297,12 @@ async function pollOnce(): Promise<void> {
       const freshness: Mt5HfmFreshness =
         hubState.consecutiveFailures >= 3 ? "DISCONNECTED" : "WAITING_FOR_DATA";
       hubState.lastFreshness = freshness;
+      const failedOutcome = classifyFailedPoll(hubState.lastPollError);
+      recordPollOutcome(failedOutcome);
+      // Transport failure must not invent market open/closed — omit marketClosed.
       getHfmSymbolFreshnessEngine().setConnectivity({
         terminalRunning: freshness !== "DISCONNECTED",
         transportOk: false,
-        marketClosed: false,
       });
       const recovery = getHfmRecoveryEngine();
       recovery.markDegraded(hubState.lastPollError);
@@ -293,6 +315,7 @@ async function pollOnce(): Promise<void> {
           validQuoteObserved: false,
           transportOk: false,
           terminalRunning: false,
+          pollOutcome: failedOutcome.kind,
         });
       }
       publish(
@@ -303,6 +326,8 @@ async function pollOnce(): Promise<void> {
             ok: false,
             code: hubState.lastPollError,
             consecutiveFailures: hubState.consecutiveFailures,
+            pollOutcome: failedOutcome.kind,
+            marketSessionPreserved: hubState.lastKnownMarketClosed,
           },
           {
             eventId: randomUUID(),
@@ -329,6 +354,8 @@ async function pollOnce(): Promise<void> {
     const marketClosed =
       snap.marketClosed === true ||
       inferMarketClosed(brokerTime, gmtTime, { terminalRunning });
+    hubState.lastKnownMarketClosed = marketClosed;
+    hubState.lastKnownMarketClosedAt = Date.now();
     let freshness: Mt5HfmFreshness =
       typeof snap.freshness === "string"
         ? (snap.freshness as Mt5HfmFreshness)
@@ -393,12 +420,14 @@ async function pollOnce(): Promise<void> {
         account && typeof account.server === "string" ? String(account.server) : null;
       const expectedSymbols = getHfmSubscriptionManager().listAcquisitionSymbols();
       const rawForIngest = rawQuotesForIngest(snap.quotes);
+      const symbolsInBatch = rawForIngest.map((q) => String(q.symbol ?? "")).filter(Boolean);
+      const lkgCountBeforeIngest = getHfmQuoteService().countLkgQuotes();
       const snapObs = getHfmSnapshotTracker().observe({
         snapshotId: typeof snap.schemaVersion === "string" ? String(snap.schemaVersion) : `seq-${seq ?? "na"}`,
         batchId: seq != null ? `batch-${seq}` : null,
         sequence: seq,
         expectedBatchCount: 1,
-        symbolsInBatch: rawForIngest.map((q) => String(q.symbol ?? "")).filter(Boolean),
+        symbolsInBatch,
         expectedSymbols,
         receivedAt: serverReceivedAt,
       });
@@ -446,23 +475,26 @@ async function pollOnce(): Promise<void> {
         transportOk: true,
         marketClosed,
       });
-      if (ingest.published.length > 0) {
-        getHfmRecoveryEngine().completeAttempt({
-          ok: true,
-          stage: "quotes_validated",
-          validQuoteObserved: true,
-          transportOk: true,
-          terminalRunning,
-        });
-      } else if (terminalRunning && freshness !== "DISCONNECTED") {
-        getHfmRecoveryEngine().completeAttempt({
-          ok: true,
-          stage: "connected",
-          validQuoteObserved: false,
-          transportOk: true,
-          terminalRunning,
-        });
-      }
+      const pollOutcome = classifySuccessfulIngestPoll({
+        rawQuoteCount: rawForIngest.length,
+        published: ingest.published.length,
+        rejected: ingest.rejected.length,
+        skippedStaleOrDuplicate: ingest.skippedStaleOrDuplicate,
+        expectedSymbolCount: expectedSymbols.length,
+        symbolsInSnapshot: symbolsInBatch.length,
+        lkgCountBeforeIngest,
+        terminalRunning,
+        feedDisconnected: freshness === "DISCONNECTED",
+      });
+      recordPollOutcome(pollOutcome);
+      getHfmRecoveryEngine().completeAttempt({
+        ok: true,
+        stage: pollOutcome.validQuoteObserved ? "quotes_validated" : "connected",
+        validQuoteObserved: pollOutcome.validQuoteObserved,
+        transportOk: pollOutcome.transportOk,
+        terminalRunning,
+        pollOutcome: pollOutcome.kind,
+      });
       for (const q of ingest.published) {
         if (!getHfmQuoteSubscriptionRegistry().isSubscribed(q.symbol)) continue;
         if (q.bid == null || q.ask == null) continue;
@@ -620,7 +652,25 @@ async function pollOnce(): Promise<void> {
     hubState.consecutiveFailures += 1;
     hubState.lastPollError = err instanceof Error ? err.message : "POLL_ERROR";
     hubState.lastFreshness = hubState.consecutiveFailures >= 3 ? "DISCONNECTED" : "WAITING_FOR_DATA";
-    getHfmRecoveryEngine().begin(hubState.lastPollError, "poll_exception");
+    const failedOutcome = classifyFailedPoll(hubState.lastPollError);
+    recordPollOutcome(failedOutcome);
+    // Preserve last known marketClosed — do not force open/closed from exceptions.
+    getHfmSymbolFreshnessEngine().setConnectivity({
+      terminalRunning: hubState.lastFreshness !== "DISCONNECTED",
+      transportOk: false,
+    });
+    const recovery = getHfmRecoveryEngine();
+    recovery.markDegraded(hubState.lastPollError);
+    recovery.begin(hubState.lastPollError, "poll_exception");
+    recovery.completeAttempt({
+      ok: false,
+      errorCode: hubState.lastPollError,
+      stage: "poll_exception",
+      validQuoteObserved: false,
+      transportOk: false,
+      terminalRunning: false,
+      pollOutcome: failedOutcome.kind,
+    });
   } finally {
     scheduler.endCycle(Date.now() - cycleStarted);
   }
@@ -749,6 +799,11 @@ export function getMt5HfmRealtimeHubStatus(): Record<string, unknown> {
     lastPollOkAt: hubState.lastPollOkAt,
     lastPollError: hubState.lastPollError,
     consecutiveFailures: hubState.consecutiveFailures,
+    lastPollOutcome: hubState.lastPollOutcome,
+    pollOutcomeCounts: { ...hubState.pollOutcomeCounts },
+    lastKnownMarketClosed: hubState.lastKnownMarketClosed,
+    lastKnownMarketClosedAt: hubState.lastKnownMarketClosedAt,
+    marketSessionObservation: getHfmSymbolFreshnessEngine().getMarketSessionObservation(),
     policy,
     streaming: true,
     quoteSubscriptions: getHfmQuoteSubscriptionRegistry().list(),
@@ -913,5 +968,9 @@ export function stopMt5HfmRealtimeHubForTests(): void {
   hubState.lastPollOkAt = null;
   hubState.lastPollError = null;
   hubState.consecutiveFailures = 0;
+  hubState.lastKnownMarketClosed = null;
+  hubState.lastKnownMarketClosedAt = null;
+  hubState.lastPollOutcome = null;
+  hubState.pollOutcomeCounts = {};
   resetHfmSseDistributionForTests();
 }

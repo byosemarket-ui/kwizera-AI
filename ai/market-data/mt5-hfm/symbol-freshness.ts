@@ -92,6 +92,23 @@ function ageFrom(iso: string | null | undefined, nowMs: number): number | null {
   return Math.max(0, nowMs - t);
 }
 
+/** How long a preserved marketClosed observation remains authoritative under transport failure. */
+export const HFM_MARKET_SESSION_OBSERVATION_MAX_AGE_MS = 15 * 60 * 1000;
+
+export type HfmMarketSessionObservationProvenance =
+  | "snapshot"
+  | "preserved"
+  | "expired"
+  | "unknown";
+
+export interface HfmMarketSessionObservation {
+  marketClosed: boolean | null;
+  observedAt: string | null;
+  ageMs: number | null;
+  provenance: HfmMarketSessionObservationProvenance;
+  authoritative: boolean;
+}
+
 export class HfmSymbolFreshnessEngine {
   private readonly bySymbol = new Map<string, HfmSymbolFreshnessState>();
   private readonly listeners = new Set<Listener>();
@@ -99,6 +116,14 @@ export class HfmSymbolFreshnessEngine {
   private terminalRunning: boolean | null = null;
   private transportOk: boolean | null = null;
   private marketClosed = false;
+  private marketClosedObservedAtMs: number | null = null;
+  private marketClosedProvenance: HfmMarketSessionObservationProvenance = "unknown";
+  private readonly marketClosedMaxAgeMs: number;
+
+  constructor(opts?: { marketClosedMaxAgeMs?: number }) {
+    this.marketClosedMaxAgeMs =
+      opts?.marketClosedMaxAgeMs ?? HFM_MARKET_SESSION_OBSERVATION_MAX_AGE_MS;
+  }
 
   onEvent(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -115,14 +140,61 @@ export class HfmSymbolFreshnessEngine {
     }
   }
 
+  /**
+   * Update connectivity. Omit `marketClosed` to preserve the last known session
+   * observation (transport failure must not invent MARKET_OPEN/CLOSED).
+   */
   setConnectivity(opts: {
     terminalRunning?: boolean | null;
     transportOk?: boolean | null;
     marketClosed?: boolean;
+    /** Wall clock for tests; defaults to Date.now(). */
+    nowMs?: number;
   }): void {
     if (opts.terminalRunning !== undefined) this.terminalRunning = opts.terminalRunning;
     if (opts.transportOk !== undefined) this.transportOk = opts.transportOk;
-    if (opts.marketClosed !== undefined) this.marketClosed = Boolean(opts.marketClosed);
+    if (opts.marketClosed !== undefined) {
+      this.marketClosed = Boolean(opts.marketClosed);
+      this.marketClosedObservedAtMs = opts.nowMs ?? Date.now();
+      this.marketClosedProvenance = "snapshot";
+    }
+  }
+
+  getMarketSessionObservation(nowMs: number = Date.now()): HfmMarketSessionObservation {
+    if (this.marketClosedObservedAtMs == null) {
+      return {
+        marketClosed: null,
+        observedAt: null,
+        ageMs: null,
+        provenance: "unknown",
+        authoritative: false,
+      };
+    }
+    const ageMs = Math.max(0, nowMs - this.marketClosedObservedAtMs);
+    if (ageMs > this.marketClosedMaxAgeMs) {
+      return {
+        marketClosed: null,
+        observedAt: new Date(this.marketClosedObservedAtMs).toISOString(),
+        ageMs,
+        provenance: "expired",
+        authoritative: false,
+      };
+    }
+    const preserved = this.marketClosedProvenance === "snapshot" && this.transportOk === false;
+    return {
+      marketClosed: this.marketClosed,
+      observedAt: new Date(this.marketClosedObservedAtMs).toISOString(),
+      ageMs,
+      provenance: preserved ? "preserved" : this.marketClosedProvenance,
+      authoritative: true,
+    };
+  }
+
+  /** Effective marketClosed for freshness compute — never invent open/closed from transport alone. */
+  private effectiveMarketClosed(nowMs: number): boolean {
+    const obs = this.getMarketSessionObservation(nowMs);
+    if (!obs.authoritative || obs.marketClosed == null) return false;
+    return obs.marketClosed;
   }
 
   ensure(symbol: string, category: string | null = null): HfmSymbolFreshnessState {
@@ -203,7 +275,7 @@ export class HfmSymbolFreshnessEngine {
       overrideThresholdMs: opts?.overrideThresholdMs ?? s.freshnessThresholdMs,
       terminalRunning: this.terminalRunning,
       transportOk: this.transportOk,
-      marketClosed: this.marketClosed,
+      marketClosed: this.effectiveMarketClosed(nowMs),
       lastQuoteInvalid: opts?.lastQuoteInvalid,
       hasAnyQuote: opts?.hasAnyQuote ?? Boolean(s.lastValidQuoteAt),
     });

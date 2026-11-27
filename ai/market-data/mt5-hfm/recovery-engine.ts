@@ -167,7 +167,14 @@ export class HfmRecoveryEngine {
   }
 
   /**
-   * Record attempt outcome. `validQuoteObserved` is required for full recovery.
+   * Record attempt outcome.
+   *
+   * `validQuoteObserved` means confirmed usable quotes (new publish OR
+   * validated no-change/duplicate against LKG). A healthy no-change poll must
+   * not emit recovery.completed or inflate successfulRecoveries.
+   *
+   * A recovery.completed event is emitted only on a real transition out of
+   * DEGRADED / RECOVERING / FAILED into verified healthy quotes.
    */
   completeAttempt(opts: {
     ok: boolean;
@@ -176,29 +183,52 @@ export class HfmRecoveryEngine {
     validQuoteObserved?: boolean;
     transportOk?: boolean;
     terminalRunning?: boolean;
+    /** Optional poll-outcome kind for diagnostics (bounded; not logged every poll). */
+    pollOutcome?: string | null;
   }): HfmRecoveryState {
     const previous = this.state.status;
     if (opts.stage) this.state.stage = opts.stage;
 
     if (opts.ok && opts.validQuoteObserved) {
-      this.state.status = "RECOVERED";
       this.state.lastSuccessAt = new Date().toISOString();
       this.state.lastError = null;
       this.state.nextRetryAt = null;
-      this.state.reason = "VALID_QUOTE_RESTORED";
-      this.emit("recovery.completed", previous, this.state.reason);
-      // Settle to HEALTHY without another event flood.
+      this.state.attemptCount = 0;
+      const wasImpaired =
+        previous === "DEGRADED" ||
+        previous === "RECOVERING" ||
+        previous === "FAILED";
+      if (wasImpaired) {
+        this.state.status = "RECOVERED";
+        this.state.reason = "VALID_QUOTE_RESTORED";
+        this.emit("recovery.completed", previous, this.state.reason);
+        // Settle to HEALTHY without another event flood.
+        this.state.status = "HEALTHY";
+        return this.getState();
+      }
+      // Already healthy / recovered — quiet confirmation (no-change or new ticks).
       this.state.status = "HEALTHY";
+      this.state.reason =
+        opts.pollOutcome === "VALID_NO_CHANGE" || opts.pollOutcome === "VALID_PARTIAL_SNAPSHOT"
+          ? "HEALTHY_NO_CHANGE"
+          : previous === "HEALTHY" || previous === "RECOVERED"
+            ? "HEALTHY_CONFIRMED"
+            : "VALID_QUOTE_RESTORED";
       return this.getState();
     }
 
     if (opts.ok && opts.transportOk && opts.terminalRunning && !opts.validQuoteObserved) {
       // Connection alone is not recovery.
+      const alreadySame =
+        previous === "DEGRADED" && this.state.reason === "CONNECTED_WITHOUT_VALID_QUOTE";
       this.state.status = "DEGRADED";
       this.state.reason = "CONNECTED_WITHOUT_VALID_QUOTE";
       this.state.lastError = this.state.reason;
       this.scheduleRetry();
-      this.emit("recovery.progress", previous, this.state.reason);
+      // Avoid progress spam when already degraded for the same reason.
+      if (!alreadySame) {
+        this.emit("recovery.progress", previous, this.state.reason);
+      }
       return this.getState();
     }
 

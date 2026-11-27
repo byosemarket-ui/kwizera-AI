@@ -229,6 +229,16 @@ export class HfmQuoteService {
     return [...this.monotonicDiag.entries()].map(([symbol, d]) => ({ symbol, ...d }));
   }
 
+  /** Count symbols that currently hold a bid/ask LKG (no freshness reassessment). */
+  countLkgQuotes(): number {
+    let n = 0;
+    for (const st of this.bySymbol.values()) {
+      const q = st.lastKnownGood;
+      if (q && q.bid != null && q.ask != null) n += 1;
+    }
+    return n;
+  }
+
   async ingestRawQuotes(
     rawQuotes: HfmRawQuoteInput[],
     ctx: HfmQuoteIngestContext,
