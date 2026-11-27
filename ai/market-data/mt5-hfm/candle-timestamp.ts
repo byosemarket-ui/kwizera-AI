@@ -21,6 +21,12 @@ import {
   deriveHfmBrokerUtcOffset,
   type HfmBrokerClockInput,
 } from "./quote-timestamp.js";
+import {
+  ensureHfmOffsetArchiveLoadedSync,
+  getHfmOffsetArchiveObservations,
+  lookupHfmOffsetArchiveForBrokerCandle,
+  noteHfmOffsetArchiveObservation,
+} from "./offset-archive.js";
 
 export type HfmCandleTimestampSource =
   | "mt5_copyrates"
@@ -54,6 +60,8 @@ export interface HfmCandleTimeProvenance {
 
 export interface HfmCandleOffsetObservation {
   offsetSec: number;
+  /** Raw measured delta when distinct from trusted offset (sampling skew). */
+  measuredDeltaSec?: number | null;
   observedAtGmtSec: number;
   observedAtBrokerSec: number;
   status: HfmTimestampNormalizationStatus;
@@ -106,12 +114,18 @@ export function getHfmCandleOffsetHistory(): HfmCandleOffsetObservation[] {
  */
 export function noteHfmCandleOffsetObservation(input: {
   offsetSec: number;
+  measuredDeltaSec?: number | null;
   observedAtGmtSec: number;
   observedAtBrokerSec: number;
   status: HfmTimestampNormalizationStatus;
+  brokerIdentity?: string | null;
+  sessionContext?: string | null;
+  reason?: string | null;
 }): HfmCandleOffsetObservation {
+  ensureHfmOffsetArchiveLoadedSync();
   const next: HfmCandleOffsetObservation = {
     offsetSec: input.offsetSec,
+    measuredDeltaSec: input.measuredDeltaSec ?? null,
     observedAtGmtSec: input.observedAtGmtSec,
     observedAtBrokerSec: input.observedAtBrokerSec,
     status: input.status,
@@ -135,6 +149,16 @@ export function noteHfmCandleOffsetObservation(input: {
       observedAtBrokerSec: input.observedAtBrokerSec,
       status: input.status,
     });
+    noteHfmOffsetArchiveObservation({
+      offsetSec: input.offsetSec,
+      measuredDeltaSec: input.measuredDeltaSec ?? null,
+      observedAtGmtSec: input.observedAtGmtSec,
+      observedAtBrokerSec: input.observedAtBrokerSec,
+      status: input.status,
+      brokerIdentity: input.brokerIdentity ?? null,
+      sessionContext: input.sessionContext ?? null,
+      reason: input.reason ?? null,
+    });
   }
   return { ...next };
 }
@@ -155,9 +179,11 @@ export function ingestHfmSnapshotClocksForCandles(
   ) {
     noteHfmCandleOffsetObservation({
       offsetSec: derived.brokerUtcOffsetSec,
+      measuredDeltaSec: derived.measuredDeltaSec,
       observedAtGmtSec: input.gmtTime,
       observedAtBrokerSec: input.brokerTime,
       status: derived.status,
+      reason: derived.reason,
     });
   }
   return derived;
@@ -179,12 +205,14 @@ function offsetLooksSane(offsetSec: number): boolean {
 
 function nearQuarterHour(offsetSec: number): boolean {
   const rem = Math.abs(offsetSec % HFM_OFFSET_QUARTER_HOUR_SEC);
-  return rem < 1 || Math.abs(rem - HFM_OFFSET_QUARTER_HOUR_SEC) < 1;
+  // ≤1 admits one-second sampling skew around an aligned TZ offset.
+  return rem <= 1 || Math.abs(rem - HFM_OFFSET_QUARTER_HOUR_SEC) <= 1;
 }
 
 /**
  * Select an offset observation applicable to a broker-domain candle open.
- * Returns null when history cannot support a trusted conversion.
+ * Consults in-process history first, then the durable offset archive.
+ * Returns null when evidence cannot support a trusted conversion.
  */
 export function selectOffsetForBrokerCandle(brokerOpenTime: number): {
   offsetSec: number;
@@ -194,6 +222,7 @@ export function selectOffsetForBrokerCandle(brokerOpenTime: number): {
   observedAtGmtSec: number;
   observedAtBrokerSec: number;
 } | null {
+  ensureHfmOffsetArchiveLoadedSync();
   const history = [...offsetHistory];
   const trusted = getHfmTrustedBrokerUtcOffset();
   if (trusted && !history.some((h) => h.observedAtGmtSec === trusted.observedAtGmtSec)) {
@@ -205,7 +234,6 @@ export function selectOffsetForBrokerCandle(brokerOpenTime: number): {
       source: "open_session_observation",
     });
   }
-  if (!history.length) return null;
 
   // Observations that can cover this candle: candle not newer than obs+grace,
   // and not older than max age from observation.
@@ -214,41 +242,53 @@ export function selectOffsetForBrokerCandle(brokerOpenTime: number): {
     const age = o.observedAtBrokerSec - brokerOpenTime;
     return age >= 0 && age <= HFM_TRUSTED_OFFSET_MAX_AGE_SEC;
   });
-  if (!candidates.length) return null;
 
-  // Prefer the observation closest after (or at) the candle open.
-  candidates.sort((a, b) => a.observedAtBrokerSec - b.observedAtBrokerSec);
-  const chosen = candidates[0]!;
+  if (candidates.length) {
+    candidates.sort((a, b) => a.observedAtBrokerSec - b.observedAtBrokerSec);
+    const chosen = candidates[0]!;
 
-  // Conflicting offsets among any covering candidates → ambiguous (DST / fall-back).
-  const conflict = candidates.some(
-    (o) => Math.abs(o.offsetSec - chosen.offsetSec) >= HFM_TRUSTED_OFFSET_REPLACE_DELTA_SEC,
-  );
-  if (conflict) {
-    return null; // caller maps to UNAVAILABLE DST ambiguity
+    // Conflicting offsets among covering candidates → ambiguous (DST / fall-back).
+    const conflict = candidates.some(
+      (o) => Math.abs(o.offsetSec - chosen.offsetSec) >= HFM_TRUSTED_OFFSET_REPLACE_DELTA_SEC,
+    );
+    if (conflict) {
+      return null;
+    }
+
+    const status: HfmTimestampNormalizationStatus =
+      chosen.status === "NORMALIZED" && nearQuarterHour(chosen.offsetSec)
+        ? "NORMALIZED"
+        : chosen.status === "UNRELIABLE"
+          ? "UNRELIABLE"
+          : "PARTIAL";
+
+    return {
+      offsetSec: chosen.offsetSec,
+      status,
+      reason:
+        status === "NORMALIZED"
+          ? "TRUSTED_HISTORICAL_OFFSET_OBSERVATION"
+          : "TRUSTED_HISTORICAL_OFFSET_PARTIAL",
+      trust: "TRUSTED_HISTORICAL",
+      observedAtGmtSec: chosen.observedAtGmtSec,
+      observedAtBrokerSec: chosen.observedAtBrokerSec,
+    };
   }
 
-  // Also detect if another observation with different offset is newer than candle
-  // but older than chosen — already covered by window check.
+  // Durable archive: covers eras beyond the in-process 64-observation window.
+  const archived = lookupHfmOffsetArchiveForBrokerCandle(brokerOpenTime);
+  if (archived) {
+    return {
+      offsetSec: archived.offsetSec,
+      status: archived.status,
+      reason: archived.reason,
+      trust: "TRUSTED_HISTORICAL",
+      observedAtGmtSec: archived.observedAtGmtSec,
+      observedAtBrokerSec: archived.observedAtBrokerSec,
+    };
+  }
 
-  const status: HfmTimestampNormalizationStatus =
-    chosen.status === "NORMALIZED" && nearQuarterHour(chosen.offsetSec)
-      ? "NORMALIZED"
-      : chosen.status === "UNRELIABLE"
-        ? "UNRELIABLE"
-        : "PARTIAL";
-
-  return {
-    offsetSec: chosen.offsetSec,
-    status,
-    reason:
-      status === "NORMALIZED"
-        ? "TRUSTED_HISTORICAL_OFFSET_OBSERVATION"
-        : "TRUSTED_HISTORICAL_OFFSET_PARTIAL",
-    trust: "TRUSTED_HISTORICAL",
-    observedAtGmtSec: chosen.observedAtGmtSec,
-    observedAtBrokerSec: chosen.observedAtBrokerSec,
-  };
+  return null;
 }
 
 /**
@@ -325,19 +365,32 @@ export function normalizeHfmCandleOpenTime(
     if (offsetSec == null) {
       const selected = selectOffsetForBrokerCandle(brokerOpenTime);
       if (!selected) {
+        ensureHfmOffsetArchiveLoadedSync();
         // Distinguish ambiguity (history has conflicting offsets near candle) vs empty.
         const anyNear = offsetHistory.some(
           (o) =>
             Math.abs(o.observedAtBrokerSec - brokerOpenTime) <= HFM_TRUSTED_OFFSET_MAX_AGE_SEC,
         );
+        // Archive had covering-but-conflicting observations → lookup returns null;
+        // detect via presence of multiple eras near the candle.
+        const archNear = getHfmOffsetArchiveObservations().filter(
+          (o) =>
+            Math.abs(o.observedAtBrokerSec - brokerOpenTime) <= HFM_TRUSTED_OFFSET_MAX_AGE_SEC,
+        );
+        const archConflict =
+          archNear.length >= 2 &&
+          archNear.some(
+            (o) => Math.abs(o.offsetSec - archNear[0]!.offsetSec) >= HFM_TRUSTED_OFFSET_REPLACE_DELTA_SEC,
+          );
         return {
           brokerOpenTime,
           openTimeUtc: null,
           brokerUtcOffsetSec: null,
           timestampNormalizationStatus: "UNAVAILABLE",
-          timestampNormalizationReason: anyNear
-            ? "OFFSET_TRANSITION_OR_DST_AMBIGUOUS"
-            : "HISTORICAL_OFFSET_UNAVAILABLE",
+          timestampNormalizationReason:
+            anyNear || archConflict
+              ? "OFFSET_TRANSITION_OR_DST_AMBIGUOUS"
+              : "HISTORICAL_OFFSET_UNAVAILABLE",
           timestampSource: source,
           offsetObservedAtGmtSec: null,
           offsetObservedAtBrokerSec: null,

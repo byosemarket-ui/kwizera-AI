@@ -1280,6 +1280,11 @@ def _read_candle_cache_meta() -> dict[str, Any]:
             "source": data.get("source"),
             "candles": data.get("candles") if isinstance(data.get("candles"), dict) else {},
             "dumpRetrievedAt": data.get("dumpRetrievedAt"),
+            # E3-R3: dump-associated Expert clocks (not a later live snapshot).
+            "brokerTime": data.get("brokerTime"),
+            "gmtTime": data.get("gmtTime"),
+            "clockSource": data.get("clockSource"),
+            "clockSeq": data.get("clockSeq"),
         }
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return {}
@@ -1292,6 +1297,8 @@ def _persist_candle_cache(
     source: str = "mql5_readonly_snapshot",
     incoming_mtime: float | None = None,
     incoming_observed_at: Any = None,
+    broker_time: Any = None,
+    gmt_time: Any = None,
 ) -> dict[str, Any]:
     if not snapshot_is_well_formed(candles_by_symbol):
         return {"updated": False, "reason": "REJECT_MALFORMED"}
@@ -1315,6 +1322,9 @@ def _persist_candle_cache(
         RUN_DIR.mkdir(parents=True, exist_ok=True)
         # Partial dumps must not erase unrelated symbol/timeframe entries.
         merged = merge_candle_maps(existing.get("candles"), candles_by_symbol)
+        # Preserve prior dump clocks when this accept has none (should be rare).
+        clock_broker = broker_time if broker_time is not None else existing.get("brokerTime")
+        clock_gmt = gmt_time if gmt_time is not None else existing.get("gmtTime")
         payload = {
             "source": source,
             "provider": "HFM_MT5",
@@ -1322,6 +1332,10 @@ def _persist_candle_cache(
             "seq": seq,
             "cachedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "dumpRetrievedAt": incoming_observed_at,
+            "brokerTime": clock_broker,
+            "gmtTime": clock_gmt,
+            "clockSource": source if clock_broker is not None or clock_gmt is not None else None,
+            "clockSeq": seq,
             "candles": merged,
             "acceptReason": reason,
         }
@@ -1380,11 +1394,15 @@ def _sync_periodic_candle_dump_cache() -> dict[str, Any]:
                 source="mql5_readonly_candles",
                 incoming_mtime=st.st_mtime,
                 incoming_observed_at=dumped.get("retrievedAt"),
+                broker_time=dumped.get("brokerTime"),
+                gmt_time=dumped.get("gmtTime"),
             )
             result = dict(result)
             result["path"] = str(path)
             result["dumpSeq"] = dumped.get("seq")
             result["dumpRetrievedAt"] = dumped.get("retrievedAt")
+            result["brokerTime"] = dumped.get("brokerTime")
+            result["gmtTime"] = dumped.get("gmtTime")
             return result
         except OSError as exc:
             last = {"updated": False, "reason": f"IO_{type(exc).__name__}", "path": str(path)}
@@ -1404,12 +1422,23 @@ def _load_candle_sources(*, wait_for_cycle_sec: float = 0.0) -> tuple[dict[str, 
         if mql and not mql.get("error"):
             by_symbol = _candle_map_from_payload(mql)
             if by_symbol:
-                _persist_candle_cache(by_symbol, seq=mql.get("seq"), source="mql5_readonly_snapshot")
+                _persist_candle_cache(
+                    by_symbol,
+                    seq=mql.get("seq"),
+                    source="mql5_readonly_snapshot",
+                    incoming_observed_at=mql.get("retrievedAt"),
+                    broker_time=mql.get("brokerTime"),
+                    gmt_time=mql.get("gmtTime"),
+                )
                 meta = {
                     "source": "mql5_readonly_snapshot",
                     "ageSec": mql.get("ageSec"),
                     "seq": mql.get("seq"),
                     "path": mql.get("path"),
+                    "brokerTime": mql.get("brokerTime"),
+                    "gmtTime": mql.get("gmtTime"),
+                    "dumpRetrievedAt": mql.get("retrievedAt"),
+                    "clockSource": "mql5_readonly_snapshot",
                 }
                 return by_symbol, meta
 
@@ -1422,12 +1451,19 @@ def _load_candle_sources(*, wait_for_cycle_sec: float = 0.0) -> tuple[dict[str, 
                         by_symbol,
                         seq=dumped.get("seq"),
                         source="mql5_readonly_candles",
+                        incoming_observed_at=dumped.get("retrievedAt"),
+                        broker_time=dumped.get("brokerTime"),
+                        gmt_time=dumped.get("gmtTime"),
                     )
                     meta = {
                         "source": "mql5_readonly_candles",
                         "ageSec": dumped.get("ageSec"),
                         "seq": dumped.get("seq"),
                         "path": dumped.get("path"),
+                        "brokerTime": dumped.get("brokerTime"),
+                        "gmtTime": dumped.get("gmtTime"),
+                        "dumpRetrievedAt": dumped.get("retrievedAt"),
+                        "clockSource": "mql5_readonly_candles",
                     }
                     return by_symbol, meta
 
@@ -1441,6 +1477,11 @@ def _load_candle_sources(*, wait_for_cycle_sec: float = 0.0) -> tuple[dict[str, 
                     "seq": cached.get("seq"),
                     "path": cached.get("path"),
                     "cachedAt": cached.get("cachedAt"),
+                    "brokerTime": cached.get("brokerTime"),
+                    "gmtTime": cached.get("gmtTime"),
+                    "dumpRetrievedAt": cached.get("dumpRetrievedAt"),
+                    "clockSource": cached.get("clockSource") or "agent_candles_cache",
+                    "clockSeq": cached.get("clockSeq") or cached.get("seq"),
                 }
                 return by_symbol, meta
 
@@ -1840,7 +1881,16 @@ def candles(
         if cleaned:
             age = meta.get("ageSec")
             _persist_history_bars(sym_u, tf_key, cleaned)
-            mql = _read_mql_snapshot(max_age_sec=600.0) or {}
+            # E3-R3: prefer clocks bound to the dump/cache sequence that produced
+            # these bars. Do not substitute an unrelated later live snapshot clock.
+            dump_broker = meta.get("brokerTime")
+            dump_gmt = meta.get("gmtTime")
+            if dump_broker is None and dump_gmt is None:
+                # Fallback only when dump path lacked clocks (legacy cache).
+                mql = _read_mql_snapshot(max_age_sec=600.0) or {}
+                if not mql.get("error"):
+                    dump_broker = mql.get("brokerTime")
+                    dump_gmt = mql.get("gmtTime")
             return {
                 "symbol": sym_u,
                 "timeframe": tf_key,
@@ -1857,10 +1907,12 @@ def candles(
                 "oldestTimestamp": cleaned[0].get("time"),
                 "newestTimestamp": cleaned[-1].get("time"),
                 "completeness": "broker_dump",
-                "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                # E3-005: attach live Expert clocks when snapshot is readable.
-                "brokerTime": mql.get("brokerTime") if not mql.get("error") else None,
-                "gmtTime": mql.get("gmtTime") if not mql.get("error") else None,
+                "retrievedAt": meta.get("dumpRetrievedAt")
+                or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "brokerTime": dump_broker,
+                "gmtTime": dump_gmt,
+                "clockSource": meta.get("clockSource") or meta.get("source"),
+                "clockSeq": meta.get("clockSeq") or meta.get("seq"),
                 "placesOrders": False,
                 "mutatesBroker": False,
                 "acceptsForExecution": False,

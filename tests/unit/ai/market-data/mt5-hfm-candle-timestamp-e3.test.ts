@@ -207,11 +207,20 @@ describe("Engine 3 candle open-time normalization", () => {
       resolve("desktop/forex/hfm-dashboard/charts/HfmChartsWorkspace.tsx"),
       "utf8",
     );
-    expect(workspace).toContain("(Broker)");
-    expect(workspace).toContain("(UTC)");
+    expect(workspace).toContain("formatChartCoordinateTime");
+    expect(workspace).toContain("projectBarsToChartDomain");
+    expect(workspace).toContain("Axis domain:");
     expect(workspace).not.toMatch(
       /new Date\(crosshair\.time \* 1000\)\.toISOString\(\)\.replace\("\.000Z", "Z"\)/,
     );
+    const domainHelper = readFileSync(
+      resolve("desktop/forex/hfm-dashboard/charts/chart-time-domain.ts"),
+      "utf8",
+    );
+    expect(domainHelper).toContain('"Broker"');
+    expect(domainHelper).toContain('"UTC"');
+    expect(domainHelper).toContain("chartTimeDomainLabel");
+    expect(domainHelper).toContain("resolveHfmChartTimeDomain");
     const contract = readFileSync(
       resolve("ai/market-data/mt5-hfm/charts-analysis-contract.ts"),
       "utf8",

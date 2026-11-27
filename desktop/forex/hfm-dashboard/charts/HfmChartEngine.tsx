@@ -40,6 +40,10 @@ import type {
   HfmIndicatorConfig,
 } from "./types";
 import type { HfmAnalyticalOverlay } from "./analysis/analytical-overlays";
+import {
+  chartTimeDomainLabel,
+  type HfmChartTimeDomain,
+} from "./chart-time-domain";
 
 const BG = "#0b0e14";
 const GRID = "rgba(148,163,184,0.12)";
@@ -56,6 +60,7 @@ export interface HfmChartEngineHandle {
 }
 
 export interface HfmCrosshairInfo {
+  /** Series coordinate time in the active chart domain. */
   time: number;
   open: number;
   high: number;
@@ -64,12 +69,22 @@ export interface HfmCrosshairInfo {
   tickVolume: number | null;
   realVolume: number | null;
   spread: number | null;
+  brokerOpenTime?: number;
+  openTimeUtc?: number | null;
+  brokerUtcOffsetSec?: number | null;
+  timestampNormalizationStatus?: string | null;
+  timestampNormalizationReason?: string | null;
+  timestampSource?: string | null;
+  receiveTimestamp?: string | null;
+  timeDomain: HfmChartTimeDomain;
 }
 
 export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
   symbol: string;
   timeframe: string;
   bars: HfmChartCandle[];
+  /** Coordinate domain for `bars[].time` — must be uniform across the series. */
+  timeDomain: HfmChartTimeDomain;
   chartType: HfmChartTypeId;
   digits: number;
   indicators: HfmIndicatorConfig[];
@@ -139,7 +154,25 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
       },
       crosshair: { mode: CrosshairMode.Normal },
       rightPriceScale: { borderColor: GRID },
-      timeScale: { borderColor: GRID, timeVisible: true, secondsVisible: false },
+      timeScale: {
+        borderColor: GRID,
+        timeVisible: true,
+        secondsVisible: false,
+        tickMarkFormatter: (time: number) => {
+          const d = new Date(Number(time) * 1000);
+          const pad = (n: number) => String(n).padStart(2, "0");
+          const label = chartTimeDomainLabel(props.timeDomain);
+          return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} ${label}`;
+        },
+      },
+      localization: {
+        timeFormatter: (time: number) => {
+          const d = new Date(Number(time) * 1000);
+          const pad = (n: number) => String(n).padStart(2, "0");
+          const label = chartTimeDomainLabel(props.timeDomain);
+          return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} (${label})`;
+        },
+      },
     });
     chartRef.current = chart;
 
@@ -192,8 +225,9 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
       paneChartRef.current = null;
       seriesRef.current = null;
     };
+    // Recreate when domain changes so axis formatter labels stay honest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.symbol, props.digits, props.chartType]);
+  }, [props.symbol, props.digits, props.chartType, props.timeDomain]);
 
   useEffect(() => {
     chartRef.current?.applyOptions({
@@ -533,6 +567,14 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
         tickVolume: bar.tickVolume,
         realVolume: bar.realVolume,
         spread: bar.spread,
+        brokerOpenTime: bar.brokerOpenTime ?? bar.time,
+        openTimeUtc: bar.openTimeUtc ?? null,
+        brokerUtcOffsetSec: bar.brokerUtcOffsetSec ?? null,
+        timestampNormalizationStatus: bar.timestampNormalizationStatus ?? null,
+        timestampNormalizationReason: bar.timestampNormalizationReason ?? null,
+        timestampSource: bar.timestampSource ?? null,
+        receiveTimestamp: bar.receiveTimestamp ?? null,
+        timeDomain: props.timeDomain,
       });
     };
     chart.subscribeCrosshairMove(onMove);
@@ -604,7 +646,7 @@ export const HfmChartEngine = forwardRef<HfmChartEngineHandle, {
       chart.unsubscribeCrosshairMove(onMove);
       chart.unsubscribeClick(onClick);
     };
-  }, [props.activeTool, props.bars, props.symbol, props.timeframe, props.onCrosshair, props.onDrawingCommit, props.onSelectDrawing]);
+  }, [props.activeTool, props.bars, props.symbol, props.timeframe, props.timeDomain, props.onCrosshair, props.onDrawingCommit, props.onSelectDrawing]);
 
   // Load older when scrolled left
   useEffect(() => {

@@ -34,6 +34,10 @@ import {
 import { buildHfmChartsAnalysisSnapshot } from "../../../../ai/market-data/mt5-hfm/charts-analysis-contract";
 import { HfmAnalysisPanel } from "./HfmAnalysisPanel";
 import type { HfmAnalyticalOverlay } from "./analysis/analytical-overlays";
+import {
+  formatChartCoordinateTime,
+  projectBarsToChartDomain,
+} from "./chart-time-domain";
 import "./hfm-analysis-panel.css";
 
 const DRAW_TOOLS: Array<{ id: HfmDrawingToolId; label: string }> = [
@@ -251,6 +255,12 @@ export function HfmChartsWorkspace() {
   const visibleDrawings = useMemo(
     () => drawings.filter((d) => d.symbol === symbol && d.timeframe === timeframe),
     [drawings, symbol, timeframe],
+  );
+
+  /** Uniform chart coordinate domain — never mix UTC and broker times in one series. */
+  const chartProjection = useMemo(
+    () => projectBarsToChartDomain(series.bars),
+    [series.bars],
   );
 
   const selected = visibleDrawings.find((d) => d.id === selectedDrawingId) ?? null;
@@ -589,12 +599,13 @@ export function HfmChartsWorkspace() {
           {series.error && !series.bars.length ? (
             <p className="hfm-charts-state" role="alert" data-tone="bad">{series.error}</p>
           ) : null}
-          {series.bars.length ? (
+          {chartProjection.bars.length ? (
             <HfmChartEngine
               ref={chartRef}
               symbol={symbol}
               timeframe={timeframe}
-              bars={series.bars}
+              bars={chartProjection.bars}
+              timeDomain={chartProjection.domain}
               chartType={chartType}
               digits={digits}
               indicators={indicators}
@@ -612,6 +623,14 @@ export function HfmChartsWorkspace() {
           ) : series.status !== "LOADING" ? (
             <p className="hfm-charts-state">No HFM candles for {symbol} · {timeframe}. No synthetic data.</p>
           ) : null}
+          {chartProjection.bars.length ? (
+            <p className="hfm-charts-time-domain" data-domain={chartProjection.domain}>
+              Axis domain: {chartProjection.domain === "UTC" ? "UTC" : "Broker time"}
+              {chartProjection.domain === "BROKER"
+                ? " (mixed or unavailable UTC — coordinates stay broker-consistent)"
+                : " (all candles trusted UTC)"}
+            </p>
+          ) : null}
           {crosshair ? (
             <dl className="hfm-charts-ohlc" aria-label="Crosshair OHLC">
               <div><dt>O</dt><dd>{formatPrice(crosshair.open, digits)}</dd></div>
@@ -624,22 +643,10 @@ export function HfmChartsWorkspace() {
               <div>
                 <dt>Time</dt>
                 <dd>
-                  {(() => {
-                    const status = crosshair.timestampNormalizationStatus;
-                    const utc =
-                      (status === "NORMALIZED" || status === "PARTIAL") &&
-                      typeof crosshair.openTimeUtc === "number"
-                        ? crosshair.openTimeUtc
-                        : null;
-                    if (utc != null) {
-                      return `${new Date(utc * 1000).toISOString().replace(".000Z", "Z")} (UTC)`;
-                    }
-                    const broker = crosshair.brokerOpenTime ?? crosshair.time;
-                    const pad = (n: number) => String(n).padStart(2, "0");
-                    const d = new Date(broker * 1000);
-                    // Format components from the numeric epoch without claiming UTC domain.
-                    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} (Broker)`;
-                  })()}
+                  {formatChartCoordinateTime(
+                    crosshair.time,
+                    crosshair.timeDomain ?? chartProjection.domain,
+                  )}
                 </dd>
               </div>
             </dl>

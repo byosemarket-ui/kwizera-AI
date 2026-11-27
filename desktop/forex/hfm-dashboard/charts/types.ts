@@ -45,7 +45,10 @@ export type HfmChartTimeframe = (typeof HFM_CHART_TIMEFRAMES)[number];
 export type HfmChartTypeId = "candlestick" | "ohlc" | "line" | "area";
 
 export interface HfmChartCandle {
-  /** Broker-domain candle-open seconds (chart series identity / ordering). */
+  /**
+   * Series coordinate time (unix seconds) in the active chart domain.
+   * After projection: UTC when domain is UTC, otherwise broker-domain open.
+   */
   time: number;
   open: number;
   high: number;
@@ -55,6 +58,7 @@ export interface HfmChartCandle {
   realVolume: number | null;
   spread: number | null;
   closed?: boolean;
+  /** Explicit broker/server candle-open seconds. */
   brokerOpenTime?: number;
   openTimeUtc?: number | null;
   brokerUtcOffsetSec?: number | null;

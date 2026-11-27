@@ -82,10 +82,16 @@ export interface HfmCanonicalQuote {
   /** UTC-normalized tick time in milliseconds when available. */
   quoteTimestampUtcMs: number | null;
   /**
-   * Derived offset seconds: MT5 TimeCurrent() - TimeGMT().
-   * Positive means broker clock is ahead of GMT (e.g. +7200 for UTC+2).
+   * Trusted timezone offset used for UTC conversion.
+   * May be snapped to a quarter-hour when a one-second TimeCurrent/TimeGMT
+   * sampling race is classified (see measuredDeltaSec).
    */
   brokerUtcOffsetSec: number | null;
+  /**
+   * Exact brokerTime − gmtTime integer delta from sampled clocks.
+   * Preserved even when brokerUtcOffsetSec is snapped for sampling skew.
+   */
+  measuredDeltaSec?: number | null;
   /**
    * Core/agent UTC receipt instant (ISO-8601). Same value as receivedAt;
    * explicit alias for timestamp contract clarity.

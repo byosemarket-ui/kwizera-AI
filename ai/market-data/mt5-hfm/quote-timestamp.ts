@@ -55,11 +55,59 @@ export interface HfmBrokerClockInput {
 }
 
 export interface HfmBrokerUtcOffsetResult {
+  /**
+   * Trusted timezone offset used for UTC conversion (quarter-hour aligned when
+   * a one-second sampling race is detected). May differ from measuredDeltaSec.
+   */
   brokerUtcOffsetSec: number | null;
+  /**
+   * Exact brokerTime − gmtTime integer delta from the sampled clocks.
+   * Preserved even when a one-second sampling skew is classified and snapped.
+   */
+  measuredDeltaSec: number | null;
   status: HfmTimestampNormalizationStatus;
   reason: string | null;
   /** How the offset was obtained for this evaluation. */
   trust: "LIVE_OPEN_SESSION" | "TRUSTED_HISTORICAL" | "NONE";
+}
+
+/**
+ * One-second sampling race band: TimeCurrent() and TimeGMT() are separate MQL
+ * calls, so broker−GMT can land on N±1 when the second boundary is crossed
+ * between samples. FX broker TZ offsets are multiples of 15 minutes.
+ */
+export const HFM_OFFSET_SAMPLE_SKEW_MAX_SEC = 1;
+
+/**
+ * Snap a measured broker−GMT delta to the nearest quarter-hour boundary when
+ * the residual is within the one-second sampling-skew band.
+ * Returns null when the measured delta is not a sampling-skew candidate.
+ */
+export function classifyBrokerUtcOffsetSample(measuredDeltaSec: number): {
+  measuredDeltaSec: number;
+  trustedOffsetSec: number | null;
+  residualSec: number;
+  samplingSkew: boolean;
+} {
+  if (!Number.isFinite(measuredDeltaSec)) {
+    return {
+      measuredDeltaSec,
+      trustedOffsetSec: null,
+      residualSec: NaN,
+      samplingSkew: false,
+    };
+  }
+  const measured = Math.trunc(measuredDeltaSec);
+  const nearest =
+    Math.round(measured / HFM_OFFSET_QUARTER_HOUR_SEC) * HFM_OFFSET_QUARTER_HOUR_SEC;
+  const residual = measured - nearest;
+  const samplingSkew = Math.abs(residual) <= HFM_OFFSET_SAMPLE_SKEW_MAX_SEC;
+  return {
+    measuredDeltaSec: measured,
+    trustedOffsetSec: samplingSkew ? nearest : null,
+    residualSec: residual,
+    samplingSkew,
+  };
 }
 
 export interface HfmTrustedBrokerUtcOffset {
@@ -170,6 +218,8 @@ export function deriveHfmBrokerUtcOffset(
     if (trustedOffsetStillValid(gmtTime)) {
       return {
         brokerUtcOffsetSec: trustedOffset!.offsetSec,
+        measuredDeltaSec:
+          brokerTime != null && gmtTime != null ? brokerTime - gmtTime : null,
         status: "PARTIAL",
         reason: "TRUSTED_OFFSET_FROM_OPEN_SESSION_WHILE_CLOSED",
         trust: "TRUSTED_HISTORICAL",
@@ -177,6 +227,8 @@ export function deriveHfmBrokerUtcOffset(
     }
     return {
       brokerUtcOffsetSec: null,
+      measuredDeltaSec:
+        brokerTime != null && gmtTime != null ? brokerTime - gmtTime : null,
       status: "UNAVAILABLE",
       reason: "BROKER_CLOCK_FROZEN_OFFSET_UNTRUSTED",
       trust: "NONE",
@@ -186,6 +238,7 @@ export function deriveHfmBrokerUtcOffset(
   if (brokerTime == null && gmtTime == null) {
     return {
       brokerUtcOffsetSec: null,
+      measuredDeltaSec: null,
       status: "UNAVAILABLE",
       reason: "MISSING_BROKER_AND_GMT_TIME",
       trust: "NONE",
@@ -194,6 +247,7 @@ export function deriveHfmBrokerUtcOffset(
   if (brokerTime == null) {
     return {
       brokerUtcOffsetSec: null,
+      measuredDeltaSec: null,
       status: "UNAVAILABLE",
       reason: "MISSING_BROKER_TIME",
       trust: "NONE",
@@ -202,38 +256,57 @@ export function deriveHfmBrokerUtcOffset(
   if (gmtTime == null) {
     return {
       brokerUtcOffsetSec: null,
+      measuredDeltaSec: null,
       status: "UNAVAILABLE",
       reason: "MISSING_GMT_TIME",
       trust: "NONE",
     };
   }
 
-  const offset = brokerTime - gmtTime;
-  if (!Number.isFinite(offset)) {
+  const measured = brokerTime - gmtTime;
+  if (!Number.isFinite(measured)) {
     return {
       brokerUtcOffsetSec: null,
+      measuredDeltaSec: null,
       status: "UNRELIABLE",
       reason: "OFFSET_NOT_FINITE",
       trust: "NONE",
     };
   }
-  if (Math.abs(offset) > HFM_MAX_TRUSTED_BROKER_UTC_OFFSET_SEC) {
+  if (Math.abs(measured) > HFM_MAX_TRUSTED_BROKER_UTC_OFFSET_SEC) {
     return {
       brokerUtcOffsetSec: null,
+      measuredDeltaSec: measured,
       status: "UNRELIABLE",
       reason: "OFFSET_ABS_EXCEEDS_14H",
       trust: "NONE",
     };
   }
 
-  const nearQuarterHour =
-    Math.abs(offset % HFM_OFFSET_QUARTER_HOUR_SEC) < 1 ||
-    Math.abs(Math.abs(offset % HFM_OFFSET_QUARTER_HOUR_SEC) - HFM_OFFSET_QUARTER_HOUR_SEC) < 1;
+  const classified = classifyBrokerUtcOffsetSample(measured);
+  // Trusted offset: exact quarter-hour OR one-second sampling skew around one.
+  const offset =
+    classified.trustedOffsetSec != null ? classified.trustedOffsetSec : measured;
 
-  const liveStatus: HfmTimestampNormalizationStatus = nearQuarterHour
-    ? "NORMALIZED"
-    : "PARTIAL";
-  const liveReason = nearQuarterHour ? null : "OFFSET_NOT_QUARTER_HOUR_ALIGNED";
+  const exactQuarter =
+    classified.residualSec === 0 ||
+    Math.abs(classified.residualSec) >= HFM_OFFSET_QUARTER_HOUR_SEC;
+  const samplingSkewNormalized =
+    classified.samplingSkew && classified.trustedOffsetSec != null;
+
+  let liveStatus: HfmTimestampNormalizationStatus;
+  let liveReason: string | null;
+  if (samplingSkewNormalized && !exactQuarter && classified.residualSec !== 0) {
+    // 7199 / 7201 → trusted 7200 with explicit sampling-skew provenance.
+    liveStatus = "NORMALIZED";
+    liveReason = "OFFSET_ONE_SECOND_CLOCK_SAMPLE_SKEW";
+  } else if (classified.samplingSkew || classified.residualSec === 0) {
+    liveStatus = "NORMALIZED";
+    liveReason = null;
+  } else {
+    liveStatus = "PARTIAL";
+    liveReason = "OFFSET_NOT_QUARTER_HOUR_ALIGNED";
+  }
 
   // Only promote to trusted cache when session is open (or unknown-but-advancing).
   if (session == null || session === "MARKET_OPEN" || session === "SESSION_UNKNOWN") {
@@ -254,6 +327,7 @@ export function deriveHfmBrokerUtcOffset(
 
   return {
     brokerUtcOffsetSec: offset,
+    measuredDeltaSec: measured,
     status: liveStatus,
     reason: liveReason,
     trust: "LIVE_OPEN_SESSION",

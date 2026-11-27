@@ -8,6 +8,7 @@ import {
   enrichBarsWithCandleTimeProvenance,
   type HfmCandleTimeProvenance,
 } from "./candle-timestamp.js";
+import { ensureHfmOffsetArchiveLoadedSync } from "./offset-archive.js";
 
 export const HFM_HISTORY_PROVIDER = "HFM_MT5" as const;
 
@@ -151,6 +152,7 @@ export async function fetchHfmHistoricalCandles(opts: {
   startPos?: number;
   refresh?: boolean;
 }): Promise<HfmHistoricalResult> {
+  ensureHfmOffsetArchiveLoadedSync();
   const symbol = String(opts.symbol || "").trim().toUpperCase();
   const timeframe = String(opts.timeframe || "").trim();
   const limit = Math.min(300, Math.max(1, Number(opts.limit ?? 100) || 100));

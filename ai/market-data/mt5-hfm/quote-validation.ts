@@ -19,6 +19,7 @@ import {
   deriveHfmBrokerUtcOffset,
   normalizeHfmQuoteTimestamps,
 } from "./quote-timestamp.js";
+import { noteHfmCandleOffsetObservation } from "./candle-timestamp.js";
 
 const PRICE_EPS = 1e-12;
 
@@ -247,6 +248,24 @@ export function validateHfmRawQuote(
     brokerClockFrozen: session.brokerClockFrozen,
     marketSessionState: session.state,
   });
+  // E3-R1: durable/historical candle offset archive from live open-session quotes.
+  if (
+    offsetResult.brokerUtcOffsetSec != null &&
+    (offsetResult.status === "NORMALIZED" || offsetResult.status === "PARTIAL") &&
+    (offsetResult.trust === "LIVE_OPEN_SESSION" || offsetResult.trust === "TRUSTED_HISTORICAL") &&
+    typeof opts.brokerTime === "number" &&
+    typeof opts.gmtTime === "number"
+  ) {
+    noteHfmCandleOffsetObservation({
+      offsetSec: offsetResult.brokerUtcOffsetSec,
+      measuredDeltaSec: offsetResult.measuredDeltaSec,
+      observedAtGmtSec: opts.gmtTime,
+      observedAtBrokerSec: opts.brokerTime,
+      status: offsetResult.status,
+      sessionContext: session.state,
+      reason: offsetResult.reason,
+    });
+  }
   const tsNorm = normalizeHfmQuoteTimestamps({
     quoteTimestampSec: quoteTimestamp,
     quoteTimestampMs,
@@ -342,6 +361,7 @@ export function validateHfmRawQuote(
     quoteTimestampUtc: tsNorm.quoteTimestampUtc,
     quoteTimestampUtcMs: tsNorm.quoteTimestampUtcMs,
     brokerUtcOffsetSec: tsNorm.brokerUtcOffsetSec,
+    measuredDeltaSec: offsetResult.measuredDeltaSec,
     receivedAtUtc: opts.receivedAt,
     clockSkewSec: tsNorm.clockSkewSec,
     timestampSource: tsNorm.timestampSource,
