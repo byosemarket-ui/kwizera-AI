@@ -51,13 +51,24 @@ describe("C7 OHLC reconciliation", () => {
     expect(r.verdict).toBe("TIMESTAMP_MISMATCH");
   });
 
-  it("detects stale observation skew for closed bars", () => {
+  it("exact-matches closed OHLC even when observation times differ", () => {
     const a = bar(100, 1, 2, 0.5, 1.5);
     const r = reconcileClosedBar({
       symbol: "EURUSD",
       timeframe: "M1",
       left: { source: "dump", observedAt: "2026-11-27T15:00:00.000Z", bar: a },
       right: { source: "api", observedAt: "2026-11-27T15:05:00.000Z", bar: a },
+      maxStaleMs: 60_000,
+    });
+    expect(r.verdict).toBe("EXACT_MATCH");
+  });
+
+  it("classifies divergent closed OHLC with large observation skew as stale", () => {
+    const r = reconcileClosedBar({
+      symbol: "EURUSD",
+      timeframe: "M1",
+      left: { source: "dump", observedAt: "2026-11-27T15:00:00.000Z", bar: bar(100, 1, 2, 0.5, 1.5) },
+      right: { source: "api", observedAt: "2026-11-27T15:05:00.000Z", bar: bar(100, 1, 2, 0.5, 1.4) },
       maxStaleMs: 60_000,
     });
     expect(r.verdict).toBe("STALE_SOURCE");

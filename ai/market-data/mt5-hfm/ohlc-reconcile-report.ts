@@ -124,11 +124,13 @@ export async function buildHfmOhlcReconcileReport(input: {
         leftSource: "mql5_readonly_candles_dump",
         rightSource: hist.source || "mql5_ondemand_copyrates",
         leftObservedAt:
-          typeof dumpRaw.retrievedAt === "string"
-            ? dumpRaw.retrievedAt
-            : typeof dumpRaw.cachedAt === "string"
-              ? dumpRaw.cachedAt
-              : observedAt,
+          typeof dumpRaw.dumpRetrievedAt === "string"
+            ? dumpRaw.dumpRetrievedAt
+            : typeof dumpRaw.retrievedAt === "string"
+              ? dumpRaw.retrievedAt
+              : typeof dumpRaw.cachedAt === "string"
+                ? dumpRaw.cachedAt
+                : observedAt,
         rightObservedAt: apiObservedAt,
         leftBars: dumpBars.slice(-limit),
         rightBars: apiBars.slice(-limit),
@@ -145,12 +147,13 @@ export async function buildHfmOhlcReconcileReport(input: {
       r.mode === "closed" &&
       (r.verdict === "GENUINE_OHLC_MISMATCH" || r.verdict === "INVALID_OHLC"),
   );
+  const closedExact = results.filter((r) => r.mode === "closed" && r.verdict === "EXACT_MATCH").length;
   return {
-    ok: !closedBlocking,
+    ok: !closedBlocking && closedExact > 0,
     observedAt,
     dumpPath,
     dumpSeq: dumpRaw.seq ?? null,
-    dumpRetrievedAt: dumpRaw.retrievedAt ?? dumpRaw.cachedAt ?? null,
+    dumpRetrievedAt: dumpRaw.dumpRetrievedAt ?? dumpRaw.retrievedAt ?? dumpRaw.cachedAt ?? null,
     results,
     summary,
     note:

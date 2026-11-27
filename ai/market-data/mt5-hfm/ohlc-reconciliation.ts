@@ -89,7 +89,25 @@ export function findBarByOpenTime(bars: OhlcBar[], openTime: number): OhlcBar | 
 }
 
 function parseObservedMs(iso: string): number | null {
-  const ms = Date.parse(iso);
+  if (!iso || typeof iso !== "string") return null;
+  const s = iso.trim();
+  // Expert dump: "2026.11.27 16:53:36Z"
+  if (s.length >= 19 && s[4] === "." && s[7] === ".") {
+    const body = s.replace(/[Zz]$/, "").trim();
+    const m = /^(\d{4})\.(\d{2})\.(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(body);
+    if (m) {
+      const ms = Date.UTC(
+        Number(m[1]),
+        Number(m[2]) - 1,
+        Number(m[3]),
+        Number(m[4]),
+        Number(m[5]),
+        Number(m[6]),
+      );
+      return Number.isFinite(ms) ? ms : null;
+    }
+  }
+  const ms = Date.parse(s);
   return Number.isFinite(ms) ? ms : null;
 }
 
@@ -129,20 +147,28 @@ export function reconcileClosedBar(input: {
   }
   const lMs = parseObservedMs(left.observedAt);
   const rMs = parseObservedMs(right.observedAt);
-  if (lMs != null && rMs != null && Math.abs(lMs - rMs) > maxStaleMs) {
-    return {
-      ...base,
-      candleOpenTime: left.bar.time,
-      verdict: "STALE_SOURCE",
-      detail: `observation skew ${Math.abs(lMs - rMs)}ms exceeds ${maxStaleMs}ms`,
-    };
-  }
+  const skew = lMs != null && rMs != null ? Math.abs(lMs - rMs) : null;
+  // Closed bars are immutable: identical OHLC is an exact match regardless of when
+  // each source was sampled. Observation skew is recorded in detail only.
   if (ohlcEqual(left.bar, right.bar)) {
     return {
       ...base,
       candleOpenTime: left.bar.time,
       verdict: "EXACT_MATCH",
-      detail: "Closed OHLC identical",
+      detail:
+        skew == null
+          ? "Closed OHLC identical"
+          : `Closed OHLC identical (observation skew ${skew}ms)`,
+    };
+  }
+  // Divergent OHLC with large observation skew is ambiguous (stale sample), not a
+  // proven broker/pipeline defect.
+  if (skew != null && skew > maxStaleMs) {
+    return {
+      ...base,
+      candleOpenTime: left.bar.time,
+      verdict: "STALE_SOURCE",
+      detail: `OHLC differs with observation skew ${skew}ms exceeding ${maxStaleMs}ms`,
     };
   }
   return {
