@@ -11,8 +11,12 @@ import {
   type ReconciliationResult,
 } from "./ohlc-reconciliation.js";
 
-const DEFAULT_DUMP =
-  "/home/mt5/.wine-hfm/drive_c/users/mt5/AppData/Roaming/MetaQuotes/Terminal/Common/Files/kwizera_readonly_candles.json";
+/** Prefer Agent cache under /run (readable by Core). Fall back to Expert dump paths. */
+const DEFAULT_DUMP_CANDIDATES = [
+  "/run/kwizera/mt5-hfm/candles-cache.json",
+  "/home/mt5/.wine-hfm/drive_c/users/mt5/AppData/Roaming/MetaQuotes/Terminal/Common/Files/kwizera_readonly_candles.json",
+  "/home/mt5/.wine-hfm/drive_c/Program Files/HFM Metatrader 5/MQL5/Files/kwizera_readonly_candles.json",
+];
 
 function asBars(raw: unknown): OhlcBar[] {
   if (!Array.isArray(raw)) return [];
@@ -53,12 +57,26 @@ export async function buildHfmOhlcReconcileReport(input: {
   summary: ReturnType<typeof summarizeReconciliation>;
   note: string;
 }> {
-  const dumpPath = input.dumpPath || process.env.KWIZERA_MT5_HFM_CANDLES_DUMP || DEFAULT_DUMP;
+  const candidates = input.dumpPath
+    ? [input.dumpPath]
+    : process.env.KWIZERA_MT5_HFM_CANDLES_DUMP
+      ? [process.env.KWIZERA_MT5_HFM_CANDLES_DUMP, ...DEFAULT_DUMP_CANDIDATES]
+      : DEFAULT_DUMP_CANDIDATES;
   const observedAt = new Date().toISOString();
   let dumpRaw: Record<string, unknown> = {};
-  try {
-    dumpRaw = JSON.parse(await readFile(dumpPath, "utf8")) as Record<string, unknown>;
-  } catch (e) {
+  let dumpPath = candidates[0]!;
+  let readErr: string | null = null;
+  for (const candidate of candidates) {
+    try {
+      dumpRaw = JSON.parse(await readFile(candidate, "utf8")) as Record<string, unknown>;
+      dumpPath = candidate;
+      readErr = null;
+      break;
+    } catch (e) {
+      readErr = e instanceof Error ? e.message : String(e);
+    }
+  }
+  if (readErr) {
     return {
       ok: false,
       observedAt,
@@ -67,7 +85,7 @@ export async function buildHfmOhlcReconcileReport(input: {
       dumpRetrievedAt: null,
       results: [],
       summary: { exactMatches: 0, expectedFormingEvolution: 0, mismatches: 0, other: 0, blocking: true },
-      note: `dump_unreadable:${e instanceof Error ? e.message : String(e)}`,
+      note: `dump_unreadable:${readErr}`,
     };
   }
   const candles = (dumpRaw.candles && typeof dumpRaw.candles === "object"
@@ -103,7 +121,12 @@ export async function buildHfmOhlcReconcileReport(input: {
         timeframe,
         leftSource: "mql5_readonly_candles_dump",
         rightSource: hist.source || "mql5_ondemand_copyrates",
-        leftObservedAt: typeof dumpRaw.retrievedAt === "string" ? dumpRaw.retrievedAt : observedAt,
+        leftObservedAt:
+          typeof dumpRaw.retrievedAt === "string"
+            ? dumpRaw.retrievedAt
+            : typeof dumpRaw.cachedAt === "string"
+              ? dumpRaw.cachedAt
+              : observedAt,
         rightObservedAt: apiObservedAt,
         leftBars: dumpBars.slice(-limit),
         rightBars: apiBars.slice(-limit),
@@ -114,12 +137,18 @@ export async function buildHfmOhlcReconcileReport(input: {
   }
 
   const summary = summarizeReconciliation(results);
+  // Closed-bar mismatches are blocking; forming evolution / skew is not.
+  const closedBlocking = results.some(
+    (r) =>
+      r.mode === "closed" &&
+      (r.verdict === "GENUINE_OHLC_MISMATCH" || r.verdict === "INVALID_OHLC"),
+  );
   return {
-    ok: !summary.blocking,
+    ok: !closedBlocking,
     observedAt,
     dumpPath,
     dumpSeq: dumpRaw.seq ?? null,
-    dumpRetrievedAt: dumpRaw.retrievedAt ?? null,
+    dumpRetrievedAt: dumpRaw.retrievedAt ?? dumpRaw.cachedAt ?? null,
     results,
     summary,
     note:
