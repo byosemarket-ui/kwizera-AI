@@ -1,13 +1,18 @@
 /**
  * STEP 2 — HFM MT5 historical candle engine (CopyRates via agent).
- * Bounded cache, OHLC validation, pagination metadata. No synthetic bars.
+ * Engine 3 — attaches candle time provenance without altering OHLC.
  */
 import { callMt5HfmAgent } from "./agent-client.js";
 import { isValidOhlcCandle } from "./freshness.js";
+import {
+  enrichBarsWithCandleTimeProvenance,
+  type HfmCandleTimeProvenance,
+} from "./candle-timestamp.js";
 
 export const HFM_HISTORY_PROVIDER = "HFM_MT5" as const;
 
-export interface HfmHistoricalBar {
+export interface HfmHistoricalBar extends HfmCandleTimeProvenance {
+  /** Legacy broker-domain candle-open seconds (compatibility). */
   time: number;
   open: number;
   high: number;
@@ -36,6 +41,10 @@ export interface HfmHistoricalResult {
   newestTimestamp: number | null;
   completeness: string | null;
   errors: string[];
+  /** Snapshot clocks from agent/Expert when present (E3-005). */
+  brokerTime: number | null;
+  gmtTime: number | null;
+  retrievedAt: string | null;
   placesOrders: false;
   mutatesBroker: false;
   acceptsForExecution: false;
@@ -57,12 +66,33 @@ function pruneCache(): void {
   }
 }
 
+function asFiniteSec(v: unknown): number | null {
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0 || v > 1e11) return null;
+  return Math.trunc(v);
+}
+
 export function validateAndNormalizeBars(
   raw: unknown[],
-  opts?: { provenance?: "native" | "cached" },
+  opts?: {
+    provenance?: "native" | "cached";
+    timestampObservedAt?: string | null;
+    brokerTime?: number | null;
+    gmtTime?: number | null;
+  },
 ): { bars: HfmHistoricalBar[]; rejected: number } {
   const provenance = opts?.provenance ?? "native";
-  const bars: HfmHistoricalBar[] = [];
+  const bare: Array<{
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    tickVolume: number | null;
+    realVolume: number | null;
+    spread: number | null;
+    validationStatus: "ok" | "rejected";
+    provenance: "native" | "cached";
+  }> = [];
   let rejected = 0;
   let lastTime = -1;
   for (const row of raw) {
@@ -71,18 +101,25 @@ export function validateAndNormalizeBars(
       continue;
     }
     const r = row as Record<string, unknown>;
-    const time = typeof r.time === "number" ? r.time : Number(r.time);
+    // Refuse double-normalization: if a row already carries trusted UTC and claims
+    // brokerOpenTime separately, prefer brokerOpenTime / time as broker domain.
+    const timeRaw =
+      typeof r.brokerOpenTime === "number"
+        ? r.brokerOpenTime
+        : typeof r.time === "number"
+          ? r.time
+          : Number(r.time);
     const open = typeof r.open === "number" ? r.open : Number(r.open);
     const high = typeof r.high === "number" ? r.high : Number(r.high);
     const low = typeof r.low === "number" ? r.low : Number(r.low);
     const close = typeof r.close === "number" ? r.close : Number(r.close);
-    if (!isValidOhlcCandle({ time, open, high, low, close }) || time <= lastTime) {
+    if (!isValidOhlcCandle({ time: timeRaw, open, high, low, close }) || timeRaw <= lastTime) {
       rejected += 1;
       continue;
     }
-    lastTime = time;
-    bars.push({
-      time,
+    lastTime = timeRaw;
+    bare.push({
+      time: timeRaw,
       open,
       high,
       low,
@@ -94,7 +131,17 @@ export function validateAndNormalizeBars(
       provenance,
     });
   }
-  return { bars, rejected };
+
+  const enriched = enrichBarsWithCandleTimeProvenance(bare, {
+    timestampSource: "mt5_copyrates",
+    timestampObservedAt: opts?.timestampObservedAt ?? null,
+    preferLiveOffset: false,
+    clock:
+      opts?.brokerTime != null || opts?.gmtTime != null
+        ? { brokerTime: opts.brokerTime ?? null, gmtTime: opts.gmtTime ?? null }
+        : null,
+  });
+  return { bars: enriched as HfmHistoricalBar[], rejected };
 }
 
 export async function fetchHfmHistoricalCandles(opts: {
@@ -125,7 +172,20 @@ export async function fetchHfmHistoricalCandles(opts: {
   });
   const result = (agentRes.result ?? {}) as Record<string, unknown>;
   const rawBars = Array.isArray(result.candles) ? result.candles : [];
-  const { bars, rejected } = validateAndNormalizeBars(rawBars, { provenance: "native" });
+  const brokerTime = asFiniteSec(result.brokerTime);
+  const gmtTime = asFiniteSec(result.gmtTime);
+  const retrievedAt =
+    typeof result.retrievedAt === "string"
+      ? result.retrievedAt
+      : typeof result.cachedAt === "string"
+        ? result.cachedAt
+        : null;
+  const { bars, rejected } = validateAndNormalizeBars(rawBars, {
+    provenance: "native",
+    timestampObservedAt: retrievedAt,
+    brokerTime,
+    gmtTime,
+  });
   const available = Boolean(agentRes.ok && result.available === true && bars.length > 0);
   const errors: string[] = [];
   if (!agentRes.ok && agentRes.code) errors.push(String(agentRes.code));
@@ -148,8 +208,16 @@ export async function fetchHfmHistoricalCandles(opts: {
     freshness: typeof result.freshness === "string" ? result.freshness : null,
     oldestTimestamp: bars.length ? bars[0]!.time : null,
     newestTimestamp: bars.length ? bars[bars.length - 1]!.time : null,
-    completeness: typeof result.completeness === "string" ? result.completeness : (available ? "broker" : "unavailable"),
+    completeness:
+      typeof result.completeness === "string"
+        ? result.completeness
+        : available
+          ? "broker"
+          : "unavailable",
     errors,
+    brokerTime,
+    gmtTime,
+    retrievedAt,
     placesOrders: false,
     mutatesBroker: false,
     acceptsForExecution: false,

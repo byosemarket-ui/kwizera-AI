@@ -270,6 +270,13 @@ export function HfmChartsWorkspace() {
       spread: b.spread,
       closed: b.closed !== false,
       provenance: b.closed === false ? "live_aggregate" : "native",
+      brokerOpenTime: b.brokerOpenTime ?? b.time,
+      openTimeUtc: b.openTimeUtc ?? null,
+      brokerUtcOffsetSec: b.brokerUtcOffsetSec ?? null,
+      timestampNormalizationStatus: b.timestampNormalizationStatus ?? null,
+      timestampNormalizationReason: b.timestampNormalizationReason ?? null,
+      timestampSource: b.timestampSource ?? null,
+      receiveTimestamp: b.receiveTimestamp ?? null,
     })),
     currentCandle: series.forming
       ? {
@@ -283,6 +290,13 @@ export function HfmChartsWorkspace() {
           spread: series.forming.spread,
           closed: false,
           provenance: "live_aggregate",
+          brokerOpenTime: series.forming.brokerOpenTime ?? series.forming.time,
+          openTimeUtc: series.forming.openTimeUtc ?? null,
+          brokerUtcOffsetSec: series.forming.brokerUtcOffsetSec ?? null,
+          timestampNormalizationStatus: series.forming.timestampNormalizationStatus ?? null,
+          timestampNormalizationReason: series.forming.timestampNormalizationReason ?? null,
+          timestampSource: series.forming.timestampSource ?? null,
+          receiveTimestamp: series.forming.receiveTimestamp ?? null,
         }
       : null,
     bid: series.quote.bid,
@@ -607,7 +621,27 @@ export function HfmChartsWorkspace() {
               <div><dt>TickVol</dt><dd>{crosshair.tickVolume ?? "—"}</dd></div>
               <div><dt>RealVol</dt><dd>{crosshair.realVolume ?? "—"}</dd></div>
               <div><dt>Spread</dt><dd>{formatHfmSpread(crosshair.spread, digits)}</dd></div>
-              <div><dt>Time</dt><dd>{new Date(crosshair.time * 1000).toISOString().replace(".000Z", "Z")}</dd></div>
+              <div>
+                <dt>Time</dt>
+                <dd>
+                  {(() => {
+                    const status = crosshair.timestampNormalizationStatus;
+                    const utc =
+                      (status === "NORMALIZED" || status === "PARTIAL") &&
+                      typeof crosshair.openTimeUtc === "number"
+                        ? crosshair.openTimeUtc
+                        : null;
+                    if (utc != null) {
+                      return `${new Date(utc * 1000).toISOString().replace(".000Z", "Z")} (UTC)`;
+                    }
+                    const broker = crosshair.brokerOpenTime ?? crosshair.time;
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const d = new Date(broker * 1000);
+                    // Format components from the numeric epoch without claiming UTC domain.
+                    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} (Broker)`;
+                  })()}
+                </dd>
+              </div>
             </dl>
           ) : null}
         </div>

@@ -42,7 +42,19 @@ export interface HfmAnalysisNormalizedCandle {
   symbol: string;
   provider: "HFM_MT5";
   timeframe: string;
+  /**
+   * Broker-domain candle-open seconds (NOT UTC).
+   * Kept for backward compatibility with consumers that sort/group in broker domain.
+   */
   timestamp: number;
+  /** Explicit broker/server candle-open seconds. */
+  brokerOpenTime?: number;
+  /** Trusted UTC candle-open seconds; null when untrusted/unavailable. */
+  openTimeUtc?: number | null;
+  brokerUtcOffsetSec?: number | null;
+  timestampNormalizationStatus?: string | null;
+  timestampNormalizationReason?: string | null;
+  timestampSource?: string | null;
   open: number;
   high: number;
   low: number;
@@ -52,7 +64,9 @@ export interface HfmAnalysisNormalizedCandle {
   volumeType: "tick" | "real" | "none";
   provenance: "native" | "derived" | "cached" | "live_aggregate";
   isCurrent: boolean;
+  /** Broker-domain source open (not UTC). */
   sourceTimestamp: number | null;
+  /** When this normalization/processing occurred (ISO) — not candle-open time. */
   normalizedAt: string;
 }
 

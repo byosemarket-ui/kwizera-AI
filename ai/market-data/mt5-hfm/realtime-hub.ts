@@ -48,6 +48,7 @@ import {
 } from "./sse-distribution.js";
 import { getMt5HfmDemoProfileManager } from "./demo-profile.js";
 import { getHfmLiveCandleEngine } from "./live-candle-engine.js";
+import { ingestHfmSnapshotClocksForCandles } from "./candle-timestamp.js";
 
 export interface Mt5HfmHubSubscriber {
   id: string;
@@ -356,6 +357,13 @@ async function pollOnce(): Promise<void> {
       inferMarketClosed(brokerTime, gmtTime, { terminalRunning });
     hubState.lastKnownMarketClosed = marketClosed;
     hubState.lastKnownMarketClosedAt = Date.now();
+    // E3-005: propagate Expert snapshot clocks into candle offset history (bounded).
+    ingestHfmSnapshotClocksForCandles({
+      brokerTime,
+      gmtTime,
+      brokerClockFrozen: snap.brokerClockFrozen === true,
+      marketSessionState: marketClosed ? "MARKET_CLOSED" : "MARKET_OPEN",
+    });
     let freshness: Mt5HfmFreshness =
       typeof snap.freshness === "string"
         ? (snap.freshness as Mt5HfmFreshness)

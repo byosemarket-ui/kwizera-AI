@@ -1628,6 +1628,9 @@ def _ondemand_copyrates(
                 "ageSec": 0,
                 "freshness": "LIVE" if available else "DATA_UNAVAILABLE",
                 "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                # E3-005: Expert snapshot clocks for Node candle UTC provenance.
+                "brokerTime": data.get("brokerTime"),
+                "gmtTime": data.get("gmtTime"),
                 "placesOrders": False,
                 "mutatesBroker": False,
                 "acceptsForExecution": False,
@@ -1837,6 +1840,7 @@ def candles(
         if cleaned:
             age = meta.get("ageSec")
             _persist_history_bars(sym_u, tf_key, cleaned)
+            mql = _read_mql_snapshot(max_age_sec=600.0) or {}
             return {
                 "symbol": sym_u,
                 "timeframe": tf_key,
@@ -1854,6 +1858,9 @@ def candles(
                 "newestTimestamp": cleaned[-1].get("time"),
                 "completeness": "broker_dump",
                 "retrievedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                # E3-005: attach live Expert clocks when snapshot is readable.
+                "brokerTime": mql.get("brokerTime") if not mql.get("error") else None,
+                "gmtTime": mql.get("gmtTime") if not mql.get("error") else None,
                 "placesOrders": False,
                 "mutatesBroker": False,
                 "acceptsForExecution": False,

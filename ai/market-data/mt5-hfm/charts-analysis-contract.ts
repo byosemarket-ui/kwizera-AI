@@ -27,8 +27,13 @@ export type HfmChartsAnalysisValidationStatus =
   | "rejected"
   | "unavailable";
 
-/** Closed or forming OHLC bar from HFM CopyRates / live aggregation (unix seconds). */
+/**
+ * Closed or forming OHLC bar from HFM CopyRates / live aggregation.
+ * `time` / `brokerOpenTime` are broker-domain seconds — NOT UTC.
+ * Prefer `openTimeUtc` only when `timestampNormalizationStatus` is NORMALIZED/PARTIAL.
+ */
 export interface HfmChartsAnalysisCandle {
+  /** Broker-domain candle-open seconds (compatibility). */
   time: number;
   open: number;
   high: number;
@@ -39,6 +44,14 @@ export interface HfmChartsAnalysisCandle {
   spread: number | null;
   closed?: boolean;
   provenance?: "native" | "derived" | "cached" | "live_aggregate";
+  brokerOpenTime?: number;
+  openTimeUtc?: number | null;
+  brokerUtcOffsetSec?: number | null;
+  timestampNormalizationStatus?: string | null;
+  timestampNormalizationReason?: string | null;
+  timestampSource?: string | null;
+  timestampObservedAt?: string | null;
+  receiveTimestamp?: string | null;
 }
 
 export interface HfmChartsAnalysisTick {
@@ -81,7 +94,7 @@ export interface HfmChartsAnalysisSnapshot {
   symbol: string;
   instrumentDescription: string | null;
   timeframe: string;
-  /** True when timeframe is outside the verified live set (M1–D1). */
+  /** True when timeframe is outside the Engine 2/3 verified live set (12 TFs). */
   unsupportedTimeframe: boolean;
   historicalCandles: HfmChartsAnalysisCandle[];
   currentCandle: HfmChartsAnalysisCandle | null;
@@ -109,7 +122,21 @@ export interface HfmChartsAnalysisSnapshot {
   acceptsForExecution: false;
 }
 
-const VERIFIED_LIVE = new Set(["M1", "M5", "M15", "M30", "H1", "H4", "D1"]);
+/** Engine 2 / Engine 3 — full acquisition + live-forming set (W1 requires hist anchor). */
+const VERIFIED_LIVE = new Set([
+  "M1",
+  "M3",
+  "M5",
+  "M15",
+  "M30",
+  "H1",
+  "H2",
+  "H4",
+  "H6",
+  "H12",
+  "D1",
+  "W1",
+]);
 
 /** Builder used by STEP 3/Analysis consumers — no signals. */
 export function buildHfmChartsAnalysisSnapshot(input: {

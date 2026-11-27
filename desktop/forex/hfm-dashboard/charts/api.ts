@@ -91,6 +91,23 @@ function normalizeBars(raw: unknown[]): HfmChartCandle[] {
       realVolume: typeof r.realVolume === "number" ? r.realVolume : null,
       spread: typeof r.spread === "number" ? r.spread : null,
       closed: r.closed === false ? false : true,
+      brokerOpenTime:
+        typeof r.brokerOpenTime === "number" ? r.brokerOpenTime : time,
+      openTimeUtc: typeof r.openTimeUtc === "number" ? r.openTimeUtc : null,
+      brokerUtcOffsetSec:
+        typeof r.brokerUtcOffsetSec === "number" ? r.brokerUtcOffsetSec : null,
+      timestampNormalizationStatus:
+        typeof r.timestampNormalizationStatus === "string"
+          ? r.timestampNormalizationStatus
+          : null,
+      timestampNormalizationReason:
+        typeof r.timestampNormalizationReason === "string"
+          ? r.timestampNormalizationReason
+          : null,
+      timestampSource:
+        typeof r.timestampSource === "string" ? r.timestampSource : null,
+      receiveTimestamp:
+        typeof r.receiveTimestamp === "string" ? r.receiveTimestamp : null,
     });
   }
   return out;

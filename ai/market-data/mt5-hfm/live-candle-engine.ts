@@ -2,8 +2,14 @@
  * STEP 2/3 — Live OHLC aggregation from HFM bid ticks (matches CopyRates FX basis).
  * Does not invent candles on timer alone — requires a valid tick in the interval.
  * Supports verified chart timeframes with broker-aligned buckets from history anchors.
+ * Engine 3 — attaches candle time provenance (broker vs UTC) without altering OHLC.
  */
 import type { HfmHistoricalBar } from "./historical-engine.js";
+import {
+  normalizeHfmCandleOpenTime,
+  type HfmCandleTimeProvenance,
+  withCandleTimeProvenance,
+} from "./candle-timestamp.js";
 
 export type HfmLivePriceBasis = "bid";
 
@@ -62,10 +68,11 @@ export interface HfmValidatedTick {
   acquisition: string;
 }
 
-export interface HfmFormingCandle {
+export interface HfmFormingCandle extends HfmCandleTimeProvenance {
   provider: "HFM_MT5";
   symbol: string;
   timeframe: string;
+  /** Broker-domain candle-open seconds (compatibility). */
   time: number;
   open: number;
   high: number;
@@ -74,8 +81,21 @@ export interface HfmFormingCandle {
   tickVolume: number;
   closed: false;
   priceBasis: HfmLivePriceBasis;
+  /** Broker-domain last tick seconds — NOT UTC. */
   lastTickTime: number;
   receiveTimestamp: string;
+}
+
+function attachLiveProvenance<T extends { time: number; receiveTimestamp?: string }>(
+  candle: T,
+): T & HfmCandleTimeProvenance {
+  const prov = normalizeHfmCandleOpenTime({
+    brokerOpenTime: candle.time,
+    timestampSource: "mt5_live_forming",
+    timestampObservedAt: candle.receiveTimestamp ?? null,
+    preferLiveOffset: true,
+  });
+  return withCandleTimeProvenance(candle, prov);
 }
 
 export interface HfmCandleUpdateEvent {
@@ -216,8 +236,8 @@ export class HfmLiveCandleEngine {
       this.anchors.set(k, existing.time);
       return existing;
     }
-    const seeded: HfmFormingCandle = {
-      provider: "HFM_MT5",
+    const seeded = attachLiveProvenance({
+      provider: "HFM_MT5" as const,
       symbol: symbol.toUpperCase(),
       timeframe: timeframe.toUpperCase(),
       time: last.time,
@@ -226,11 +246,11 @@ export class HfmLiveCandleEngine {
       low: last.low,
       close: last.close,
       tickVolume: typeof last.tickVolume === "number" ? last.tickVolume : 0,
-      closed: false,
-      priceBasis: "bid",
+      closed: false as const,
+      priceBasis: "bid" as const,
       lastTickTime: last.time,
       receiveTimestamp: new Date().toISOString(),
-    };
+    });
     this.forming.set(k, seeded);
     return seeded;
   }
@@ -256,6 +276,12 @@ export class HfmLiveCandleEngine {
     const current = this.forming.get(k);
 
     if (current && current.time !== start) {
+      const finalizedProv = normalizeHfmCandleOpenTime({
+        brokerOpenTime: current.time,
+        timestampSource: "mt5_live_forming",
+        timestampObservedAt: current.receiveTimestamp,
+        preferLiveOffset: true,
+      });
       events.push({
         type: "candle_finalized",
         candle: {
@@ -272,6 +298,8 @@ export class HfmLiveCandleEngine {
           closed: true,
           symbol: current.symbol,
           timeframe: current.timeframe,
+          ...finalizedProv,
+          brokerOpenTime: current.time,
         },
       });
       this.forming.delete(k);
@@ -282,8 +310,8 @@ export class HfmLiveCandleEngine {
 
     let candle = this.forming.get(k);
     if (!candle) {
-      candle = {
-        provider: "HFM_MT5",
+      candle = attachLiveProvenance({
+        provider: "HFM_MT5" as const,
         symbol: tick.symbol.toUpperCase(),
         timeframe: timeframe.toUpperCase(),
         time: start,
@@ -292,11 +320,11 @@ export class HfmLiveCandleEngine {
         low: price,
         close: price,
         tickVolume: 1,
-        closed: false,
-        priceBasis: "bid",
+        closed: false as const,
+        priceBasis: "bid" as const,
         lastTickTime: tick.timeSec,
         receiveTimestamp: new Date(tick.receiveMs).toISOString(),
-      };
+      });
     } else {
       candle.high = Math.max(candle.high, price);
       candle.low = Math.min(candle.low, price);
@@ -304,6 +332,16 @@ export class HfmLiveCandleEngine {
       candle.tickVolume += 1;
       candle.lastTickTime = tick.timeSec;
       candle.receiveTimestamp = new Date(tick.receiveMs).toISOString();
+      Object.assign(
+        candle,
+        normalizeHfmCandleOpenTime({
+          brokerOpenTime: candle.time,
+          timestampSource: "mt5_live_forming",
+          timestampObservedAt: candle.receiveTimestamp,
+          preferLiveOffset: true,
+        }),
+      );
+      candle.brokerOpenTime = candle.time;
     }
     this.forming.set(k, candle);
     events.push({ type: "candle_update", candle: { ...candle } });

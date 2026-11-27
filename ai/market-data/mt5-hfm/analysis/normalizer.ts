@@ -1,5 +1,6 @@
 /**
  * Canonical normalization for HFM Analysis candles / quotes.
+ * Engine 3: broker-domain open time is never labeled as UTC.
  */
 import { HFM_ANALYSIS_PROVIDER } from "./constants.js";
 import type {
@@ -9,6 +10,11 @@ import type {
 } from "./types.js";
 import type { HfmHistoricalBar } from "../historical-engine.js";
 import type { HfmChartsAnalysisCandle } from "../charts-analysis-contract.js";
+import {
+  isTrustedCandleUtc,
+  normalizeHfmCandleOpenTime,
+  type HfmCandleTimeProvenance,
+} from "../candle-timestamp.js";
 
 function volumeType(
   tickVolume: number | null,
@@ -17,6 +23,38 @@ function volumeType(
   if (realVolume != null && Number.isFinite(realVolume)) return "real";
   if (tickVolume != null && Number.isFinite(tickVolume)) return "tick";
   return "none";
+}
+
+function readProvenance(
+  bar: HfmHistoricalBar | HfmChartsAnalysisCandle,
+): HfmCandleTimeProvenance {
+  const brokerOpen =
+    typeof (bar as HfmCandleTimeProvenance).brokerOpenTime === "number"
+      ? (bar as HfmCandleTimeProvenance).brokerOpenTime
+      : bar.time;
+  if (
+    typeof (bar as HfmCandleTimeProvenance).timestampNormalizationStatus === "string" &&
+    typeof (bar as HfmCandleTimeProvenance).brokerOpenTime === "number"
+  ) {
+    const p = bar as HfmCandleTimeProvenance;
+    return {
+      brokerOpenTime: p.brokerOpenTime,
+      openTimeUtc: p.openTimeUtc ?? null,
+      brokerUtcOffsetSec: p.brokerUtcOffsetSec ?? null,
+      timestampNormalizationStatus: p.timestampNormalizationStatus,
+      timestampNormalizationReason: p.timestampNormalizationReason ?? null,
+      timestampSource: p.timestampSource ?? "unknown",
+      offsetObservedAtGmtSec: p.offsetObservedAtGmtSec ?? null,
+      offsetObservedAtBrokerSec: p.offsetObservedAtBrokerSec ?? null,
+      offsetTrust: p.offsetTrust ?? "NONE",
+      timestampObservedAt: p.timestampObservedAt ?? null,
+    };
+  }
+  return normalizeHfmCandleOpenTime({
+    brokerOpenTime: brokerOpen,
+    timestampSource: "mt5_copyrates",
+    preferLiveOffset: false,
+  });
 }
 
 export function normalizeHistoricalBar(
@@ -31,11 +69,25 @@ export function normalizeHistoricalBar(
     typeof bar.realVolume === "number" && Number.isFinite(bar.realVolume) ? bar.realVolume : null;
   const provenance =
     ("provenance" in bar && bar.provenance) ? bar.provenance : "native";
+  const timeProv = readProvenance(bar);
+  const trustedUtc = isTrustedCandleUtc(timeProv.timestampNormalizationStatus)
+    ? timeProv.openTimeUtc
+    : null;
   return {
     symbol: symbol.toUpperCase(),
     provider: HFM_ANALYSIS_PROVIDER,
     timeframe: timeframe.toUpperCase(),
-    timestamp: bar.time,
+    /**
+     * Broker-domain candle-open seconds (NOT UTC).
+     * Prefer openTimeUtc when timestampNormalizationStatus is trusted.
+     */
+    timestamp: timeProv.brokerOpenTime,
+    brokerOpenTime: timeProv.brokerOpenTime,
+    openTimeUtc: trustedUtc,
+    brokerUtcOffsetSec: timeProv.brokerUtcOffsetSec,
+    timestampNormalizationStatus: timeProv.timestampNormalizationStatus,
+    timestampNormalizationReason: timeProv.timestampNormalizationReason,
+    timestampSource: timeProv.timestampSource,
     open: bar.open,
     high: bar.high,
     low: bar.low,
@@ -45,7 +97,9 @@ export function normalizeHistoricalBar(
     volumeType: volumeType(tickVolume, realVolume),
     provenance: provenance as HfmAnalysisNormalizedCandle["provenance"],
     isCurrent: Boolean(opts?.isCurrent),
-    sourceTimestamp: bar.time,
+    /** Broker-domain source open (same as brokerOpenTime). */
+    sourceTimestamp: timeProv.brokerOpenTime,
+    /** Processing instant — not candle-open time. */
     normalizedAt: opts?.nowIso ?? new Date().toISOString(),
   };
 }
@@ -71,7 +125,8 @@ export function buildTfDataset(input: {
         nowIso,
       })
     : null;
-  const times = historical.map((c) => c.timestamp);
+  // Broker-domain ordering (all tips share the same domain).
+  const times = historical.map((c) => c.brokerOpenTime ?? c.timestamp);
   return {
     timeframe: input.timeframe.toUpperCase(),
     symbol: input.symbol.toUpperCase(),

@@ -10,7 +10,13 @@ export interface Mt5HfmAnalysisMarketInput {
   symbol: string;
   timeframe: string;
   candles: Array<{
+    /** Broker-domain candle-open (compatibility). Never treat as UTC by default. */
     time: number | string;
+    brokerOpenTime?: number | null;
+    openTimeUtc?: number | null;
+    brokerUtcOffsetSec?: number | null;
+    timestampNormalizationStatus?: string | null;
+    timestampNormalizationReason?: string | null;
     open: number;
     high: number;
     low: number;
@@ -77,14 +83,34 @@ export function buildMt5HfmAnalysisInput(args: {
     environment: "demo",
     symbol: args.symbol,
     timeframe: args.timeframe,
-    candles: args.candles.candles.map((c) => ({
-      time: c.time,
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-      volume: c.tickVolume,
-    })),
+    candles: args.candles.candles.map((c) => {
+      const row = c as {
+        time: number | string;
+        brokerOpenTime?: number;
+        openTimeUtc?: number | null;
+        brokerUtcOffsetSec?: number | null;
+        timestampNormalizationStatus?: string | null;
+        timestampNormalizationReason?: string | null;
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        tickVolume: number | null;
+      };
+      return {
+        time: row.time,
+        brokerOpenTime: row.brokerOpenTime ?? (typeof row.time === "number" ? row.time : null),
+        openTimeUtc: row.openTimeUtc ?? null,
+        brokerUtcOffsetSec: row.brokerUtcOffsetSec ?? null,
+        timestampNormalizationStatus: row.timestampNormalizationStatus ?? null,
+        timestampNormalizationReason: row.timestampNormalizationReason ?? null,
+        open: row.open,
+        high: row.high,
+        low: row.low,
+        close: row.close,
+        volume: row.tickVolume,
+      };
+    }),
     quote: quoteRow
       ? {
           bid: quoteRow.bid,
