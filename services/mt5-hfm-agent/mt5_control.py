@@ -23,6 +23,7 @@ from typing import Any
 
 import mt5_mcp
 from candle_cache_sync import (
+    merge_candle_maps,
     should_accept_incoming_snapshot,
     snapshot_is_well_formed,
 )
@@ -1277,6 +1278,8 @@ def _read_candle_cache_meta() -> dict[str, Any]:
             "mtime": st.st_mtime,
             "cachedAt": data.get("cachedAt"),
             "source": data.get("source"),
+            "candles": data.get("candles") if isinstance(data.get("candles"), dict) else {},
+            "dumpRetrievedAt": data.get("dumpRetrievedAt"),
         }
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return {}
@@ -1288,6 +1291,7 @@ def _persist_candle_cache(
     seq: Any = None,
     source: str = "mql5_readonly_snapshot",
     incoming_mtime: float | None = None,
+    incoming_observed_at: Any = None,
 ) -> dict[str, Any]:
     if not snapshot_is_well_formed(candles_by_symbol):
         return {"updated": False, "reason": "REJECT_MALFORMED"}
@@ -1297,6 +1301,8 @@ def _persist_candle_cache(
         existing_seq=existing.get("seq"),
         incoming_mtime=incoming_mtime,
         existing_mtime=existing.get("mtime") if isinstance(existing.get("mtime"), (int, float)) else None,
+        incoming_observed_at=incoming_observed_at,
+        existing_observed_at=existing.get("dumpRetrievedAt") or existing.get("cachedAt"),
     )
     if not accept:
         return {
@@ -1307,13 +1313,16 @@ def _persist_candle_cache(
         }
     try:
         RUN_DIR.mkdir(parents=True, exist_ok=True)
+        # Partial dumps must not erase unrelated symbol/timeframe entries.
+        merged = merge_candle_maps(existing.get("candles"), candles_by_symbol)
         payload = {
             "source": source,
             "provider": "HFM_MT5",
             "environment": "demo",
             "seq": seq,
             "cachedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "candles": candles_by_symbol,
+            "dumpRetrievedAt": incoming_observed_at,
+            "candles": merged,
             "acceptReason": reason,
         }
         tmp = CANDLES_CACHE.with_suffix(".tmp")
@@ -1334,6 +1343,7 @@ def _persist_candle_cache(
             "seq": seq,
             "cachedAt": payload["cachedAt"],
             "source": source,
+            "mergedSymbols": sorted(merged.keys()),
         }
     except OSError as exc:
         return {"updated": False, "reason": f"IO_{type(exc).__name__}"}
@@ -1369,6 +1379,7 @@ def _sync_periodic_candle_dump_cache() -> dict[str, Any]:
                 seq=dumped.get("seq"),
                 source="mql5_readonly_candles",
                 incoming_mtime=st.st_mtime,
+                incoming_observed_at=dumped.get("retrievedAt"),
             )
             result = dict(result)
             result["path"] = str(path)

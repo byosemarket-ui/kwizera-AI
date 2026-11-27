@@ -17,7 +17,12 @@ else
   chown mt5:mt5 "$RUN_ROOT"
 fi
 chmod 775 "$RUN_ROOT"
-chown mt5:mt5 "$RUN_DIR"
+# Core (kwizera group) must traverse RUN_DIR to read candles-cache.json for C7.
+if getent group kwizera >/dev/null 2>&1; then
+  chown mt5:kwizera "$RUN_DIR"
+else
+  chown mt5:mt5 "$RUN_DIR"
+fi
 chmod 750 "$RUN_DIR"
 
 # Stale socket from a previous crash — remove only our AF_UNIX path.

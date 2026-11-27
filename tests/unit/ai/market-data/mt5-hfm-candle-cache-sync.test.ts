@@ -30,12 +30,16 @@ describe("Agent candle cache ordering", () => {
 
   it("python ordering rules reject stale and accept newer/same (when python available)", () => {
     const out = tryPython(`
-from candle_cache_sync import should_accept_incoming_snapshot, snapshot_is_well_formed
+from candle_cache_sync import should_accept_incoming_snapshot, snapshot_is_well_formed, merge_candle_maps
 print(should_accept_incoming_snapshot(incoming_seq=5, existing_seq=10)[0], should_accept_incoming_snapshot(incoming_seq=5, existing_seq=10)[1])
 print(should_accept_incoming_snapshot(incoming_seq=10, existing_seq=10)[1])
 print(should_accept_incoming_snapshot(incoming_seq=11, existing_seq=10)[1])
 print(should_accept_incoming_snapshot(incoming_seq=1, existing_seq=None)[1])
 print(should_accept_incoming_snapshot(incoming_seq=None, existing_seq=3, incoming_mtime=1, existing_mtime=2)[1])
+print(should_accept_incoming_snapshot(incoming_seq=5, existing_seq=500, incoming_observed_at='2026.11.27 17:00:00Z', existing_observed_at='2026-11-27T16:39:46Z')[1])
+print(should_accept_incoming_snapshot(incoming_seq=5, existing_seq=500, incoming_observed_at='2026.11.27 16:00:00Z', existing_observed_at='2026-11-27T16:39:46Z')[1])
+m=merge_candle_maps({'EURUSD':{'M1':[1],'H1':[2]},'XAUUSD':{'M5':[3]}}, {'EURUSD':{'M1':[9]}})
+print(sorted(m.keys()), m['EURUSD']['M1'], m['EURUSD']['H1'], m['XAUUSD']['M5'])
 print(snapshot_is_well_formed({"EURUSD":{"M1":[{"time":1,"open":1,"high":2,"low":0.5,"close":1.5}]}}))
 print(snapshot_is_well_formed({}))
 `);
@@ -44,6 +48,9 @@ print(snapshot_is_well_formed({}))
       expect(readFileSync(resolve("services/mt5-hfm-agent/candle_cache_sync.py"), "utf8")).toContain(
         "REJECT_OLDER_SEQ",
       );
+      expect(readFileSync(resolve("services/mt5-hfm-agent/candle_cache_sync.py"), "utf8")).toContain(
+        "ACCEPT_SEQ_RESET_NEWER_OBS",
+      );
       return;
     }
     expect(out).toContain("False REJECT_OLDER_SEQ");
@@ -51,6 +58,8 @@ print(snapshot_is_well_formed({}))
     expect(out).toContain("ACCEPT_NEWER_SEQ");
     expect(out).toContain("ACCEPT_BOOTSTRAP_SEQ");
     expect(out).toContain("REJECT_UNSEQUENCED_OVER_SEQUENCED");
+    expect(out).toContain("ACCEPT_SEQ_RESET_NEWER_OBS");
+    expect(out).toContain("['EURUSD', 'XAUUSD'] [9] [2] [3]");
     expect(out).toContain("True\nFalse");
   });
 });
