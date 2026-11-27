@@ -17,6 +17,7 @@ describe("STEP 1 HFM candle readiness", () => {
     expect(control).toContain("kwizera_readonly_candles.json");
     expect(control).toContain("_persist_candle_cache");
     expect(control).toContain("_load_candle_sources");
+    expect(control).toContain("_sync_periodic_candle_dump_cache");
     expect(control).toContain("wait_for_cycle_sec");
     expect(control).toContain('"placesOrders": False');
   });

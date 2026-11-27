@@ -14,6 +14,7 @@
  * GET  /api/forex/providers/mt5-hfm/market/chart-tick  (OnTick chart symbol)
  * POST /api/forex/providers/mt5-hfm/market/quote-watch (Bounded extra quote SymbolSelect)
  * GET  /api/forex/providers/mt5-hfm/market/live-candle (Forming OHLC for symbol/tf)
+ * POST /api/forex/providers/mt5-hfm/market/ohlc-reconcile (C7 dump vs CopyRates)
  * GET  /api/forex/providers/mt5-hfm/account            (cached Demo snapshot only)
  * GET  /api/forex/providers/mt5-hfm/stream             (Demo SSE realtime feed)
  * GET  /api/forex/providers/mt5-hfm/realtime/status    (Hub freshness / subscribers)
@@ -87,6 +88,7 @@ import type { HfmSubscriptionPriority } from "../../ai/market-data/mt5-hfm/subsc
 import { fetchHfmHistoricalCandles } from "../../ai/market-data/mt5-hfm/historical-engine.js";
 import { fetchHfmTicks, fetchHfmChartTick, setHfmQuoteWatch } from "../../ai/market-data/mt5-hfm/tick-engine.js";
 import { getHfmLiveCandleEngine } from "../../ai/market-data/mt5-hfm/live-candle-engine.js";
+import { buildHfmOhlcReconcileReport } from "../../ai/market-data/mt5-hfm/ohlc-reconcile-report.js";
 import { buildHfmChartsAnalysisSnapshot } from "../../ai/market-data/mt5-hfm/charts-analysis-contract.js";
 import { getHfmChartsWorkspaceStore } from "../../ai/market-data/mt5-hfm/charts-workspace-store.js";
 
@@ -1189,6 +1191,43 @@ export async function handleMt5HfmApi(
       };
       assertNoSecretsInMt5HfmPayload(payload);
       sendJson(res, forming ? 200 : 404, payload);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/mt5-hfm/market/ohlc-reconcile" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      const symbols = Array.isArray(body.symbols)
+        ? body.symbols.map((s: unknown) => String(s).toUpperCase())
+        : ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY"];
+      const timeframes = Array.isArray(body.timeframes)
+        ? body.timeframes.map((t: unknown) => String(t).toUpperCase())
+        : ["M1", "M3", "M5", "M15", "M30", "H1", "H2", "H4", "H6", "H12", "D1", "W1"];
+      try {
+        const report = await buildHfmOhlcReconcileReport({
+          symbols,
+          timeframes,
+          limit: Number(body.limit ?? 6),
+        });
+        const payload = {
+          ok: report.ok,
+          provider: "HFM_MT5" as const,
+          environment: "demo" as const,
+          ...report,
+          placesOrders: false,
+          mutatesBroker: false,
+          acceptsForExecution: false,
+        };
+        assertNoSecretsInMt5HfmPayload(payload);
+        sendJson(res, 200, payload);
+      } catch (e) {
+        sendJson(res, 500, {
+          ok: false,
+          error: {
+            code: "OHLC_RECONCILE_FAILED",
+            message: e instanceof Error ? e.message : String(e),
+          },
+        });
+      }
       return true;
     }
 

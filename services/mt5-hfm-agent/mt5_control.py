@@ -22,6 +22,10 @@ from pathlib import Path
 from typing import Any
 
 import mt5_mcp
+from candle_cache_sync import (
+    should_accept_incoming_snapshot,
+    snapshot_is_well_formed,
+)
 
 WINE_BIN = os.environ.get("KWIZERA_MT5_WINE_BIN", "/opt/wine-staging/bin/wine")
 WINEPREFIX = os.environ.get("WINEPREFIX", "/home/mt5/.wine-hfm")
@@ -460,6 +464,8 @@ def stream_snapshot(include_candles: bool = False) -> dict[str, Any]:
     mql = _read_mql_snapshot(max_age_sec=600.0)
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     terminal_ok = bool(status.get("terminalRunning"))
+    # Keep cache warm from durable Expert dump on every hub poll (not only candle API loads).
+    dump_sync = _sync_periodic_candle_dump_cache()
     if not mql or mql.get("error"):
         journal = parse_journal_snapshot(expected_login=_last_demo_meta.get("login"))
         freshness = "DISCONNECTED" if not terminal_ok else "WAITING_FOR_DATA"
@@ -492,6 +498,7 @@ def stream_snapshot(include_candles: bool = False) -> dict[str, Any]:
             },
             "quotes": [],
             "candles": {},
+            "candleCacheSync": dump_sync,
             "source": "journal_fallback" if journal.get("authenticated") else "unavailable",
             "mqlError": (mql or {}).get("error") if isinstance(mql, dict) else "MQL_SNAPSHOT_MISSING",
             "ageSec": (mql or {}).get("ageSec") if isinstance(mql, dict) else None,
@@ -586,6 +593,7 @@ def stream_snapshot(include_candles: bool = False) -> dict[str, Any]:
         "quotes": quotes_out,
         "candles": candles_out,
         "candlesIncluded": bool(mql.get("candlesIncluded")) and bool(candles_out),
+        "candleCacheSync": dump_sync,
         "source": "mql5_readonly_snapshot",
         "ordersEnabled": False,
         "mutatesBroker": False,
@@ -604,7 +612,28 @@ def ensure_readonly_expert_installed() -> dict[str, Any]:
     if not src.is_file():
         return {"installed": False, "reason": "SOURCE_MQ5_MISSING", "src": str(src)}
     experts.mkdir(parents=True, exist_ok=True)
-    dst.write_bytes(src.read_bytes())
+    src_bytes = src.read_bytes()
+    src_sha = hashlib.sha256(src_bytes).hexdigest()
+    # Skip destructive recompile when Experts already match repo source and .ex5 exists.
+    if dst.is_file() and ex5.is_file():
+        try:
+            dst_sha = hashlib.sha256(dst.read_bytes()).hexdigest()
+            if dst_sha == src_sha and ex5.stat().st_size > 0:
+                return {
+                    "installed": True,
+                    "skippedCompile": True,
+                    "reason": "ALREADY_CURRENT",
+                    "ex5Present": True,
+                    "ex5Rebuilt": False,
+                    "ex5Mtime": ex5.stat().st_mtime,
+                    "ex5Size": ex5.stat().st_size,
+                    "mq5": str(dst),
+                    "ex5": str(ex5),
+                    "mq5Sha256": src_sha,
+                }
+        except OSError:
+            pass
+    dst.write_bytes(src_bytes)
     metaeditor = TERM_ROOT / "MetaEditor64.exe"
     if not metaeditor.is_file():
         metaeditor = TERM_ROOT / "metaeditor64.exe"
@@ -1232,9 +1261,50 @@ def _read_json_file(path: Path, *, max_age_sec: float | None = None) -> dict[str
         return None
 
 
-def _persist_candle_cache(candles_by_symbol: dict[str, Any], *, seq: Any = None, source: str = "mql5_readonly_snapshot") -> None:
-    if not isinstance(candles_by_symbol, dict) or not candles_by_symbol:
-        return
+def _read_candle_cache_meta() -> dict[str, Any]:
+    try:
+        if not CANDLES_CACHE.is_file():
+            return {}
+        st = CANDLES_CACHE.stat()
+        raw = CANDLES_CACHE.read_bytes()
+        if len(raw) > 2_000_000:
+            return {"mtime": st.st_mtime, "error": "CACHE_TOO_LARGE"}
+        data = json.loads(raw.decode("utf-8"))
+        if not isinstance(data, dict):
+            return {"mtime": st.st_mtime}
+        return {
+            "seq": data.get("seq"),
+            "mtime": st.st_mtime,
+            "cachedAt": data.get("cachedAt"),
+            "source": data.get("source"),
+        }
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+
+
+def _persist_candle_cache(
+    candles_by_symbol: dict[str, Any],
+    *,
+    seq: Any = None,
+    source: str = "mql5_readonly_snapshot",
+    incoming_mtime: float | None = None,
+) -> dict[str, Any]:
+    if not snapshot_is_well_formed(candles_by_symbol):
+        return {"updated": False, "reason": "REJECT_MALFORMED"}
+    existing = _read_candle_cache_meta()
+    accept, reason = should_accept_incoming_snapshot(
+        incoming_seq=seq,
+        existing_seq=existing.get("seq"),
+        incoming_mtime=incoming_mtime,
+        existing_mtime=existing.get("mtime") if isinstance(existing.get("mtime"), (int, float)) else None,
+    )
+    if not accept:
+        return {
+            "updated": False,
+            "reason": reason,
+            "existingSeq": existing.get("seq"),
+            "incomingSeq": seq,
+        }
     try:
         RUN_DIR.mkdir(parents=True, exist_ok=True)
         payload = {
@@ -1244,12 +1314,61 @@ def _persist_candle_cache(candles_by_symbol: dict[str, Any], *, seq: Any = None,
             "seq": seq,
             "cachedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "candles": candles_by_symbol,
+            "acceptReason": reason,
         }
         tmp = CANDLES_CACHE.with_suffix(".tmp")
         tmp.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
         tmp.replace(CANDLES_CACHE)
-    except OSError:
-        return
+        return {
+            "updated": True,
+            "reason": reason,
+            "seq": seq,
+            "cachedAt": payload["cachedAt"],
+            "source": source,
+        }
+    except OSError as exc:
+        return {"updated": False, "reason": f"IO_{type(exc).__name__}"}
+
+
+def _sync_periodic_candle_dump_cache() -> dict[str, Any]:
+    """
+    Event-driven cache refresh from the Expert durable candle dump file.
+
+    Invoked on every stream_snapshot poll so cache tracks periodic dumps without
+    requiring a client demo.candles / REST candle-load request.
+    """
+    last: dict[str, Any] = {"updated": False, "reason": "NO_DUMP"}
+    for path in (CANDLES_COMMON, CANDLES_LOCAL):
+        try:
+            if not path.is_file():
+                continue
+            st = path.stat()
+            # Skip obviously stale dumps (>30m) — do not wipe a fresher cache.
+            if time.time() - st.st_mtime > 1800.0:
+                last = {"updated": False, "reason": "DUMP_TOO_OLD", "path": str(path), "mtime": st.st_mtime}
+                continue
+            dumped = _read_json_file(path, max_age_sec=1800.0)
+            if not dumped or dumped.get("error"):
+                last = {"updated": False, "reason": (dumped or {}).get("error") or "DUMP_UNREADABLE", "path": str(path)}
+                continue
+            by_symbol = _candle_map_from_payload(dumped)
+            if not by_symbol:
+                last = {"updated": False, "reason": "DUMP_EMPTY_CANDLES", "path": str(path)}
+                continue
+            result = _persist_candle_cache(
+                by_symbol,
+                seq=dumped.get("seq"),
+                source="mql5_readonly_candles",
+                incoming_mtime=st.st_mtime,
+            )
+            result = dict(result)
+            result["path"] = str(path)
+            result["dumpSeq"] = dumped.get("seq")
+            result["dumpRetrievedAt"] = dumped.get("retrievedAt")
+            return result
+        except OSError as exc:
+            last = {"updated": False, "reason": f"IO_{type(exc).__name__}", "path": str(path)}
+    return last
 
 
 def _load_candle_sources(*, wait_for_cycle_sec: float = 0.0) -> tuple[dict[str, Any], dict[str, Any]]:
