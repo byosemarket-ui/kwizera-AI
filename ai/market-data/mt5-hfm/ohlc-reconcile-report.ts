@@ -66,17 +66,19 @@ export async function buildHfmOhlcReconcileReport(input: {
   let dumpRaw: Record<string, unknown> = {};
   let dumpPath = candidates[0]!;
   let readErr: string | null = null;
+  const errors: string[] = [];
+  let loaded = false;
   for (const candidate of candidates) {
     try {
       dumpRaw = JSON.parse(await readFile(candidate, "utf8")) as Record<string, unknown>;
       dumpPath = candidate;
-      readErr = null;
+      loaded = true;
       break;
     } catch (e) {
-      readErr = e instanceof Error ? e.message : String(e);
+      errors.push(`${candidate}:${e instanceof Error ? e.message : String(e)}`);
     }
   }
-  if (readErr) {
+  if (!loaded) {
     return {
       ok: false,
       observedAt,
@@ -85,7 +87,7 @@ export async function buildHfmOhlcReconcileReport(input: {
       dumpRetrievedAt: null,
       results: [],
       summary: { exactMatches: 0, expectedFormingEvolution: 0, mismatches: 0, other: 0, blocking: true },
-      note: `dump_unreadable:${readErr}`,
+      note: `dump_unreadable:${errors.join(" | ")}`,
     };
   }
   const candles = (dumpRaw.candles && typeof dumpRaw.candles === "object"

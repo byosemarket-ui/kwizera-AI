@@ -36,21 +36,36 @@ PY
 }
 
 expert_loaded_recent() {
+  # Require a load line whose wall-clock time is within the last 10 minutes.
   python3 - <<'PY'
 from pathlib import Path
-import re, time
+from datetime import datetime, timezone
+import re
 log_dir = Path("/home/mt5/.wine-hfm/drive_c/Program Files/HFM Metatrader 5/logs")
-logs = sorted(log_dir.glob("2026*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+logs = sorted(log_dir.glob("20*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
 if not logs:
   raise SystemExit(1)
-raw = logs[0].read_bytes()
-text = raw.decode("utf-16", errors="ignore")
-hits = [ln for ln in text.splitlines() if "KwizeraReadonlySnapshot" in ln and "loaded successfully" in ln]
+text = logs[0].read_bytes().decode("utf-16", errors="ignore")
+# Journal lines resemble: ...\t16:39:16.329\tExperts\texpert KwizeraReadonlySnapshot ... loaded successfully
+pat = re.compile(r"\t(\d{2}):(\d{2}):(\d{2})\.\d+\tExperts\texpert KwizeraReadonlySnapshot .*loaded successfully")
+now = datetime.now(timezone.utc)
+# Broker journal is local-to-terminal; compare as local wall clock on the VPS.
+now_local = datetime.now().replace(tzinfo=None)
+hits = []
+for ln in text.splitlines():
+  m = pat.search(ln)
+  if not m:
+    continue
+  hh, mm, ss = map(int, m.groups())
+  ts = now_local.replace(hour=hh, minute=mm, second=ss, microsecond=0)
+  age = abs((now_local - ts).total_seconds())
+  hits.append((age, ln.strip()[:200]))
 if not hits:
   raise SystemExit(1)
-# Accept if a load line exists for today (journal already filtered by file date).
-print(hits[-1][:200])
-raise SystemExit(0)
+hits.sort(key=lambda x: x[0])
+age, line = hits[0]
+print(line)
+raise SystemExit(0 if age <= 600 else 1)
 PY
 }
 

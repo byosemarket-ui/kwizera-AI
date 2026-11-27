@@ -1318,7 +1318,16 @@ def _persist_candle_cache(
         }
         tmp = CANDLES_CACHE.with_suffix(".tmp")
         tmp.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+        # Core (kwizera) must be able to read cache for C7 reconcile / diagnostics.
+        try:
+            os.chmod(tmp, 0o644)
+        except OSError:
+            pass
         tmp.replace(CANDLES_CACHE)
+        try:
+            os.chmod(CANDLES_CACHE, 0o644)
+        except OSError:
+            pass
         return {
             "updated": True,
             "reason": reason,
