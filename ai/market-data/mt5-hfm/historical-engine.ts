@@ -42,10 +42,13 @@ export interface HfmHistoricalResult {
   newestTimestamp: number | null;
   completeness: string | null;
   errors: string[];
-  /** Snapshot clocks from agent/Expert when present (E3-005). */
+  /** Snapshot clocks from agent/Expert when present (E3-005 / E3-R3). */
   brokerTime: number | null;
   gmtTime: number | null;
   retrievedAt: string | null;
+  /** Provenance of series clocks (dump/cache/snapshot) — not a later unrelated poll. */
+  clockSource: string | null;
+  clockSeq: number | null;
   placesOrders: false;
   mutatesBroker: false;
   acceptsForExecution: false;
@@ -182,6 +185,14 @@ export async function fetchHfmHistoricalCandles(opts: {
       : typeof result.cachedAt === "string"
         ? result.cachedAt
         : null;
+  const clockSource =
+    typeof result.clockSource === "string" ? result.clockSource : null;
+  const clockSeq =
+    typeof result.clockSeq === "number" && Number.isFinite(result.clockSeq)
+      ? Math.trunc(result.clockSeq)
+      : typeof result.seq === "number" && Number.isFinite(result.seq)
+        ? Math.trunc(result.seq)
+        : null;
   const { bars, rejected } = validateAndNormalizeBars(rawBars, {
     provenance: "native",
     timestampObservedAt: retrievedAt,
@@ -220,6 +231,8 @@ export async function fetchHfmHistoricalCandles(opts: {
     brokerTime,
     gmtTime,
     retrievedAt,
+    clockSource,
+    clockSeq,
     placesOrders: false,
     mutatesBroker: false,
     acceptsForExecution: false,

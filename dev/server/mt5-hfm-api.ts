@@ -1064,6 +1064,12 @@ export async function handleMt5HfmApi(
           completeness: hist.completeness,
           errors: hist.errors,
           bars: hist.bars,
+          // E3-R3: dump/snapshot clock provenance for the series.
+          brokerTime: hist.brokerTime,
+          gmtTime: hist.gmtTime,
+          retrievedAt: hist.retrievedAt,
+          clockSource: hist.clockSource,
+          clockSeq: hist.clockSeq,
           candles: {
             symbol: hist.symbol,
             timeframe: hist.timeframe,
@@ -1073,6 +1079,11 @@ export async function handleMt5HfmApi(
             source: hist.source,
             provider: "HFM_MT5",
             environment: "demo",
+            brokerTime: hist.brokerTime,
+            gmtTime: hist.gmtTime,
+            retrievedAt: hist.retrievedAt,
+            clockSource: hist.clockSource,
+            clockSeq: hist.clockSeq,
           },
           currentCandle: forming,
           note: hist.available

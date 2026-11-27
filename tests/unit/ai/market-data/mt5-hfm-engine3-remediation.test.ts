@@ -426,6 +426,13 @@ describe("E3-R3 periodic dump clock metadata propagation", () => {
     expect(src).toContain("\"gmtTime\": dump_gmt");
     // Must not blindly prefer unrelated live snapshot over dump clocks.
     expect(src).toContain("Do not substitute an unrelated later live snapshot clock");
+    const api = readSrc(resolve("dev/server/mt5-hfm-api.ts"), "utf8");
+    expect(api).toContain("brokerTime: hist.brokerTime");
+    expect(api).toContain("gmtTime: hist.gmtTime");
+    expect(api).toContain("clockSource: hist.clockSource");
+    const hist = readSrc(resolve("ai/market-data/mt5-hfm/historical-engine.ts"), "utf8");
+    expect(hist).toContain("clockSource");
+    expect(hist).toContain("clockSeq");
   });
 
   it("cache meta retains brokerTime/gmtTime fields", () => {
