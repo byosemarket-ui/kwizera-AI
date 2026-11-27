@@ -1032,13 +1032,19 @@ void WriteSnapshot()
          string csym = candleSymbols[si];
          string tfJson = "";
          bool firstTf = true;
+         // STEP 1C.2 — all twelve required acquisition timeframes (bounded CandleBars).
          AppendCandles(tfJson, csym, PERIOD_M1, "M1", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_M3, "M3", firstTf);
          AppendCandles(tfJson, csym, PERIOD_M5, "M5", firstTf);
          AppendCandles(tfJson, csym, PERIOD_M15, "M15", firstTf);
          AppendCandles(tfJson, csym, PERIOD_M30, "M30", firstTf);
          AppendCandles(tfJson, csym, PERIOD_H1, "H1", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_H2, "H2", firstTf);
          AppendCandles(tfJson, csym, PERIOD_H4, "H4", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_H6, "H6", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_H12, "H12", firstTf);
          AppendCandles(tfJson, csym, PERIOD_D1, "D1", firstTf);
+         AppendCandles(tfJson, csym, PERIOD_W1, "W1", firstTf);
          if(StringLen(tfJson) <= 0)
             continue;
          if(!firstSym)

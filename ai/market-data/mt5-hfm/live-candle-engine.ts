@@ -7,15 +7,24 @@ import type { HfmHistoricalBar } from "./historical-engine.js";
 
 export type HfmLivePriceBasis = "bid";
 
-/** Timeframes with verified CopyRates + live forming aggregation (STEP 3). */
+/**
+ * Timeframes with verified CopyRates + live forming aggregation (STEP 3 / 1C.2).
+ * All twelve required acquisition TFs. W1 forming requires a CopyRates anchor
+ * (broker week open); epoch Monday fallback is intentionally not used.
+ */
 export const HFM_VERIFIED_LIVE_TFS = [
   "M1",
+  "M3",
   "M5",
   "M15",
   "M30",
   "H1",
+  "H2",
   "H4",
+  "H6",
+  "H12",
   "D1",
+  "W1",
 ] as const;
 
 export type HfmVerifiedLiveTf = (typeof HFM_VERIFIED_LIVE_TFS)[number];
@@ -110,20 +119,25 @@ export function bucketStart(timeSec: number, timeframe: string): number | null {
  * Resolve forming candle open time using an optional broker CopyRates anchor.
  * When `anchorTime` is the last historical bar open, ticks stay on that bar until
  * `anchorTime + tfSeconds`, then step forward on the same grid (broker-aligned).
+ *
+ * W1 without a CopyRates anchor returns null — MT5 weekly opens are broker-defined
+ * and must not be invented from a UTC Monday heuristic.
  */
 export function resolveFormingBucket(
   timeSec: number,
   timeframe: string,
   anchorTime: number | null | undefined,
 ): number | null {
-  const sec = timeframeSeconds(timeframe);
-  if (sec == null) return bucketStart(timeSec, timeframe);
+  const tf = timeframe.toUpperCase();
+  const sec = timeframeSeconds(tf);
+  if (sec == null) return bucketStart(timeSec, tf);
   if (typeof anchorTime === "number" && Number.isFinite(anchorTime) && anchorTime > 0) {
     if (timeSec < anchorTime) return null;
     const steps = Math.floor((timeSec - anchorTime) / sec);
     return anchorTime + steps * sec;
   }
-  return bucketStart(timeSec, timeframe);
+  if (tf === "W1") return null;
+  return bucketStart(timeSec, tf);
 }
 
 export function isValidHfmTick(t: {

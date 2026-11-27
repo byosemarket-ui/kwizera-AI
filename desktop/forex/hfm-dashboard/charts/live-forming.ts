@@ -6,16 +6,21 @@ import { HFM_CHART_VERIFIED_TFS, type HfmChartCandle } from "./types";
 
 const TF_SECONDS: Record<string, number> = {
   M1: 60,
+  M3: 180,
   M5: 300,
   M15: 900,
   M30: 1800,
   H1: 3600,
+  H2: 7200,
   H4: 14400,
+  H6: 21600,
+  H12: 43200,
   D1: 86400,
+  W1: 604800,
 };
 
 export function isLiveFormingTimeframe(tf: string): boolean {
-  return (HFM_CHART_VERIFIED_TFS as readonly string[]).includes(tf);
+  return (HFM_CHART_VERIFIED_TFS as readonly string[]).includes(tf.toUpperCase());
 }
 
 export function timeframeSeconds(tf: string): number | null {
@@ -27,12 +32,15 @@ export function resolveFormingBucket(
   timeframe: string,
   anchorTime: number | null | undefined,
 ): number | null {
-  const sec = timeframeSeconds(timeframe);
+  const tf = timeframe.toUpperCase();
+  const sec = timeframeSeconds(tf);
   if (sec == null) return null;
   if (typeof anchorTime === "number" && Number.isFinite(anchorTime) && anchorTime > 0) {
     if (tickTime < anchorTime) return null;
     return anchorTime + Math.floor((tickTime - anchorTime) / sec) * sec;
   }
+  // W1 requires broker CopyRates week-open anchor (same contract as live-candle-engine).
+  if (tf === "W1") return null;
   return Math.floor(tickTime / sec) * sec;
 }
 

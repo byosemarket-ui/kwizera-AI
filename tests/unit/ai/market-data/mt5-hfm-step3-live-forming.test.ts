@@ -127,7 +127,7 @@ describe("STEP 3 multi-TF live forming candles", () => {
     const bucket = resolveFormingBucket(anchor + 500, "H4", anchor);
     expect(bucket).toBe(anchor);
     expect(isLiveFormingTimeframe("H4")).toBe(true);
-    expect(isLiveFormingTimeframe("H2")).toBe(false);
+    expect(isLiveFormingTimeframe("H2")).toBe(true);
   });
 
   it("applyTickVerifiedTimeframes updates all verified TFs", () => {

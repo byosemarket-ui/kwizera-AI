@@ -2,15 +2,20 @@
 
 export const HFM_CHARTS_PROVIDER = "HFM_MT5" as const;
 
-/** Native CopyRates-verified in STEP 2 runtime. */
+/** Native CopyRates + live forming verified (STEP 3 / 1C.2 — all twelve required TFs). */
 export const HFM_CHART_VERIFIED_TFS = [
   "M1",
+  "M3",
   "M5",
   "M15",
   "M30",
   "H1",
+  "H2",
   "H4",
+  "H6",
+  "H12",
   "D1",
+  "W1",
 ] as const;
 
 /** UI timeframe bar — request only; unavailable stays honest. */

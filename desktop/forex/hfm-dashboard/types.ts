@@ -23,9 +23,34 @@ export type HfmSseEventType =
   | "freshness"
   | "recovery";
 
-export type HfmCandleTf = "M1" | "M5" | "M15" | "M30" | "H1" | "H4" | "D1";
+export type HfmCandleTf =
+  | "M1"
+  | "M3"
+  | "M5"
+  | "M15"
+  | "M30"
+  | "H1"
+  | "H2"
+  | "H4"
+  | "H6"
+  | "H12"
+  | "D1"
+  | "W1";
 
-export const HFM_CANDLE_TFS: HfmCandleTf[] = ["M1", "M5", "M15", "M30", "H1", "H4", "D1"];
+export const HFM_CANDLE_TFS: HfmCandleTf[] = [
+  "M1",
+  "M3",
+  "M5",
+  "M15",
+  "M30",
+  "H1",
+  "H2",
+  "H4",
+  "H6",
+  "H12",
+  "D1",
+  "W1",
+];
 export const HFM_CHART_SYMBOLS = ["EURUSD", "XAUUSD"] as const;
 export type HfmChartSymbol = (typeof HFM_CHART_SYMBOLS)[number];
 
