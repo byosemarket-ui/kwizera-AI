@@ -668,6 +668,59 @@
   color: var(--analysis-text);
 }
 
+/* Unclassed Refresh / panel controls (lifecycle, pressure, DTI, EMI heads) */
+[data-hfm-dashboard] .hfm-analysis-panel button:not([class]),
+[data-hfm-dashboard] .hap-lifecycle-head button,
+[data-hfm-dashboard] .hap-pressure-head button,
+[data-hfm-dashboard] .hap-dti-head button,
+[data-hfm-dashboard] .hap-emi-head button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: var(--analysis-radius-sm);
+  border: 1px solid var(--analysis-border-strong);
+  background: var(--analysis-panel-raised);
+  color: var(--analysis-text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+[data-hfm-dashboard] .hfm-analysis-panel button:not([class]):hover:not(:disabled),
+[data-hfm-dashboard] .hap-lifecycle-head button:hover:not(:disabled),
+[data-hfm-dashboard] .hap-pressure-head button:hover:not(:disabled),
+[data-hfm-dashboard] .hap-dti-head button:hover:not(:disabled),
+[data-hfm-dashboard] .hap-emi-head button:hover:not(:disabled) {
+  background: var(--analysis-panel-hover);
+  color: var(--analysis-text);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+[data-hfm-dashboard] .hfm-analysis-panel button:not([class]):disabled,
+[data-hfm-dashboard] .hap-lifecycle-head button:disabled,
+[data-hfm-dashboard] .hap-pressure-head button:disabled,
+[data-hfm-dashboard] .hap-dti-head button:disabled,
+[data-hfm-dashboard] .hap-emi-head button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+[data-hfm-dashboard] .hap-lifecycle-head,
+[data-hfm-dashboard] .hap-pressure-head,
+[data-hfm-dashboard] .hap-dti-head,
+[data-hfm-dashboard] .hap-emi-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--analysis-space-2) var(--analysis-space-3);
+}
+
 [data-hfm-dashboard] .hap-filter {
   width: 100%;
   margin: 6px 0 8px;
