@@ -241,34 +241,38 @@ export function HfmDashboardPage({
             ))}
           </nav>
 
-          <div className="hfm-side-status">
-            <h3>HFM MT5 Status</h3>
-            <div className="hfm-side-row">
-              <span>Terminal (Wine)</span>
-              {sideTerm}
+          <details className="hfm-side-status" open>
+            <summary className="hfm-side-status-summary">
+              <span>HFM MT5 Status</span>
+            </summary>
+            <div className="hfm-side-status-body">
+              <div className="hfm-side-row">
+                <span>Terminal (Wine)</span>
+                {sideTerm}
+              </div>
+              <div className="hfm-side-row">
+                <span>MT5 Agent auth</span>
+                {sideAgent}
+              </div>
+              <div className="hfm-side-row">
+                <span>Quote feed</span>
+                {sideQuote}
+              </div>
+              <div className="hfm-side-row">
+                <span>Candle feed</span>
+                {sideCandle}
+              </div>
+              <div className="hfm-side-row">
+                <span>Market data</span>
+                {sideReady}
+              </div>
+              <div className="hfm-side-row">
+                <span>SSE client</span>
+                {sideSse}
+              </div>
+              <HfmProviderStatus realtime={realtimeHints} compact />
             </div>
-            <div className="hfm-side-row">
-              <span>MT5 Agent auth</span>
-              {sideAgent}
-            </div>
-            <div className="hfm-side-row">
-              <span>Quote feed</span>
-              {sideQuote}
-            </div>
-            <div className="hfm-side-row">
-              <span>Candle feed</span>
-              {sideCandle}
-            </div>
-            <div className="hfm-side-row">
-              <span>Market data</span>
-              {sideReady}
-            </div>
-            <div className="hfm-side-row">
-              <span>SSE client</span>
-              {sideSse}
-            </div>
-            <HfmProviderStatus realtime={realtimeHints} compact />
-          </div>
+          </details>
         </aside>
 
         <button
