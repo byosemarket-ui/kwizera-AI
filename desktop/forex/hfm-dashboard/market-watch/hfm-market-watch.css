@@ -38,43 +38,55 @@
   --hfm-mw-right-w: min(300px, 32vw);
 }
 
-/* —— Provider chip in sidebar —— */
+/* —— Provider chip in sidebar (compact) —— */
 [data-hfm-dashboard] .hfm-mw-provider-card {
   display: flex;
   align-items: center;
-  gap: var(--hfm-mw-space-2);
-  padding: 10px;
-  border-radius: var(--hfm-mw-radius-sm);
+  gap: 7px;
+  padding: 6px 7px;
+  border-radius: 7px;
   border: 1px solid var(--hfm-mw-border);
   background: var(--hfm-mw-elevated);
+  min-width: 0;
 }
 
 [data-hfm-dashboard] .hfm-mw-provider-mark {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   background: linear-gradient(135deg, var(--hfm-mw-purple-2), #2563eb);
   color: #fff;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.04em;
   flex-shrink: 0;
 }
 
+[data-hfm-dashboard] .hfm-mw-provider-card > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 [data-hfm-dashboard] .hfm-mw-provider-card strong {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--hfm-mw-text);
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 [data-hfm-dashboard] .hfm-mw-provider-card span {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--hfm-mw-text-muted);
-  line-height: 1.25;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 [data-hfm-dashboard] .hfm-mw-live-dot {
@@ -103,32 +115,28 @@
   background: var(--hfm-mw-info);
 }
 
-[data-hfm-dashboard] .hfm-nav-btn[data-active="true"] {
-  position: relative;
-}
-
-[data-hfm-dashboard] .hfm-nav-btn[data-active="true"]::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: #c4b5fd;
-}
+/* Active rail uses inset box-shadow in hfm-dashboard.css so ::before stays free for nav icons. */
 
 [data-hfm-dashboard] .hfm-mw-conn-footer {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  padding: 8px 10px;
-  border-radius: var(--hfm-mw-radius-sm);
+  gap: 6px;
+  margin-top: 6px;
+  padding: 5px 7px;
+  border-radius: 6px;
   border: 1px solid var(--hfm-mw-border);
   background: rgba(139, 92, 246, 0.08);
   color: var(--hfm-mw-text-secondary);
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+[data-hfm-dashboard] .hfm-mw-conn-footer > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 [data-hfm-dashboard] .hfm-mw-conn-footer[data-tone="live"] {
